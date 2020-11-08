@@ -669,8 +669,6 @@ tvAccessory.prototype = {
 			// Error detection. error is true when an exec error occured
 			if (error) {
 					self.log.warn('Volume control command failed:',stderr.trim());
-			} else {
-					self.log('Volume control command succeeded:',stdout);
 			}
 		});
 
