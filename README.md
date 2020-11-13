@@ -58,17 +58,17 @@ The following keys are supported by in the iOS Remote in the Control Center
 You can configure the (i) button to be Info, Help, Guide, ContextMenu or MediaTopMenu.
 Most useful is MediaTopMenu, which is the default.
 
-The volume controls do not control the UPC TV Box, as the UPC TV Box has no volume capability. The volume controls can be used to send commands to your TV via the raspberry pi.
+The volume controls do not control the UPC TV Box, as the UPC TV Box has no volume capability. The UPC remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
 
 
 ## Limitations
 Due to HomeKit app limitations, the maximum services for a single accessory is 100. Over this value the HomeKit app will no longer respond. 
-Services in this UPC TV Box accessory are: 
+Services used in this UPC TV Box accessory are: 
 1. Information service
 2. Television service
 3. Speaker service 
-4. Input service. The inputs for the Input service utilise one services per TV channel. The maximum possible channels (inputs) are thus 97.
-Hoever, the more services you have, the slower the plugin might be. So I have limited the inputs to maximum 50.
+4. Input service. The inputs for the Input service utilise one service per input (TV channel). The maximum possible channels (inputs) are thus 97.
+However, the more services you have, the slower the plugin might be. So I have limited the inputs to maximum 50.
 
 ## Configuration
 Add a new platform to your homebridge `config.json`.
