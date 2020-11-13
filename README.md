@@ -1,25 +1,27 @@
 <p align="center">
-  <a href="https://github.com/jsiegenthaler/eosstb/blob/master/pics/DCX960andRemoteSmall.jpg"><img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/DCX960andRemoteSmall.jpg" height="140"></a>
+    <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/DCX960andRemoteSmall.jpg" alt="UPC TV Box (ARRIS DCX960)" height="300">
+  </a>
 </p>
 
 <span align="center">
+ 
 # homebridge-eosstb
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your UPC TV Box (Mediabox Next (4K) / TV-Box / Entertain Box 4K) and connected HDMI-CEC controllable devices with the Apple Home app and the Control Centre Apple TV Remote (which I'll just call iOS remote from now on).
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your UPC TV Box (Mediabox Next (4K) / TV-Box / Entertain Box 4K) and connected HDMI-CEC controllable devices with the Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+</span>
 
-The UPC TV box, made by ARRIS Global Limited, model DCX960, looks like this:
-
-![UPC TV Box and Remote](https://github.com/jsiegenthaler/eosstb/blob/master/pics/DCX960andRemoteSmall.jpg "UPC TV Box and Remote: ARRIS DCX960")
-
-
+# Works in Your Country (If you are lucky)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries. The known countries that use the same settop box are:
 * Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the UPC TV Box. Also known as the EOSSTB.
 * Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the Mediabox Next (4K).
 * Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums kept it simple. It's called a TV-Box.
 * Austria: [Magenta](https://www.magenta.at/). Called the Entertain Box 4K.
 
+So if you use UPC TV from one of these countries, you are lucky, this plugic will work for you.
+
 May also work with other UPC countries, if you know of any, let me know.
 
+# Made in Switzerland
 This plugin was written and tested on the author's UPC TV Box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland.
 
 This plugin displays your UPC TV Box as a TV Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad).
