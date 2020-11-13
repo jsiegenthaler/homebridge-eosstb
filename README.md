@@ -3,7 +3,7 @@
 `homebridge-eosstb` is a Homebridge plugin allowing you to control your UPC TV Box (Mediabox Next (4K) / TV-Box / Entertain Box 4K) and connected HDMI-CEC controllable devices with the Apple Home app and the Control Centre Apple TV Remote (which I'll just call iOS remote from now on).
 
 The UPC TV box looks like this:
-![UPC TV Box and Remote](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "UPC TV Box and Remote")
+![UPC TV Box and Remote](https://github.com/jsiegenthaler/eosstb/blob/master/DCX960andRemote.jpg "UPC TV Box and Remote")
 
 
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries. The known countries that use the same settop box (made by ARRIS Global Limited, model ARRIS DCX960) are:
