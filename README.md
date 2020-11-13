@@ -49,13 +49,11 @@ The volume controls do not control the UPC TV Box, but can be used to send comma
 
 ## Limitations
 Due to HomeKit app limitation, the maximum services for 1 accessory is 100. Over this value HomeKit app will no longer respond. 
-As services in this accessory are, (1. Information service, 2. Television service, 3. Speaker service, and 4. Input service. The inputs can consume services 5-100 (every input = 1 service)). If all services are enabled possible inputs to use is thus 96.
+Services in this accessory are: 1. Information service, 2. Television service, 3. Speaker service, and 4. Input service. The inputs can consume services 5-100 (every input = 1 service)). If all services are enabled possible inputs to use is thus 96.
 Hoever, the more services you have, the slower the plugin might be. So I have limited the inputs to maximum 50.
 
 ## Configuration
 Add a new platform to your homebridge `config.json`.
-
-Specific "favourite" inputs can be added manually or all available inputs reported by the AVR will be set.
 
 Example configuration:
 
@@ -71,16 +69,18 @@ Example configuration:
     ]
   }
 ```
-## Explanations:
-* platform    the name of your platform, normally eosstb
-* name        The displayed name of your device. Default is UPC TV, you can set it to whatever you want
-* username    Your login username for your My UPC account. Normally an email address.
-* password    Your password associated with your My UPC account
-* PlayPauseKey    The command issued to the UPC Box when the Play/Pause button in the iOS remote is tapped. Normally MediaPause
-* BackKey     The command issued to the UPC Box when the Back button in the iOS remote is tapped. Normally Escape
-* InfoKey     The command issued to the UPC Box when the Info button (i) in the iOS remote is tapped. As the iOS Remote has no Menu button, the Info button should be used to access the menu. This is what the Info button is set to MediaTopMenu
 
-## Known UPC Box Commands
+### Explanations:
+* **platform**: the name of your platform, normally eosstb
+* **name**: The displayed name of your device. Default is UPC TV, you can set it to whatever you want
+* **username**: Your login username for your My UPC account. Normally an email address.
+* **password**: Your password associated with your My UPC account
+* **playPauseButton**: The command issued to the UPC Box when the Play/Pause button in the iOS remote is tapped. Normally MediaPause
+* **backButton**: The command issued to the UPC Box when the Back button in the iOS remote is tapped. Normally Escape
+* **infoButton**: The command issued to the UPC Box when the Info button (i) in the iOS remote is tapped. As the iOS Remote has no Menu button, the Info button should be used to access the menu. This is what the Info button is set to MediaTopMenu
+* **maxChannels**: The maximum number of channels to show. Default = 50. Limit = 96.
+
+## Known UPC TV Box Commands
 * **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the HOME button on the UPC remote
 
 * **Escape**: Escapes (exits) out of any current screen on the TV. Same as the RETURN button on the remote
