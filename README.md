@@ -3,15 +3,17 @@
   </a>
 </p>
 
-<span align="center">
- 
 # homebridge-eosstb
 
 `homebridge-eosstb` is a Homebridge plugin allowing you to control your UPC TV Box (Mediabox Next (4K) / TV-Box / Entertain Box 4K) and connected HDMI-CEC controllable devices with the Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
-</span>
+
+This plugin displays your UPC TV Box as a TV Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad).
+
+You need a My UPC subscription or the appropriate equivalent from your UPC provider.
+The username and password are the same as used in the UPC TV app on your iOS device (the app varies by country, this is the Swiss app: [upc tv Schweiz](https://apps.apple.com/ch/app/upc-tv-schweiz/id1292688012)).
 
 # Works in Your Country (If you are lucky)
-As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries. The known countries that use the same settop box are:
+As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same ARRIS DCX960 settop box are:
 * Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the UPC TV Box. Also known as the EOSSTB.
 * Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the Mediabox Next (4K).
 * Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums kept it simple. It's called a TV-Box.
@@ -21,18 +23,13 @@ So if you use UPC TV from one of these countries, you are lucky, this plugic wil
 
 May also work with other UPC countries, if you know of any, let me know.
 
-# Made in Switzerland
+## Made in Switzerland
 This plugin was written and tested on the author's UPC TV Box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland.
 
-This plugin displays your UPC TV Box as a TV Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad).
 
-You need a My UPC subscription or the appropriate equivalent from your UPC provider.
-The username and password are the same as used in the "upc tv Switzerland" app on your iOS device (outside of Switzerland the app may have a different name).
-
-## Disclaimer
+## Disclaimer (The Legal Stuff)
 This plugin is not provided by UPC or Ziggo or Telenet or Magenta any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. 
 UPC can change their systems at any time and that might break this plugin.
-
 
 ## Requirements
 * An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1 and 14.2, earlier versions not tested.
