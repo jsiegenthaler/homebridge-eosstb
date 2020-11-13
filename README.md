@@ -7,6 +7,7 @@ As UPC operates in multiple countries under multiple brands, this plugin will wo
 * Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the Mediabox Next (4K).
 * Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums kept it simple. It's called a TV-Box.
 * Austria: [Magenta](https://www.magenta.at/). Called the Entertain Box 4K.
+
 May also work with other UPC countries, if you know of any, let me know.
 
 This plugin was written and tested on the author's UPC TV Box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland.
