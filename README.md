@@ -33,13 +33,13 @@ npm install -g homebridge-eosstb
 ## Remote Control Supported Keys
 The following keys are supported by in the Apple TV Remote in the Control Center
 
-Navigation (Up/Down/Left/Right)	
-OK
-Play/Pause
-Back
-Info (i)
-Volume Up
-Volume Down
+* Navigation (Up/Down/Left/Right)	
+* OK
+* Play/Pause
+* Back
+* Info (i)
+* Volume Up
+* Volume Down
 
 You can configure the (i) button to be Info, Help, Guide, ContextMenu or MediaTopMenu.
 Most useful is MediaTopMenu, which is the default
@@ -72,33 +72,33 @@ Example configuration:
   }
 ```
 ## Explanations:
-platform    the name of your platform, normally eosstb
-name        The displayed name of your device. Default is UPC TV, you can set it to whatever you want
-username    Your login username for your My UPC account. Normally an email address.
-password    Your password associated with your My UPC account
-PlayPauseKey    The command issued to the UPC Box when the Play/Pause button in the iOS remote is tapped. Normally MediaPause
-BackKey     The command issued to the UPC Box when the Back button in the iOS remote is tapped. Normally Escape
-InfoKey     The command issued to the UPC Box when the Info button (i) in the iOS remote is tapped. As the iOS Remote has no Menu button, the Info button should be used to access the enu. This is what the Info button is set to MediaTopMenu
+* platform    the name of your platform, normally eosstb
+* name        The displayed name of your device. Default is UPC TV, you can set it to whatever you want
+* username    Your login username for your My UPC account. Normally an email address.
+* password    Your password associated with your My UPC account
+* PlayPauseKey    The command issued to the UPC Box when the Play/Pause button in the iOS remote is tapped. Normally MediaPause
+* BackKey     The command issued to the UPC Box when the Back button in the iOS remote is tapped. Normally Escape
+* InfoKey     The command issued to the UPC Box when the Info button (i) in the iOS remote is tapped. As the iOS Remote has no Menu button, the Info button should be used to access the menu. This is what the Info button is set to MediaTopMenu
 
 ## Known UPC Box Commands
-**MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the HOME button on the UPC remote
+* **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the HOME button on the UPC remote
 
-**Escape**: Escapes (exits) out of any current screen on the TV. Same as the RETURN button on the remote
+* **Escape**: Escapes (exits) out of any current screen on the TV. Same as the RETURN button on the remote
 
-**ContextMenu**: Dsisplays a context menu on the current TV program. Sales as the ... button on the UPC remote
+* **ContextMenu**: Dsisplays a context menu on the current TV program. Sales as the ... button on the UPC remote
 
-**Info**: Displays the INFO screen on the UPC TV showing info about the current TV program
+* **Info**: Displays the INFO screen on the UPC TV showing info about the current TV program
 
-**Help**: Displays the SETTINGS INFO page on the UPC TV, allowing you to access settings quickly
+* **Help**: Displays the SETTINGS INFO page on the UPC TV, allowing you to access settings quickly
 
-**Guide**: Displays the TV GUIDE page on the UPC TV, same as the Guide button on the remote
+* **Guide**: Displays the TV GUIDE page on the UPC TV, same as the Guide button on the remote
 
-**MediaPause**: Pauses and Plays (when pressed again) the current TV program
+* **MediaPause**: Pauses and Plays (when pressed again) the current TV program
 
-**MediaPause**: Pauses and Plays (when pressed again) the current TV program
+* **MediaPause**: Pauses and Plays (when pressed again) the current TV program
 
 ## Known Other Commands
-**VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the UPC TV Box, but instead via a bash command on homebridge. So your TV must be cpaable of being controlled remotely via your raspberry pi. The author's TV uses [samsungctl](https://github.com/Ape/samsungctl/), and that allows KEY_VOLUP and KEY_VOLDOWN to be easily sent.
+* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the UPC TV Box, but instead via a bash command on homebridge. So your TV must be cpaable of being controlled remotely via your raspberry pi. The author's TV uses [samsungctl](https://github.com/Ape/samsungctl/), and that allows KEY_VOLUP and KEY_VOLDOWN to be easily sent.
 
 ## Siri
 I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <youUPCTVboxname". However, I haven't been able to get Siri to change channels or change volume yet.
