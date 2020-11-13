@@ -14,10 +14,10 @@ The username and password are the same as used in the UPC TV app on your iOS dev
 
 # Works in Your Country (If you are lucky)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same ARRIS DCX960 settop box are:
-* Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the UPC TV Box. Also known as the EOSSTB.
-* Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the Mediabox Next (4K).
-* Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums kept it simple. It's called a TV-Box.
-* Austria: [Magenta](https://www.magenta.at/). Called the Entertain Box 4K.
+* Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **UPC TV Box**. Also known as the EOSSTB.
+* Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **Mediabox Next (4K)**.
+* Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums kept it simple. The DCX960 is called a **TV-Box**.
+* Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **Entertain Box 4K**.
 
 So if you use UPC TV from one of these countries, you are lucky, this plugic will work for you.
 
@@ -29,7 +29,7 @@ This plugin was written and tested on the author's UPC TV Box (ARRIS mediabox mo
 
 ## Disclaimer (The Legal Stuff)
 This plugin is not provided by UPC or Ziggo or Telenet or Magenta any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. 
-UPC can change their systems at any time and that might break this plugin.
+UPC can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
 * An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1 and 14.2, earlier versions not tested.
@@ -62,8 +62,12 @@ The volume controls do not control the UPC TV Box, as the UPC TV Box has no volu
 
 
 ## Limitations
-Due to HomeKit app limitation, the maximum services for a single accessory is 100. Over this value the HomeKit app will no longer respond. 
-Services in this UPC TV Box accessory are: 1. Information service, 2. Television service, 3. Speaker service, and 4. Input service. The inputs for the Input service utilise one services per TV channel. The maximum possible channels (inputs) are thus 97.
+Due to HomeKit app limitations, the maximum services for a single accessory is 100. Over this value the HomeKit app will no longer respond. 
+Services in this UPC TV Box accessory are: 
+1. Information service
+2. Television service
+3. Speaker service 
+4. Input service. The inputs for the Input service utilise one services per TV channel. The maximum possible channels (inputs) are thus 97.
 Hoever, the more services you have, the slower the plugin might be. So I have limited the inputs to maximum 50.
 
 ## Configuration
@@ -84,7 +88,7 @@ Example configuration:
   }
 ```
 
-### Explanations:
+### Configuration Items:
 * **platform**: the name of your platform. Mandatory, must be eosstb.
 
 * **name**: The displayed name of your device. Default is UPC TV, you can set it to whatever you want. Mandatory.
@@ -104,7 +108,7 @@ Example configuration:
 * **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found.
 
 
-## Known UPC TV Box Commands
+## Known Relevant UPC TV Box Commands
 * **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the HOME button on the UPC remote
 
 * **Escape**: Escapes (exits) out of any current screen on the TV. Same as the RETURN button on the UPC remote
@@ -123,7 +127,7 @@ Example configuration:
 
 
 ## Known Other Commands
-* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the UPC TV Box, but instead via a bash command on homebridge. So your TV must be cpaable of being controlled remotely via your raspberry pi. The author's TV uses [samsungctl](https://github.com/Ape/samsungctl/), and that allows KEY_VOLUP and KEY_VOLDOWN to be easily sent.
+* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the UPC TV Box, but instead via a bash command on homebridge. So your TV must be capable of being controlled remotely via your raspberry pi. The author's TV uses [samsungctl](https://github.com/Ape/samsungctl/), and that allows KEY_VOLUP and KEY_VOLDOWN to be easily sent.
 
 
 ## Siri
