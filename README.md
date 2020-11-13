@@ -2,6 +2,9 @@
 
 `homebridge-eosstb` is a Homebridge plugin allowing you to control your UPC TV Box (Mediabox Next (4K) / TV-Box / Entertain Box 4K) and connected HDMI-CEC controllable devices with the Apple Home app and the Control Centre Apple TV Remote (which I'll just call iOS remote from now on).
 
+The UPC TV box looks like this:
+
+
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries. The known countries that use the same settop box (made by ARRIS Global Limited, model ARRIS DCX960) are:
 * Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the UPC TV Box. Also known as the EOSSTB.
 * Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the Mediabox Next (4K).
@@ -80,17 +83,17 @@ Example configuration:
 
 * **name**: The displayed name of your device. Default is UPC TV, you can set it to whatever you want. Mandatory.
 
-+ **country**: Your UPC country. Must be one of ch, nl, be-nl, be-fr, or at. Optional, default is ch
++ **country**: Your UPC country. Must be one of ch, nl, be-nl, be-fr, or at. Optional, default is ch (because that is where I live)
 
 * **username**: Your login username for your My UPC account. Normally an email address. Mandatory.
 
 * **password**: Your password associated with your My UPC account. Mandatory.
 
-* **playPauseButton**: The command issued to the UPC Box when the Play/Pause button in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
+* **playPauseButton**: The command issued to the UPC Box when the Play/Pause button (**>||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
 
-* **backButton**: The command issued to the UPC Box when the Back button in the iOS remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
+* **backButton**: The command issued to the UPC Box when the **BACK** button in the iOS remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
 
-* **infoButton**: The command issued to the UPC Box when the Info button (i) in the iOS remote is tapped. As the iOS Remote has no Menu button, the Info button should be used to access the menu. This is what the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
+* **infoButton**: The command issued to the UPC Box when the Info button (**i**) in the iOS remote is tapped. As the iOS remote has no Menu button, the Info button should be used to access the menu. This is what the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
 
 * **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found.
 
@@ -98,7 +101,7 @@ Example configuration:
 ## Known UPC TV Box Commands
 * **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the HOME button on the UPC remote
 
-* **Escape**: Escapes (exits) out of any current screen on the TV. Same as the RETURN button on the remote
+* **Escape**: Escapes (exits) out of any current screen on the TV. Same as the RETURN button on the UPC remote
 
 * **ContextMenu**: Dsisplays a context menu on the current TV program. Sales as the ... button on the UPC remote
 
@@ -106,7 +109,7 @@ Example configuration:
 
 * **Help**: Displays the SETTINGS INFO page on the UPC TV, allowing you to access settings quickly
 
-* **Guide**: Displays the TV GUIDE page on the UPC TV, same as the Guide button on the remote
+* **Guide**: Displays the TV GUIDE page on the UPC TV, same as the Guide button on the UPC remote
 
 * **MediaPause**: Pauses and Plays (when pressed again) the current TV program
 
@@ -118,12 +121,16 @@ Example configuration:
 
 
 ## Siri
-I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <youUPCTVboxname". However, I haven't been able to get Siri to change channels or change volume yet.
+I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <yourUPCTVboxname". However, I haven't been able to get Siri to change channels or change volume yet.
 
 
 ## Thanks to
 [homebridge-yamaha-avr](https://github.com/ACDR/homebridge-yamaha-avr)
+
 https://openbase.io/js/homebridge-denon-tv/documentation
+
 [NextRemoteJs](https://github.com/basst85/NextRemoteJs/)
+
 [ziggonext-python by Rudolf Offereins](https://pypi.org/project/ziggonext/#description)
+
 UPC for making such a useful TV platform
