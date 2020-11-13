@@ -1,28 +1,30 @@
 # homebridge-eosstb
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your UPC TV Box and connected HDMI-CEC controllable devices with the Apple Home app and the Control Centre Apple TV Remote (which I'll just call iOS remote from now on).
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your UPC TV Box / Mediabox Next (4K) and connected HDMI-CEC controllable devices with the Apple Home app and the Control Centre Apple TV Remote (which I'll just call iOS remote from now on).
 
 The UPC TV Box will display as a TV Accessory with Power, Input & Remote Control capabilities.
 
-Works with the UPC Switzerland UPC TV Box (Mediabox) made by ARRIS Global Limited, model DCX960. Also known as the EOSSTB.
-Will also work with other UPC countries, see config.
+As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries. The known countries are:
+* Switzerland: Works with the UPC Switzerland UPC TV Box (Mediabox) made by ARRIS Global Limited, model DCX960. Also known as the EOSSTB.
+* Netherlands: Works with the Ziggo Mediabox Next (4K) made by ARRIS Global Limited, model DCX960.
+May also work with other UPC countries, see config.
 
-Tested on the author's ARRIS mediabox model DCX960/KK0L/A816/0000
+Tested on the author's UPC TV Box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland.
 
-You need a My UPC subscription.
-The username and password are the same as used in the "upc tv Switzerland" app on your iOS device.
+You need a My UPC subscription or the appropriate equivalent from your UPC provider.
+The username and password are the same as used in the "upc tv Switzerland" app on your iOS device (outside of Switzerland the app may have a different name).
 
 ## Disclaimer
-This plugin is not provided by UPC. It is neither endorsed nor supported nor developed by UPC. 
-UPC can change their systems at any time and that might break this plugin.
+This plugin is not provided by UPC or Ziggo or any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or Ziggo. 
+UPC/Ziggo can change their systems at any time and that might break this plugin.
 
 
 ## Requirements
 * An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1 and 14.2, earlier versions not tested.
 * [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116, earlier versions not tested.
-* A UPC TV subscription (included for most people who have internet with UPC)
-* A My UPC account (part of your UPC Internet and TV package)
-* The ARRIS mediabox DCX960 (provided by UPC as part of your UPC TV subscription, marketed as "UPC TV Box")
+* A [UPC TV subscription](https://www.upc.ch/en/bundles/buy-tv-internet/) (or the equivalent in your country, included for most people who have internet with UPC)
+* A [My UPC account](https://www.upc.ch/en/account/login/credentials/) (or the equivalent in your country, part of your UPC Internet and TV package)
+* The ARRIS mediabox DCX960 (provided by UPC/Ziggo as part of your UPC TV subscription, marketed as "UPC TV Box" by UPC in Switzerland and "Mediabox Next (4K)" by Ziggo in the Netherlands)
 
 ## Installation
 Install homebridge-eosstb:
@@ -31,7 +33,7 @@ npm install -g homebridge-eosstb
 ```
 
 ## Remote Control Supported Keys
-The following keys are supported by in the Apple TV Remote in the Control Center
+The following keys are supported by in the iOS Remote in the Control Center
 
 * Navigation (Up/Down/Left/Right)	
 * OK
