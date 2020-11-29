@@ -64,10 +64,10 @@ The volume controls do not control the UPC TV Box, as the UPC TV Box has no volu
 ## Limitations
 Due to HomeKit app limitations, the maximum services for a single accessory is 100. Over this value the HomeKit app will no longer respond. 
 Services used in this UPC TV Box accessory are: 
-1. Information service
-2. Television service
-3. Speaker service 
-4. Input service. The inputs for the Input service utilise one service per input (TV channel). The maximum possible channels (inputs) are thus 97.
+1. Information service (Name, model, serial number of the accessory)
+2. Television service (for controlling the TV accessory)
+3. Speaker service (for the controlling the TV accessory volume)
+4. Input service. The input (TV channels) utilise one service per input. The maximum possible channels (inputs) are thus 97.
 However, the more services you have, the slower the plugin might be. So I have limited the inputs to maximum 50.
 
 ## Configuration
@@ -111,9 +111,9 @@ Example configuration:
 ## Known Relevant UPC TV Box Commands
 * **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the HOME button on the UPC remote
 
-* **Escape**: Escapes (exits) out of any current screen on the TV. Same as the RETURN button on the UPC remote
+* **Escape**: Escapes (exits) out of any current menu on the TV. Same as the RETURN button on the UPC remote
 
-* **ContextMenu**: Dsisplays a context menu on the current TV program. Sales as the ... button on the UPC remote
+* **ContextMenu**: Displays a context menu on the current TV program. Same as the ... button on the UPC remote
 
 * **Info**: Displays the INFO screen on the UPC TV showing info about the current TV program
 
@@ -121,17 +121,17 @@ Example configuration:
 
 * **Guide**: Displays the TV GUIDE page on the UPC TV, same as the Guide button on the UPC remote
 
-* **MediaPause**: Pauses and Plays (when pressed again) the current TV program
+* **MediaPause**: Toggles between Pause and Play of the current TV program
 
 * **MediaPause**: Pauses and Plays (when pressed again) the current TV program
 
 
 ## Known Other Commands
-* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the UPC TV Box, but instead via a bash command on homebridge. So your TV must be capable of being controlled remotely via your raspberry pi. The author's TV uses [samsungctl](https://github.com/Ape/samsungctl/), and that allows KEY_VOLUP and KEY_VOLDOWN to be easily sent.
+* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the UPC TV Box, but instead via a bash command on homebridge. So your TV must be capable of being controlled remotely via your raspberry pi. The author's TV uses [samsungctl](https://github.com/Ape/samsungctl/), and that allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver.
 
 
 ## Siri
-I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <yourUPCTVboxname". However, I haven't been able to get Siri to change channels or change volume yet.
+I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <yourUPCTVboxname>". However, I haven't been able to get Siri to change channels or change volume yet.
 
 
 ## Thanks to
