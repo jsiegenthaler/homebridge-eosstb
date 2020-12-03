@@ -12,21 +12,22 @@ npm install -g https://github.com/jsiegenthaler/eosstb/
 Because you are a helper, I need your feedback
 
 # TO-DO as of 03.12.2020
-Add config for non-CH countries
-Fix the channel selector for the 50 first channels
-Test with profiles
+* Add config for non-CH countries
+* Fix the channel selector for the 50 first channels
+* Test with profiles
+* Re-write the plugin to get the right Homekit icon
 
 
 # homebridge-eosstb
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your UPC TV Box (Mediabox Next (4K) / TV-Box / Entertain Box 4K) and connected HDMI-CEC controllable devices with the Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS Settop box (CH: UPC TV Box; NL:Mediabox Next (4K); BE:TV-Box; AT:Entertain Box 4K) and connected HDMI-CEC controllable devices with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
-This plugin displays your UPC TV Box as a TV Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad).
+This plugin displays your EOS Settop Box as a TV Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad).
 
-You need a My UPC subscription or the appropriate equivalent from your UPC provider.
+You need a My UPC subscription or the appropriate equivalent from your local UPC provider.
 The username and password are the same as used in the UPC TV app on your iOS device (the app varies by country, this is the Swiss app: [upc tv Schweiz](https://apps.apple.com/ch/app/upc-tv-schweiz/id1292688012)).
 
-# Works in Your Country (If you are lucky)
+# Works in Your Country (If you are with UPC / Ziggo / Telenet / Magenta)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same ARRIS DCX960 settop box are:
 * Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **UPC TV Box**. Also known as the EOSSTB.
 * Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **Mediabox Next (4K)**.
