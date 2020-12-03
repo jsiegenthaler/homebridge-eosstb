@@ -73,7 +73,7 @@ The following keys are supported by in the iOS Remote in the Control Center
 You can configure the (i) button to be Info, Help, Guide, ContextMenu or MediaTopMenu.
 Most useful is MediaTopMenu, which is the default.
 
-The volume controls do not control the UPC TV Box, as the UPC TV Box has no volume capability. The UPC remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
+The volume controls do not control the UPC TV Box directly, as the UPC TV Box has no volume capability. The UPC remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
 
 
 ## Limitations
@@ -96,6 +96,7 @@ Example configuration:
       {
         "platform": "eosstb",
         "name": "UPC TV Box",
+        "country": "ch"
         "username": "yourMyUpcEmail@email.com",
         "password": "yourMyUpcPassword"
       }
@@ -142,20 +143,20 @@ Example configuration:
 
 
 ## Known Other Commands
-* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the UPC TV Box, but instead via a bash command on homebridge. So your TV must be capable of being controlled remotely via your raspberry pi. The author's TV uses [samsungctl](https://github.com/Ape/samsungctl/), and that allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver.
+* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the UPC TV Box, but instead via a bash command on homebridge. So your TV must be capable of being controlled remotely via your raspberry pi. The author's TV Receiver uses [samsungctl](https://github.com/Ape/samsungctl/), and that allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver.
 
 
 ## Siri
-I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <yourUPCTVboxname>". However, I haven't been able to get Siri to change channels or change volume yet.
+I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <yourUpcTvBoxName>". However, I haven't been able to get Siri to change channels or change volume yet. if you find out how, let me know!
 
 
 ## Thanks to
-[homebridge-yamaha-avr](https://github.com/ACDR/homebridge-yamaha-avr)
+* [homebridge-yamaha-avr](https://github.com/ACDR/homebridge-yamaha-avr)
 
-https://openbase.io/js/homebridge-denon-tv/documentation
+* https://openbase.io/js/homebridge-denon-tv/documentation
 
-[NextRemoteJs](https://github.com/basst85/NextRemoteJs/)
+* [NextRemoteJs](https://github.com/basst85/NextRemoteJs/)
 
-[ziggonext-python by Rudolf Offereins](https://pypi.org/project/ziggonext/#description)
+* [ziggonext-python by Rudolf Offereins](https://pypi.org/project/ziggonext/#description)
 
-UPC for making such a useful TV platform
+* UPC for making such a useful TV platform
