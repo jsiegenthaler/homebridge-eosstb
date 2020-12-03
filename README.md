@@ -4,11 +4,18 @@
 </p>
 
 # WORK IN PROGRESS
-This is a private repo because I'm not finished, If you've been invited, then its because I selected you. You're here to help.
-During the time that this is a prievate repo, installation must be done using:
+This is a private repo because I'm not finished, If you've been invited, then it's because I selected you. You're here to help.
+During the time that this is a private repo, installation must be done using:
 ```sh
 npm install -g https://github.com/jsiegenthaler/eosstb/
 ```
+Because you are a helper, I need your feedback
+
+# TO-DO as of 03.12.2020
+Add config for non-CH countries
+Fix the channel selector for the 50 first channels
+Test with profiles
+
 
 # homebridge-eosstb
 
