@@ -184,7 +184,7 @@ tvAccessory.prototype = {
 			.setCharacteristic(Characteristic.Name, this.name)
 			.setCharacteristic(Characteristic.Manufacturer, 'ARRIS Global Limited')
 			.setCharacteristic(Characteristic.SerialNumber, 'unknown') // this should be the mac or the ca address	
-			.setCharacteristic(Characteristic.Model, boxName);
+			.setCharacteristic(Characteristic.Model, boxName)
 			.setCharacteristic(Characteristic.FirmwareRevision, PLUGIN_VERSION);
 
 		this.enabledServices.push(this.informationService);
