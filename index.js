@@ -13,8 +13,8 @@ const PLUGIN_VERSION = '0.0.2';
 const settopBoxName = {
     'nl': 		'Mediabox Next (4K)',
     'ch': 		'UPC TV Box',
-    'be-nl': 	'TV-Box',
-    'be-fr': 	'TV-Box',
+    'be-nl': 	'Telenet TV-Box',
+    'be-fr': 	'Telenet TV-Box',
     'at': 		'Entertain Box 4K'
 };
 
