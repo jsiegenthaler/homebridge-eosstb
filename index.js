@@ -5,19 +5,22 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const varClientId = makeId(30);
 
-
+// name and version
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.0.2';
+const PLUGIN_VERSION = '0.0.3';
 
+
+// different settop box names per country
 const settopBoxName = {
-    'nl': 		'Mediabox Next (4K)',
-    'ch': 		'UPC TV Box',
-    'be-nl': 	'Telenet TV-Box',
-    'be-fr': 	'Telenet TV-Box',
-    'at': 		'Entertain Box 4K'
+    'nl':     'Mediabox Next (4K)',
+    'ch':     'UPC TV Box',
+    'be-nl':  'Telenet TV-Box',
+    'be-fr':  'Telenet TV-Box',
+    'at':     'Entertain Box 4K'
 };
 
+// base url varies by country
 const countryBaseUrlArray = {
     'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web',
     'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web',
@@ -26,21 +29,12 @@ const countryBaseUrlArray = {
     'at': 		'https://prod.oesp.magentatv.at/oesp/v3/AT/deu/web'
 };
 
-// session and ywt are based on countryCaseUrl
+// session and jwt are based on countryBaseUrlArray
 //const sessionUrl = 	'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/session';
 //const channelsUrl = 'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/channels';
-const jwtUrl = 				'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/tokens/jwt';
-const jwtUrlArray = {
-    'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web',
-    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web',
-    'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v3/BE/nld/web',
-    'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v3/BE/fr/web',
-    'at': 		'https://prod.oesp.magentatv.at/oesp/v3/AT/deu/web'
-};
+//const jwtUrl = 			'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/tokens/jwt';
 
 
-
-// const mqttUrl = 		'wss://obomsg.prod.ch.horizon.tv:443/mqtt';
 // different mqtt endpoints per country
 const mqttUrlArray = {
     'nl': 		'wss://obomsg.prod.nl.horizon.tv:443/mqtt',
@@ -66,10 +60,6 @@ const STB_STATE_POLLING_INTERVAL_MS = 5000; // pollling interval in millisec. De
 var exec = require("child_process").exec;
 
 let mqttClient = {};
-
-// Set Ziggo username and password
-//const myUpcUsername = "Your username";
-//const myUpcPassword = "Your password";
 
 let myUpcUsername;
 let myUpcPassword;
@@ -128,7 +118,8 @@ function tvAccessory(log, config) {
 
 	this.config = config;
 	this.sysConfig = null;
-	this.name = config.name || 'UPC TV Box';
+	
+	this.name = config.name || settopBoxName[this.config.country]; // market specific box name as default
 
 	this.inputs = [];
 	this.enabledServices = [];
@@ -193,8 +184,8 @@ tvAccessory.prototype = {
 			.setCharacteristic(Characteristic.Name, this.name)
 			.setCharacteristic(Characteristic.Manufacturer, 'ARRIS Global Limited')
 			.setCharacteristic(Characteristic.SerialNumber, 'unknown') // this should be the mac or the ca address	
-			.setCharacteristic(Characteristic.Model, boxName); // as returned by the system?
-			//.setCharacteristic(Characteristic.FirmwareRevision, '1.2.3');
+			.setCharacteristic(Characteristic.Model, boxName);
+			.setCharacteristic(Characteristic.FirmwareRevision, PLUGIN_VERSION);
 
 		this.enabledServices.push(this.informationService);
 	}, // end of prepareInformationService
@@ -316,7 +307,7 @@ tvAccessory.prototype = {
 				this.log.debug('getSession successful');			
 			})
 			.catch((err) => {
-				this.log.error('getSession:', err.message);
+				this.log.error('getSession Error:', err.message); // likely invalid credentials
 			});
 		//return sessionJson || false;
 	}, // end of getSession
@@ -549,7 +540,7 @@ tvAccessory.prototype = {
 			//this.log('checking state of tv service power'); 
 			// update power status value (currentPowerState, 0=off, 1=on)
 			if (this.tvService.getCharacteristic(Characteristic.Active).value !== currentPowerState) {
-					this.log("updateTvState: Settop Box to Homekit: current power state: " + (currentPowerState ? "On" : "Off"));
+					this.log.debug("updateTvState: Settop Box to Homekit: current power state: " + (currentPowerState ? "On" : "Off"));
 					this.tvService.getCharacteristic(Characteristic.Active).updateValue(currentPowerState == 1);
 			}
 			
@@ -589,7 +580,7 @@ tvAccessory.prototype = {
 			// this.log('setInputs: loading channels: this.inputServices.length',this.inputServices.length);
 			// this.log('setInputs: loading channels: this.inputServices',this.inputServices);
 			let channelsUrl = countryBaseUrlArray[this.config.country].concat('/channels');
-			this.log('setInputs: channelsUrl:',channelsUrl);
+			this.log.debug('setInputs: channelsUrl:',channelsUrl);
 			
 			request({ url: channelsUrl, json: true}).then(availableInputs => {
 				const sanitizedInputs = [];
