@@ -10,6 +10,14 @@ const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
 const PLUGIN_VERSION = '0.0.2';
 
+const settopBoxName = {
+    'nl': 		'Mediabox Next (4K)',
+    'ch': 		'UPC TV Box',
+    'be-nl': 	'TV-Box',
+    'be-fr': 	'TV-Box',
+    'at': 		'Entertain Box 4K'
+};
+
 const countryBaseUrlArray = {
     'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web',
     'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web',
@@ -21,7 +29,7 @@ const countryBaseUrlArray = {
 // session and ywt are based on countryCaseUrl
 //const sessionUrl = 	'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/session';
 //const channelsUrl = 'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/channels';
-//const jwtUrl = 			'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/tokens/jwt';
+const jwtUrl = 				'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/tokens/jwt';
 const jwtUrlArray = {
     'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web',
     'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web',
@@ -178,11 +186,14 @@ tvAccessory.prototype = {
 	prepareInformationService() {
 		// Create Information Service
 		this.informationService = new Service.AccessoryInformation();
+
+		let boxName = 'DCX960 ('.concat(settopBoxName[this.config.country]).concat(')'); // market specific box name
+		
 		this.informationService
 			.setCharacteristic(Characteristic.Name, this.name)
 			.setCharacteristic(Characteristic.Manufacturer, 'ARRIS Global Limited')
-			.setCharacteristic(Characteristic.SerialNumber, 'unknown') // this should be the mac or the ca address
-			.setCharacteristic(Characteristic.Model, 'DCX960 (UPC TV Box)'); // as returned by the system?
+			.setCharacteristic(Characteristic.SerialNumber, 'unknown') // this should be the mac or the ca address	
+			.setCharacteristic(Characteristic.Model, boxName); // as returned by the system?
 			//.setCharacteristic(Characteristic.FirmwareRevision, '1.2.3');
 
 		this.enabledServices.push(this.informationService);
@@ -242,7 +253,6 @@ tvAccessory.prototype = {
 		this.tvSpeakerService.getCharacteristic(Characteristic.Mute) // not supported in remote but maybe by Siri
 			//.on('get', this.getMute.bind(this)) // not supported by tv
 			.on('set', this.setMute.bind(this));
-0
 	
 	
 		this.tvService.addLinkedService(this.tvSpeakerService);
@@ -314,16 +324,13 @@ tvAccessory.prototype = {
 
 	getJwtToken(oespToken, householdId)	 {
 		this.log('getJwtToken'); // for debugging
-		//const jwtUrl = 			'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/tokens/jwt';
 
-		//this.log('getting country data for',this.config.country);
-		//let jwtCountryUrl	= jwtUrlArray[this.config.country];
-		//this.log('jwtCountryUrl',jwtCountryUrl);
+		let jwtCountryUrl	= countryBaseUrlArray[this.config.country].concat('/tokens/jwt');
+		this.log.debug('jwtCountryUrl',jwtCountryUrl);
 		
 		const jwtRequestOptions = {
 			method: 'GET',
-			//uri: jwtUrl,
-			uri: jwtUrlArray[this.config.country],
+			uri: jwtCountryUrl,
 			headers: {
 				'X-OESP-Token': oespToken,
 				'X-OESP-Username': myUpcUsername
@@ -506,16 +513,17 @@ tvAccessory.prototype = {
 	// send a channel change request to the settopbox via mqtt
 	switchChannel(channelId) {
 		this.log.debug('Switch to', channelId);
-		mqttClient.publish(mqttUsername + '/' + settopboxId, '{"id":"' + makeId(8) + '","type":"CPE.pushToTV","source":{"clientId":"' + varClientId + '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' + channelId + '"},"relativePosition":0,"speed":1}}')
+		mqttClient.publish(mqttUsername + '/' + settopboxId, '{"id":"' + makeId(8) + '","type":"CPE.pushToTV","source":{"clientId":"' + varClientId + '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' + channelId + '"},"relativePosition":0,"speed":1}}');
 	}, // end of switchChannel
-
+	
+	
 
 	// send a remote control keypress to the settopbox via mqtt
 	sendKey(keyName) {
 		this.log('HomeKit send key:', keyName);
-		mqttClient.publish(mqttUsername + '/' + settopboxId, '{"id":"' + makeId(8) + '","type":"CPE.KeyEvent","source":"' + varClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}')
+		mqttClient.publish(mqttUsername + '/' + settopboxId, '{"id":"' + makeId(8) + '","type":"CPE.KeyEvent","source":"' + varClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}');
 	}, // end of sendKey
-
+	
 
 	// get the settopbox UI status from the settopbox via mqtt
 	getUiStatus() {
@@ -806,7 +814,8 @@ tvAccessory.prototype = {
 				callback();
 				break;
 			case Characteristic.RemoteKey.BACK: // 9
-				this.sendKey(this.config.backButton || "Escape");
+				//this.sendKey(this.config.backButton || "Escape");
+				this.sendKey('Escape');
 				callback();
 				break;
 			case Characteristic.RemoteKey.EXIT: // 10
