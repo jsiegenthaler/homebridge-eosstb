@@ -8,16 +8,48 @@ const varClientId = makeId(30);
 
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.0.1';
+const PLUGIN_VERSION = '0.0.2';
 
-const sessionUrl = 'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/session';
-const jwtUrl = 'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/tokens/jwt';
-const channelsUrl = 'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/channels';
-const mqttUrl = 'wss://obomsg.prod.ch.horizon.tv:443/mqtt';
+const countryBaseUrlArray = {
+    'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web',
+    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web',
+    'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v3/BE/nld/web',
+    'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v3/BE/fr/web',
+    'at': 		'https://prod.oesp.magentatv.at/oesp/v3/AT/deu/web'
+};
+
+// session and ywt are based on countryCaseUrl
+//const sessionUrl = 	'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/session';
+//const channelsUrl = 'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/channels';
+//const jwtUrl = 			'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/tokens/jwt';
+const jwtUrlArray = {
+    'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web',
+    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web',
+    'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v3/BE/nld/web',
+    'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v3/BE/fr/web',
+    'at': 		'https://prod.oesp.magentatv.at/oesp/v3/AT/deu/web'
+};
+
+
+
+// const mqttUrl = 		'wss://obomsg.prod.ch.horizon.tv:443/mqtt';
+// different mqtt endpoints per country
+const mqttUrlArray = {
+    'nl': 		'wss://obomsg.prod.nl.horizon.tv:443/mqtt',
+    'ch': 		'wss://obomsg.prod.ch.horizon.tv:443/mqtt',
+    'be-nl': 	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
+    'be-fr':  'wss://obomsg.prod.be.horizon.tv:443/mqtt',
+    'at':			'wss://obomsg.prod.at.horizon.tv:443/mqtt'
+};
+
+
+
+
+
 
 // general constants
 const NO_INPUT = 999999; // an input id that does not exist
-const MAX_INPUT_SOURCES = 3;
+const MAX_INPUT_SOURCES = 50; // max input services. Default = 50. Cannot be more than 97 (100 - all other services)
 const STB_STATE_POLLING_INTERVAL_MS = 5000; // pollling interval in millisec. Default = 5000
 
 
@@ -50,7 +82,7 @@ let currentPowerState; // declare with value of 0
 
 const sessionRequestOptions = {
 	method: 'POST',
-	uri: sessionUrl,
+	uri: '',
 	body: {
 		username: myUpcUsername,
 		password: myUpcPassword
@@ -201,18 +233,16 @@ tvAccessory.prototype = {
 		this.tvSpeakerService
 			.setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE)
 			.setCharacteristic(Characteristic.VolumeControlType, Characteristic.VolumeControlType.RELATIVE);
-
-		// not supported by the TV remote but supported by siri, maybe? Must investigate
-		this.tvSpeakerService
-			.getCharacteristic(Characteristic.Mute)
-			//.on('get', this.getMuteState.bind(this))
-			.on('set', this.setMuteState.bind(this));
-
-		// the volume selector allows the iOS device keys to be used to change volume
-		this.tvSpeakerService
-			.getCharacteristic(Characteristic.VolumeSelector)
-			//.on('set', this.setVolume.bind(this));
+		this.tvSpeakerService.getCharacteristic(Characteristic.VolumeSelector) // the volume selector allows the iOS device keys to be used to change volume
 			.on('set', (direction, callback) => {	this.setVolume(direction, callback); });
+			//.on('set', this.setVolumeSelector.bind(this)); // from denon code
+		this.tvSpeakerService.getCharacteristic(Characteristic.Volume)
+			.on('get', this.getVolume.bind(this))
+			.on('set', this.setVolume.bind(this));
+		this.tvSpeakerService.getCharacteristic(Characteristic.Mute) // not supported in remote but maybe by Siri
+			//.on('get', this.getMute.bind(this)) // not supported by tv
+			.on('set', this.setMute.bind(this));
+0
 	
 	
 		this.tvService.addLinkedService(this.tvSpeakerService);
@@ -236,7 +266,7 @@ tvAccessory.prototype = {
 				.setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.NOT_CONFIGURED)
 				// set default to application as no other type fits, except maybe tuner
 				// TUNER = 2; APPLICATION = 10;
-				.setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.APPLICATION)
+				.setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.TV)
 				// hidden until config is loaded my mqtt
 				.setCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.HIDDEN);
 
@@ -259,6 +289,9 @@ tvAccessory.prototype = {
 	getSession() {
 		this.log.debug('getSession');
 
+		sessionRequestOptions.uri = countryBaseUrlArray[this.config.country].concat('/session');
+		this.log.debug('getSession sessionRequestOptions.uri:',sessionRequestOptions.uri);
+		
 		sessionRequestOptions.body.username = this.config.username;
 		sessionRequestOptions.body.password = this.config.password;
 		this.log.debug('getSession sessionRequestOptions.body.username:', sessionRequestOptions.body.username);
@@ -281,9 +314,16 @@ tvAccessory.prototype = {
 
 	getJwtToken(oespToken, householdId)	 {
 		this.log('getJwtToken'); // for debugging
+		//const jwtUrl = 			'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web/tokens/jwt';
+
+		//this.log('getting country data for',this.config.country);
+		//let jwtCountryUrl	= jwtUrlArray[this.config.country];
+		//this.log('jwtCountryUrl',jwtCountryUrl);
+		
 		const jwtRequestOptions = {
 			method: 'GET',
-			uri: jwtUrl,
+			//uri: jwtUrl,
+			uri: jwtUrlArray[this.config.country],
 			headers: {
 				'X-OESP-Token': oespToken,
 				'X-OESP-Username': myUpcUsername
@@ -306,8 +346,12 @@ tvAccessory.prototype = {
 
 
 	startMqttClient(parent) {
-		parent.log('startMqttClient: currentPowerState:',currentPowerState)
+		parent.log('startMqttClient: currentPowerState:',currentPowerState);
 		//parent.log('startMqttClient: connecting mqttt client');
+		
+		let mqttUrl = mqttUrlArray[this.config.country];
+		parent.log('startMqttClient: mqttUrl:',mqttUrl);
+		
 		mqttClient = mqtt.connect(mqttUrl, {
 			connectTimeout: 10*1000, //10 seconds
 			clientId: varClientId,
@@ -535,7 +579,10 @@ tvAccessory.prototype = {
 
 		if (this.inputServices && this.inputServices.length) {
 			// this.log('setInputs: loading channels: this.inputServices.length',this.inputServices.length);
-			//this.log('setInputs: loading channels: this.inputServices',this.inputServices);
+			// this.log('setInputs: loading channels: this.inputServices',this.inputServices);
+			let channelsUrl = countryBaseUrlArray[this.config.country].concat('/channels');
+			this.log('setInputs: channelsUrl:',channelsUrl);
+			
 			request({ url: channelsUrl, json: true}).then(availableInputs => {
 				const sanitizedInputs = [];
 				//this.log('setInputs: availableInputs.channels',availableInputs.channels.length);
@@ -543,7 +590,7 @@ tvAccessory.prototype = {
 	
 				let i = 0;
 				availableInputs.channels.forEach(function (channel) {
-					if (i < MAX_INPUT_SOURCES) // limit to the amount of channels applicable, 50
+					if (i < MAX_INPUT_SOURCES) // limit to the amount of channels applicable
 					{
 						sanitizedInputs.push({id: channel.stationSchedules[0].station.serviceId, name: channel.title, index: i});
 					}
@@ -652,6 +699,12 @@ tvAccessory.prototype = {
 	}, // end of setInputState
 
 
+	//getVolume
+	getVolume(callback) {
+		this.log("getVolume");
+		callback(true);
+	}, // end of getVolume
+
 	// set the volume of the TV using bash scripts
 	// the ARRIS box remote control commmunicates with the stereo via IR commands, not over mqtt
 	// so volume must be handled over a different method
@@ -674,15 +727,17 @@ tvAccessory.prototype = {
 
 		callback(true);
 	}, // end of setVolume
+
+
 	
+
 	
-	
-	//setMuteState
-	setMuteState(state, callback) {
+	//setMute
+	setMute(state, callback) {
 		// sends the mute command when called// works for TVs that accept a mute toggle command
 		const NOT_MUTED = 0;
 		const MUTED = 1;
-		this.log('Mute state: %s', state);
+		this.log('setMute', state);
 		var self = this;
 
 		// Execute command to toggle mute
@@ -696,7 +751,7 @@ tvAccessory.prototype = {
 		});
 
 		callback(true);
-	}, // end of setMuteState
+	}, // end of setMute
 
 
 
@@ -751,15 +806,15 @@ tvAccessory.prototype = {
 				callback();
 				break;
 			case Characteristic.RemoteKey.BACK: // 9
-				this.sendKey(this.config.backButton);
+				this.sendKey(this.config.backButton || "Escape");
 				callback();
 				break;
 			case Characteristic.RemoteKey.EXIT: // 10
-				this.sendKey('Exit');
+				this.sendKey(this.config.backButton || "Escape");
 				callback();
 				break;
 			case Characteristic.RemoteKey.PLAY_PAUSE: // 11
-				this.sendKey(this.config.playPauseButton); // the correct key to toggle Play/Pause is the MediaPause key, and not MediaPlay
+				this.sendKey(this.config.playPauseButton || "MediaPause");
 				callback();
 				break;
 			case Characteristic.RemoteKey.INFORMATION: // 15
@@ -771,7 +826,7 @@ tvAccessory.prototype = {
 				// Guide: displays the TV GUIDE page, same as the Guide button on the remote,
 				// MediaTopMenu: displazs the top menu (home) page, same as the HOME button on the remote
 				// nothing: settings, menu, 
-				this.sendKey(this.config.infoButton);
+				this.sendKey(this.config.infoButton || "MediaTopMenu");
 				callback();
 				break;
 			default:
