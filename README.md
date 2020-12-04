@@ -31,6 +31,7 @@ As UPC operates in multiple countries under multiple brands, this plugin will wo
 * Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **Mediabox Next (4K)**.
 * Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums call the DCX960 a **Telenet TV-Box**.
 * Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **Entertain Box 4K**.
+* United Kingdom and Ireland: [Virgin Media](https://www.virginmedia.com/). The DCX960 appears to be called the **Virgin TV 360 mini box**. **UNTESTED**
 
 So if you subscribe to a TV service from one of these countries, you are lucky, this plugic will work for you.
 
