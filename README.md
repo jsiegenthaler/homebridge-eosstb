@@ -12,8 +12,8 @@ npm install -g https://github.com/jsiegenthaler/eosstb/
 Because you are a helper, I need your feedback
 
 # TO-DO as of 03.12.2020
-* Add config for non-CH countries
-* Fix the channel selector for the 50 first channels
+* Add config for non-CH countries DONE
+* Fix the channel selector for the 50 first channels DONE
 * Test with profiles
 * Re-write the plugin to get the right Homekit icon
 
