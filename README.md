@@ -18,7 +18,7 @@ Because you are a helper, I need your feedback
 
 # homebridge-eosstb
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS Settop box (CH: UPC TV Box; NL:Mediabox Next (4K); BE:TV-Box; AT:Entertain Box 4K) and connected HDMI-CEC controllable devices with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS Settop box (CH: UPC TV Box; NL: Mediabox Next (4K); BE: TV-Box; AT: Entertain Box 4K) and connected HDMI-CEC controllable devices with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
 This plugin displays your EOS Settop Box as a TV Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad).
 
@@ -48,9 +48,9 @@ UPC can change their systems at any time and that might break this plugin. But I
 ## Requirements
 * An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1 and 14.2, earlier versions not tested.
 * [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116, earlier versions not tested.
-* A [TV subscription](https://www.upc.ch/en/bundles/buy-tv-internet/) (or the equivalent in your country, included for most people who have internet with UPC)
-* A [My UPC account](https://www.upc.ch/en/account/login/credentials/) (or the equivalent in your country, part of your UPC Internet and TV package)
-* The ARRIS mediabox DCX960 (provided by your TV provider as part of your TV subscription, called by the system an "EOS Box" and marketed under different names in different UPC countries)
+* A [TV subscription](https://www.upc.ch/en/bundles/buy-tv-internet/) (or the equivalent in your country)
+* A [My UPC account](https://www.upc.ch/en/account/login/credentials/) (or the equivalent in your country, part of your TV package)
+* The ARRIS mediabox DCX960 (provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries)
 
 ## Installation
 Install homebridge-eosstb:
@@ -106,35 +106,35 @@ Example configuration:
 ### Configuration Items:
 * **platform**: the name of your platform. Mandatory, must be eosstb.
 
-* **name**: The displayed name of your device. Default is the name of your box from zour countrz, you can set it to whatever you want. Mandatory.
+* **name**: The displayed name of your device. Default is the name of your box from your country, you can set it to whatever you want. Mandatory.
 
-+ **country**: Your UPC country. Must be one of ch, nl, be-nl, be-fr, or at. Mandatory.
++ **country**: Your country. Must be one of ch, nl, be-nl, be-fr, or at. Mandatory.
 
-* **username**: Your login username for your My UPC account. Normally an email address. Mandatory.
+* **username**: Your login username for your TV provider's online account (My UPC in Switzerland). Normally an email address. Mandatory.
 
-* **password**: Your password associated with your My UPC account. Mandatory.
+* **password**: Your password associated with your TV provider's account. Mandatory.
 
-* **playPauseButton**: The command issued to the UPC Box when the Play/Pause button (**>||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
+* **playPauseButton**: The command issued to the EOS Box when the Play/Pause button (**>||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
 
-* **backButton**: The command issued to the UPC Box when the **BACK** button in the iOS remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
+* **backButton**: The command issued to the EOS Box when the **BACK** button in the iOS remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
 
-* **infoButton**: The command issued to the UPC Box when the Info button (**i**) in the iOS remote is tapped. As the iOS remote has no Menu button, the Info button should be used to access the menu. This is what the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
+* **infoButton**: The command issued to the EOS Box when the Info button (**i**) in the iOS remote is tapped. As the iOS remote has no Menu button, the Info button should be used to access the menu. This is why the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
 
-* **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found.
+* **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found. Loading times increase with higher channel numbers. Cannot exceed 90.
 
 
 ## Known Relevant EOS Box Commands
-* **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the HOME button on the UPC remote
+* **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the HOME button on the EOS Box remote
 
-* **Escape**: Escapes (exits) out of any current menu on the TV. Same as the RETURN button on the UPC remote
+* **Escape**: Escapes (exits) out of any current menu on the TV. Same as the RETURN button on the EOS Box remote
 
-* **ContextMenu**: Displays a context menu on the current TV program. Same as the ... button on the UPC remote
+* **ContextMenu**: Displays a context menu on the current TV program. Same as the ... button on the EOS Box remote
 
 * **Info**: Displays the INFO screen on the TV showing info about the current TV program
 
 * **Help**: Displays the SETTINGS INFO page on the TV, allowing you to access settings quickly
 
-* **Guide**: Displays the TV GUIDE page on the TV, same as the Guide button on the UPC remote
+* **Guide**: Displays the TV GUIDE page on the TV, same as the Guide button on the EOS Box remote
 
 * **MediaPause**: Toggles between Pause and Play of the current TV program
 
