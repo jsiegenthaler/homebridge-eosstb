@@ -311,7 +311,7 @@ tvAccessory.prototype = {
 			})
 			.catch((err) => {
 				this.log.error('getSession Error:', err.message); // likely invalid credentials
-				this.log.error('getSession json:',json);
+				//this.log.error('getSession json:',json);
 			});
 		//return sessionJson || false;
 	}, // end of getSession
