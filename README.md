@@ -120,7 +120,7 @@ Example configuration:
 
 * **infoButton**: The command issued to the EOS Box when the Info button (**i**) in the iOS remote is tapped. As the iOS remote has no Menu button, the Info button should be used to access the menu. This is why the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
 
-* **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found. Loading times increase with higher channel numbers. Cannot exceed 90.
+* **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found. Loading times increase with higher maximums. Limited to 90.
 
 
 ## Known Relevant EOS Box Commands
