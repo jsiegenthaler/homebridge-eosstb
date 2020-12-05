@@ -12,8 +12,8 @@ npm install -g https://github.com/jsiegenthaler/eosstb/
 Because you are a helper, I need your feedback
 
 # TO-DO as of 03.12.2020
-* Test with profiles
-* Re-write the plugin to get the right Homekit icon
+* Test with profiles - try and find a way to get the EOS box profile channels
+* Re-write the plugin to get the right Homekit icon. I hate the House icon
 
 
 # homebridge-eosstb
