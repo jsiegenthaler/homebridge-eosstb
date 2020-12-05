@@ -7,7 +7,7 @@
 This is a private repo because I'm not finished, If you've been invited, then it's because I selected you. You're here to help.
 During the time that this is a private repo, installation must be done using:
 ```sh
-npm install -g https://github.com/jsiegenthaler/eosstb/
+sudo npm install -g https://github.com/jsiegenthaler/eosstb/
 ```
 Because you are a helper, I need your feedback
 
