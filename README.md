@@ -18,15 +18,15 @@ Because you are a helper, I need your feedback
 
 # homebridge-eosstb
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS Settop box (CH: UPC TV Box; NL: Mediabox Next (4K); BE: TV-Box; AT: Entertain Box 4K) and connected HDMI-CEC controllable devices with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS Settop box (ARRIS DCX960 which runs on the UPC TV system), as well as connected HDMI-CEC controllable devices with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
-This plugin displays your EOS Settop Box as a TV Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad).
+This plugin displays your EOS Settop Box as a TV Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad, iMac, etc).
 
-You need a My UPC subscription or the appropriate equivalent from your local UPC provider.
-The username and password are the same as used in the TV provider's TV app on your iOS device (the app varies by country, this is the Swiss app: [upc tv Schweiz](https://apps.apple.com/ch/app/upc-tv-schweiz/id1292688012)).
+You need a My UPC subscription or the appropriate equivalent from your local TV provider.
+The username and password are the same as used in the TV provider's TV app on your iOS device (the app varies by country, in Switzerland it is [upc tv Schweiz](https://apps.apple.com/ch/app/upc-tv-schweiz/id1292688012)).
 
 # Works in Your Country (If you are with UPC / Ziggo / Telenet / Magenta)
-As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same ARRIS DCX960 settop box are:
+As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same UPC TV system with the ARRIS DCX960 settop box are:
 * Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **UPC TV Box**. Also known as the EOSSTB.
 * Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **Mediabox Next (4K)**.
 * Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums call the DCX960 a **Telenet TV-Box**.
@@ -42,7 +42,7 @@ This plugin was written and tested on the author's EOS Box (ARRIS mediabox model
 
 
 ## Disclaimer (The Legal Stuff)
-This plugin is not provided by UPC or Ziggo or Telenet or Magenta any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. 
+This plugin is not provided by UPC or Ziggo or Telenet or Magenta or Vigin Media any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. 
 UPC can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
@@ -72,7 +72,7 @@ The following keys are supported by in the iOS Remote in the Control Center
 You can configure the (i) button to be Info, Help, Guide, ContextMenu or MediaTopMenu.
 Most useful is MediaTopMenu, which is the default.
 
-The volume controls do not control the EOS Box directly, as the EOS Box has no volume capability. The UPC remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
+The volume controls do not control the EOS Box directly, as the EOS Box has no volume capability. The EOS Box remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
 
 
 ## Limitations
@@ -82,7 +82,7 @@ Services used in this EOS Box accessory are:
 2. Television service (for controlling the TV accessory)
 3. Speaker service (for the controlling the TV accessory volume)
 4. Input service. The input (TV channels) utilise one service per input. The maximum possible channels (inputs) are thus 97.
-However, the more services you have, the slower the plugin might be. So I have limited the inputs to maximum 50.
+However, the more services you have, the slower the plugin might be. So I have limited the inputs to maximum 50, but you can override this in the config.
 
 ## Configuration
 Add a new platform to your homebridge `config.json`.
