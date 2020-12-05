@@ -298,7 +298,9 @@ tvAccessory.prototype = {
 		sessionRequestOptions.body.password = this.config.password;
 		this.log.debug('getSession sessionRequestOptions.body.username:', sessionRequestOptions.body.username);
 		this.log.debug('getSession sessionRequestOptions.body.password:', sessionRequestOptions.body.password);
-				
+		
+		this.log('getSession: sessionRequestOptions',sessionRequestOptions);
+		
 		request(sessionRequestOptions)
 			.then((json) => {
 				//this.log(json);
@@ -309,6 +311,7 @@ tvAccessory.prototype = {
 			})
 			.catch((err) => {
 				this.log.error('getSession Error:', err.message); // likely invalid credentials
+				this.log.error('getSession json:',json);
 			});
 		//return sessionJson || false;
 	}, // end of getSession
