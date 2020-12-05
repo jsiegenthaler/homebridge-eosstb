@@ -8,7 +8,7 @@ const varClientId = makeId(30);
 // name and version
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.0.3';
+const PLUGIN_VERSION = '0.0.4';
 
 
 // different settop box names per country
@@ -51,7 +51,7 @@ const mqttUrlArray = {
 
 // general constants
 const NO_INPUT = 999999; // an input id that does not exist
-const MAX_INPUT_SOURCES = 50; // max input services. Default = 50. Cannot be more than 97 (100 - all other services)
+const MAX_INPUT_SOURCES = 90; // max input services. Default = 90. Cannot be more than 97 (100 - all other services)
 const STB_STATE_POLLING_INTERVAL_MS = 5000; // pollling interval in millisec. Default = 5000
 
 
@@ -76,7 +76,7 @@ let stations = [];
 let uiStatus;
 let currentChannel;
 let currentChannelId;
-let currentPowerState; // declare with value of 0
+let currentPowerState;
 
 const sessionRequestOptions = {
 	method: 'POST',
@@ -162,8 +162,8 @@ tvAccessory.prototype = {
 	/* Services */
 	// max 100 services possible
 	getServices() {
-	this.prepareInformationService();			// service 1
-	this.prepareTelevisionService();			// service 2
+	this.prepareInformationService();				// service 1
+	this.prepareTelevisionService();				// service 2
 	this.prepareTelevisionSpeakerService();	// service 3
 	this.prepareInputSourceServices();			// services 4 to max 100
 	//this.volumeService(); // try and enable
@@ -255,8 +255,9 @@ tvAccessory.prototype = {
 	// This is the channel list, each input is a service, max 100 services less the services created so far
 	prepareInputSourceServices() {
 		// loop MAX_INPUT_SOURCES times to get the first MAX_INPUT_SOURCES channels
-		// max 100 services
-		for (let i = 0; i < MAX_INPUT_SOURCES; i++) {
+		// absolute max 100 services
+		let maxSources = this.config.maxChannels || MAX_INPUT_SOURCES;
+		for (let i = 0; i < Math.min(maxSources, MAX_INPUT_SOURCES); i++) {
 			const inputService = new Service.InputSource(i, `inputSource_${i}`);
 
 			inputService
@@ -379,12 +380,42 @@ tvAccessory.prototype = {
 				}
 			});
 
+			mqttClient.subscribe(mqttUsername +'/personalizationService', function (err) {
+				if(err){
+					parent.log('mqttClient subscribe to personalizationService: Error:',err);
+					return false;
+				} else {
+					parent.log('mqttClient: subscribed to',mqttUsername +'/personalizationService');
+				}
+			});
+			
+			
+			mqttClient.subscribe(mqttUsername +'/watchlistService', function (err) {
+				if(err){
+					parent.log('mqttClient subscribe to watchlistService: Error:',err);
+					return false;
+				} else {
+					parent.log('mqttClient: subscribed to',mqttUsername +'/watchlistService');
+				}
+			});
+			
 			// mqtt client event: message received
 			mqttClient.on('message', function (topic, payload) {
 				parent.log.debug('mqttClient: message event');
-				//parent.log('mqttClient.on.message payload',payload);
 				let payloadValue = JSON.parse(payload);
-				parent.log.debug('mqttClient: Received Message: Topic:',topic);
+				
+				
+				//parent.log('mqttClient.on.message payload',payload);
+				//if(topic = mqttUsername +'/personalizationService'){
+				//	parent.log('mqttClient: Received Message: Topic:',topic);
+				//	parent.log('mqttClient: Received Message: Message:',payloadValue);
+				//	let playerStatus = payloadValue.status
+				//	parent.log('mqttClient: Received Message: Message:',payloadValue.status);
+					//let playerSource = playerStatus.playerState.source
+					//parent.log('mqttClient: Received Message: Message:',playerSource);
+				//	}
+				
+				//parent.log('mqttClient: Received Message: Topic:',topic);
 				//parent.log('mqttClient: Received Message: Message:',payloadValue);
 				
 				//parent.log('mqttClient message: payloadValue.type',payloadValue.type);
@@ -507,12 +538,25 @@ tvAccessory.prototype = {
 		mqttClient.publish(mqttUsername + '/' + settopboxId, '{"id":"' + makeId(8) + '","type":"CPE.pushToTV","source":{"clientId":"' + varClientId + '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' + channelId + '"},"relativePosition":0,"speed":1}}');
 	}, // end of switchChannel
 	
-	
+
+	// request profile details via mqtt
+	getProfilesUpdate(keyName) {
+		this.log('getProfilesUpdate');
+		let mqttCmd = '{"action":"OPS.getProfilesUpdate","source":"' + varClientId + '"}';
+		this.log('sending:', mqttCmd);
+		mqttClient.publish(mqttUsername +'/personalizationService', mqttCmd);
+
+//		mqttClient.publish(mqttUsername +'/personalizationService', '{"action":"OPS.getProfilesUpdate","source":"' + varClientId + '"}');
+	}, // end of switchChannel
+		
 
 	// send a remote control keypress to the settopbox via mqtt
 	sendKey(keyName) {
 		this.log('HomeKit send key:', keyName);
 		mqttClient.publish(mqttUsername + '/' + settopboxId, '{"id":"' + makeId(8) + '","type":"CPE.KeyEvent","source":"' + varClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}');
+		
+		// added here to get profiles when I hit a button
+		this.getProfilesUpdate;
 	}, // end of sendKey
 	
 
@@ -527,6 +571,8 @@ tvAccessory.prototype = {
 		//this.log('getUiStatus: mqtt reconnecting:',mqttClient['reconnecting']);
 
 	}, // end of getUiStatus
+
+
 
 
 	/* State Handlers */
@@ -588,8 +634,9 @@ tvAccessory.prototype = {
 				//this.log('channel data',availableInputs.channels[197]);
 	
 				let i = 0;
+				let maxSources = this.config.maxChannels || MAX_INPUT_SOURCES;
 				availableInputs.channels.forEach(function (channel) {
-					if (i < MAX_INPUT_SOURCES) // limit to the amount of channels applicable
+					if (i < Math.min(maxSources, MAX_INPUT_SOURCES)) // limit to the amount of channels applicable
 					{
 						sanitizedInputs.push({id: channel.stationSchedules[0].station.serviceId, name: channel.title, index: i});
 					}
@@ -598,7 +645,7 @@ tvAccessory.prototype = {
 
 				this.inputs = sanitizedInputs;
 				
-				// need to cater for not-available channels
+				// need to cater for not-available channels. maybe??
 				this.inputs.forEach((input, i) => {
 				const inputService = this.inputServices[i];
 				// possible characteristics:
@@ -720,7 +767,7 @@ tvAccessory.prototype = {
 		exec((direction === DECREMENT) ? this.config.volDownCommand : this.config.volUpCommand, function (error, stdout, stderr) {
 			// Error detection. error is true when an exec error occured
 			if (error) {
-					self.log.warn('Volume control command failed:',stderr.trim());
+					self.log.warn('setVolume Error:',stderr.trim());
 			}
 		});
 
@@ -743,9 +790,9 @@ tvAccessory.prototype = {
 		exec(this.config.muteCommand, function (error, stdout, stderr) {
 			// Error detection. error is true when an exec error occured
 			if (error) {
-					self.log.warn('Mute command failed:',stderr.trim());
+					self.log.warn('setMute Error:',stderr.trim());
 			} else {
-					self.log('Mute command succeeded:',stdout);
+					self.log('setMute succeeded:',stdout);
 			}
 		});
 
@@ -758,7 +805,7 @@ tvAccessory.prototype = {
 	viewTvSettings(input, callback) {
 		this.log('Sending menu command: View TV Settings');
 		this.sendKey('Help'); // puts SETTINGS.INFO on the screen
-		setTimeout(() => { this.sendKey('ArrowRight'); }, 500); // move right to select SETTINGS.PROFILES, send after 500ms
+		setTimeout(() => { this.sendKey('ArrowRight'); }, 600); // move right to select SETTINGS.PROFILES, send after 600ms
 		callback(true);
 	}, // end of viewTvSettings
 
@@ -805,8 +852,7 @@ tvAccessory.prototype = {
 				callback();
 				break;
 			case Characteristic.RemoteKey.BACK: // 9
-				//this.sendKey(this.config.backButton || "Escape");
-				this.sendKey('Escape');
+				this.sendKey(this.config.backButton || "Escape");
 				callback();
 				break;
 			case Characteristic.RemoteKey.EXIT: // 10
@@ -826,7 +872,7 @@ tvAccessory.prototype = {
 				// Guide: displays the TV GUIDE page, same as the Guide button on the remote,
 				// MediaTopMenu: displazs the top menu (home) page, same as the HOME button on the remote
 				// nothing: settings, menu, 
-				this.sendKey(this.config.infoButton || "MediaTopMenu");
+				this.getProfilesUpdate(this.config.infoButton || "MediaTopMenu");
 				callback();
 				break;
 			default:
