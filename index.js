@@ -296,10 +296,9 @@ tvAccessory.prototype = {
 		
 		sessionRequestOptions.body.username = this.config.username;
 		sessionRequestOptions.body.password = this.config.password;
-		this.log.debug('getSession sessionRequestOptions.body.username:', sessionRequestOptions.body.username);
-		this.log.debug('getSession sessionRequestOptions.body.password:', sessionRequestOptions.body.password);
-		
-		this.log('getSession: sessionRequestOptions',sessionRequestOptions);
+		//this.log.debug('getSession sessionRequestOptions.body.username:', sessionRequestOptions.body.username);
+		//this.log.debug('getSession sessionRequestOptions.body.password:', sessionRequestOptions.body.password);
+		this.log.debug('getSession: sessionRequestOptions',sessionRequestOptions);
 		
 		request(sessionRequestOptions)
 			.then((json) => {
@@ -311,21 +310,18 @@ tvAccessory.prototype = {
 			})
 			.catch((err) => {
 				this.log.error('getSession Error:', err.message); // likely invalid credentials
-				//this.log.error('getSession json:',json);
+				//  this.log.error('getSession json:',json);
 			});
 		//return sessionJson || false;
 	}, // end of getSession
 
 
-	getJwtToken(oespToken, householdId)	 {
-		this.log('getJwtToken'); // for debugging
 
-		let jwtCountryUrl	= countryBaseUrlArray[this.config.country].concat('/tokens/jwt');
-		this.log.debug('jwtCountryUrl',jwtCountryUrl);
-		
+	getJwtToken(oespToken, householdId)	 {
+		this.log.debug('getJwtToken');
 		const jwtRequestOptions = {
 			method: 'GET',
-			uri: jwtCountryUrl,
+			uri: countryBaseUrlArray[this.config.country].concat('/tokens/jwt'),
 			headers: {
 				'X-OESP-Token': oespToken,
 				'X-OESP-Username': myUpcUsername
@@ -347,13 +343,11 @@ tvAccessory.prototype = {
 	}, // end of getJwtToken
 
 
+
 	startMqttClient(parent) {
-		parent.log('startMqttClient: currentPowerState:',currentPowerState);
-		//parent.log('startMqttClient: connecting mqttt client');
-		
+		parent.log.debug('startMqttClient');		
 		let mqttUrl = mqttUrlArray[this.config.country];
-		parent.log('startMqttClient: mqttUrl:',mqttUrl);
-		
+		parent.log.debug('startMqttClient: connecting to',mqttUrl);		
 		mqttClient = mqtt.connect(mqttUrl, {
 			connectTimeout: 10*1000, //10 seconds
 			clientId: varClientId,
@@ -363,51 +357,60 @@ tvAccessory.prototype = {
 
 		// mqtt client event: connect
 		mqttClient.on('connect', function () {
-			parent.log('mqttClient: connect event');
-			
+			parent.log.debug('mqttClient: connect event');
+			/*
 			mqttClient.subscribe(mqttUsername, function (err) {
 				if(err){
 					parent.log('mqttClient subscribe: Error:',err);
 					return false;
 				} else {
-					parent.log('mqttClient: subscribed to',mqttUsername);
+					parent.log('Subscribed to',mqttUsername);
 				}
 			});
+			*/
 
 			mqttClient.subscribe(mqttUsername +'/+/status', function (err) {
 				if(err){
-					parent.log('mqttClient subscribe to status: Error:',err);
+					parent.log('mqttClient connect: subscribe to status: Error:',err);
 					return false;
 				} else {
-					parent.log('mqttClient: subscribed to',mqttUsername +'/+/status');
+					parent.log('Subscribed to topic',mqttUsername +'/+/status');
 				}
 			});
 
 			mqttClient.subscribe(mqttUsername +'/personalizationService', function (err) {
 				if(err){
-					parent.log('mqttClient subscribe to personalizationService: Error:',err);
+					parent.log('mqttClient connect: subscribe to personalizationService: Error:',err);
 					return false;
 				} else {
-					parent.log('mqttClient: subscribed to',mqttUsername +'/personalizationService');
+					parent.log('Subscribed to topic',mqttUsername +'/personalizationService');
 				}
 			});
 			
 			
 			mqttClient.subscribe(mqttUsername +'/watchlistService', function (err) {
 				if(err){
-					parent.log('mqttClient subscribe to watchlistService: Error:',err);
+					parent.log('mqttClient connect: subscribe to personalizationService: Error:',err);
 					return false;
 				} else {
-					parent.log('mqttClient: subscribed to',mqttUsername +'/watchlistService');
+					parent.log('Subscribed to topic',mqttUsername +'/watchlistService');
 				}
 			});
 			
 			// mqtt client event: message received
 			mqttClient.on('message', function (topic, payload) {
-				parent.log.debug('mqttClient: message event');
+				parent.log.debug('mqttClient message event');
 				let payloadValue = JSON.parse(payload);
 				
+				// check if this status message is for the desired EOSSTB
+				if(topic.startsWith(mqttUsername) && topic.includes('-EOSSTB-')){
+					parent.log('EOSSTB topic detected:',topic)
+				};
+				if(topic.includes(parent.config.settopboxId)){
+					parent.log('Wanted EOSSTB topic detected:',topic)
+				};
 				
+				//parent.log('mqttClient: Received Message: Topic:',topic);
 				//parent.log('mqttClient.on.message payload',payload);
 				//if(topic = mqttUsername +'/personalizationService'){
 				//	parent.log('mqttClient: Received Message: Topic:',topic);
@@ -433,40 +436,53 @@ tvAccessory.prototype = {
 
 				// check if payloadValue.deviceType exists
 				// deviceType exists in Topic: 1076582_ch/2E59F6E9-8E23-41D2-921D-C13CA269A3BC/status
+				// Topic: 1076582_ch/3C36E4-EOSSTB-003656579806/status  
+				// multiple devices can exist! how to handle them?
 				if(payloadValue.deviceType){
-					// check if payloadValue.deviceType value = STB
-					if(payloadValue.deviceType == 'STB'){
-						settopboxId = payloadValue.source;
+					// check if this is the wanted settopboxId and that payloadValue.deviceType value = STB
+					// wanted = defined and correct, or not defined
+					if(((payloadValue.source == parent.config.settopboxId) || (typeof parent.config.settopboxId === 'undefined'))
+						&& (payloadValue.deviceType == 'STB')) {
+					
+						// set or detect the settopboxId but only once
+						if (typeof settopboxId === 'undefined') {
+							if (typeof parent.config.settopboxId === 'undefined') {
+								settopboxId = payloadValue.source;
+								parent.log('Auto-configured settopboxId to',settopboxId);
+							} else {
+								settopboxId = parent.config.settopboxId;
+								parent.log('settopboxId configured, using', settopboxId);
+							}
+						};
+
+						
+						parent.log('Using settopBoxId',settopboxId);
 						settopboxState = payloadValue.state;
-						//settopboxSource = payloadValue.state;
 						
 						// set serial number to the box
-						parent.log('mqttClient: Received Message STB status: SerialNumber',parent.informationService.getCharacteristic(Characteristic.SerialNumber).value);
+						//parent.log('mqttClient: Received Message STB status: SerialNumber',parent.informationService.getCharacteristic(Characteristic.SerialNumber).value);
 						if (parent.informationService.getCharacteristic(Characteristic.SerialNumber).value === 'unknown') {
 								parent.log('mqttClient: Calling updateInformationService with',payloadValue.source);
-								
-								parent.informationService.updateCharacteristic(Characteristic.SerialNumber,'my new value');
-								 
+								parent.informationService.updateCharacteristic(Characteristic.SerialNumber,payloadValue.source);
 						}
 						//parent.informationService.getCharacteristic(Characteristic.SerialNumber).updateValue(payloadValue.source);
 						
-						parent.log('mqttClient: Received Message STB status: reading currentPowerState');
+						// detect power state
+						parent.log('Detecting settopbox currentPowerState');
 						if (settopboxState == 'ONLINE_RUNNING') // ONLINE_RUNNING means power is turned on
-							//parent.log('mqttClient.on.message setting currentPowerState to 1');
 							currentPowerState = 1;
-
-						else if (settopboxState == 'ONLINE_STANDBY') // ONLINE_STANDBY or OFFLINE: power is off
-							//parent.log('mqttClient.on.message setting currentPowerState to 0');
+						else if ((settopboxState == 'ONLINE_STANDBY') || (settopboxState == 'OFFLINE')) // ONLINE_STANDBY or OFFLINE: power is off
 							currentPowerState = 0;
+						parent.log('Settopbox power is',(currentPowerState ? "On" : "Off"));
 
-						else if (settopboxState == 'OFFLINE') // ONLINE_STANDBY or OFFLINE: power is off
-							//parent.log('mqttClient.on.message setting currentPowerState to 0');
-							currentPowerState = 0;
 
+						// subscribe to our own generated unique varClientId
 						mqttClient.subscribe(mqttUsername + '/' + varClientId, function (err) {
 							if(err){
-								parent.log('mqttClient subscribe to ClientId Error:',err);
+								parent.log('mqttClient subscribe to varClientId Error:',err);
 								return false;
+							} else {
+								parent.log('Subscribed to topic',mqttUsername + '/' + varClientId);
 							}
 						});
 
@@ -474,13 +490,17 @@ tvAccessory.prototype = {
 							if(err){
 								parent.log('mqttClient subscribe to settopboxId Error:',err);
 								return false;
+							} else {
+								parent.log('Subscribed to topic',mqttUsername + '/' + settopboxId);
 							}
 						});
 
-						mqttClient.subscribe(mqttUsername + '/'+ settopboxId +'/status', function (err) {
+						mqttClient.subscribe(mqttUsername + '/' + settopboxId +'/status', function (err) {
 							if(err){
 								parent.log('mqttClient subscribe to settopbox status Error:',err);
 								return false;
+							} else {
+								parent.log('Subscribed to topic',mqttUsername + '/' + settopboxId +'/status');
 							}
 						});
 
@@ -587,9 +607,9 @@ tvAccessory.prototype = {
 
 		if (this.tvService) {
 			//this.log('checking state of tv service power'); 
-			// update power status value (currentPowerState, 0=off, 1=on)
+			// update power status value (currentPowerState, 0=o  ff, 1=on)
 			if (this.tvService.getCharacteristic(Characteristic.Active).value !== currentPowerState) {
-					this.log.debug("updateTvState: Settop Box to Homekit: current power state: " + (currentPowerState ? "On" : "Off"));
+					this.log.debug("updateTvState: Settopbox to HomeKit: current power state: " + (currentPowerState ? "On" : "Off"));
 					this.tvService.getCharacteristic(Characteristic.Active).updateValue(currentPowerState == 1);
 			}
 			
@@ -628,6 +648,7 @@ tvAccessory.prototype = {
 		if (this.inputServices && this.inputServices.length) {
 			// this.log('setInputs: loading channels: this.inputServices.length',this.inputServices.length);
 			// this.log('setInputs: loading channels: this.inputServices',this.inputServices);
+			// channels can be retrieved for the country without having a mqtt session going
 			let channelsUrl = countryBaseUrlArray[this.config.country].concat('/channels');
 			this.log.debug('setInputs: channelsUrl:',channelsUrl);
 			
@@ -639,8 +660,7 @@ tvAccessory.prototype = {
 				let i = 0;
 				let maxSources = this.config.maxChannels || MAX_INPUT_SOURCES;
 				availableInputs.channels.forEach(function (channel) {
-					if (i < Math.min(maxSources, MAX_INPUT_SOURCES)) // limit to the amount of channels applicable
-					{
+					if (i < Math.min(maxSources, MAX_INPUT_SOURCES)){ // limit to the amount of channels applicable
 						sanitizedInputs.push({id: channel.stationSchedules[0].station.serviceId, name: channel.title, index: i});
 					}
 					i++;
@@ -686,7 +706,7 @@ tvAccessory.prototype = {
 				});
 			},
 			error => {
-				this.log.warn(`Failed to get available inputs from ${this.config.name}. Please verify the UPC TV Box is connected and accessible at ${this.config.ip}`);
+				this.log.warn(`Failed to get available inputs from ${this.config.name}. Please verify the EOS settopbox is connected to the LAN`);
 			}
 			);
 		}
@@ -706,9 +726,6 @@ tvAccessory.prototype = {
 		// fired when the user clicks the TV tile in Homekit
 		// fired when the first key is pressed after opening the Remote Control
 		// wantedPowerState is the wanted power state: 0=off, 1=on
-		//this.log('setPowerState current power state:', currentPowerState);
-		//this.log('setPowerState  wanted power state:', wantedPowerState);
-
 		if(wantedPowerState !== currentPowerState){
 			// wanted power state is different to current power state, so send the power key to change state
 			this.sendKey('Power');
@@ -726,7 +743,6 @@ tvAccessory.prototype = {
 		isDone = false;
 		this.inputs.filter((input, index) => {
 			// getInputState input { id: 'SV00044', name: 'RTL plus', index: 44 }
-			//this.log('getInputState input', input);
 			//this.log(`getInputState: ${input.index} ${input.name} (${input.id})`);
 			if (input.id === currentChannelId) {
 				this.log('Current channel:', index, input.name, input.id);
@@ -734,7 +750,6 @@ tvAccessory.prototype = {
 				return callback(null, index);
 				}
 			});
-
 		if (!isDone)
 			return callback(null, null);
 	}, // end of getInputState
@@ -742,7 +757,7 @@ tvAccessory.prototype = {
 
 	setInputState(input, callback) {
 		this.log.debug('setInputState');
-		this.log(`HomeKit set channel to: ${input.name} (${input.id})`);
+		this.log(`Change channel to: ${input.name} (${input.id})`);
 		this.switchChannel(input.id);
 		callback();
 	}, // end of setInputState
@@ -750,7 +765,7 @@ tvAccessory.prototype = {
 
 	//getVolume
 	getVolume(callback) {
-		this.log("getVolume");
+		this.log.debug("getVolume");
 		callback(true);
 	}, // end of getVolume
 
@@ -875,7 +890,7 @@ tvAccessory.prototype = {
 				// Guide: displays the TV GUIDE page, same as the Guide button on the remote,
 				// MediaTopMenu: displazs the top menu (home) page, same as the HOME button on the remote
 				// nothing: settings, menu, 
-				this.getProfilesUpdate(this.config.infoButton || "MediaTopMenu");
+				this.sendKey(this.config.infoButton || "MediaTopMenu");
 				callback();
 				break;
 			default:
