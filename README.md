@@ -114,6 +114,8 @@ Example configuration:
 
 * **password**: Your password associated with your TV provider's account. Mandatory.
 
+* **settopboxId**: Your settopbox id. Only needed if you have more than one EOS box, so that the plugin can control the correct box. The id is shown in the HomeBridge log and is in the format 3C36E4-EOSSTB-00xxxxxxxxxx (xxxxxxxxxx is actually your CA code)
+
 * **playPauseButton**: The command issued to the EOS Box when the Play/Pause button (**>||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
 
 * **backButton**: The command issued to the EOS Box when the **BACK** button in the iOS remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
