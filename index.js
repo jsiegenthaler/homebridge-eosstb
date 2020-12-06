@@ -377,7 +377,7 @@ tvAccessory.prototype = {
 						this.log(json); // log the response for debugging
 						
 						// create login payload
-						let payload = "j_username=" + this.config.username + "&j_password=" + this.config.password + "&rememberme=true"
+						let payload = "j_username=wesleyliekens%40icloud.com&j_password=Wesleyliekens83&rememberme=true"
 						this.log(payload);
 
 						// create request options
