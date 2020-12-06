@@ -350,7 +350,7 @@ tvAccessory.prototype = {
 		request(requestOptions)
 			.then(function (response) {
 				console.log("Full authenticaiton response ", response);
-			}
+			})
 			/*
 			.then((json) => {
 
