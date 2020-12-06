@@ -350,7 +350,9 @@ tvAccessory.prototype = {
 				let authorizationUri = auth.session.authorizationUri;
 				let authState = auth.session.state;
 				let authValidtyToken = auth.session.validityToken;
-
+				this.log('authorizationUri',authorizationUri);
+				this.log('authState',authState);
+				this.log('authValidtyToken',authValidtyToken);
 				//this.getJwtToken(sessionJson.oespToken, sessionJson.customer.householdId);
 				//this.log('Session created');			
 			})
