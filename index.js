@@ -348,7 +348,13 @@ tvAccessory.prototype = {
 		// get authentication details	
 		this.log('getSessionBE: get authentication details');	
 		request(requestOptions)
+			.then(function (response) {
+				console.log("Full authenticaiton response ", response);
+			}
+			/*
 			.then((json) => {
+
+				function (response)
 				this.log('getSessionBE: get authentication details response=', json); // log the response for debugging
 				let auth = json; // set auth variable to the json  
 				let authorizationUri = auth.session.authorizationUri;
@@ -418,8 +424,9 @@ tvAccessory.prototype = {
 					.catch((err) => {
 						this.log.error('Unable to authorize to get AUTH cookie:', err.message);
 				});
-		
+			
 			})
+			*/
 			.catch((err) => {
 				this.log.error('Could not get authorizationUri:', err.message);
 		});
