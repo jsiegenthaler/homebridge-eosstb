@@ -336,43 +336,34 @@ tvAccessory.prototype = {
 			// only for be-nl and be-fr users, as the session logon using openid is different
 		this.log('getSessionBE');
 
+		// get authentication details	
+		// fetch works well and replaces request
 		let authorizationUri = countryBaseUrlArray[this.config.country] + '/authorization';
 		// https://web-api-prod-obo.horizon.tv/oesp/v3/BE/nld/web/authorization
 		this.log('Using fetch',authorizationUri);
 		fetch(authorizationUri, {
 			"body": null,
 			"method": "GET"
-//			"mode": "cors"
-		  })
-    		//.then(res => res.json()) // expecting a json response
-			//.then(json => this.log(json))
-			.then(res => {
-				this.log('ok',res.ok);
-				this.log('status',res.status);
-				this.log('statusText',res.statusText);
-				this.log('raw',res.headers.raw());
-				this.log('content-type',res.headers.get('content-type'));
+		  	})
+			.then(response => {
+				this.log('ok',response.ok); // we get a 200 OK responce
+				this.log('status',response.status);
+				this.log('statusText',response.statusText);
+				this.log('raw',response.headers.raw());
+				this.log('content-type',response.headers.get('content-type'));
+				this.log('full response',response);
+			})
+			.catch((err) => {
+				this.log.error('Could not get authorizationUri:', err.message)
 			});
 		this.log('Using fetch done');
 
 
 
-		// create request options
-		let requestOptions = {
-			method: 'GET',
-			uri: countryBaseUrlArray[this.config.country].concat('/authorization'),
-			body: '',
-			resolveWithFulLResponse: true,
-			json: true
-		};
-		this.log('getSessionBE: get authentication details requestOptions=',requestOptions);
 
-
-
-	
-		// get authentication details	
 		this.log('getSessionBE: get authentication details');	
 		request(requestOptions)
+
 			.then((response) => {
 				this.log("Full authenticaiton response ", response);
 			})
