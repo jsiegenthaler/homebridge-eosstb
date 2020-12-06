@@ -337,8 +337,13 @@ tvAccessory.prototype = {
 		this.log('getSessionBE');
 
 		let fetchuri = countryBaseUrlArray[this.config.country] + '/authorization';
+		// https://web-api-prod-obo.horizon.tv/oesp/v3/BE/nld/web/authorization
 		this.log('Using fetch',fetchuri);
-		fetch(fetchuri, { method: 'POST', body: '' })
+		fetch(fetchuri, { 	method: 'POST', 
+							body: '',
+							headers: { 'Connection': 'keep-alive'
+									 }
+						})
     		//.then(res => res.json()) // expecting a json response
 			//.then(json => this.log(json))
 			.then(res => {
