@@ -332,10 +332,9 @@ tvAccessory.prototype = {
 
 
 	getSessionBE() {
-			// only for be users, as the session logon is different
+			// only for be-nl and be-fr users, as the session logon using openid is different
 		this.log('getSessionBE');
 
-		// get authentication details
 		// create request options
 		let requestOptions = {
 			method: 'GET',
@@ -343,16 +342,10 @@ tvAccessory.prototype = {
 			body: '',
 			json: true
 		};
-		//sessionRequestOptions.uri = countryBaseUrlArray[this.config.country].concat('/authorization');
-		//sessionRequestOptions.method = 'GET';
-		//sessionRequestOptions.body = '';
-		//sessionRequestOptions.method = 'GET';		
-		//sessionRequestOptions.body.username = '';
-		//sessionRequestOptions.body.password = '';
-		this.log('getSessionBE: requestOptions',requestOptions);
+		this.log('getSessionBE: get authentication details requestOptions=',requestOptions);
 
 		// get authentication details	
-		this.log('get authentication details');	
+		this.log('getSessionBE: get authentication details');	
 		request(requestOptions)
 			.then((json) => {
 				this.log(json); // log the response for debugging
@@ -364,13 +357,22 @@ tvAccessory.prototype = {
 				//this.log('authState',authState);
 				//this.log('authValidtyToken',authValidtyToken);
 
-				sessionRequestOptions.uri = authorizationUri;
-				sessionRequestOptions.method = 'GET';
-				sessionRequestOptions.body = '';
+				//sessionRequestOptions.uri = authorizationUri;
+				//sessionRequestOptions.method = 'GET';
+				//sessionRequestOptions.body = '';
+
+				// create request options
+				let requestOptions = {
+					method: 'GET',
+					uri: authorizationUri,
+					body: '',
+					json: true
+				};
+				this.log('getSessionBE: follow authorizationUri to get AUTH cookie requestOptions=',requestOptions);
 
 				// follow authorizationUri to get AUTH cookie
-				this.log('follow authorizationUri to get AUTH cookie');	
-				request(sessionRequestOptions)
+				this.log('getSessionBE: follow authorizationUri to get AUTH cookie');	
+				request(requestOptions)
 					.then((json) => {
 						this.log(json); // log the response for debugging
 						
@@ -381,7 +383,7 @@ tvAccessory.prototype = {
 						obj.rememberme = 'true';
 						let payload = JSON.stringify(obj);
 						this.log(payload);
-						
+
 						// create request options
 						let requestOptions = {
 							method: 'POST',
@@ -389,13 +391,14 @@ tvAccessory.prototype = {
 							body: payload,
 							json: true
 						};
-						this.log('requestOptions',requestOptions);	
-						this.log('attempt to login');	
+						this.log('getSessionBE: attempt to login requestOptions=',requestOptions);
+
+						this.log('getSessionBE: attempt to login');	
 						request(requestOptions)
 							.then((json) => {
 								this.log(json); // log the response for debugging
 								
-
+								this.log('getSessionBE: login successful');
 		
 		
 								
