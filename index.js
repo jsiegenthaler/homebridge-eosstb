@@ -340,10 +340,9 @@ tvAccessory.prototype = {
 		// https://web-api-prod-obo.horizon.tv/oesp/v3/BE/nld/web/authorization
 		this.log('Using fetch',authorizationUri);
 		fetch(authorizationUri, {
-		//	"referrerPolicy": "no-referrer",
 			"body": null,
-			"method": "GET",
-			"mode": "cors"
+			"method": "GET"
+//			"mode": "cors"
 		  })
     		//.then(res => res.json()) // expecting a json response
 			//.then(json => this.log(json))
