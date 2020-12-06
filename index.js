@@ -336,6 +336,22 @@ tvAccessory.prototype = {
 			// only for be-nl and be-fr users, as the session logon using openid is different
 		this.log('getSessionBE');
 
+		let fetchuri = countryBaseUrlArray[this.config.country] + '/authorization';
+		this.log('Using fetch',fetchuri);
+		fetch(fetchuri, { method: 'POST', body: '' })
+    		//.then(res => res.json()) // expecting a json response
+			//.then(json => this.log(json))
+			.then(res => {
+				this.log(res.ok);
+				this.log(res.status);
+				this.log(res.statusText);
+				this.log(res.headers.raw());
+				this.log(res.headers.get('content-type'));
+			});
+		this.log('Using fetch done');
+
+
+
 		// create request options
 		let requestOptions = {
 			method: 'GET',
@@ -346,18 +362,7 @@ tvAccessory.prototype = {
 		};
 		this.log('getSessionBE: get authentication details requestOptions=',requestOptions);
 
-		this.log('Using fetch');
-		fetch(countryBaseUrlArray[this.config.country].concat('/authorization'), { method: 'POST', body: '' })
-    		.then(res => res.json()) // expecting a json response
-			.then(json => console.log(json))
-			.then(res => {
-				this.log(res.ok);
-				this.log(res.status);
-				this.log(res.statusText);
-				this.log(res.headers.raw());
-				this.log(res.headers.get('content-type'));
-			});
-		this.log('Using fetch done');
+
 
 	
 		// get authentication details	
