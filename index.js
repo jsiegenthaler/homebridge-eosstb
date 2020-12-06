@@ -335,10 +335,9 @@ tvAccessory.prototype = {
 		this.log('getSessionBE');
 
 		// get authentication details
-		sessionRequestOptions
-			.uri = countryBaseUrlArray[this.config.country].concat('/authorization')
-			.method = 'GET'
-			.body = '';
+		sessionRequestOptions.uri = countryBaseUrlArray[this.config.country].concat('/authorization');
+		sessionRequestOptions.method = 'GET';
+		sessionRequestOptions.body = '';
 		//sessionRequestOptions.method = 'GET';		
 		//sessionRequestOptions.body.username = '';
 		//sessionRequestOptions.body.password = '';
