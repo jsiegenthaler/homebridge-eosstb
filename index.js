@@ -40,8 +40,8 @@ const mqttUrlArray = {
     'nl': 		'wss://obomsg.prod.nl.horizon.tv:443/mqtt',
     'ch': 		'wss://obomsg.prod.ch.horizon.tv:443/mqtt',
     'be-nl': 	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
-    'be-fr':  'wss://obomsg.prod.be.horizon.tv:443/mqtt',
-    'at':			'wss://obomsg.prod.at.horizon.tv:443/mqtt'
+    'be-fr':  	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
+    'at':		'wss://obomsg.prod.at.horizon.tv:443/mqtt'
 };
 
 
@@ -132,7 +132,11 @@ function tvAccessory(log, config) {
 
 	// this.getChannels();
 	this.log('Creating session...');
-	this.getSession();
+	if(this.config.country in ['be-nl', 'be-fr'])
+		this.getSessionBE();
+    else
+		this.getSession();
+
 	this.log('Loading inputs...');
 	this.setInputs();
 	this.log('Inputs loaded');
@@ -317,6 +321,41 @@ tvAccessory.prototype = {
 			});
 		//return sessionJson || false;
 	}, // end of getSession
+
+
+
+
+	getSessionBE() {
+			// only for be users, as the session logon is different
+		this.log.debug('getSessionBE');
+
+		sessionRequestOptions.uri = countryBaseUrlArray[this.config.country].concat('/authorization');
+		sessionRequestOptions.method = 'GET';
+		this.log.debug('getSessionBE sessionRequestOptions.uri:',sessionRequestOptions.uri);
+		
+		sessionRequestOptions.body.username = this.config.username;
+		sessionRequestOptions.body.password = this.config.password;
+		this.log.debug('getSessionBE: sessionRequestOptions',sessionRequestOptions);
+		
+		request(sessionRequestOptions)
+			.then((json) => {
+				//this.log(json);
+				auth = json;
+
+				//this.getJwtToken(sessionJson.oespToken, sessionJson.customer.householdId);
+				//this.log('Session created');			
+			})
+			.catch((err) => {
+				this.log.error('getSessionBE Error:', err.message);
+			});
+		//return sessionJson || false;
+	}, // end of getSessionBE
+
+
+
+
+
+
 
 
 
