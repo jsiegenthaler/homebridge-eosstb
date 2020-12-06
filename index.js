@@ -341,22 +341,14 @@ tvAccessory.prototype = {
 		this.log('Using fetch',authorizationUri);
 		fetch(authorizationUri, {
 			"headers": {
-			  "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-		//	  "accept-language": "en-GB,en;q=0.9,de;q=0.8,en-US;q=0.7,fr;q=0.6",
-			  "cache-control": "max-age=0",
-		//	  "sec-fetch-dest": "document",
-		//	  "sec-fetch-mode": "navigate",
-		///	  "sec-fetch-site": "cross-site",
-		//	  "sec-fetch-user": "?1",
-		//	  "upgrade-insecure-requests": "1"
+			  "accept": "text/html,application/xhtml+xml,application/xml;",
+//			  "cache-control": "max-age=0",
 			},
-			"referrerPolicy": "no-referrer",
+//			"referrerPolicy": "no-referrer",
 			"body": null,
 			"method": "GET",
-			"mode": "cors"
+//			"mode": "cors"
 		  })
-    		//.then(res => res.json()) // expecting a json response
-			//.then(json => this.log(json))
 			.then(res => {
 				this.log('ok',res.ok);
 				this.log('status',res.status);
