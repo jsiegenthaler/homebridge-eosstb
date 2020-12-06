@@ -132,10 +132,11 @@ function tvAccessory(log, config) {
 
 	// this.getChannels();
 	this.log('Creating session...');
-	if(this.config.country in ['be-nl', 'be-fr'])
+	if (this.config.country == 'be-nl' || this.config.country == 'be-fr') {
 		this.getSessionBE();
-    else
+	} else {
 		this.getSession();
+	}
 
 	this.log('Loading inputs...');
 	this.setInputs();
