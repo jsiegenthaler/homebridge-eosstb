@@ -402,7 +402,9 @@ tvAccessory.prototype = {
 		
 							})
 							.catch((err) => {
-								this.log.error('Unable to login, likely wrong credentials:', err.message);
+								this.log(err);
+								
+								this.log.error('Unable to login, likely wrong credentials. if a 302, then check the response header', err.message);
 						});
 
 
