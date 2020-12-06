@@ -44,7 +44,8 @@ const mqttUrlArray = {
     'at':		'wss://obomsg.prod.at.horizon.tv:443/mqtt'
 };
 
-
+// openid logon url used in Belgium for be-nl and be-fr sessions
+const BE_AUTH_URL = 'https://login.prd.telenet.be/openid/login.do';
 
 
 
@@ -335,53 +336,85 @@ tvAccessory.prototype = {
 		this.log('getSessionBE');
 
 		// get authentication details
-		sessionRequestOptions.uri = countryBaseUrlArray[this.config.country].concat('/authorization');
-		sessionRequestOptions.method = 'GET';
-		sessionRequestOptions.body = '';
+		// create request options
+		let requestOptions = {
+			method: 'GET',
+			uri: countryBaseUrlArray[this.config.country].concat('/authorization'),
+			body: '',
+			json: true
+		};
+		//sessionRequestOptions.uri = countryBaseUrlArray[this.config.country].concat('/authorization');
+		//sessionRequestOptions.method = 'GET';
+		//sessionRequestOptions.body = '';
 		//sessionRequestOptions.method = 'GET';		
 		//sessionRequestOptions.body.username = '';
 		//sessionRequestOptions.body.password = '';
-		this.log('getSessionBE: sessionRequestOptions',sessionRequestOptions);
+		this.log('getSessionBE: requestOptions',requestOptions);
 
-		// get authentication details		
-		request(sessionRequestOptions)
+		// get authentication details	
+		this.log('get authentication details');	
+		request(requestOptions)
 			.then((json) => {
 				this.log(json); // log the response for debugging
 				let auth = json; // set auth variable to the json  
 				let authorizationUri = auth.session.authorizationUri;
 				let authState = auth.session.state;
 				let authValidtyToken = auth.session.validityToken;
-				this.log('authorizationUri',authorizationUri);
-				this.log('authState',authState);
-				this.log('authValidtyToken',authValidtyToken);
+				//this.log('authorizationUri',authorizationUri);
+				//this.log('authState',authState);
+				//this.log('authValidtyToken',authValidtyToken);
 
 				sessionRequestOptions.uri = authorizationUri;
 				sessionRequestOptions.method = 'GET';
 				sessionRequestOptions.body = '';
 
 				// follow authorizationUri to get AUTH cookie
+				this.log('follow authorizationUri to get AUTH cookie');	
 				request(sessionRequestOptions)
 					.then((json) => {
 						this.log(json); // log the response for debugging
 						
-						// login
-						var obj = new Object();
+						// create login payload
+						let obj = new Object();
 						obj.j_username = this.config.username;
 						obj.j_password  = this.config.password;
-						obj.rememberme = true;
-						var payload= JSON.stringify(obj);
+						obj.rememberme = 'true';
+						let payload = JSON.stringify(obj);
 						this.log(payload);
 						
-									
+						// create request options
+						let requestOptions = {
+							method: 'POST',
+							uri: BE_AUTH_URL,
+							body: payload,
+							json: true
+						};
+						this.log('requestOptions',requestOptions);	
+						this.log('attempt to login');	
+						request(requestOptions)
+							.then((json) => {
+								this.log(json); // log the response for debugging
+								
+
+		
+		
+								
+		
+							})
+							.catch((err) => {
+								this.log.error('Unable to login, likely wrong credentials:', err.message);
+						});
+
+
 					})
 					.catch((err) => {
 						this.log.error('Unable to authorize to get AUTH cookie:', err.message);
-					});
+				});
 		
 			})
 			.catch((err) => {
 				this.log.error('Could not get authorizationUri:', err.message);
-			});
+		});
 		//return sessionJson || false;
 	}, // end of getSessionBE
 
