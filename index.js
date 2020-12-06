@@ -340,6 +340,7 @@ tvAccessory.prototype = {
 			method: 'GET',
 			uri: countryBaseUrlArray[this.config.country].concat('/authorization'),
 			body: '',
+			resolveWithFulLResponse: true,
 			json: true
 		};
 		this.log('getSessionBE: get authentication details requestOptions=',requestOptions);
@@ -369,6 +370,7 @@ tvAccessory.prototype = {
 					uri: authorizationUri,
 					body: '',
 					jar: cookieJar,
+					resolveWithFulLResponse: true,
 					json: true
 				};
 				this.log('getSessionBE: follow authorizationUri to get AUTH cookie requestOptions=',requestOptions);
@@ -389,6 +391,7 @@ tvAccessory.prototype = {
 							uri: BE_AUTH_URL,
 							body: payload,
 							followRedirect: false,
+							resolveWithFulLResponse: true,
 							json: true
 						};
 						this.log('getSessionBE: attempt to login requestOptions=',requestOptions);
@@ -405,8 +408,8 @@ tvAccessory.prototype = {
 		
 							})
 							.catch((err) => {
-								this.log(err);
-								this.log('Unable to login err.headers.location=',err.headers.location);
+								this.log('getSessionBE: attempt to login error=',err);
+								//this.log('Unable to login err.headers.location=',err.headers.location);
 								this.log.error('Unable to login, likely wrong credentials. if a 302, then check the response header', err.message);
 						});
 
