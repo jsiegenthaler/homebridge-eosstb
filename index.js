@@ -385,7 +385,7 @@ tvAccessory.prototype = {
 							method: 'POST',
 							uri: BE_AUTH_URL,
 							body: payload,
-							//followAllRedirects: false,
+							followRedirect: false,
 							json: true
 						};
 						this.log('getSessionBE: attempt to login requestOptions=',requestOptions);
@@ -403,7 +403,7 @@ tvAccessory.prototype = {
 							})
 							.catch((err) => {
 								this.log(err);
-								this.log('err.headers.location=',err.headers.location);
+								this.log('Unable to login err.headers.location=',err.headers.location);
 								this.log.error('Unable to login, likely wrong credentials. if a 302, then check the response header', err.message);
 						});
 
