@@ -348,15 +348,17 @@ tvAccessory.prototype = {
 		this.log('getSessionBE: get authentication details');	
 		request(requestOptions)
 			.then((json) => {
-				this.log(json); // log the response for debugging
+				this.log('getSessionBE: get authentication details response=', json); // log the response for debugging
 				let auth = json; // set auth variable to the json  
 				let authorizationUri = auth.session.authorizationUri;
 				let authState = auth.session.state;
 				let authValidtyToken = auth.session.validityToken;
-				//this.log('authorizationUri',authorizationUri);
+				this.log('authorizationUri',authorizationUri);
 				//this.log('authState',authState);
 				//this.log('authValidtyToken',authValidtyToken);
-
+				var cookieJar = request.jar();
+				var cookie = request.cookie("" + mycookie);
+				cookieJar.setCookie(cookie, authorizationUri);
 				//sessionRequestOptions.uri = authorizationUri;
 				//sessionRequestOptions.method = 'GET';
 				//sessionRequestOptions.body = '';
@@ -366,6 +368,7 @@ tvAccessory.prototype = {
 					method: 'GET',
 					uri: authorizationUri,
 					body: '',
+					jar: cookieJar,
 					json: true
 				};
 				this.log('getSessionBE: follow authorizationUri to get AUTH cookie requestOptions=',requestOptions);
@@ -374,7 +377,7 @@ tvAccessory.prototype = {
 				this.log('getSessionBE: follow authorizationUri to get AUTH cookie');	
 				request(requestOptions)
 					.then((json) => {
-						this.log(json); // log the response for debugging
+						this.log('getSessionBE: follow authorizationUri to get AUTH cookie response=',json); // log the response for debugging
 						
 						// create login payload
 						let payload = "j_username=wesleyliekens%40icloud.com&j_password=Wesleyliekens83&rememberme=true"
