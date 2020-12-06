@@ -365,7 +365,13 @@ tvAccessory.prototype = {
 						this.log(json); // log the response for debugging
 						
 						// login
-
+						var obj = new Object();
+						obj.j_username = this.config.username;
+						obj.j_password  = this.config.password;
+						obj.rememberme = true;
+						var payload= JSON.stringify(obj);
+						this.log(payload);
+						
 									
 					})
 					.catch((err) => {
