@@ -349,7 +349,7 @@ tvAccessory.prototype = {
 		this.log('getSessionBE: get authentication details');	
 		request(requestOptions)
 			.then(function (response) {
-				console.log("Full authenticaiton response ", response);
+				this.log("Full authenticaiton response ", response);
 			})
 			/*
 			.then((json) => {
