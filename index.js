@@ -88,6 +88,8 @@ const sessionRequestOptions = {
 	json: true
 };
 
+
+
 function makeId(length) {
 	let result	= '';
 	let characters	= 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -332,18 +334,23 @@ tvAccessory.prototype = {
 			// only for be users, as the session logon is different
 		this.log('getSessionBE');
 
-		sessionRequestOptions.uri = countryBaseUrlArray[this.config.country].concat('/authorization');
-		sessionRequestOptions.method = 'GET';
-		this.log('getSessionBE sessionRequestOptions.uri:',sessionRequestOptions.uri);
-		
-		sessionRequestOptions.body.username = this.config.username;
-		sessionRequestOptions.body.password = this.config.password;
+		// get authentication details
+		sessionRequestOptions
+			.uri = countryBaseUrlArray[this.config.country].concat('/authorization')
+			.method = 'GET'
+			.body = '';
+		//sessionRequestOptions.method = 'GET';		
+		//sessionRequestOptions.body.username = '';
+		//sessionRequestOptions.body.password = '';
 		this.log('getSessionBE: sessionRequestOptions',sessionRequestOptions);
 		
 		request(sessionRequestOptions)
 			.then((json) => {
-				this.log(json);
-				auth = json;
+				this.log(json); // log the response for debugging
+				let auth = json; // set auth variable to the json  
+				let authorizationUri = auth.session.authorizationUri;
+				let authState = auth.session.state;
+				let authValidtyToken = auth.session.validityToken;
 
 				//this.getJwtToken(sessionJson.oespToken, sessionJson.customer.householdId);
 				//this.log('Session created');			
