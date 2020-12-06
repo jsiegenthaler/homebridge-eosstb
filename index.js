@@ -330,19 +330,19 @@ tvAccessory.prototype = {
 
 	getSessionBE() {
 			// only for be users, as the session logon is different
-		this.log.debug('getSessionBE');
+		this.log('getSessionBE');
 
 		sessionRequestOptions.uri = countryBaseUrlArray[this.config.country].concat('/authorization');
 		sessionRequestOptions.method = 'GET';
-		this.log.debug('getSessionBE sessionRequestOptions.uri:',sessionRequestOptions.uri);
+		this.log('getSessionBE sessionRequestOptions.uri:',sessionRequestOptions.uri);
 		
 		sessionRequestOptions.body.username = this.config.username;
 		sessionRequestOptions.body.password = this.config.password;
-		this.log.debug('getSessionBE: sessionRequestOptions',sessionRequestOptions);
+		this.log('getSessionBE: sessionRequestOptions',sessionRequestOptions);
 		
 		request(sessionRequestOptions)
 			.then((json) => {
-				//this.log(json);
+				this.log(json);
 				auth = json;
 
 				//this.getJwtToken(sessionJson.oespToken, sessionJson.customer.householdId);
