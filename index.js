@@ -1,5 +1,6 @@
 const mqtt = require('mqtt');  
 const request = require('request-promise');
+const fetch = require('node-fetch');
 const _ = require('underscore');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -345,6 +346,20 @@ tvAccessory.prototype = {
 		};
 		this.log('getSessionBE: get authentication details requestOptions=',requestOptions);
 
+		this.log('Using fetch');
+		fetch(countryBaseUrlArray[this.config.country].concat('/authorization'), { method: 'POST', body: '' })
+    		.then(res => res.json()) // expecting a json response
+			.then(json => console.log(json))
+			.then(res => {
+				this.log(res.ok);
+				this.log(res.status);
+				this.log(res.statusText);
+				this.log(res.headers.raw());
+				this.log(res.headers.get('content-type'));
+			});
+		this.log('Using fetch done');
+
+	
 		// get authentication details	
 		this.log('getSessionBE: get authentication details');	
 		request(requestOptions)
