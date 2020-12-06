@@ -61,6 +61,7 @@ Install homebridge-eosstb:
 ```sh
 npm install -g homebridge-eosstb
 ```
+After installing, make sure you restart Homebridge.
 
 ## Remote Control Supported Keys
 The following keys are supported by in the iOS Remote in the Control Center
