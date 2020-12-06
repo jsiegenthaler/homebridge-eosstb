@@ -360,7 +360,7 @@ tvAccessory.prototype = {
 
 
 
-
+				let requestOptions = '';
 		this.log('getSessionBE: get authentication details');	
 		request(requestOptions)
 
