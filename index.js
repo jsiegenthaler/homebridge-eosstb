@@ -342,7 +342,8 @@ tvAccessory.prototype = {
 		//sessionRequestOptions.body.username = '';
 		//sessionRequestOptions.body.password = '';
 		this.log('getSessionBE: sessionRequestOptions',sessionRequestOptions);
-		
+
+		// get authentication details		
 		request(sessionRequestOptions)
 			.then((json) => {
 				this.log(json); // log the response for debugging
@@ -353,11 +354,27 @@ tvAccessory.prototype = {
 				this.log('authorizationUri',authorizationUri);
 				this.log('authState',authState);
 				this.log('authValidtyToken',authValidtyToken);
-				//this.getJwtToken(sessionJson.oespToken, sessionJson.customer.householdId);
-				//this.log('Session created');			
+
+				sessionRequestOptions.uri = authorizationUri;
+				sessionRequestOptions.method = 'GET';
+				sessionRequestOptions.body = '';
+
+				// follow authorizationUri to get AUTH cookie
+				request(sessionRequestOptions)
+					.then((json) => {
+						this.log(json); // log the response for debugging
+						
+						// login
+
+									
+					})
+					.catch((err) => {
+						this.log.error('Unable to authorize to get AUTH cookie:', err.message);
+					});
+		
 			})
 			.catch((err) => {
-				this.log.error('getSessionBE Error:', err.message);
+				this.log.error('Could not get authorizationUri:', err.message);
 			});
 		//return sessionJson || false;
 	}, // end of getSessionBE
