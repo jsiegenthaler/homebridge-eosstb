@@ -342,11 +342,11 @@ tvAccessory.prototype = {
     		//.then(res => res.json()) // expecting a json response
 			//.then(json => this.log(json))
 			.then(res => {
-				this.log(res.ok);
-				this.log(res.status);
-				this.log(res.statusText);
-				this.log(res.headers.raw());
-				this.log(res.headers.get('content-type'));
+				this.log('ok',res.ok);
+				this.log('status',res.status);
+				this.log('statusText',res.statusText);
+				this.log('raw',res.headers.raw());
+				this.log('content-type',res.headers.get('content-type'));
 			});
 		this.log('Using fetch done');
 
