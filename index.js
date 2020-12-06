@@ -348,14 +348,13 @@ tvAccessory.prototype = {
 		// get authentication details	
 		this.log('getSessionBE: get authentication details');	
 		request(requestOptions)
-			.then(function (response) {
+			.then((response) => {
 				this.log("Full authenticaiton response ", response);
 			})
 			/*
 			.then((json) => {
 
-				function (response)
-				this.log('getSessionBE: get authentication details response=', json); // log the response for debugging
+								this.log('getSessionBE: get authentication details response=', json); // log the response for debugging
 				let auth = json; // set auth variable to the json  
 				let authorizationUri = auth.session.authorizationUri;
 				let authState = auth.session.state;
