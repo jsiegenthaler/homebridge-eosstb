@@ -338,7 +338,7 @@ tvAccessory.prototype = {
 
 		let authorizationUri = countryBaseUrlArray[this.config.country] + '/authorization';
 		// https://web-api-prod-obo.horizon.tv/oesp/v3/BE/nld/web/authorization
-		this.log('Using fetch',fetchuri);
+		this.log('Using fetch',authorizationUri);
 		fetch(authorizationUri, {
 			"headers": {
 			  "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
