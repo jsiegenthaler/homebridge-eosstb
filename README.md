@@ -18,7 +18,7 @@ Because you are a helper, I need your feedback
 
 # homebridge-eosstb
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS settop box (ARRIS DCX960 which runs on the UPC TV system), as well as connected HDMI-CEC controllable devices with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS settop box (typically a ARRIS DCX960 running on the UPC TV system), as well as connected HDMI-CEC controllable devices with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
 This plugin displays your EOS settop box as a TV Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad, iMac, etc).
 
