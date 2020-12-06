@@ -357,7 +357,7 @@ tvAccessory.prototype = {
 				//this.log('authState',authState);
 				//this.log('authValidtyToken',authValidtyToken);
 				var cookieJar = request.jar();
-				var cookie = request.cookie("" + mycookie);
+				var cookie = request.cookie("" + authValidtyToken);
 				cookieJar.setCookie(cookie, authorizationUri);
 				//sessionRequestOptions.uri = authorizationUri;
 				//sessionRequestOptions.method = 'GET';
