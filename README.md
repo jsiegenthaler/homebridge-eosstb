@@ -144,11 +144,9 @@ Example configuration:
 
 * **MediaPause**: Toggles between Pause and Play of the current TV program
 
-* **MediaPause**: Pauses and Plays (when pressed again) the current TV program
-
 
 ## Known Other Commands
-* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the EOS box, but instead via a bash command on homebridge. So your TV must be capable of being controlled remotely via your raspberry pi. The author's TV Receiver uses [samsungctl](https://github.com/Ape/samsungctl/), and that allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver.
+* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the EOS box, but instead via a bash command. So your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver.
 
 
 ## Siri
