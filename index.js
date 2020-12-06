@@ -389,6 +389,7 @@ tvAccessory.prototype = {
 							method: 'POST',
 							uri: BE_AUTH_URL,
 							body: payload,
+							followAllRedirects: false,
 							json: true
 						};
 						this.log('getSessionBE: attempt to login requestOptions=',requestOptions);
