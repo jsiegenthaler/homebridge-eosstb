@@ -131,10 +131,13 @@ function tvAccessory(log, config) {
 	myUpcPassword = this.config.password || ''; // was username, changed to password, then things stopped working. changed back
 
 	// this.getChannels();
+	this.log('Creating session...');
 	this.getSession();
+	this.log('Loading inputs...');
 	this.setInputs();
-
-	// Check & Update Accessory Status every 5 seconds (5000 ms)
+	this.log('Inputs loaded');
+	
+	// Check & Update Accessory Status every STB_STATE_POLLING_INTERVAL_MS (Default: 5000 ms)
 	this.checkStateInterval = setInterval(this.updateTvState.bind(this),STB_STATE_POLLING_INTERVAL_MS);
 }
 
@@ -306,7 +309,7 @@ tvAccessory.prototype = {
 				sessionJson = json;
 
 				this.getJwtToken(sessionJson.oespToken, sessionJson.customer.householdId);
-				this.log.debug('getSession successful');			
+				this.log('Session created');			
 			})
 			.catch((err) => {
 				this.log.error('getSession Error:', err.message); // likely invalid credentials
@@ -404,11 +407,11 @@ tvAccessory.prototype = {
 				
 				// check if this status message is for the desired EOSSTB
 				if(topic.startsWith(mqttUsername) && topic.includes('-EOSSTB-')){
-					parent.log('EOSSTB topic detected:',topic)
+					parent.log('mqtt EOSSTB topic detected:',topic)
 				};
-				if(topic.includes(parent.config.settopboxId)){
-					parent.log('Wanted EOSSTB topic detected:',topic)
-				};
+				//if(topic.includes(parent.config.settopboxId)){
+				//	parent.log('Wanted EOSSTB topic detected:',topic)
+				//};
 				
 				//parent.log('mqttClient: Received Message: Topic:',topic);
 				//parent.log('mqttClient.on.message payload',payload);
@@ -438,14 +441,18 @@ tvAccessory.prototype = {
 				// deviceType exists in Topic: 1076582_ch/2E59F6E9-8E23-41D2-921D-C13CA269A3BC/status
 				// Topic: 1076582_ch/3C36E4-EOSSTB-003656579806/status  
 				// multiple devices can exist! how to handle them?
-				if(payloadValue.deviceType){
+				if (payloadValue.deviceType){
+					// got some deviceType, but which one?
+						
 					// check if this is the wanted settopboxId and that payloadValue.deviceType value = STB
 					// wanted = defined and correct, or not defined
-					if(((payloadValue.source == parent.config.settopboxId) || (typeof parent.config.settopboxId === 'undefined'))
-						&& (payloadValue.deviceType == 'STB')) {
-					
+					//if(((payloadValue.source == parent.config.settopboxId) || (typeof parent.config.settopboxId === 'undefined'))
+					//	&& (payloadValue.deviceType == 'STB')) {
+					if (payloadValue.deviceType == 'STB'){
+						// got the STB device type, but which STB?
+						
 						// set or detect the settopboxId but only once
-						if (typeof settopboxId === 'undefined') {
+						if (typeof settopboxId === 'undefined'){
 							if (typeof parent.config.settopboxId === 'undefined') {
 								settopboxId = payloadValue.source;
 								parent.log('Auto-configured settopboxId to',settopboxId);
@@ -454,27 +461,27 @@ tvAccessory.prototype = {
 								parent.log('settopboxId configured, using', settopboxId);
 							}
 						};
-
-						
 						parent.log('Using settopBoxId',settopboxId);
-						settopboxState = payloadValue.state;
+
 						
 						// set serial number to the box
 						//parent.log('mqttClient: Received Message STB status: SerialNumber',parent.informationService.getCharacteristic(Characteristic.SerialNumber).value);
 						if (parent.informationService.getCharacteristic(Characteristic.SerialNumber).value === 'unknown') {
 								parent.log('mqttClient: Calling updateInformationService with',payloadValue.source);
 								parent.informationService.updateCharacteristic(Characteristic.SerialNumber,payloadValue.source);
-						}
+						};
 						//parent.informationService.getCharacteristic(Characteristic.SerialNumber).updateValue(payloadValue.source);
 						
 						// detect power state
+						/*
+						settopboxState = payloadValue.state;
 						parent.log('Detecting settopbox currentPowerState');
 						if (settopboxState == 'ONLINE_RUNNING') // ONLINE_RUNNING means power is turned on
 							currentPowerState = 1;
 						else if ((settopboxState == 'ONLINE_STANDBY') || (settopboxState == 'OFFLINE')) // ONLINE_STANDBY or OFFLINE: power is off
 							currentPowerState = 0;
 						parent.log('Settopbox power is',(currentPowerState ? "On" : "Off"));
-
+						*/
 
 						// subscribe to our own generated unique varClientId
 						mqttClient.subscribe(mqttUsername + '/' + varClientId, function (err) {
@@ -505,31 +512,50 @@ tvAccessory.prototype = {
 						});
 
 						parent.log.debug('mqttClient: Received Message STB status: currentPowerState:',currentPowerState);
-						//parent.log('mqttClient: Received Message: calling getUiStatus()');
 						//parent.getUiStatus();
-					}
+					} // end of if deviceType=STB
 				}
 
 
-				// check if payloadValue.type exists, look for CPE.uiStatus
+				// check if payloadValue.type exists, look for CPE.uiStatus, make sure it is for the wanted settopboxId
+				// CPE.uiStatus shows us the currently selected channel on the stb, and occurs in many topics
+				// Topic: 1076582_ch/3C36E4-EOSSTB-003656579806/status
+				// Message: {"deviceType":"STB","source":"3C36E4-EOSSTB-003656579806","state":"ONLINE_RUNNING","mac":"F8:F5:32:45:DE:52","ipAddress":"192.168.0.33/255.255.255.0"}
+				if((payloadValue.deviceType == 'STB') && (payloadValue.source == settopboxId)) {
+						parent.log.debug('mqttClient: Received Message of type CPE.uiStatus for',payloadValue.source,'Detecting currentPowerState');
+						if ((payloadValue.state == 'ONLINE_RUNNING') && (currentPowerState != 1)){ // ONLINE_RUNNING: power is on
+							currentPowerState = 1;
+							parent.log('Settopbox power:',(currentPowerState ? "On" : "Off"));
+						}          
+						else if (((payloadValue.state == 'ONLINE_STANDBY') || (payloadValue.state == 'OFFLINE')) // ONLINE_STANDBY or OFFLINE: power is off
+							 && (currentPowerState != 0)){
+							currentPowerState = 0;
+							parent.log('Settopbox power:',(currentPowerState ? "On" : "Off"));
+						};
+						//parent.log('Settopbox power is',(currentPowerState ? "On" : "Off"));
+				};
+
+
+				
+				// check if payloadValue.type exists, look for CPE.uiStatus, make sure it is for the wanted settopboxId
 				// type exists in Topic: 1076582_ch/jrtmev583ijsntldvrk1fl95c6nrai
-				// CPE.uiStatus shows us the currently selected channel on the stb
-				// this is broadcast when the webapp is connected
-				// but after a while the webapp disconnects, so must find a way to connect??? and stay connected?
-				if(payloadValue.type == 'CPE.uiStatus'){
-						parent.log.debug('mqttClient: Received Message of type CPE.uiStatus');
+				// CPE.uiStatus shows us the currently selected channel on the stb, and occurs in many topics
+				// Topic: 1076582_ch/vy9hvvxo8n6r1t3f4e05tgg590p8s0
+				// Message: {"version":"1.3.10","type":"CPE.uiStatus","source":"3C36E4-EOSSTB-003656579806","messageTimeStamp":1607205483257,"status":{"uiStatus":"mainUI","playerState":{"sourceType":"linear","speed":1,"lastSpeedChangeTime":1607203130936,"source":{"channelId":"SV09259","eventId":"crid:~~2F~~2Fbds.tv~~2F394850976,imi:3ef107f9a95f37e5fde84ee780c834b502be1226"}},"uiState":{}},"id":"fms4mjb9uf"}
+				if((payloadValue.type == 'CPE.uiStatus') && (payloadValue.source == settopboxId)) {
+						parent.log.debug('mqttClient: Received Message of type CPE.uiStatus for',payloadValue.source,'Detecting currentChannelId');
 						if(payloadValue.status.uiStatus == 'mainUI'){
-						// grab the status part of the payloadValue object as we cannot go any deeper with json
-						let playerStatus = payloadValue.status
-						parent.log.debug('mqttClient: Received Message CPE.uiStatus');
-						//parent.log('playerStatus', playerStatus);
-						// store the current channelId of the TV in currentChannelId
-						// as this routine is listeneing to mqtt messages sent by the polling, this will
-						// update the currentChannelId if the user changes it with the physical TV remote control
-						currentChannelId = payloadValue.status.playerState.source.channelId;
-						parent.log.debug('mqttClient: Received Message CPE.uiStatus: Current channel:', currentChannelId);
-					}
-				}
+							parent.log.debug('mqttClient: Received Message CPE.uiStatus for mainUI');
+							// grab the status part of the payloadValue object as we cannot go any deeper with json
+							let playerStateSource = payloadValue.status.playerState.source;
+							// store the current channelId of the TV in currentChannelId
+							// as this routine is listening to mqtt messages sent by the polling, this will
+							// update the currentChannelId if the user changes it with the physical TV remote control
+							currentChannelId = playerStateSource.channelId;
+							parent.log.debug('mqttClient: Received Message CPE.uiStatus: Current channel:', currentChannelId);
+					};
+				};
+				
 
 				parent.log.debug('mqttClient: Received Message end of event: currentPowerState:',currentPowerState);
 				parent.log.debug('mqttClient: Received Message end of event: currentChannelId:',currentChannelId);
@@ -575,7 +601,7 @@ tvAccessory.prototype = {
 
 	// send a remote control keypress to the settopbox via mqtt
 	sendKey(keyName) {
-		this.log('HomeKit send key:', keyName);
+		this.log('Remote key:', keyName);
 		mqttClient.publish(mqttUsername + '/' + settopboxId, '{"id":"' + makeId(8) + '","type":"CPE.KeyEvent","source":"' + varClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}');
 		
 		// added here to get profiles when I hit a button
@@ -600,43 +626,34 @@ tvAccessory.prototype = {
 
 	/* State Handlers */
 	updateTvState(error, status) {
-		// runs every 5 seconds, so don't log it unless debugging
-		//this.log('updateTvState: status:', status);
-		//this.log('updateTvState: currentChannelId:', currentChannelId);
+		// runs at the very start, and then every 5 seconds, so don't log it unless debugging
+		// doesn't get the data direct from the settop box, but rather gets it from the currentPowerState and currentChannelId
+		// which are received by the mqtt messages, which occurs very often
+		this.log.debug('updateTvState: currentChannelId:', currentChannelId, 'currentPowerState:', currentPowerState);
 		this.setInputs(); // set tvService inputs.
 
 		if (this.tvService) {
-			//this.log('checking state of tv service power'); 
-			// update power status value (currentPowerState, 0=o  ff, 1=on)
+			// update power status value (currentPowerState, 0=off, 1=on)
 			if (this.tvService.getCharacteristic(Characteristic.Active).value !== currentPowerState) {
-					this.log.debug("updateTvState: Settopbox to HomeKit: current power state: " + (currentPowerState ? "On" : "Off"));
 					this.tvService.getCharacteristic(Characteristic.Active).updateValue(currentPowerState == 1);
 			}
 			
 			// log the entire object to see the data!
 			//this.log('TV ActiveIdentifier:',this.tvService.getCharacteristic(Characteristic.ActiveIdentifier)),
 
-		//	if (status && currentChannelId) {
-				this.inputs.filter((input, index) => {
-					// check if current input is the same as currentChannelId
-					// this.log('updateTvState: input:',input);
-					// input: { id: 'SV09029', name: 'SRF info HD', index: 2 }
-					if (input.id !== currentChannelId) {
-						// Get and update HomeKit accessory with the current set TV input
-				//		this.log('updateTvState: input.id, currentChannelId:',input.id, currentChannelId); 
-				//		this.log('updateTvState: ActiveIdentifier.value, index, input.index:',this.tvService.getCharacteristic(Characteristic.ActiveIdentifier).value, index, input.index); 
-						// disabled until we find the bug
-						/*
-						if (this.tvService.getCharacteristic(Characteristic.ActiveIdentifier).value !== input.index) {
-							this.log(`updateTvState: Settop Box to Homekit: current channel: ${input.name} ${input.name} (${input.id})`);
-							return this.tvService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(index);
-						}
-						*/
+			this.inputs.filter((input, index) => {
+				//this.log('updateTvState: input:',input, 'index', index); // log to view the inputs
+				// input: { id: 'SV09029', name: 'SRF info HD', index: 2 }
+				// loop through all inputs until the input.id is found that matches the currentChannelId 
+				if (input.id === currentChannelId) {
+					// Update HomeKit accessory with the current input if it has changed
+					if (this.tvService.getCharacteristic(Characteristic.ActiveIdentifier).value !== index) {
+						this.log(`Current channel: ${input.name} (${input.id})`);
+						return this.tvService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(index);
 					}
-
-				return null;
-				});
-		//	}
+				}
+			return null;
+			});
 		} // end of if (this.tvService)
 	}, // end of updateTvState
 
@@ -769,6 +786,7 @@ tvAccessory.prototype = {
 		callback(true);
 	}, // end of getVolume
 
+
 	// set the volume of the TV using bash scripts
 	// the ARRIS box remote control commmunicates with the stereo via IR commands, not over mqtt
 	// so volume must be handled over a different method
@@ -821,7 +839,7 @@ tvAccessory.prototype = {
 
 	// fired by the View TV Settings command in the Homekit TV accessory Settings
 	viewTvSettings(input, callback) {
-		this.log('Sending menu command: View TV Settings');
+		this.log('Menu command: View TV Settings');
 		this.sendKey('Help'); // puts SETTINGS.INFO on the screen
 		setTimeout(() => { this.sendKey('ArrowRight'); }, 600); // move right to select SETTINGS.PROFILES, send after 600ms
 		callback(true);
