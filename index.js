@@ -377,11 +377,7 @@ tvAccessory.prototype = {
 						this.log(json); // log the response for debugging
 						
 						// create login payload
-						let obj = new Object();
-						obj.j_username = this.config.username;
-						obj.j_password  = this.config.password;
-						obj.rememberme = 'true';
-						let payload = JSON.stringify(obj);
+						let payload = "j_username=" + this.config.username + "&j_password=" + this.config.password + "&rememberme=true"
 						this.log(payload);
 
 						// create request options
@@ -389,7 +385,7 @@ tvAccessory.prototype = {
 							method: 'POST',
 							uri: BE_AUTH_URL,
 							body: payload,
-							followAllRedirects: false,
+							//followAllRedirects: false,
 							json: true
 						};
 						this.log('getSessionBE: attempt to login requestOptions=',requestOptions);
