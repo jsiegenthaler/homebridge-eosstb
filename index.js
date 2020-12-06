@@ -342,7 +342,7 @@ tvAccessory.prototype = {
 		fetch(authorizationUri, {
 			"headers": {
 //				"accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-				"accept": "text/html,application/xhtml+xml,application/xml;",
+//				"accept": "text/html,application/xhtml+xml,application/xml;",
 			},
 			"referrerPolicy": "no-referrer",
 			"body": null,
