@@ -344,18 +344,24 @@ tvAccessory.prototype = {
 			"Accept": "text/html,application/xhtml+xml,application/xml",
 			"body": null,
 			"method": "GET"
-		  	})
-			.then((response) => {
-				this.log('getSessionBE: get authentication details response=', response.json()); // log the response for debugging
-
-
+			})
+			// get any successful http response that return anything other than 200
+			.then(function(response) {
+				if (!response.ok) {
+					throw new Error("HTTP error, status = " + response.status);
+				}
+				return response.json();
+			})
+			// get the wanted json response
+			.then(function(json) {
+				this.log('getSessionBE: get authentication details response=', json); // log the response for debugging
 				//this.log('ok',response.ok); // we get a 200 OK responce
 				//this.log('status',response.status);
 				//this.log('statusText',response.statusText);
 				//this.log('raw=',response.headers.raw());
 				//this.log('content-type=',response.headers.get('content-type'));
 				//this.log('full response=',response);
-				
+					
 				/*
 				let auth = json; // set auth variable to the json  
 				let authorizationUri = auth.session.authorizationUri;
@@ -368,8 +374,6 @@ tvAccessory.prototype = {
 				//this.log('authValidtyToken',authValidtyToken);
 
 			})
-
-
 
 			// catch any get authentication details error
 			.catch((err) => {
