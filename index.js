@@ -359,7 +359,7 @@ tvAccessory.prototype = {
 						// create login payload
 						//this.log(data);
 
-						let payload = "j_username=wesleyliekens%40icloud.com&j_password=Wesleyliekens83&rememberme=true"
+						let payload = "j_username=xxxwesleyliekens%40icloud.com&j_password=Wesleyliekens83&rememberme=true"
 						this.log(payload);
 						let fetchOptions = {
 							method: 'POST',
