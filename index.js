@@ -346,8 +346,8 @@ tvAccessory.prototype = {
 				let authorizationUri = auth.session.authorizationUri;
 				let authState = auth.session.state;
 				let authValidtyToken = auth.session.validityToken;
-				log.this('authValidtyToken',authorizationUri);
-				log.this('authValidtyToken',authValidtyToken);
+				this.log('authValidtyToken',authorizationUri);
+				this.log('authValidtyToken',authValidtyToken);
 
 				// next fetch
 				// follow authorizationUri to get AUTH cookie
