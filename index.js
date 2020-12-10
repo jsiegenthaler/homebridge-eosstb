@@ -336,99 +336,45 @@ tvAccessory.prototype = {
 			// only for be-nl and be-fr users, as the session logon using openid is different
 		this.log('getSessionBE');
 
-		// get authentication details
+		// get authentication details from authorizationUri
 		// fetch works well and replaces request
 		let authorizationUri = countryBaseUrlArray[this.config.country] + '/authorization';
-		this.log('Using fetch: get authentication details',authorizationUri);
+		this.log('Using fetch: get authorizationUri: authorizationUri');
+		// fetch without options is a simple GET
 		fetch(authorizationUri)
-			.then((response) => {
-				this.log('ok',response.ok); // we get a 200 OK responce
-				this.log('status',response.status);
-				//this.log('statusText',response.statusText);
-				//this.log('raw=',response.headers.raw());
-				//this.log('content-type=',response.headers.get('content-type'));
-				//this.log('full response=',response);
-			})
-			.then((resp) => resp.json()) // get the promise to return the json
+			.then((response) => response.json()) // get the promise to return the json
 			.then((json) => {
-				this.log('getSessionBE: get authentication details json=', json); // log the response for debugging
-			})
-			.catch((err) => {
-				this.log.error('Could not get authorizationUri:', err.message)
-			});
+				//this.log('getSessionBE: get authentication details json=', json); // log the response for debugging
+				//let auth = json; // set auth variable to the json  
+				let authorizationUri = json.session.authorizationUri;
+				let authState = json.session.state;
+				let authValidtyToken = json.session.validityToken;
+				this.log('authorizationUri',authorizationUri);	
+				this.log('authState',authState);
+				this.log('authValidtyToken',authValidtyToken);
 
-		this.log('starting 2nd fetch');
-		 fetch(authorizationUri, {
-			"Accept": "text/html,application/xhtml+xml,application/xml",
-			"body": null,
-			"method": "GET"
-			})
-			// get any successful http response that return anything other than 200
-			/*
-			.then(function(response) {
-				if (!response.ok) {
-					throw new Error("HTTP error, status = " + response.status);
-				}
-				return response.json();
-			})
-			*/
-			// get the wanted json response
-			.then((json) => {
-				let auth = json; // set auth variable to the json
-				this.log('getSessionBE: get authentication details json=', json); // log the response for debugging
 
-				//this.log('ok',response.ok); // we get a 200 OK responce
-				//this.log('status',response.status);
-				//this.log('statusText',response.statusText);
-				//this.log('raw=',response.headers.raw());
-				//this.log('content-type=',response.headers.get('content-type'));
-				//this.log('full response=',response);
-					
-				/*
-				let auth = json; // set auth variable to the json  
-				let authorizationUri = auth.session.authorizationUri;
-				let authState = auth.session.state;
-				let authValidtyToken = auth.session.validityToken;
-				this.log('authorizationUri',authorizationUri);
-				*/
 
-				//this.log('authState',authState);
-				//this.log('authValidtyToken',authValidtyToken);
+
+
+
+
+
+
 
 			})
-
-			// catch any get authentication details error
 			.catch((err) => {
 				this.log.error('Could not get authorizationUri:', err.message)
 			});
 		this.log('Using fetch done');
 
 
-
-					/*
-			.then((json) => {
-
-								this.log('getSessionBE: get authentication details response=', json); // log the response for debugging
-				let auth = json; // set auth variable to the json  
-				let authorizationUri = auth.session.authorizationUri;
-				let authState = auth.session.state;
-				let authValidtyToken = auth.session.validityToken;
-				this.log('authorizationUri',authorizationUri);
-				//this.log('authState',authState);
-				//this.log('authValidtyToken',authValidtyToken);
-				var cookieJar = request.jar();
-				var cookie = request.cookie("" + authValidtyToken);
-				cookieJar.setCookie(cookie, authorizationUri);
-				//sessionRequestOptions.uri = authorizationUri;
-				//sessionRequestOptions.method = 'GET';
-				//sessionRequestOptions.body = '';
-
+/*
 				// create request options
 				let requestOptions = {
 					method: 'GET',
 					uri: authorizationUri,
 					body: '',
-					jar: cookieJar,
 					resolveWithFulLResponse: true,
 					json: true
 				};
