@@ -353,7 +353,7 @@ tvAccessory.prototype = {
 				// next fetch
 				// follow authorizationUri to get AUTH cookie
 				fetch(authorizationUri)
-					.then(response => {	this.log(response.status);	
+					.then(response => {	this.log(response.status);	})
 					.then(response => response.json()) // get the promise to return the json
 					.then(data => {
 						// create login payload
