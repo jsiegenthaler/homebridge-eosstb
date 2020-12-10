@@ -358,10 +358,17 @@ tvAccessory.prototype = {
 				}
 			})
 
+			.then((json) => {
+				this.log('getSessionBE: get authentication details response=', json); // log the response for debugging
+				let auth = json; // set auth variable to the json  
+				let authorizationUri = auth.session.authorizationUri;
+				let authState = auth.session.state;
+				let authValidtyToken = auth.session.validityToken;
+				this.log('authorizationUri',authorizationUri);
+				//this.log('authState',authState);
+				//this.log('authValidtyToken',authValidtyToken);
 
-
-
-
+			})
 
 
 
@@ -373,14 +380,7 @@ tvAccessory.prototype = {
 
 
 
-				let requestOptions = '';
-		this.log('getSessionBE: get authentication details');	
-		request(requestOptions)
-
-			.then((response) => {
-				this.log("Full authenticaiton response ", response);
-			})
-			/*
+					/*
 			.then((json) => {
 
 								this.log('getSessionBE: get authentication details response=', json); // log the response for debugging
@@ -455,9 +455,8 @@ tvAccessory.prototype = {
 			
 			})
 			*/
-			.catch((err) => {
-				this.log.error('Could not get authorizationUri:', err.message);
-		});
+
+
 		//return sessionJson || false;
 	}, // end of getSessionBE
 
