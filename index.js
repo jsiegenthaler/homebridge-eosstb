@@ -358,7 +358,7 @@ tvAccessory.prototype = {
 					.then(data => {
 						// create login payload
 						this.log(data);
-						
+
 						let payload = "j_username=wesleyliekens%40icloud.com&j_password=Wesleyliekens83&rememberme=true"
 						this.log(payload);
 						let fetchOptions = {
@@ -370,7 +370,8 @@ tvAccessory.prototype = {
 							json: true
 						};
 						fetch(authorizationUri,fetchOptions)
-							.then(response => response.json()) // get the promise to return the json
+							.then(response => {	this.log(response.status);	})
+							.then(response => response.text()) // get the promise to return the json
 							.then(data => {
 									this.log("should be logged on");
 							})
