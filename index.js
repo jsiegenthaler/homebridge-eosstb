@@ -339,7 +339,9 @@ tvAccessory.prototype = {
 		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country] + '/authorization';
 		this.log('Using fetch: get apiAuthorizationUrl: apiAuthorizationUrl');
 		// fetch without options is a simple GET
-		let response = await fetch(apiAuthorizationUrl)
+		const response = await fetch(apiAuthorizationUrl)
+		//response.json() => {json};
+
 		this.log(response);
 		if(!response.ok){
 			this.log.error("Could not get apiAuthorizationUrl");
