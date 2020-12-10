@@ -353,8 +353,9 @@ tvAccessory.prototype = {
 				return response.json();
 			})
 			// get the wanted json response
-			.then(function(json) {
-				this.log('getSessionBE: get authentication details response=', json); // log the response for debugging
+			.then((resp) => resp.json()) // Transform the data into json
+			.then(function(data) {
+				parent.log('getSessionBE: get authentication details response=', data); // log the response for debugging
 				//this.log('ok',response.ok); // we get a 200 OK responce
 				//this.log('status',response.status);
 				//this.log('statusText',response.statusText);
