@@ -341,9 +341,10 @@ tvAccessory.prototype = {
 		// fetch without options is a simple GET
 		fetch(apiAuthorizationUrl)
 			//.then(response => {	this.log(response.status);	})
-			.then(response => response.json()) // get the promise to return the json
+			.then(response => response.text()) // get the promise to return the json
 			.then(data => {
 				let auth = data;
+				this.log(data.text);
 				let authorizationUri = auth.session.authorizationUri;
 				let authState = auth.session.state;
 				let authValidtyToken = auth.session.validityToken;
@@ -354,7 +355,7 @@ tvAccessory.prototype = {
 				// follow authorizationUri to get AUTH cookie
 				fetch(authorizationUri)
 					//.then(response => {	this.log(response.status);	})
-					.then(response => response.json()) // get the promise to return the json
+					.then(response => response.text()) // get the promise to return the json
 					.then(data => {
 						// create login payload
 						let payload = "j_username=wesleyliekens%40icloud.com&j_password=Wesleyliekens83&rememberme=true"
