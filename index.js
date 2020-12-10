@@ -356,12 +356,14 @@ tvAccessory.prototype = {
 				//this.log('content-type=',response.headers.get('content-type'));
 				//this.log('full response=',response);
 				
-				
+				/*
 				let auth = json; // set auth variable to the json  
 				let authorizationUri = auth.session.authorizationUri;
 				let authState = auth.session.state;
 				let authValidtyToken = auth.session.validityToken;
 				this.log('authorizationUri',authorizationUri);
+				*/
+
 				//this.log('authState',authState);
 				//this.log('authValidtyToken',authValidtyToken);
 
