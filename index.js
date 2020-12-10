@@ -345,21 +345,18 @@ tvAccessory.prototype = {
 			"body": null,
 			"method": "GET"
 		  	})
-			.then(response => {
+			.then((json) => {
+				this.log('getSessionBE: get authentication details response=', json); // log the response for debugging
+
+
 				//this.log('ok',response.ok); // we get a 200 OK responce
 				this.log('status',response.status);
 				this.log('statusText',response.statusText);
 				//this.log('raw=',response.headers.raw());
 				//this.log('content-type=',response.headers.get('content-type'));
 				this.log('full response=',response);
-				// conttinue if response.ok is true
-				if((response.ok) && (response.status == 200)){
-
-				}
-			})
-
-			.then((json) => {
-				this.log('getSessionBE: get authentication details response=', json); // log the response for debugging
+				
+				
 				let auth = json; // set auth variable to the json  
 				let authorizationUri = auth.session.authorizationUri;
 				let authState = auth.session.state;
