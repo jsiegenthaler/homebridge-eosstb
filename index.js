@@ -350,11 +350,11 @@ tvAccessory.prototype = {
 
 
 				//this.log('ok',response.ok); // we get a 200 OK responce
-				this.log('status',response.status);
-				this.log('statusText',response.statusText);
+				//this.log('status',response.status);
+				//this.log('statusText',response.statusText);
 				//this.log('raw=',response.headers.raw());
 				//this.log('content-type=',response.headers.get('content-type'));
-				this.log('full response=',response);
+				//this.log('full response=',response);
 				
 				
 				let auth = json; // set auth variable to the json  
