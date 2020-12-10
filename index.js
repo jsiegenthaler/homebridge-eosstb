@@ -337,14 +337,15 @@ tvAccessory.prototype = {
 		this.log('getSessionBE');
 		// get authentication details from apiAuthorizationUrl
 		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country] + '/authorization';
-		this.log('Using fetch: get apiAuthorizationUrl: apiAuthorizationUrl');
+		this.log('Using fetch: get apiAuthorizationUrl:',apiAuthorizationUrl);
 		// fetch without options is a simple GET
 		fetch(apiAuthorizationUrl)
 			//.then(response => {	this.log(response.status);	})
 			.then(response => response.text()) // get the promise to return the json
 			.then(data => {
 				let auth = data;
-				this.log(data.text);
+				this.log(data);
+
 				let authorizationUri = auth.session.authorizationUri;
 				let authState = auth.session.state;
 				let authValidtyToken = auth.session.validityToken;
