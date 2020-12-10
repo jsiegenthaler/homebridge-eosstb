@@ -345,8 +345,8 @@ tvAccessory.prototype = {
 			"body": null,
 			"method": "GET"
 		  	})
-			.then((json) => {
-				this.log('getSessionBE: get authentication details response=', json); // log the response for debugging
+			.then((response) => {
+				this.log('getSessionBE: get authentication details response=', response.json()); // log the response for debugging
 
 
 				//this.log('ok',response.ok); // we get a 200 OK responce
