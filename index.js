@@ -341,7 +341,7 @@ tvAccessory.prototype = {
 		// fetch without options is a simple GET
 		fetch(apiAuthorizationUrl)
 			.then(response => {
-				this.this.log(response.status);
+				this.log(response.status);
 			})
 			.then(response => response.json()) // get the promise to return the json
 			.then(data => {
