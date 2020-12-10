@@ -336,23 +336,36 @@ tvAccessory.prototype = {
 			// only for be-nl and be-fr users, as the session logon using openid is different
 		this.log('getSessionBE');
 
-		// get authentication details	
+		// get authentication details
 		// fetch works well and replaces request
 		let authorizationUri = countryBaseUrlArray[this.config.country] + '/authorization';
-		// https://web-api-prod-obo.horizon.tv/oesp/v3/BE/nld/web/authorization
-		this.log('Using fetch',authorizationUri);
+		this.log('Using fetch: get authentication details',authorizationUri);
 		fetch(authorizationUri, {
+			//"Accept": "text/html,application/xhtml+xml,application/xml",
 			"body": null,
 			"method": "GET"
 		  	})
 			.then(response => {
-				this.log('ok',response.ok); // we get a 200 OK responce
+				//this.log('ok',response.ok); // we get a 200 OK responce
 				this.log('status',response.status);
 				this.log('statusText',response.statusText);
-				this.log('raw',response.headers.raw());
-				this.log('content-type',response.headers.get('content-type'));
-				this.log('full response',response);
+				//this.log('raw=',response.headers.raw());
+				//this.log('content-type=',response.headers.get('content-type'));
+				this.log('full response=',response);
+				// conttinue if response.ok is true
+				if((response.ok) && (response.status == 200)){
+
+				}
 			})
+
+
+
+
+
+
+
+
+			// catch any get authentication details error
 			.catch((err) => {
 				this.log.error('Could not get authorizationUri:', err.message)
 			});
