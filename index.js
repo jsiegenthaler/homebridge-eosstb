@@ -342,11 +342,11 @@ tvAccessory.prototype = {
 		this.log('Using fetch: get authentication details',authorizationUri);
 		fetch(authorizationUri)
 			.then((resp) => resp.json())
-			.then(function(data) {
-				parent.log('getSessionBE: get authentication details json=', data); // log the response for debugging
+			.then((json) => {
+				this.log('getSessionBE: get authentication details json=', json); // log the response for debugging
 			})
-			.catch(function(error) {
-				parent.log(error);
+			.catch((err) => {
+				this.log.error('Could not get authorizationUri:', err.message)
 			});
 
 		this.log('starting 2nd fetch');
