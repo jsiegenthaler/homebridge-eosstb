@@ -373,7 +373,7 @@ tvAccessory.prototype = {
 							.then(response => {	
 									this.log(response.status);
 									this.log(response.headers);	
-									this.log(response.headers.get('Location'));
+									this.log(response.headers.raw);
 							})
 							/*
 							.then(response => response.text()) // get the promise to return the json
