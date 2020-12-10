@@ -339,44 +339,53 @@ tvAccessory.prototype = {
 		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country] + '/authorization';
 		this.log('Using fetch: get apiAuthorizationUrl: apiAuthorizationUrl');
 		// fetch without options is a simple GET
-		const response = await fetch(apiAuthorizationUrl)
-		//response.json() => {json};
+		fetch(apiAuthorizationUrl)
+			.then(response => response.json()) // get the promise to return the json
+			.then(data => {
+				let auth = data;
+				let authorizationUri = auth.session.authorizationUri;
+				let authState = auth.session.state;
+				let authValidtyToken = auth.session.validityToken;
+				log.this('authValidtyToken',authorizationUri);
+				log.this('authValidtyToken',authValidtyToken);
 
-		this.log(response);
-		if(!response.ok){
-			this.log.error("Could not get apiAuthorizationUrl");
-		} else {
-			let auth = response.json(); // get the promise to return the json
-			let authorizationUri = auth.session.authorizationUri;
-			let authState = auth.session.state;
-			let authValidtyToken = auth.session.validityToken;
+				// next fetch
+				// follow authorizationUri to get AUTH cookie
+				fetch(authorizationUri)
+					.then(response => response.json()) // get the promise to return the json
+					.then(data => {
+						// create login payload
+						let payload = "j_username=wesleyliekens%40icloud.com&j_password=Wesleyliekens83&rememberme=true"
+						this.log(payload);
+						let fetchOptions = {
+							method: 'POST',
+							uri: BE_AUTH_URL,
+							body: payload,
+							followRedirect: false,
+							resolveWithFulLResponse: true,
+							json: true
+						};
+						fetch(authorizationUri,fetchOptions)
+							.then(response => response.json()) // get the promise to return the json
+							.then(data => {
+									this.log("should be logged on");
+							})
+							.catch(error => {
+								this.log.error("Unable to login, wrong credentials",error);
+							});
 
-			// follow authorizationUri to get AUTH cookie
-			response = fetch(authorizationUri)
-			if(!response.ok){
-				this.log.error("Unable to authorize to get AUTH cookie");
-			} else {
-				// create login payload
-				let payload = "j_username=wesleyliekens%40icloud.com&j_password=Wesleyliekens83&rememberme=true"
-				this.log(payload);
-				// create request options
-				let fetchOptions = {
-					method: 'POST',
-					uri: BE_AUTH_URL,
-					body: payload,
-					followRedirect: false,
-					resolveWithFulLResponse: true,
-					json: true
-				};
-				response = fetch(authorizationUri,fetchOptions)
-				if(!response.ok){
-					this.log.error("Unable to login, wrong credentials");
-				} else {
-					this.this.log("time to follow redirect url");
-				}
-			}
-		}
-		this.log('Using fetch done');
+					})
+					.catch(error => {
+						this.log.error("Unable to authorize to get AUTH cookie",error);
+					});
+
+			})
+			.catch(error => {
+				this.log.error("Could not get apiAuthorizationUrl",error);
+			});
+
+
+		this.log('end of getSessionBE');
 
 		//return sessionJson || false;
 	}, // end of getSessionBE
