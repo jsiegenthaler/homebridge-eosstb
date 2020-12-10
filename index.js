@@ -340,7 +340,17 @@ tvAccessory.prototype = {
 		// fetch works well and replaces request
 		let authorizationUri = countryBaseUrlArray[this.config.country] + '/authorization';
 		this.log('Using fetch: get authentication details',authorizationUri);
-		await fetch(authorizationUri, {
+		fetch(authorizationUri)
+			.then((resp) => resp.json())
+			.then(function(data) {
+				this.log('getSessionBE: get authentication details json=', data); // log the response for debugging
+			})
+			.catch(function(error) {
+				this.log(error);
+			});
+
+		this.log('starting 2nd fetch');
+		 fetch(authorizationUri, {
 			"Accept": "text/html,application/xhtml+xml,application/xml",
 			"body": null,
 			"method": "GET"
