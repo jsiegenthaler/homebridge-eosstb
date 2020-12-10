@@ -341,7 +341,7 @@ tvAccessory.prototype = {
 		let authorizationUri = countryBaseUrlArray[this.config.country] + '/authorization';
 		this.log('Using fetch: get authentication details',authorizationUri);
 		fetch(authorizationUri, {
-			//"Accept": "text/html,application/xhtml+xml,application/xml",
+			"Accept": "text/html,application/xhtml+xml,application/xml",
 			"body": null,
 			"method": "GET"
 		  	})
