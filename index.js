@@ -341,7 +341,15 @@ tvAccessory.prototype = {
 		let authorizationUri = countryBaseUrlArray[this.config.country] + '/authorization';
 		this.log('Using fetch: get authentication details',authorizationUri);
 		fetch(authorizationUri)
-			.then((resp) => resp.json())
+			.then((response) => {
+				this.log('ok',response.ok); // we get a 200 OK responce
+				this.log('status',response.status);
+				//this.log('statusText',response.statusText);
+				//this.log('raw=',response.headers.raw());
+				//this.log('content-type=',response.headers.get('content-type'));
+				//this.log('full response=',response);
+			})
+			.then((resp) => resp.json()) // get the promise to return the json
 			.then((json) => {
 				this.log('getSessionBE: get authentication details json=', json); // log the response for debugging
 			})
