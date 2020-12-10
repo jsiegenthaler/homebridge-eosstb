@@ -370,12 +370,17 @@ tvAccessory.prototype = {
 							json: true
 						};
 						fetch(authorizationUri,fetchOptions)
-							//.then(response => {	this.log(response.status);	})
+							.then(response => {	
+									this.log(response.status);
+									this.log(response.headers);	
+							})
+							/*
 							.then(response => response.text()) // get the promise to return the json
 							.then(data => {
 									this.log("should be logged on");
 									this.log(data);
 							})
+							*/
 							.catch(error => {
 								this.log.error("Unable to login, wrong credentials",error);
 							});
