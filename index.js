@@ -341,11 +341,9 @@ tvAccessory.prototype = {
 		// fetch without options is a simple GET
 		fetch(apiAuthorizationUrl)
 			//.then(response => {	this.log(response.status);	})
-			.then(response => response.text()) // get the promise to return the json
+			.then(response => response.json()) // get the promise to return the json
 			.then(data => {
 				let auth = data;
-				this.log(data);
-
 				let authorizationUri = auth.session.authorizationUri;
 				let authState = auth.session.state;
 				let authValidtyToken = auth.session.validityToken;
@@ -359,6 +357,8 @@ tvAccessory.prototype = {
 					.then(response => response.text()) // get the promise to return the json
 					.then(data => {
 						// create login payload
+						this.log(data);
+						
 						let payload = "j_username=wesleyliekens%40icloud.com&j_password=Wesleyliekens83&rememberme=true"
 						this.log(payload);
 						let fetchOptions = {
