@@ -335,98 +335,45 @@ tvAccessory.prototype = {
 	getSessionBE() {
 			// only for be-nl and be-fr users, as the session logon using openid is different
 		this.log('getSessionBE');
-
-		// get authentication details from authorizationUri
-		// fetch works well and replaces request
-		let authorizationUri = countryBaseUrlArray[this.config.country] + '/authorization';
-		this.log('Using fetch: get authorizationUri: authorizationUri');
+		// get authentication details from apiAuthorizationUrl
+		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country] + '/authorization';
+		this.log('Using fetch: get apiAuthorizationUrl: apiAuthorizationUrl');
 		// fetch without options is a simple GET
-		fetch(authorizationUri)
-			.then((response) => response.json()) // get the promise to return the json
-			.then((json) => {
-				//this.log('getSessionBE: get authentication details json=', json); // log the response for debugging
-				//let auth = json; // set auth variable to the json  
-				let authorizationUri = json.session.authorizationUri;
-				let authState = json.session.state;
-				let authValidtyToken = json.session.validityToken;
-				this.log('authorizationUri',authorizationUri);	
-				this.log('authState',authState);
-				this.log('authValidtyToken',authValidtyToken);
+		response = fetch(apiAuthorizationUrl)
+		if(!response.ok){
+			this.log.error("Could not get apiAuthorizationUrl");
+		} else {
+			let auth = response.json(); // get the promise to return the json
+			let authorizationUri = auth.session.authorizationUri;
+			let authState = auth.session.state;
+			let authValidtyToken = auth.session.validityToken;
 
-
-
-
-
-
-
-
-
-
-			})
-			.catch((err) => {
-				this.log.error('Could not get authorizationUri:', err.message)
-			});
-		this.log('Using fetch done');
-
-
-/*
+			// follow authorizationUri to get AUTH cookie
+			response = fetch(authorizationUri)
+			if(!response.ok){
+				this.log.error("Unable to authorize to get AUTH cookie");
+			} else {
+				// create login payload
+				let payload = "j_username=wesleyliekens%40icloud.com&j_password=Wesleyliekens83&rememberme=true"
+				this.log(payload);
 				// create request options
-				let requestOptions = {
-					method: 'GET',
-					uri: authorizationUri,
-					body: '',
+				let fetchOptions = {
+					method: 'POST',
+					uri: BE_AUTH_URL,
+					body: payload,
+					followRedirect: false,
 					resolveWithFulLResponse: true,
 					json: true
 				};
-				this.log('getSessionBE: follow authorizationUri to get AUTH cookie requestOptions=',requestOptions);
-
-				// follow authorizationUri to get AUTH cookie
-				this.log('getSessionBE: follow authorizationUri to get AUTH cookie');	
-				request(requestOptions)
-					.then((json) => {
-						this.log('getSessionBE: follow authorizationUri to get AUTH cookie response=',json); // log the response for debugging
-						
-						// create login payload
-						let payload = "j_username=wesleyliekens%40icloud.com&j_password=Wesleyliekens83&rememberme=true"
-						this.log(payload);
-
-						// create request options
-						let requestOptions = {
-							method: 'POST',
-							uri: BE_AUTH_URL,
-							body: payload,
-							followRedirect: false,
-							resolveWithFulLResponse: true,
-							json: true
-						};
-						this.log('getSessionBE: attempt to login requestOptions=',requestOptions);
-
-						this.log('getSessionBE: attempt to login');	
-						request(requestOptions)
-							.then((json) => {
-								this.log(json); // log the response for debugging
-								
-								this.log('getSessionBE: login successful');
-		
-		
-								
-		
-							})
-							.catch((err) => {
-								this.log('getSessionBE: attempt to login error=',err);
-								//this.log('Unable to login err.headers.location=',err.headers.location);
-								this.log.error('Unable to login, likely wrong credentials. if a 302, then check the response header', err.message);
-						});
-
-
-					})
-					.catch((err) => {
-						this.log.error('Unable to authorize to get AUTH cookie:', err.message);
-				});
-			
-			})
-			*/
-
+				response = fetch(authorizationUri,fetchOptions)
+				if(!response.ok){
+					this.log.error("Unable to login, wrong credentials");
+				} else {
+					this.this.log("time to follow redirect url");
+				}
+			}
+		}
+		this.log('Using fetch done');
 
 		//return sessionJson || false;
 	}, // end of getSessionBE
