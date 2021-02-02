@@ -152,7 +152,7 @@ Example configuration:
 
 
 ## Siri
-I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <yourEosBoxName>". However, I haven't been able to get Siri to change channels or change volume yet. if you find out how, let me know!
+I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <yourEosBoxName>". However, I haven't been able to get Siri to change channels or change volume yet. If you find out how, let me know!
 
 
 ## Thanks to
@@ -162,6 +162,6 @@ I have found that Siri can turn the box on and off with the command "Hey Siri, t
 
 * [NextRemoteJs](https://github.com/basst85/NextRemoteJs/)
 
-* [ziggonext-python by Rudolf Offereins](https://pypi.org/project/ziggonext/#description)
+* [ziggonext-python by Rudolf Offereins](https://pypi.org/project/ziggonext/#description) Rudolf is the best!
 
 * UPC for making such a useful TV platform and EOS box
