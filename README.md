@@ -11,8 +11,9 @@ sudo npm install -g https://github.com/jsiegenthaler/eosstb/
 ```
 Because you are a helper, I need your feedback
 
-# TO-DO as of 03.12.2020
+# TO-DO as of 02.02.2020
 * Test with profiles - try and find a way to get the EOS box profile channels
+* Solve the connection problem to Telenet in Belgium
 * Re-write the plugin to get the right Homekit icon. I hate the House icon
 
 
