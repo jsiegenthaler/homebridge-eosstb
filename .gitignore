@@ -13,3 +13,7 @@ node_modules/@szmarczak/http-timer/package.json
 node_modules/@szmarczak/http-timer/README.md
 node_modules/@types/cacheable-request/index.d.ts
 node_modules/@types/cacheable-request/LICENSE
+node_modules/@types/cacheable-request/package.json
+node_modules/@types/cacheable-request/README.md
+node_modules/@types/http-cache-semantics/index.d.ts
+node_modules/@types/http-cache-semantics/LICENSE
