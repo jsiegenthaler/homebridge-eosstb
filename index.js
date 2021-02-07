@@ -1,15 +1,41 @@
+'use strict';
+
+
+
 const mqtt = require('mqtt');  
 const request = require('request-promise');
-const fetch = require('node-fetch');
+
+// having trouble with fetch due to cookies...
+//const fetch = require('node-fetch');
+const nodeFetch = require('node-fetch')
+//const tough = require('tough-cookie')
+//const fetch = require('fetch-cookie/node-fetch')(nodeFetch)
+//const fetch = require('fetch-cookie')(nodeFetch, new tough.CookieJar(), false) // default value is true
+// false - doesn't ignore errors, throws when an error occurs in setting cookies and breaks the request and execution
+// true - silently ignores errors and continues to make requests/redirections
+
+// try axios instead of fetch
+const axios = require('axios').default;
+const axiosCookieJarSupport = require('axios-cookiejar-support').default;
+const tough = require('tough-cookie');
+// setup the cookieJar
+axiosCookieJarSupport(axios);
+const cookieJar = new tough.CookieJar();
+// set a dummy cookie to check cookie persistance
+//cookieJar.setCookieSync('key=value; domain=mockbin.org', 'https://mockbin.org');
+
+const qs = require('qs')
+
+
 const _ = require('underscore');
-const express = require('express');
+//const express = require('express');
 const bodyParser = require('body-parser');
 const varClientId = makeId(30);
 
 // name and version
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.0.4';
+const PLUGIN_VERSION = '0.0.5';
 
 
 // different settop box names per country
@@ -24,10 +50,10 @@ const settopBoxName = {
 // base url varies by country
 const countryBaseUrlArray = {
     'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web',
-    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web',
-    'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v3/BE/nld/web',
-    'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v3/BE/fr/web',
-    'at': 		'https://prod.oesp.magentatv.at/oesp/v3/AT/deu/web'
+    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web', // v3 and v4 works
+    'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/nld/web',
+    'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/fr/web',
+    'at': 		'https://prod.oesp.magentatv.at/oesp/v3/AT/deu/web' // v3 and v4 works
 };
 
 // session and jwt are based on countryBaseUrlArray
@@ -45,7 +71,7 @@ const mqttUrlArray = {
     'at':		'wss://obomsg.prod.at.horizon.tv:443/mqtt'
 };
 
-// openid logon url used in Belgium for be-nl and be-fr sessions
+// openid logon url used in Telenet.be Belgium for be-nl and be-fr sessions
 const BE_AUTH_URL = 'https://login.prd.telenet.be/openid/login.do';
 
 
@@ -323,7 +349,7 @@ tvAccessory.prototype = {
 				this.log('Session created');			
 			})
 			.catch((err) => {
-				this.log.error('getSession Error:', err.message); // likely invalid credentials
+				this.log.warn('getSession Error:', err.message); // likely invalid credentials
 				//  this.log.error('getSession json:',json);
 			});
 		//return sessionJson || false;
@@ -334,13 +360,136 @@ tvAccessory.prototype = {
 
 	getSessionBE() {
 			// only for be-nl and be-fr users, as the session logon using openid is different
-		this.log('getSessionBE');
-		// get authentication details from apiAuthorizationUrl
+		this.log.warn('getSessionBE');
+
+		// we always need to pass credentials as cookies in this function
+		// so make a preconfigured axios instance
+		const axiosCred = axios.create({
+			withCredentials: true
+		});
+
+		
+		// Step 1: get authentication details
 		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country] + '/authorization';
-		this.log('Using fetch: get apiAuthorizationUrl:',apiAuthorizationUrl);
+		this.log.warn('Step 1: get authentication details from',apiAuthorizationUrl);
+		// axios.get(url[, config])
+		// probably don't need cookies here:
+		axiosCred.get(apiAuthorizationUrl, {
+				jar: cookieJar,
+				withCredentials: true, // IMPORTANT!
+			})
+			.then(response => {	
+				this.log.warn('Step 1: got apiAuthorizationUrl response');
+				this.log('Step 1 response.status:',response.status, response.statusText);
+				this.log.debug('Step 1 response.headers:',response.headers);
+				this.log.debug('Step 1 response.data:',response.data);
+				this.log('Step 1 cookie jar:',cookieJar);
+				
+				//this.log('Step 1 response.headers.cookie:',response.headers.cookie);
+
+				// get the data we need for further steps
+				let auth = response.data;
+				let authSessionState = auth.session.state;
+				let authSessionAuthorizationUri = auth.session.authorizationUri;
+				let authSessionValidtyToken = auth.session.validityToken;
+				//this.log('Step 1 results: authSessionAuthorizationUri',authSessionAuthorizationUri);
+				//this.log('Step 1 results: authSessionValidtyToken',authSessionValidtyToken);
+
+				// Step 2: follow authSessionAuthorizationUri to get AUTH cookie
+				this.log.warn('Step 2: get AUTH cookie from',authSessionAuthorizationUri);
+				// axios.get(url[, config])
+				// definitely need cookiejar here
+				axiosCred.get(authSessionAuthorizationUri, {
+						jar: cookieJar,
+						withCredentials: true, // IMPORTANT!
+					})
+					.then(response => {	
+						this.log.warn('Step 2: got authSessionAuthorizationUri response');
+						this.log('Step 2 response.status:',response.status, response.statusText);
+						this.log('Step 2 response.headers:',response.headers);
+						this.log('Step 2 cookie jar:',cookieJar);
+						this.log('Step 2 response.data:',response.data);
+		
+						// Step 3: login
+						// send a POST
+						this.log.warn('Step 3: post login to',BE_AUTH_URL);
+						//axios.post(url[, data[, config]])
+						axiosCred.post(BE_AUTH_URL,{
+								headers: {
+									'Content-Type': 'application/x-www-form-urlencoded',
+									'Connection': 'keep-alive'
+								},
+								data: qs.stringify({
+									j_username: this.config.username,
+									j_password: this.config.password,
+									rememberme: 'true'
+								}),
+								jar: cookieJar,
+								withCredentials: true, // IMPORTANT!
+								maxRedirects: 0, // If set to 0, no redirects will be followed.
+								credentials: 'include'
+							})
+						/*
+						axiosCred({
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/x-www-form-urlencoded',
+								'Connection': 'keep-alive'
+							  },
+							data: qs.stringify({
+								j_username: this.config.username,
+								j_password: this.config.password,
+								rememberme: 'true'
+							}),
+							url: BE_AUTH_URL,
+							jar: cookieJar,
+							withCredentials: true, // IMPORTANT!
+							maxRedirects: 0, // If set to 0, no redirects will be followed.
+							})
+							*/
+							.then(response => {	
+								this.log.warn('Step 3: got login response');
+								this.log('Step 3 response.status:',response.status, response.statusText);
+								this.log('Step 3 headers:',response.headers);
+								this.log('Step 3 response.headers.cookie:',response.headers.cookie);
+								this.log('Step 3 response:',response);
+								//this.log('url:',response.url); // is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
+
+							})
+							.then(data => {
+									this.log.warn("A 200 response occured, which we do not want");
+							})
+							// Step 3 errors
+							// we capture a 302 redirect error, which is correct
+							.catch(error => {
+								this.warn('Step 3 Error Handler (the wanted response)');
+								this.log('Step 3 response.status:',error.status, error.statusText);
+								this.log('Step 3 headers:',error.headers);
+								this.log('Step 3 response:',error);
+								//this.log.warn("Step 3: Unable to login, wrong credentials",error);
+							})
+							;						
+					})
+					// Step 2 errors
+					.catch(error => {
+						this.log.warn("Step 2: Could not get authorizationUri",error);
+					});
+			})
+			// Step 1 errors
+			.catch(error => {
+				this.log.warn("Step 1: Could not get apiAuthorizationUrl",error);
+			});
+	
+
+/*
+		// STEP 1 
 		// fetch without options is a simple GET
-		fetch(apiAuthorizationUrl)
-			//.then(response => {	this.log(response.status);	})
+		const fetchOptions = {
+			method: 'GET',
+			//credentials: 'include',
+			json: true
+		};
+		fetch(apiAuthorizationUrl,fetchOptions)
 			.then(response => response.json()) // get the promise to return the json
 			.then(data => {
 				let auth = data;
@@ -350,54 +499,72 @@ tvAccessory.prototype = {
 				this.log('authValidtyToken',authValidtyToken);
 				this.log('authorizationUri',authorizationUri);
 
-				// next fetch
-				// follow authorizationUri to get AUTH cookie
-				fetch(authorizationUri)
+				// next http call
+				// STEP 2 # follow authorizationUri to get AUTH cookie
+				this.log.warn('# follow authorizationUri to get AUTH cookie: apiAuthorizationUrl:',apiAuthorizationUrl);
+				let fetchOptions = {
+					method: 'GET',
+					credentials: 'include',
+					json: true
+				};
+				fetch(authorizationUri,fetchOptions)
 					//.then(response => {	this.log(response.status);	})
 					.then(response => response.text()) // get the promise to return the json
 					.then(data => {
-						// create login payload
-						//this.log(data);
-
-						let payload = "j_username=wesleyliekens@icloud.com&j_password=Wesleyliekens83&rememberme=true"
-						this.log(payload);
+						// # login
+						let payload = 'j_username=username&j_password=password&rememberme=true'
+						this.log.warn('Login payload follows:',payload); // for debug only
 						let fetchOptions = {
+							headers: {
+								'Accept': 'application/json',
+								'Content-Type': 'application/json',
+							  },
+							//credentials: 'include',
+							credentials: 'same-origin', // Will set cookie 'set-cookie' only if this is set to 'same-origin'
 							method: 'POST',
-							uri: BE_AUTH_URL,
 							body: payload,
 							followRedirect: false,
 							resolveWithFulLResponse: true,
 							json: true
 						};
-						fetch(authorizationUri,fetchOptions)
+						this.log.warn('fetchOptions',fetchOptions); // for debug only
+						// send the POST, get the response
+						// we are trying to find a redirect in the response
+						fetch(BE_AUTH_URL,fetchOptions)
 							.then(response => {	
-									this.log(response.status);
-									this.log(response.headers);	
-									this.log(response.headers.raw());
+								this.log.warn('got authorizationUri response');
+								this.log('url:',response.url); // is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
+								this.log('Status:',response.status);
+								this.log('Statustext:',response.statusText);
+								this.log('Headers:',response.headers);
+								//this.log('Headers.Raw:',response.headers.raw());
+								//this.log('Response:',response);
 							})
-							/*
-							.then(response => response.text()) // get the promise to return the json
 							.then(data => {
-									this.log("should be logged on");
+									// # follow redirect url
+									this.log.warn("should be logged on");
+									this.log.warn("headers folllow, looking for Location");
+									//this.log(data.headers);	
+								
 									this.log(data);
 							})
-							*/
+							// catch any errors
 							.catch(error => {
-								this.log.error("Unable to login, wrong credentials",error);
+								this.log.warn("Unable to login, wrong credentials",error);
 							});
 
 					})
 					.catch(error => {
-						this.log.error("Unable to authorize to get AUTH cookie",error);
+						this.log.warn("Unable to authorize to get AUTH cookie",error);
 					});
 
 			})
 			.catch(error => {
-				this.log.error("Could not get apiAuthorizationUrl",error);
+				this.log.warn("Could not get apiAuthorizationUrl",error);
 			});
+*/
 
-
-		this.log('end of getSessionBE');
+		this.log.warn('end of getSessionBE');
 
 		//return sessionJson || false;
 	}, // end of getSessionBE
