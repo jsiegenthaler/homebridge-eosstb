@@ -14,7 +14,7 @@ const request = require('request-promise');
 // true - silently ignores errors and continues to make requests/redirections
 
 // try axios instead of fetch
-const axios = require('axios').default;
+const axios = require('axios'); // .default; does removing default help?
 const axiosCookieJarSupport = require('axios-cookiejar-support').default;
 const tough = require('tough-cookie');
 // setup the cookieJar
@@ -401,6 +401,7 @@ tvAccessory.prototype = {
 				axiosCred.get(authSessionAuthorizationUri, {
 						jar: cookieJar,
 						withCredentials: true, // IMPORTANT!
+						maxRedirects: 3, // If set to 0, no redirects will be followed.
 					})
 					.then(response => {	
 						this.log.warn('Step 2: got authSessionAuthorizationUri response');
@@ -415,6 +416,7 @@ tvAccessory.prototype = {
 						//axios.post(url[, data[, config]])
 						axiosCred.post(BE_AUTH_URL,{
 								headers: {
+									'Cache-Control': 'max-age=0',
 									'Content-Type': 'application/x-www-form-urlencoded',
 									'Connection': 'keep-alive'
 								},
@@ -426,7 +428,6 @@ tvAccessory.prototype = {
 								jar: cookieJar,
 								withCredentials: true, // IMPORTANT!
 								maxRedirects: 0, // If set to 0, no redirects will be followed.
-								credentials: 'include'
 							})
 						/*
 						axiosCred({
