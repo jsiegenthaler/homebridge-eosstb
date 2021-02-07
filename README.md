@@ -11,8 +11,9 @@ sudo npm install -g https://github.com/jsiegenthaler/eosstb/
 ```
 Because you are a helper, I need your feedback
 
-# TO-DO as of 03.12.2020
+# TO-DO as of 02.02.2020
 * Test with profiles - try and find a way to get the EOS box profile channels
+* Solve the connection problem to Telenet in Belgium
 * Re-write the plugin to get the right Homekit icon. I hate the House icon
 
 
@@ -151,7 +152,7 @@ Example configuration:
 
 
 ## Siri
-I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <yourEosBoxName>". However, I haven't been able to get Siri to change channels or change volume yet. if you find out how, let me know!
+I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <yourEosBoxName>". However, I haven't been able to get Siri to change channels or change volume yet. If you find out how, let me know!
 
 
 ## Thanks to
@@ -161,6 +162,6 @@ I have found that Siri can turn the box on and off with the command "Hey Siri, t
 
 * [NextRemoteJs](https://github.com/basst85/NextRemoteJs/)
 
-* [ziggonext-python by Rudolf Offereins](https://pypi.org/project/ziggonext/#description)
+* [ziggonext-python by Rudolf Offereins](https://pypi.org/project/ziggonext/#description) Rudolf is the best!
 
 * UPC for making such a useful TV platform and EOS box
