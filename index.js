@@ -50,7 +50,7 @@ const settopBoxName = {
 // base url varies by country
 const countryBaseUrlArray = {
     'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web',
-    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web', // v3 and v4 works
+    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v3 and v4 works
     'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/nld/web',
     'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/fr/web',
     'at': 		'https://prod.oesp.magentatv.at/oesp/v3/AT/deu/web' // v3 and v4 works
