@@ -6,8 +6,7 @@ const mqtt = require('mqtt');
 const request = require('request-promise');
 
 // having trouble with fetch due to cookies...
-//const fetch = require('node-fetch');
-const nodeFetch = require('node-fetch')
+//const nodeFetch = require('node-fetch')
 //const tough = require('tough-cookie')
 //const fetch = require('fetch-cookie/node-fetch')(nodeFetch)
 //const fetch = require('fetch-cookie')(nodeFetch, new tough.CookieJar(), false) // default value is true
