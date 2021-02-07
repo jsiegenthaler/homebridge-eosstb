@@ -408,6 +408,7 @@ tvAccessory.prototype = {
 						this.log('Step 2 response.status:',response.status, response.statusText);
 						this.log('Step 2 response.headers:',response.headers);
 						this.log('Step 2 cookie jar:',cookieJar);
+						this.log('Step 2 cookie jar dtCookie:',cookieJar.dtCookie);
 						this.log('Step 2 response.data:',response.data);
 		
 						// Step 3: login
@@ -415,19 +416,21 @@ tvAccessory.prototype = {
 						this.log.warn('Step 3: post login to',BE_AUTH_URL);
 						//axios.post(url[, data[, config]])
 						axiosCred.post(BE_AUTH_URL,{
-								headers: {
+							withCredentials: true, // IMPORTANT!
+							credentials: 'include',
+							headers: {
 									'Cache-Control': 'max-age=0',
 									'Content-Type': 'application/x-www-form-urlencoded',
 									'Connection': 'keep-alive'
+									//'Cookie':
 								},
-								data: qs.stringify({
-									j_username: this.config.username,
-									j_password: this.config.password,
-									rememberme: 'true'
-								}),
-								jar: cookieJar,
-								withCredentials: true, // IMPORTANT!
-								maxRedirects: 0, // If set to 0, no redirects will be followed.
+							data: qs.stringify({
+								j_username: this.config.username,
+								j_password: this.config.password,
+								rememberme: 'true'
+							}),
+							jar: cookieJar,
+							maxRedirects: 0, // If set to 0, no redirects will be followed.
 							})
 						/*
 						axiosCred({
