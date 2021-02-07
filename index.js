@@ -461,7 +461,7 @@ tvAccessory.prototype = {
 							// Step 3 errors
 							// we capture a 302 redirect error, which is correct
 							.catch(error => {
-								this.warn('Step 3 Error Handler (the wanted response)');
+								this.warn('Step 3 Error Handler (the wanted response, we want 302)');
 								this.log('Step 3 response.status:',error.status, error.statusText);
 								this.log('Step 3 headers:',error.headers);
 								this.log('Step 3 response:',error);
