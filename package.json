@@ -23,7 +23,6 @@
     "form-data": "^3.0.0",
     "ip": "^=1.1.5",
     "mqtt": "^3.0.0",
-    "node-fetch": "^2.3.0",
     "qs": "^6.9.6",
     "request": "^2.88.2",
     "request-promise": "^4.2.5",
