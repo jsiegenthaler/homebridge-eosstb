@@ -449,6 +449,8 @@ tvAccessory.prototype = {
 						this.log.warn('Step 3: post login to',BE_AUTH_URL);
 						this.log('Step 3 pre-call cookie jar:', cookieJar);
 						//axios.post(url[, data[, config]])
+						// add a dummy cookie to see what it does to the cookies
+						cookieJar.setCookieSync('key1=value1; domain=mockbin.org', 'https://mockbin.org');
 						axios({
 							method: 'post',
 							url: BE_AUTH_URL,
