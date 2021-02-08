@@ -460,7 +460,7 @@ tvAccessory.prototype = {
 							data: qs.stringify({
 								j_username: this.config.username,
 								j_password: this.config.password,
-								rememberme: 'true'
+								rememberme: 'false'
 							}),
 							jar: cookieJar,
 							maxRedirects: 2, // If set to 0, no redirects will be followed.
