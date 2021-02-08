@@ -408,7 +408,10 @@ tvAccessory.prototype = {
 		// axios.get(url[, config])
 		// probably don't need cookies here:
 		// A simple GET is fine, no need to pass withcredentials or the cookieJar.
-		axios.get(apiAuthorizationUrl)
+		axios.get(apiAuthorizationUrl, {
+				withCredentials: true, // IMPORTANT!
+				jar: cookieJar,
+			})
 			.then(response => {	
 				this.log.warn('Step 1: got apiAuthorizationUrl response');
 				this.log('Step 1 response.status:',response.status, response.statusText);
@@ -431,7 +434,7 @@ tvAccessory.prototype = {
 						withCredentials: true, // IMPORTANT!
 						jar: cookieJar,
 						// this call redirects to https://login.prd.telenet.be/openid/login 
-						maxRedirects: 3, // If set to 0, no redirects will be followed.
+						maxRedirects: 6, // If set to 0, no redirects will be followed.
 					})
 					.then(response => {	
 						this.log.warn('Step 2: got authSessionAuthorizationUri response');
@@ -450,20 +453,20 @@ tvAccessory.prototype = {
 							method: 'post',
 							url: BE_AUTH_URL,
 							withCredentials: true, // IMPORTANT!
-							//credentials: 'include',
+							credentials: 'include',
 							headers: {
-									//'Cache-Control': 'max-age=0',
-									'Content-Type': 'application/x-www-form-urlencoded',
-									//'Connection': 'keep-alive',
-									'Cookie':'Cookie1=Value1',
+								'Cache-Control': 'max-age=0',
+								'Content-Type': 'application/x-www-form-urlencoded',
+								//'Connection': 'keep-alive',
+								//'Cookie':'Cookie1=Value1',
 								},
 							data: qs.stringify({
 								j_username: this.config.username,
 								j_password: this.config.password,
-								rememberme: 'false'
+								rememberme: 'true'
 							}),
 							jar: cookieJar,
-							maxRedirects: 2, // If set to 0, no redirects will be followed.
+							maxRedirects: 6, // If set to 0, no redirects will be followed.
 							})
 							.then(response => {	
 								this.log.warn('Step 3: got login response');
