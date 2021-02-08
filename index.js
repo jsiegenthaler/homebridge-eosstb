@@ -465,6 +465,8 @@ tvAccessory.prototype = {
 							url: BE_AUTH_URL,
 							withCredentials: true, // IMPORTANT!
 							timeout: 1000,
+							xsrfCookieName: undefined,
+							xsrfHeaderName: undefined,
 							jar: cookieJar,
 							//credentials: 'include',
 							headers: {
