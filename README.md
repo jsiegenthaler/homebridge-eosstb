@@ -114,7 +114,7 @@ Example configuration:
 
 * **name**: The displayed name of your device. Default is the name of your box from your country, you can set it to whatever you want. Mandatory.
 
-+ **country**: Your country. Must be one of ch, nl, be-nl, be-fr, or at. Mandatory.
++ **country**: Your country. Must be one of ch, nl, be-nl, be-fr, at or gb. Mandatory.
 
 * **username**: Your login username for your TV provider's online account (My UPC in Switzerland). Normally an email address. Mandatory.
 
