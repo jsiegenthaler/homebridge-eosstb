@@ -53,7 +53,8 @@ const settopBoxName = {
     'ch':     'UPC TV Box',
     'be-nl':  'Telenet TV-Box',
     'be-fr':  'Telenet TV-Box',
-    'at':     'Entertain Box 4K'
+    'at':     'Entertain Box 4K',
+    'gb':     'Virgin Media 360'
 };
 
 // base url varies by country
@@ -62,7 +63,8 @@ const countryBaseUrlArray = {
     'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v3 and v4 works
     'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/nld/web',
     'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/fr/web',
-    'at': 		'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web' // v3 and v4 works
+    'at': 		'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web', // v3 and v4 works
+    'gb':       'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web'
 };
 
 // session and jwt are based on countryBaseUrlArray
@@ -77,7 +79,8 @@ const mqttUrlArray = {
     'ch': 		'wss://obomsg.prod.ch.horizon.tv:443/mqtt',
     'be-nl': 	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
     'be-fr':  	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
-    'at':		'wss://obomsg.prod.at.horizon.tv:443/mqtt'
+    'at':		'wss://obomsg.prod.at.horizon.tv:443/mqtt',
+    'gb':       'wss://obomsg.prod.gb.horizon.tv:443/mqtt'
 };
 
 // openid logon url used in Telenet.be Belgium for be-nl and be-fr sessions
