@@ -452,7 +452,7 @@ tvAccessory.prototype = {
 							withCredentials: true, // IMPORTANT!
 							//credentials: 'include',
 							headers: {
-									'Cache-Control': 'max-age=0',
+									//'Cache-Control': 'max-age=0',
 									'Content-Type': 'application/x-www-form-urlencoded',
 									//'Connection': 'keep-alive',
 									'Cookie':'Cookie1=Value1',
@@ -463,7 +463,7 @@ tvAccessory.prototype = {
 								rememberme: 'true'
 							}),
 							jar: cookieJar,
-							maxRedirects: 0, // If set to 0, no redirects will be followed.
+							maxRedirects: 2, // If set to 0, no redirects will be followed.
 							})
 							.then(response => {	
 								this.log.warn('Step 3: got login response');
