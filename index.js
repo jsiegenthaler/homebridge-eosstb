@@ -13,8 +13,19 @@ const request = require('request-promise');
 // false - doesn't ignore errors, throws when an error occurs in setting cookies and breaks the request and execution
 // true - silently ignores errors and continues to make requests/redirections
 
+// try got
+const got = require('got');
+
 // try axios instead of fetch
 const axios = require('axios'); // .default; does removing default help?
+
+const HTTP = axios.create({
+	timeout: 60000,
+   });
+
+
+
+
 const axiosCookieJarSupport = require('axios-cookiejar-support').default;
 const tough = require('tough-cookie');
 // setup the cookieJar
@@ -22,6 +33,10 @@ axiosCookieJarSupport(axios);
 const cookieJar = new tough.CookieJar();
 // set a dummy cookie to check cookie persistance
 //cookieJar.setCookieSync('key=value; domain=mockbin.org', 'https://mockbin.org');
+
+
+	
+
 
 const qs = require('qs')
 
@@ -136,6 +151,7 @@ function makeId(length) {
 function eosTvPlatform(log, config) {
 	console = log;
 	this.log = log;
+	this.log('In eosTvPlatform');
 	this.config = config;
 }
 
@@ -144,6 +160,7 @@ function eosTvPlatform(log, config) {
 /* Initialise Accessory */
 function tvAccessory(log, config) {
 	this.log = log;
+	this.log('In tvAccessory');
 
 	this.config = config;
 	this.sysConfig = null;
@@ -361,11 +378,35 @@ tvAccessory.prototype = {
 			// only for be-nl and be-fr users, as the session logon using openid is different
 		this.log.warn('getSessionBE');
 
+
+		// axios interceptors to log request and response for debugging
+		// works on all following requests (everywhere or in this sub?)
+		axios.interceptors.request.use(req => {
+			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
+			'\nMethod:',req.method, '\nURL:', req.url, 
+			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers, '\nWithCredentials:', req.withCredentials, 
+			'\nParams:', req.params, '\nData:', req.data);
+			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar); 
+			return req; // must return request
+		});
+		axios.interceptors.response.use(res => {
+			this.log('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
+			'\nHeaders:', res.headers, 
+			'\nData:', res.data, 
+			//'\nConfig:', res.config, '\nLast Request:', res.request
+			);
+			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar); 
+			return res; // must return response
+		});
+	
+
+
+
 		// we always need to pass credentials as cookies in this function
 		// so make a preconfigured axios instance
-		const axiosCred = axios.create({
-			withCredentials: true
-		});
+		//const axiosCred = axios.create({
+		//	withCredentials: true
+		//});
 
 		
 		// Step 1: get authentication details
@@ -373,56 +414,55 @@ tvAccessory.prototype = {
 		this.log.warn('Step 1: get authentication details from',apiAuthorizationUrl);
 		// axios.get(url[, config])
 		// probably don't need cookies here:
-		axiosCred.get(apiAuthorizationUrl, {
-				jar: cookieJar,
-				withCredentials: true, // IMPORTANT!
-			})
+		// A simple GET is fine, no need to pass withcredentials or the cookieJar.
+		axios.get(apiAuthorizationUrl)
 			.then(response => {	
 				this.log.warn('Step 1: got apiAuthorizationUrl response');
 				this.log('Step 1 response.status:',response.status, response.statusText);
-				this.log.debug('Step 1 response.headers:',response.headers);
-				this.log.debug('Step 1 response.data:',response.data);
-				this.log('Step 1 cookie jar:',cookieJar);
 				
-				//this.log('Step 1 response.headers.cookie:',response.headers.cookie);
-
 				// get the data we need for further steps
 				let auth = response.data;
 				let authSessionState = auth.session.state;
 				let authSessionAuthorizationUri = auth.session.authorizationUri;
 				let authSessionValidtyToken = auth.session.validityToken;
-				//this.log('Step 1 results: authSessionAuthorizationUri',authSessionAuthorizationUri);
-				//this.log('Step 1 results: authSessionValidtyToken',authSessionValidtyToken);
+				this.log('Step 1 results: authSessionState',authSessionState);
+				this.log('Step 1 results: authSessionAuthorizationUri',authSessionAuthorizationUri);
+				this.log('Step 1 results: authSessionValidtyToken',authSessionValidtyToken);
 
 				// Step 2: follow authSessionAuthorizationUri to get AUTH cookie
 				this.log.warn('Step 2: get AUTH cookie from',authSessionAuthorizationUri);
+				//this.log('Step 2 pre-call cookie jar:',cookieJar);
 				// axios.get(url[, config])
 				// definitely need cookiejar here
-				axiosCred.get(authSessionAuthorizationUri, {
-						jar: cookieJar,
+				axios.get(authSessionAuthorizationUri, {
 						withCredentials: true, // IMPORTANT!
+						jar: cookieJar,
+						// this call redirects to https://login.prd.telenet.be/openid/login 
 						maxRedirects: 3, // If set to 0, no redirects will be followed.
 					})
 					.then(response => {	
 						this.log.warn('Step 2: got authSessionAuthorizationUri response');
-						this.log('Step 2 response.status:',response.status, response.statusText);
-						this.log('Step 2 response.headers:',response.headers);
-						this.log('Step 2 cookie jar:',cookieJar);
-						this.log('Step 2 cookie jar dtCookie:',cookieJar.dtCookie);
-						this.log('Step 2 response.data:',response.data);
+						//this.log('Step 2 response.status:',response.status, response.statusText);
+						//this.log('Step 2 response.headers:',response.headers);
+						//this.log('Step 2 response cookie jar:',cookieJar);
+						//this.log('Step 2 cookie jar dtCookie:',cookieJar.dtCookie);
+						//this.log('Step 2 response.data:',response.data);
 		
 						// Step 3: login
 						// send a POST
 						this.log.warn('Step 3: post login to',BE_AUTH_URL);
+						this.log('Step 3 pre-call cookie jar:', cookieJar);
 						//axios.post(url[, data[, config]])
-						axiosCred.post(BE_AUTH_URL,{
+						axios({
+							method: 'post',
+							url: BE_AUTH_URL,
 							withCredentials: true, // IMPORTANT!
-							credentials: 'include',
+							//credentials: 'include',
 							headers: {
 									'Cache-Control': 'max-age=0',
 									'Content-Type': 'application/x-www-form-urlencoded',
-									'Connection': 'keep-alive'
-									//'Cookie':
+									'Connection': 'keep-alive',
+									'Cookie':'Cookie1=Value1',
 								},
 							data: qs.stringify({
 								j_username: this.config.username,
@@ -432,30 +472,11 @@ tvAccessory.prototype = {
 							jar: cookieJar,
 							maxRedirects: 0, // If set to 0, no redirects will be followed.
 							})
-						/*
-						axiosCred({
-							method: 'POST',
-							headers: {
-								'Content-Type': 'application/x-www-form-urlencoded',
-								'Connection': 'keep-alive'
-							  },
-							data: qs.stringify({
-								j_username: this.config.username,
-								j_password: this.config.password,
-								rememberme: 'true'
-							}),
-							url: BE_AUTH_URL,
-							jar: cookieJar,
-							withCredentials: true, // IMPORTANT!
-							maxRedirects: 0, // If set to 0, no redirects will be followed.
-							})
-							*/
 							.then(response => {	
 								this.log.warn('Step 3: got login response');
-								this.log('Step 3 response.status:',response.status, response.statusText);
-								this.log('Step 3 headers:',response.headers);
-								this.log('Step 3 response.headers.cookie:',response.headers.cookie);
-								this.log('Step 3 response:',response);
+								//this.log('Step 3 response.status:',response.status, response.statusText);
+								//this.log('Step 3 headers:',response.headers);
+								//this.log('Step 3 response:',response);
 								//this.log('url:',response.url); // is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
 
 							})
@@ -465,9 +486,7 @@ tvAccessory.prototype = {
 							// Step 3 errors
 							// we capture a 302 redirect error, which is correct
 							.catch(error => {
-								this.warn('Step 3 Error Handler (the wanted response, we want 302)');
-								this.log('Step 3 response.status:',error.status, error.statusText);
-								this.log('Step 3 headers:',error.headers);
+								this.log.warn('Step 3 Error Handler (the wanted response, we want 302)');
 								this.log('Step 3 response:',error);
 								//this.log.warn("Step 3: Unable to login, wrong credentials",error);
 							})
