@@ -453,6 +453,7 @@ tvAccessory.prototype = {
 							method: 'post',
 							url: BE_AUTH_URL,
 							withCredentials: true, // IMPORTANT!
+							jar: cookieJar,
 							//credentials: 'include',
 							headers: {
 								'Cache-Control': 'max-age=120',
@@ -471,7 +472,6 @@ tvAccessory.prototype = {
 								'Sec-Fetch-Site' : 'none',
 								'Sec-Fetch-User' : '?1',
 								'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36',
-
 								//'Cookie':'Cookie1=Value1',
 								},
 							data: qs.stringify({
@@ -479,8 +479,6 @@ tvAccessory.prototype = {
 								j_password: this.config.password,
 								rememberme: 'true'
 							}),
-							params:  {  },
-							jar: cookieJar,
 							maxRedirects: 0, // If set to 0, no redirects will be followed.
 							})
 							.then(response => {	
