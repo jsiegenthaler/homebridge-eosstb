@@ -4,8 +4,8 @@
 </p>
 
 # WORK IN PROGRESS
-This is a private repo because I'm not finished, If you've been invited, then it's because I selected you. You're here to help.
-During the time that this is a private repo, installation must be done using:
+This is very much a work in progres.. Why? Because I'm not finished. If you can, give me a hand...
+At the moment, installation must be done using:
 ```sh
 sudo npm install -g https://github.com/jsiegenthaler/eosstb/
 ```
@@ -15,6 +15,7 @@ Because you are a helper, I need your feedback
 * Test with profiles - try and find a way to get the EOS box profile channels
 * Solve the connection problem to Telenet in Belgium
 * Re-write the plugin to get the right Homekit icon. I hate the House icon
+* Test gb connections
 
 
 # homebridge-eosstb
@@ -34,7 +35,7 @@ As UPC operates in multiple countries under multiple brands, this plugin will wo
 * Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **Mediabox Next (4K)**.
 * Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums call the DCX960 a **Telenet TV-Box**.
 * Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **Entertain Box 4K**.
-* United Kingdom and Ireland: [Virgin Media](https://www.virginmedia.com/). The DCX960 appears to be called the **Virgin TV 360 mini box**. **UNTESTED**
+* United Kingdom and Ireland: [Virgin Media](https://www.virginmedia.com/). The DCX960 appears to be called the **Virgin TV 360 mini box**. **TESTERS WANTED**
 
 So if you subscribe to a TV service from one of these countries, you are lucky, this plugic will work for you.
 
