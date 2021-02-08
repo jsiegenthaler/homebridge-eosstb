@@ -85,6 +85,7 @@ const mqttUrlArray = {
 
 // openid logon url used in Telenet.be Belgium for be-nl and be-fr sessions
 const BE_AUTH_URL = 'https://login.prd.telenet.be/openid/login.do';
+const GB_AUTH_URL = 'https://id.virginmedia.com/sign-in/?protocol=oidc';
 
 
 
@@ -176,7 +177,7 @@ function tvAccessory(log, config) {
 
 	// this.getChannels();
 	this.log('Creating session...');
-	if (this.config.country == 'be-nl' || this.config.country == 'be-fr') {
+	if (this.config.country == 'be-nl' || this.config.country == 'be-fr' || this.config.country == 'gb') {
 		this.log('Calling getSessionBE');
 		this.getSessionBE();
 	} else {
@@ -374,6 +375,8 @@ tvAccessory.prototype = {
 
 	getSessionBE() {
 			// only for be-nl and be-fr users, as the session logon using openid is different
+			// looks like also for gb users:
+			// https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
 		this.log.warn('getSessionBE');
 
 
