@@ -386,7 +386,7 @@ tvAccessory.prototype = {
 			this.log('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
 			'\nHeaders:', res.headers, 
 			'\nData:', res.data, 
-			//'\nConfig:', res.config, '\nLast Request:', res.request
+			'\nLast Request:', res.request
 			);
 			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar); 
 			return res; // must return response
@@ -465,8 +465,9 @@ tvAccessory.prototype = {
 								j_password: this.config.password,
 								rememberme: 'true'
 							}),
+							params:  { '':'' },
 							jar: cookieJar,
-							maxRedirects: 6, // If set to 0, no redirects will be followed.
+							maxRedirects: 0, // If set to 0, no redirects will be followed.
 							})
 							.then(response => {	
 								this.log.warn('Step 3: got login response');
