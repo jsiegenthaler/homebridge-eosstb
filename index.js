@@ -453,9 +453,9 @@ tvAccessory.prototype = {
 							method: 'post',
 							url: BE_AUTH_URL,
 							withCredentials: true, // IMPORTANT!
-							credentials: 'include',
+							//credentials: 'include',
 							headers: {
-								'Cache-Control': 'max-age=0',
+								'Cache-Control': 'max-age=120',
 								'Content-Type': 'application/x-www-form-urlencoded',
 
 								'Upgrade-Insecure-Requests' : 1,
@@ -479,7 +479,7 @@ tvAccessory.prototype = {
 								j_password: this.config.password,
 								rememberme: 'true'
 							}),
-							params:  { '':'' },
+							params:  {  },
 							jar: cookieJar,
 							maxRedirects: 0, // If set to 0, no redirects will be followed.
 							})
