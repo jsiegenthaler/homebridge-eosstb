@@ -3,9 +3,10 @@
   </a>
 </p>
 
-# WORK IN PROGRESS
-This is very much a work in progres.. Why? Because I'm not finished. If you can, give me a hand...
-At the moment, installation must be done using:
+# WORK IN PROGRESS - HELP WANTED - ESPECIALLY FROM BELGIUM AND GREAT BRITAIN
+This is very much a work in progres.. Why? Because I'm not finished. If you can, give me a hand... especially if you have some javascript experience and use Telenet in Belgium or Virgin in Great Britain...
+
+Installation must be done using:
 ```sh
 sudo npm install -g https://github.com/jsiegenthaler/eosstb/
 ```
