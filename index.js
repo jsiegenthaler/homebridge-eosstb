@@ -15,6 +15,8 @@ const request = require('request-promise');
 
 // try axios instead of fetch
 const axios = require('axios'); // .default; does removing default help?
+axios.defaults.xsrfCookieName = undefined;
+axios.defaults.xsrfHeaderName = undefined;
 
 const HTTP = axios.create({
 	timeout: 60000,
@@ -408,8 +410,11 @@ tvAccessory.prototype = {
 		// axios.get(url[, config])
 		// probably don't need cookies here:
 		// A simple GET is fine, no need to pass withcredentials or the cookieJar.
+		this.log.warn('Step 1: xsrfCookieName', axios.defaults.xsrfCookieName); 
 		axios.get(apiAuthorizationUrl, {
-				withCredentials: true, // IMPORTANT!
+			xsrfCookieName: undefined,
+			xsrfHeaderName: undefined,
+			withCredentials: true, // IMPORTANT!
 				jar: cookieJar,
 			})
 			.then(response => {	
@@ -430,7 +435,10 @@ tvAccessory.prototype = {
 				//this.log('Step 2 pre-call cookie jar:',cookieJar);
 				// axios.get(url[, config])
 				// definitely need cookiejar here
+				
 				axios.get(authSessionAuthorizationUri, {
+						xsrfCookieName: undefined,
+						xsrfHeaderName: undefined,
 						withCredentials: true, // IMPORTANT!
 						jar: cookieJar,
 						// this call redirects to https://login.prd.telenet.be/openid/login 
@@ -450,11 +458,13 @@ tvAccessory.prototype = {
 						this.log('Step 3 pre-call cookie jar:', cookieJar);
 						//axios.post(url[, data[, config]])
 						// add a dummy cookie to see what it does to the cookies
-						cookieJar.setCookieSync('key1=value1; domain=mockbin.org', 'https://mockbin.org');
+						//cookieJar.setCookieSync('key1=value1; domain=mockbin.org', 'telenet.be');
+						this.log('Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
 						axios({
 							method: 'post',
 							url: BE_AUTH_URL,
 							withCredentials: true, // IMPORTANT!
+							timeout: 1000,
 							jar: cookieJar,
 							//credentials: 'include',
 							headers: {
