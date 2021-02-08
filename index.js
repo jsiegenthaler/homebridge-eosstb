@@ -418,7 +418,8 @@ tvAccessory.prototype = {
 			xsrfCookieName: undefined,
 			//xsrfHeaderName: undefined,
 			withCredentials: true, // IMPORTANT!
-				jar: cookieJar,
+			jar: cookieJar,
+			maxRedirects: 4, // If set to 0, no redirects will be followed.
 			})
 			.then(response => {	
 				this.log.warn('Step 1: got apiAuthorizationUrl response');
@@ -445,7 +446,7 @@ tvAccessory.prototype = {
 						withCredentials: true, // IMPORTANT!
 						jar: cookieJar,
 						// this call redirects to https://login.prd.telenet.be/openid/login 
-						maxRedirects: 6, // If set to 0, no redirects will be followed.
+						maxRedirects: 4, // If set to 0, no redirects will be followed.
 					})
 					.then(response => {	
 						this.log.warn('Step 2: got authSessionAuthorizationUri response');
