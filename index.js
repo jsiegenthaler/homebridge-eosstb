@@ -13,9 +13,6 @@ const request = require('request-promise');
 // false - doesn't ignore errors, throws when an error occurs in setting cookies and breaks the request and execution
 // true - silently ignores errors and continues to make requests/redirections
 
-// try got
-const got = require('got');
-
 // try axios instead of fetch
 const axios = require('axios'); // .default; does removing default help?
 
@@ -35,11 +32,7 @@ const cookieJar = new tough.CookieJar();
 //cookieJar.setCookieSync('key=value; domain=mockbin.org', 'https://mockbin.org');
 
 
-	
-
-
 const qs = require('qs')
-
 
 const _ = require('underscore');
 //const express = require('express');
@@ -67,7 +60,7 @@ const countryBaseUrlArray = {
     'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v3 and v4 works
     'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/nld/web',
     'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/fr/web',
-    'at': 		'https://prod.oesp.magentatv.at/oesp/v3/AT/deu/web' // v3 and v4 works
+    'at': 		'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web' // v3 and v4 works
 };
 
 // session and jwt are based on countryBaseUrlArray
