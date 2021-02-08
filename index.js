@@ -16,7 +16,7 @@ const request = require('request-promise');
 // try axios instead of fetch
 const axios = require('axios'); // .default; does removing default help?
 axios.defaults.xsrfCookieName = undefined;
-axios.defaults.xsrfHeaderName = undefined;
+//axios.defaults.xsrfHeaderName = undefined;
 
 const HTTP = axios.create({
 	timeout: 60000,
@@ -413,7 +413,7 @@ tvAccessory.prototype = {
 		this.log.warn('Step 1: xsrfCookieName', axios.defaults.xsrfCookieName); 
 		axios.get(apiAuthorizationUrl, {
 			xsrfCookieName: undefined,
-			xsrfHeaderName: undefined,
+			//xsrfHeaderName: undefined,
 			withCredentials: true, // IMPORTANT!
 				jar: cookieJar,
 			})
@@ -438,7 +438,7 @@ tvAccessory.prototype = {
 				
 				axios.get(authSessionAuthorizationUri, {
 						xsrfCookieName: undefined,
-						xsrfHeaderName: undefined,
+						//xsrfHeaderName: undefined,
 						withCredentials: true, // IMPORTANT!
 						jar: cookieJar,
 						// this call redirects to https://login.prd.telenet.be/openid/login 
@@ -466,11 +466,11 @@ tvAccessory.prototype = {
 							withCredentials: true, // IMPORTANT!
 							timeout: 1000,
 							xsrfCookieName: undefined,
-							xsrfHeaderName: undefined,
+							//xsrfHeaderName: undefined,
 							jar: cookieJar,
 							//credentials: 'include',
 							headers: {
-								'Cache-Control': 'max-age=120',
+								'Cache-Control': 'max-age=0',
 								'Content-Type': 'application/x-www-form-urlencoded',
 
 								'Upgrade-Insecure-Requests' : 1,
