@@ -454,7 +454,7 @@ tvAccessory.prototype = {
 							headers: {
 									'Cache-Control': 'max-age=0',
 									'Content-Type': 'application/x-www-form-urlencoded',
-									'Connection': 'keep-alive',
+									//'Connection': 'keep-alive',
 									'Cookie':'Cookie1=Value1',
 								},
 							data: qs.stringify({
