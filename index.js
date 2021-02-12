@@ -510,14 +510,14 @@ tvAccessory.prototype = {
 													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
 														.then(response => {	
 															this.log('Step 6 response.status:',response.status, response.statusText);
-															this.log('Step 6 response:',response); 
+															//this.log('Step 6 response:',response); 
 															
 															auth = response.data;
-															refreshToken = auth.refreshToken
-															this.log('Step 6 refreshToken:',refreshToken);
+															var refreshToken = auth.refreshToken
+															this.log('Step 6 got refreshToken:',refreshToken);
 
 															// Step 7: # get OESP code
-															payload = {'refreshToken':refreshToken,'username':this.config.username};
+															payload = {'refreshToken':refreshToken,'username':auth.username};
 															var sessionUrl = countryBaseUrlArray[this.config.country].concat('/session');
 															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
 															.then(response => {	
