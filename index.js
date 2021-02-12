@@ -33,6 +33,9 @@ const cookieJar = new tough.CookieJar();
 // set a dummy cookie to check cookie persistance
 //cookieJar.setCookieSync('key=value; domain=mockbin.org', 'https://mockbin.org');
 
+// remove default header in axios that causes trouble with Telenet
+delete axios.headers.common["Accept"];
+
 
 const qs = require('qs')
 
@@ -85,6 +88,8 @@ const mqttUrlArray = {
 
 // openid logon url used in Telenet.be Belgium for be-nl and be-fr sessions
 const BE_AUTH_URL = 'https://login.prd.telenet.be/openid/login.do';
+
+// oidc logon url used in VirginMedia for gb sessions
 const GB_AUTH_URL = 'https://id.virginmedia.com/sign-in/?protocol=oidc';
 
 
@@ -386,17 +391,18 @@ tvAccessory.prototype = {
 			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
 			'\nMethod:',req.method, '\nURL:', req.url, 
 			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers, '\nWithCredentials:', req.withCredentials, 
-			'\nParams:', req.params, '\nData:', req.data);
-			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar); 
+			//'\nParams:', req.params, '\nData:', req.data
+			);
+			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
 			return req; // must return request
 		});
 		axios.interceptors.response.use(res => {
 			this.log('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
 			'\nHeaders:', res.headers, 
-			'\nData:', res.data, 
-			'\nLast Request:', res.request
+			//'\nData:', res.data, 
+			//'\nLast Request:', res.request
 			);
-			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar); 
+			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
 			return res; // must return response
 		});
 	
@@ -405,9 +411,11 @@ tvAccessory.prototype = {
 
 		// we always need to pass credentials as cookies in this function
 		// so make a preconfigured axios instance
-		//const axiosCred = axios.create({
-		//	withCredentials: true
-		//});
+		/*
+		const axiosCred = axios.create({
+			withCredentials: true
+		});
+		*/
 
 		
 		// Step 1: get authentication details
@@ -443,11 +451,28 @@ tvAccessory.prototype = {
 				// axios.get(url[, config])
 				// definitely need cookiejar here
 				
-				axios.get(authSessionAuthorizationUri, {
+				axios({
+						method: 'get',
+						url: authSessionAuthorizationUri,
+						withCredentials: true, // IMPORTANT!
 						xsrfCookieName: undefined,
 						//xsrfHeaderName: undefined,
-						withCredentials: true, // IMPORTANT!
 						jar: cookieJar,
+						headers: {
+							'Upgrade-Insecure-Requests': 1,
+							Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+							'Accept-Encoding': 'gzip, deflate, br',
+							'Accept-Language': 'nl-NL,nl;q=0.9',
+							Connection: 'keep-alive',
+							Host: 'login.prd.telenet.be',
+							'sec-ch-ua': '"Chromium";v="88", "Google Chrome";v="88", ";Not A Brand";v="99"',
+							'sec-ch-ua-mobile': '?0',
+							'Sec-Fetch-Dest': 'document',
+							'Sec-Fetch-Mode': 'navigate',
+							'Sec-Fetch-Site': 'none',
+							'Sec-Fetch-User': '?1',
+							'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36'
+						},
 						// this call redirects to https://login.prd.telenet.be/openid/login 
 						maxRedirects: 4, // If set to 0, no redirects will be followed.
 					})
@@ -462,7 +487,7 @@ tvAccessory.prototype = {
 						// Step 3: login
 						// send a POST
 						this.log.warn('Step 3: post login to',BE_AUTH_URL);
-						this.log('Step 3 pre-call cookie jar:', cookieJar);
+						//this.log('Step 3 pre-call cookie jar:', cookieJar);
 						//axios.post(url[, data[, config]])
 						// add a dummy cookie to see what it does to the cookies
 						//cookieJar.setCookieSync('key1=value1; domain=mockbin.org', 'telenet.be');
