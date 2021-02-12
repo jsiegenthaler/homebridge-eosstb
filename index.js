@@ -500,7 +500,7 @@ tvAccessory.prototype = {
 												// Step 5: # obtain authorizationCode
 												let url5 = response.headers.location;
 												this.log('Step 5 location url:',response.headers.location);
-												var codeMatches = url5.match(/(code)=([^&]+)/g).split('=');;
+												var codeMatches = url5.match(/code=(?:[^&]+)/g)[0].split('=');
 
 												this.log('Step 5 codeMatches:',codeMatches);
 												
