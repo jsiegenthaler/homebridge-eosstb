@@ -510,23 +510,30 @@ tvAccessory.prototype = {
 													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
 														.then(response => {	
 															this.log('Step 6 response.status:',response.status, response.statusText);
-															this.log('Step 6 response.headers:',response.headers); 
 															this.log('Step 6 response:',response); 
 															
-															//auth = response.json()
-															//refreshToken = auth["refreshToken"]
+															auth = response.data;
+															refreshToken = auth.refreshToken
+															this.log('Step 6 refreshToken:',refreshToken);
 
 															// Step 7: # get OESP code
-															//payload = {'refreshToken':refreshToken,'username':this.config.username};
-															//response = session.post(self._api_url_session + "?token=true", json=payload)
-							
+															payload = {'refreshToken':refreshToken,'username':this.config.username};
+															var sessionUrl = countryBaseUrlArray[this.config.country].concat('/session');
+															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
+															.then(response => {	
+																	this.log('Step 7 response.status:',response.status, response.statusText);
+																	this.log('Step 7 response.headers:',response.headers); 
+																})
+																// Step 7 http errors
+																.catch(error => {
+																	this.log.warn("Step 7 Unable to get OESP token, http error:",error);
+																});
 
-														})
+															})
 														// Step 6 http errors
 														.catch(error => {
 															this.log.warn("Step 6 Unable to authorize with oauth code, http error:",error);
 														});	
-												
 												};
 											};
 										})
