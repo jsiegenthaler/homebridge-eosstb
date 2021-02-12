@@ -34,7 +34,6 @@ const tough = require('tough-cookie');
 const axiosWS = axios.create({
 	withCredentials: true, // IMPORTANT!
 });
-
 delete axiosWS.defaults.headers.common["Accept"];
 
 // setup the cookieJar
@@ -415,7 +414,7 @@ tvAccessory.prototype = {
 		});
 	
 
-		// Step 1: get authentication details
+		// Step 1: # get authentication details
 		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country] + '/authorization';
 		this.log.warn('Step 1: get authentication details from',apiAuthorizationUrl);
 		// axios.get(url[, config])
@@ -426,7 +425,7 @@ tvAccessory.prototype = {
 			//xsrfCookieName: undefined,
 			//xsrfHeaderName: undefined,
 			// withCredentials: true, // IMPORTANT! cleanup
-			jar: cookieJar,
+			//jar: cookieJar,
 			})
 			.then(response => {	
 				this.log.warn('Step 1: got apiAuthorizationUrl response');
@@ -437,16 +436,15 @@ tvAccessory.prototype = {
 				let authSessionState = auth.session.state;
 				let authSessionAuthorizationUri = auth.session.authorizationUri;
 				let authSessionValidtyToken = auth.session.validityToken;
-				this.log('Step 1 results: authSessionState',authSessionState);
-				this.log('Step 1 results: authSessionAuthorizationUri',authSessionAuthorizationUri);
-				this.log('Step 1 results: authSessionValidtyToken',authSessionValidtyToken);
+				//this.log('Step 1 results: authSessionState',authSessionState);
+				//this.log('Step 1 results: authSessionAuthorizationUri',authSessionAuthorizationUri);
+				//this.log('Step 1 results: authSessionValidtyToken',authSessionValidtyToken);
 
-				// Step 2: follow authSessionAuthorizationUri to get AUTH cookie
+				// Step 2: # follow authorizationUri to get AUTH cookie
 				this.log.warn('Step 2: get AUTH cookie from',authSessionAuthorizationUri);
-				// axios.get(url[, config])
-				axiosWS({
-						method: 'get',
-						url: authSessionAuthorizationUri,
+				axiosWS.get(authSessionAuthorizationUri, {
+						//method: 'get',
+						//url: authSessionAuthorizationUri,
 						//withCredentials: true, // IMPORTANT!
 						//xsrfCookieName: undefined,
 						//xsrfHeaderName: undefined,
@@ -454,6 +452,7 @@ tvAccessory.prototype = {
 						headers: {
 							'Upgrade-Insecure-Requests': 1,
 							Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+						/*
 							'Accept-Encoding': 'gzip, deflate, br',
 							'Accept-Language': 'nl-NL,nl;q=0.9',
 							Connection: 'keep-alive',
@@ -465,11 +464,13 @@ tvAccessory.prototype = {
 							'Sec-Fetch-Site': 'none',
 							'Sec-Fetch-User': '?1',
 							'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36'
+						*/
 						},
 						// this call redirects to https://login.prd.telenet.be/openid/login 
 						//maxRedirects: 4, // If set to 0, no redirects will be followed.
 					})
 					.then(response => {	
+						this.log('Step 2 response.status:',response.status, response.statusText);
 						this.log.warn('Step 2: got authSessionAuthorizationUri response');
 						//this.log('Step 2 response.status:',response.status, response.statusText);
 						//this.log('Step 2 response.headers:',response.headers);
@@ -477,7 +478,7 @@ tvAccessory.prototype = {
 						//this.log('Step 2 cookie jar dtCookie:',cookieJar.dtCookie);
 						//this.log('Step 2 response.data:',response.data);
 		
-						// Step 3: login
+						// Step 3: # login
 						// send a POST
 						this.log.warn('Step 3: post login to',BE_AUTH_URL);
 						//axios.post(url[, data[, config]])
@@ -524,22 +525,63 @@ tvAccessory.prototype = {
 								this.log.warn('Step 3 response: got login response');
 								this.log('Step 3 response.status:',response.status, response.statusText);
 								this.log('Step 3 response.headers:',response.headers);
-								//this.log('Step 3 response:',response);
-								this.log('Step 3 response.url:',response.url); // is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
-								this.log('Step 3 response.headers.location:',response.location); // is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
+								this.log('Step 3 response.headers.location:',response.headers.location); // is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
+								//location is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
+
+								let url = response.headers.location;
+								// look for an errored response and raise error if found
+								// TODO
+								//if len(re.findall(r"authentication_error=true", url)) > 0:
+								//	this.log.warn('Unable to login, wrong credentials');
+	
+
+								// Step 4: # follow redirect url
+								// send a POST
+								this.log.warn('Step 3: login successful');
+								//axios.post(url[, data[, config]])
+								this.log('Cookies for the login url:',cookieJar.getCookies(response.headers.location));
+								axiosWS({
+									method: 'get',
+									url: url,
+									withCredentials: true, // IMPORTANT!
+									jar: cookieJar,
+									maxRedirects: 0, // If set to 0, no redirects will be followed.
+									validateStatus: function (status) {
+										return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
+									  },
+									})
+									.then(response => {	
+										this.log.warn("Step 4 response");
+										this.log('Step 4 response.status:',response.status, response.statusText);
+										this.log('Step 4 response.headers:',response.headers);
+										this.log('Step 4 response.headers.location:',response.headers.location); // is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
+										
+										
+										// Step 5: # obtain authorizationCode
+										let url = response.headers.location;
+
+										// Step 6: # authorize again
+
+										// Step 7: # get OESP code
+
+									})
+									.then(data => {
+										this.log.warn("Step 4 data: A non-errored response occured, which is what we want");
+									})
+									// Step 4 errors
+									.catch(error => {
+										this.log.warn("Step 4: Unable to oauth authorize, http error:",error);
+									});
+
 
 							})
 							.then(data => {
 									this.log.warn("Step 3 data: A non-errored response occured, which is what we want");
 							})
 							// Step 3 errors
-							// we capture a 302 redirect error, which is correct
 							.catch(error => {
-								this.log.warn('Step 3 Error Handler (the wanted response, we want 302)');
-								//this.log('Step 3 response:',error);
-								//this.log.warn("Step 3: Unable to login, wrong credentials",error);
-							})
-							;						
+								this.log.warn("Step 3: Unable to login, http error:",error);
+							});
 					})
 					// Step 2 errors
 					.catch(error => {
