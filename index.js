@@ -470,7 +470,9 @@ tvAccessory.prototype = {
 								//location is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
 								//location is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
 								//this.log.warn('Step 3: >0 means authentication_error:',url.indexOf('authentication_error=true'));
-								if (url3.indexOf('authentication_error=true') < 0 ) { // -1 if not found
+								if (url3.indexOf('authentication_error=true') > 0 ) { // >0 if found
+									this.log.warn('Step 3: Unable to login, wrong credentials');
+								} else {
 									this.log.warn('Step 3: login successful');
 
 									// Step 4: # follow redirect url
@@ -486,35 +488,43 @@ tvAccessory.prototype = {
 										  },
 										})
 										.then(response => {	
-											this.log.warn("Step 4 response");
 											this.log('Step 4 response.status:',response.status, response.statusText);
-											this.log('Step 4 response.headers.location:',response.headers.location); // is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
+											this.log('Step 4 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
 											this.log('Step 4 response.headers:',response.headers);
 											let url4 = response.headers.location;
-											if (url4.indexOf('authentication_error=true') < 0 ) { // -1 if not found
-											
+											// look for login_success?code=
+											if (url4.indexOf('login_success?code=') < 0 ) { // <0 if not found
+												this.log.warn('Step 4: Unable to login, wrong credentials');
+											} else {
+
 												// Step 5: # obtain authorizationCode
-												//let url5 = response.headers.location;
+												let url5 = response.headers.location;
+												this.log('Step 5 location url:',response.headers.location);
+												//codeMatches=re.find
+												if (url5.indexOf('login_success?code=') < 0 ) { // <0 if not found
+													this.log.warn('Step 5: Unable to obtain authorizationCode');
+												} else {
+
+													// Step 5: # obtain authorizationCode
+													//let url5 = response.headers.location;
+
+													// Step 6: # authorize again
+
+													// Step 7: # get OESP code
+												
+												};
 
 												// Step 6: # authorize again
 
 												// Step 7: # get OESP code
 											
-											} 
-											// Step 4 login errors
-											else {
-												this.log.warn('Step 4: Unable to login, wrong credentials');
 											};
 										})
 										// Step 4 http errors
 										.catch(error => {
-											this.log.warn("Step 4: Unable to follow redirect url, http error:",error);
+											this.log.warn("Step 4: Unable to oauth authorize, http error:",error);
 										});
-									} 
-									// Step 3 login errors
-									else {
-										this.log.warn('Step 3: Unable to login, wrong credentials');
-									};
+								};
 							})
 							// Step 3 http errors
 							.catch(error => {
