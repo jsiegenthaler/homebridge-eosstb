@@ -490,42 +490,42 @@ tvAccessory.prototype = {
 											let url4 = response.headers.location;
 											if (url4.indexOf('authentication_error=true') < 0 ) { // -1 if not found
 											
-											// Step 5: # obtain authorizationCode
-											let url = response.headers.location;
+												// Step 5: # obtain authorizationCode
+												//let url5 = response.headers.location;
 
-											// Step 6: # authorize again
+												// Step 6: # authorize again
 
-											// Step 7: # get OESP code
+												// Step 7: # get OESP code
 											
 											} 
-											// Step 4 errors
+											// Step 4 login errors
 											else {
 												this.log.warn('Step 4: Unable to login, wrong credentials');
 											};
 										})
-										// Step 4 errors
+										// Step 4 http errors
 										.catch(error => {
 											this.log.warn("Step 4: Unable to follow redirect url, http error:",error);
 										});
-								} 
-								// Step 4 errors
-								else {
-									this.log.warn('Step 3: Unable to login, wrong credentials');
-								};
+									} 
+									// Step 3 login errors
+									else {
+										this.log.warn('Step 3: Unable to login, wrong credentials');
+									};
 							})
-							// Step 3 errors
+							// Step 3 http errors
 							.catch(error => {
 								this.log.warn("Step 3: Unable to login, http error:",error);
 							});
 					})
-					// Step 2 errors
+					// Step 2 http errors
 					.catch(error => {
-						this.log.warn("Step 2: Could not get authorizationUri",error);
+						this.log.warn("Step 2: Could not get authorizationUri, http error:",error);
 					});
 			})
-			// Step 1 errors
+			// Step 1 http errors
 			.catch(error => {
-				this.log.warn("Step 1: Could not get apiAuthorizationUrl",error);
+				this.log.warn("Step 1: Could not get apiAuthorizationUrl, http error:",error);
 			});
 	
 
