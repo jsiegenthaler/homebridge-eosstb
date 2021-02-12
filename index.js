@@ -443,7 +443,14 @@ tvAccessory.prototype = {
 						// Step 3: # login
 						this.log.warn('Step 3: post login to',BE_AUTH_URL);
 						//this.log('Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
-						axiosWS.post(BE_AUTH_URL,{
+						axiosWS.post(
+							BE_AUTH_URL,
+							qs.stringify({
+								j_username: this.config.username,
+								j_password: this.config.password,
+								rememberme: 'true'
+							}),
+							{
 							//method: 'post',
 							//url: BE_AUTH_URL,
 							jar: cookieJar,
@@ -451,11 +458,12 @@ tvAccessory.prototype = {
 								'Content-Type': 'application/x-www-form-urlencoded',
 								'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
 								},
-							data: qs.stringify({
+							/*data: qs.stringify({
 								j_username: this.config.username,
 								j_password: this.config.password,
 								rememberme: 'true'
 							}),
+							*/
 							maxRedirects: 0, // set to 0, nowe want no redirects
 							validateStatus: function (status) {
 								return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
