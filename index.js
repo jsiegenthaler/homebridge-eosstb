@@ -29,11 +29,16 @@ const axiosCookieJarSupport = require('axios-cookiejar-support').default;
 const tough = require('tough-cookie');
 
 // remove default header in axios that causes trouble with Telenet
-const axiosInstance = axios.create();
-delete axiosInstance.defaults.headers.common["Accept"];
+// and add withCredentials: true to ensure credential cookie support
+// name the new instance axiosWS (axios WebService)
+const axiosWS = axios.create({
+	withCredentials: true, // IMPORTANT!
+});
+
+delete axiosWS.defaults.headers.common["Accept"];
 
 // setup the cookieJar
-axiosCookieJarSupport(axiosInstance);
+axiosCookieJarSupport(axiosWS);
 const cookieJar = new tough.CookieJar();
 // set a dummy cookie to check cookie persistance
 //cookieJar.setCookieSync('key=value; domain=mockbin.org', 'https://mockbin.org');
@@ -410,30 +415,18 @@ tvAccessory.prototype = {
 		});
 	
 
-
-
-		// we always need to pass credentials as cookies in this function
-		// so make a preconfigured axios instance
-		/*
-		const axiosCred = axios.create({
-			withCredentials: true
-		});
-		*/
-
-		
 		// Step 1: get authentication details
 		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country] + '/authorization';
 		this.log.warn('Step 1: get authentication details from',apiAuthorizationUrl);
 		// axios.get(url[, config])
 		// probably don't need cookies here:
 		// A simple GET is fine, no need to pass withcredentials or the cookieJar.
-		this.log.warn('Step 1: xsrfCookieName', axiosInstance.defaults.xsrfCookieName); 
-		axiosInstance.get(apiAuthorizationUrl, {
-			xsrfCookieName: undefined,
+		this.log.warn('Step 1: xsrfCookieName', axiosWS.defaults.xsrfCookieName); 
+		axiosWS.get(apiAuthorizationUrl, {
+			//xsrfCookieName: undefined,
 			//xsrfHeaderName: undefined,
-			withCredentials: true, // IMPORTANT!
+			// withCredentials: true, // IMPORTANT! cleanup
 			jar: cookieJar,
-			maxRedirects: 4, // If set to 0, no redirects will be followed.
 			})
 			.then(response => {	
 				this.log.warn('Step 1: got apiAuthorizationUrl response');
@@ -450,15 +443,12 @@ tvAccessory.prototype = {
 
 				// Step 2: follow authSessionAuthorizationUri to get AUTH cookie
 				this.log.warn('Step 2: get AUTH cookie from',authSessionAuthorizationUri);
-				//this.log('Step 2 pre-call cookie jar:',cookieJar);
 				// axios.get(url[, config])
-				// definitely need cookiejar here
-				
-				axiosInstance({
+				axiosWS({
 						method: 'get',
 						url: authSessionAuthorizationUri,
-						withCredentials: true, // IMPORTANT!
-						xsrfCookieName: undefined,
+						//withCredentials: true, // IMPORTANT!
+						//xsrfCookieName: undefined,
 						//xsrfHeaderName: undefined,
 						jar: cookieJar,
 						headers: {
@@ -477,7 +467,7 @@ tvAccessory.prototype = {
 							'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36'
 						},
 						// this call redirects to https://login.prd.telenet.be/openid/login 
-						maxRedirects: 4, // If set to 0, no redirects will be followed.
+						//maxRedirects: 4, // If set to 0, no redirects will be followed.
 					})
 					.then(response => {	
 						this.log.warn('Step 2: got authSessionAuthorizationUri response');
@@ -490,10 +480,7 @@ tvAccessory.prototype = {
 						// Step 3: login
 						// send a POST
 						this.log.warn('Step 3: post login to',BE_AUTH_URL);
-						//this.log('Step 3 pre-call cookie jar:', cookieJar);
 						//axios.post(url[, data[, config]])
-						// add a dummy cookie to see what it does to the cookies
-						//cookieJar.setCookieSync('key1=value1; domain=mockbin.org', 'telenet.be');
 						this.log('Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
 						axiosInstance({
 							method: 'post',
@@ -545,7 +532,7 @@ tvAccessory.prototype = {
 							// we capture a 302 redirect error, which is correct
 							.catch(error => {
 								this.log.warn('Step 3 Error Handler (the wanted response, we want 302)');
-								this.log('Step 3 response:',error);
+								//this.log('Step 3 response:',error);
 								//this.log.warn("Step 3: Unable to login, wrong credentials",error);
 							})
 							;						
