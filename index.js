@@ -490,7 +490,7 @@ tvAccessory.prototype = {
 										.then(response => {	
 											this.log('Step 4 response.status:',response.status, response.statusText);
 											this.log('Step 4 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
-											this.log('Step 4 response.headers:',response.headers);
+											//this.log('Step 4 response.headers:',response.headers);
 											let url4 = response.headers.location;
 											// look for login_success?code=
 											if (url4.indexOf('login_success?code=') < 0 ) { // <0 if not found
@@ -499,15 +499,15 @@ tvAccessory.prototype = {
 
 												// Step 5: # obtain authorizationCode
 												let url5 = response.headers.location;
-												this.log('Step 5 location url:',response.headers.location);
+												this.log('Step 5 url5:',url5);
 												var codeMatches = url5.match(/code=(?:[^&]+)/g)[0].split('=');
 
 												this.log('Step 5 codeMatches:',codeMatches);
-												var authorizationCode = codeMatches[0];
+												var authorizationCode = codeMatches[1];
 												this.log('Step 5 authorizationCode:', authorizationCode);
 
-												this.log('Step 5 len codeMatches:',len(codeMatches));
-												if (url5.indexOf('login_success?code=') < 0 ) { // <0 if not found
+												this.log('Step 5 codeMatches.length:',codeMatches.length);
+												if (codeMatches.length < 0 ) { // <0 if not found
 													this.log.warn('Step 5: Unable to obtain authorizationCode');
 												} else {
 
