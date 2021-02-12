@@ -526,6 +526,7 @@ tvAccessory.prototype = {
 								this.log('Step 3 response.headers:',response.headers);
 								//this.log('Step 3 response:',response);
 								this.log('Step 3 response.url:',response.url); // is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
+								this.log('Step 3 response.location:',response.location); // is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
 
 							})
 							.then(data => {
