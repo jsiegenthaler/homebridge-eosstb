@@ -481,6 +481,9 @@ tvAccessory.prototype = {
 										url: url3,
 										jar: cookieJar,
 										maxRedirects: 0, // If set to 0, no redirects will be followed.
+										validateStatus: function (status) {
+											return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
+										  },
 										})
 										.then(response => {	
 											this.log.warn("Step 4 response");
