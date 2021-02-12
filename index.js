@@ -421,12 +421,7 @@ tvAccessory.prototype = {
 		// probably don't need cookies here:
 		// A simple GET is fine, no need to pass withcredentials or the cookieJar.
 		this.log.warn('Step 1: xsrfCookieName', axiosWS.defaults.xsrfCookieName); 
-		axiosWS.get(apiAuthorizationUrl, {
-			//xsrfCookieName: undefined,
-			//xsrfHeaderName: undefined,
-			// withCredentials: true, // IMPORTANT! cleanup
-			//jar: cookieJar,
-			})
+		axiosWS.get(apiAuthorizationUrl)
 			.then(response => {	
 				this.log.warn('Step 1: got apiAuthorizationUrl response');
 				this.log('Step 1 response.status:',response.status, response.statusText);
@@ -437,34 +432,14 @@ tvAccessory.prototype = {
 				let authSessionAuthorizationUri = auth.session.authorizationUri;
 				let authSessionValidtyToken = auth.session.validityToken;
 				//this.log('Step 1 results: authSessionState',authSessionState);
-				//this.log('Step 1 results: authSessionAuthorizationUri',authSessionAuthorizationUri);
-				//this.log('Step 1 results: authSessionValidtyToken',authSessionValidtyToken);
 
 				// Step 2: # follow authorizationUri to get AUTH cookie
 				this.log.warn('Step 2: get AUTH cookie from',authSessionAuthorizationUri);
 				axiosWS.get(authSessionAuthorizationUri, {
-						//method: 'get',
-						//url: authSessionAuthorizationUri,
-						//withCredentials: true, // IMPORTANT!
-						//xsrfCookieName: undefined,
-						//xsrfHeaderName: undefined,
 						jar: cookieJar,
 						headers: {
 							'Upgrade-Insecure-Requests': 1,
 							Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-						/*
-							'Accept-Encoding': 'gzip, deflate, br',
-							'Accept-Language': 'nl-NL,nl;q=0.9',
-							Connection: 'keep-alive',
-							Host: 'login.prd.telenet.be',
-							'sec-ch-ua': '"Chromium";v="88", "Google Chrome";v="88", ";Not A Brand";v="99"',
-							'sec-ch-ua-mobile': '?0',
-							'Sec-Fetch-Dest': 'document',
-							'Sec-Fetch-Mode': 'navigate',
-							'Sec-Fetch-Site': 'none',
-							'Sec-Fetch-User': '?1',
-							'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36'
-						*/
 						},
 						// this call redirects to https://login.prd.telenet.be/openid/login 
 						//maxRedirects: 4, // If set to 0, no redirects will be followed.
@@ -472,11 +447,6 @@ tvAccessory.prototype = {
 					.then(response => {	
 						this.log('Step 2 response.status:',response.status, response.statusText);
 						this.log.warn('Step 2: got authSessionAuthorizationUri response');
-						//this.log('Step 2 response.status:',response.status, response.statusText);
-						//this.log('Step 2 response.headers:',response.headers);
-						//this.log('Step 2 response cookie jar:',cookieJar);
-						//this.log('Step 2 cookie jar dtCookie:',cookieJar.dtCookie);
-						//this.log('Step 2 response.data:',response.data);
 		
 						// Step 3: # login
 						// send a POST
