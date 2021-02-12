@@ -437,17 +437,14 @@ tvAccessory.prototype = {
 				axiosWS.get(authSessionAuthorizationUri, {
 						jar: cookieJar,
 						headers: {
-							'Upgrade-Insecure-Requests': 1,
+							//'Upgrade-Insecure-Requests': 1,
 							Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
 						},
-						// this call redirects to https://login.prd.telenet.be/openid/login 
-						//maxRedirects: 4, // If set to 0, no redirects will be followed.
 					})
 					.then(response => {	
 						this.log('Step 2 response.status:',response.status, response.statusText);
 		
 						// Step 3: # login
-						// send a POST
 						this.log.warn('Step 3: post login to',BE_AUTH_URL);
 						//axios.post(url[, data[, config]])
 						this.log('Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
@@ -455,9 +452,6 @@ tvAccessory.prototype = {
 							method: 'post',
 							url: BE_AUTH_URL,
 							withCredentials: true, // IMPORTANT!
-							//timeout: 1000,
-							//xsrfCookieName: undefined,
-							//xsrfHeaderName: undefined,
 							jar: cookieJar,
 							headers: {
 								'Cache-Control': 'max-age=0',
