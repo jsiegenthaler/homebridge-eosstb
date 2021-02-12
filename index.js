@@ -482,7 +482,7 @@ tvAccessory.prototype = {
 						this.log.warn('Step 3: post login to',BE_AUTH_URL);
 						//axios.post(url[, data[, config]])
 						this.log('Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
-						axiosInstance({
+						axiosWS({
 							method: 'post',
 							url: BE_AUTH_URL,
 							withCredentials: true, // IMPORTANT!
@@ -516,17 +516,20 @@ tvAccessory.prototype = {
 								rememberme: 'true'
 							}),
 							maxRedirects: 0, // If set to 0, no redirects will be followed.
+							validateStatus: function (status) {
+								return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
+							  },
 							})
 							.then(response => {	
-								this.log.warn('Step 3: got login response');
-								//this.log('Step 3 response.status:',response.status, response.statusText);
-								//this.log('Step 3 headers:',response.headers);
+								this.log.warn('Step 3 response: got login response');
+								this.log('Step 3 response.status:',response.status, response.statusText);
+								this.log('Step 3 response.headers:',response.headers);
 								//this.log('Step 3 response:',response);
-								//this.log('url:',response.url); // is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
+								this.log('Step 3 response.url:',response.url); // is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
 
 							})
 							.then(data => {
-									this.log.warn("A 200 response occured, which we do not want");
+									this.log.warn("Step 3 data: A non-errored response occured, which is what we want");
 							})
 							// Step 3 errors
 							// we capture a 302 redirect error, which is correct
