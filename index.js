@@ -27,14 +27,17 @@ const HTTP = axios.create({
 
 const axiosCookieJarSupport = require('axios-cookiejar-support').default;
 const tough = require('tough-cookie');
+
+// remove default header in axios that causes trouble with Telenet
+const axiosInstance = axios.create();
+delete axiosInstance.defaults.headers.common["Accept"];
+
 // setup the cookieJar
-axiosCookieJarSupport(axios);
+axiosCookieJarSupport(axiosInstance);
 const cookieJar = new tough.CookieJar();
 // set a dummy cookie to check cookie persistance
 //cookieJar.setCookieSync('key=value; domain=mockbin.org', 'https://mockbin.org');
 
-// remove default header in axios that causes trouble with Telenet
-delete axios.headers.common["Accept"];
 
 
 const qs = require('qs')
@@ -424,8 +427,8 @@ tvAccessory.prototype = {
 		// axios.get(url[, config])
 		// probably don't need cookies here:
 		// A simple GET is fine, no need to pass withcredentials or the cookieJar.
-		this.log.warn('Step 1: xsrfCookieName', axios.defaults.xsrfCookieName); 
-		axios.get(apiAuthorizationUrl, {
+		this.log.warn('Step 1: xsrfCookieName', axiosInstance.defaults.xsrfCookieName); 
+		axiosInstance.get(apiAuthorizationUrl, {
 			xsrfCookieName: undefined,
 			//xsrfHeaderName: undefined,
 			withCredentials: true, // IMPORTANT!
@@ -451,7 +454,7 @@ tvAccessory.prototype = {
 				// axios.get(url[, config])
 				// definitely need cookiejar here
 				
-				axios({
+				axiosInstance({
 						method: 'get',
 						url: authSessionAuthorizationUri,
 						withCredentials: true, // IMPORTANT!
@@ -492,7 +495,7 @@ tvAccessory.prototype = {
 						// add a dummy cookie to see what it does to the cookies
 						//cookieJar.setCookieSync('key1=value1; domain=mockbin.org', 'telenet.be');
 						this.log('Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
-						axios({
+						axiosInstance({
 							method: 'post',
 							url: BE_AUTH_URL,
 							withCredentials: true, // IMPORTANT!
