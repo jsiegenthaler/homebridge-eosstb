@@ -503,9 +503,8 @@ tvAccessory.prototype = {
 												var codeMatches = url5.match(/code=(?:[^&]+)/g)[0].split('=');
 
 												this.log('Step 5 codeMatches:',codeMatches);
-												
-												//var authorizationCode = codeMatches[0];
-												//this.log('Step 5 authorizationCode:', authorizationCode);
+												var authorizationCode = codeMatches[0];
+												this.log('Step 5 authorizationCode:', authorizationCode);
 
 												this.log('Step 5 len codeMatches:',len(codeMatches));
 												if (url5.indexOf('login_success?code=') < 0 ) { // <0 if not found
