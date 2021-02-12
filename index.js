@@ -424,13 +424,13 @@ tvAccessory.prototype = {
 				
 				// get the data we need for further steps
 				let auth = response.data;
-				let authSessionState = auth.session.state;
-				let authSessionAuthorizationUri = auth.session.authorizationUri;
-				let authSessionValidtyToken = auth.session.validityToken;
+				let authState = auth.session.state;
+				let authAuthorizationUri = auth.session.authorizationUri;
+				let authValidtyToken = auth.session.validityToken;
 
 				// Step 2: # follow authorizationUri to get AUTH cookie
-				this.log.warn('Step 2: get AUTH cookie from',authSessionAuthorizationUri);
-				axiosWS.get(authSessionAuthorizationUri, {
+				this.log.warn('Step 2: get AUTH cookie from',authAuthorizationUri);
+				axiosWS.get(authAuthorizationUri, {
 						jar: cookieJar,
 						// unsure what minimum headers will here
 						headers: {
@@ -443,9 +443,9 @@ tvAccessory.prototype = {
 						// Step 3: # login
 						this.log.warn('Step 3: post login to',BE_AUTH_URL);
 						//this.log('Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
-						axiosWS({
-							method: 'post',
-							url: BE_AUTH_URL,
+						axiosWS.post(BE_AUTH_URL,{
+							//method: 'post',
+							//url: BE_AUTH_URL,
 							jar: cookieJar,
 							headers: {
 								'Content-Type': 'application/x-www-form-urlencoded',
