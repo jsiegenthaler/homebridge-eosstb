@@ -511,9 +511,15 @@ tvAccessory.prototype = {
 														.then(response => {	
 															this.log('Step 6 response.status:',response.status, response.statusText);
 															this.log('Step 6 response.headers:',response.headers); 
+															this.log('Step 6 response:',response); 
+															
+															//auth = response.json()
+															//refreshToken = auth["refreshToken"]
 
 															// Step 7: # get OESP code
-															
+															//payload = {'refreshToken':refreshToken,'username':this.config.username};
+															//response = session.post(self._api_url_session + "?token=true", json=payload)
+							
 
 														})
 														// Step 6 http errors
@@ -1079,7 +1085,7 @@ tvAccessory.prototype = {
 		// fired when the icon is clicked in Homekit and Homekit requests a refresh
 		// currentChannelId is updated by the polling mechanisn
 		//this.log('getInputState');
-		isDone = false;
+		var isDone = false;
 		this.inputs.filter((input, index) => {
 			// getInputState input { id: 'SV00044', name: 'RTL plus', index: 44 }
 			//this.log(`getInputState: ${input.index} ${input.name} (${input.id})`);
