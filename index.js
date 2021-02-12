@@ -510,7 +510,6 @@ tvAccessory.prototype = {
 													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
 														.then(response => {	
 															this.log('Step 6 response.status:',response.status, response.statusText);
-															//this.log('Step 6 response:',response); 
 															
 															auth = response.data;
 															var refreshToken = auth.refreshToken
@@ -522,7 +521,9 @@ tvAccessory.prototype = {
 															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
 															.then(response => {	
 																	this.log('Step 7 response.status:',response.status, response.statusText);
-																	this.log('Step 7 response.headers:',response.headers); 
+																	//this.log('Step 7 response.headers:',response.headers); 
+																	this.log.warn('Successfully logged on'); 
+																	this.log('cookieJar',cookieJar); 
 																})
 																// Step 7 http errors
 																.catch(error => {
