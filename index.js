@@ -419,7 +419,7 @@ tvAccessory.prototype = {
 		this.log.warn('Step 1: get authentication details from',apiAuthorizationUrl);
 		axiosWS.get(apiAuthorizationUrl)
 			.then(response => {	
-				this.log.warn('Step 1: got apiAuthorizationUrl response');
+				this.log.warn('Step 1 got apiAuthorizationUrl response');
 				this.log('Step 1 response.status:',response.status, response.statusText);
 				
 				// get the data we need for further steps
@@ -429,7 +429,7 @@ tvAccessory.prototype = {
 				let authValidtyToken = auth.session.validityToken;
 
 				// Step 2: # follow authorizationUri to get AUTH cookie
-				this.log.warn('Step 2: get AUTH cookie from',authAuthorizationUri);
+				this.log.warn('Step 2 get AUTH cookie from',authAuthorizationUri);
 				axiosWS.get(authAuthorizationUri, {
 						jar: cookieJar,
 						// unsure what minimum headers will here
@@ -441,30 +441,26 @@ tvAccessory.prototype = {
 						this.log('Step 2 response.status:',response.status, response.statusText);
 		
 						// Step 3: # login
-						this.log.warn('Step 3: post login to',BE_AUTH_URL);
+						this.log.warn('Step 3 post login to',BE_AUTH_URL);
 						//this.log('Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
-						axiosWS.post(
-							BE_AUTH_URL,
-							qs.stringify({
-								j_username: this.config.username,
-								j_password: this.config.password,
-								rememberme: 'true'
-							}),
-							{
-							//method: 'post',
-							//url: BE_AUTH_URL,
+						var payload = qs.stringify({
+							j_username: this.config.username,
+							j_password: this.config.password,
+							rememberme: 'true'
+						});
+						axiosWS.post(BE_AUTH_URL,payload,{
 							jar: cookieJar,
-							headers: {
-								'Content-Type': 'application/x-www-form-urlencoded',
-								'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-								},
+							//headers: {
+							//	'Content-Type': 'application/x-www-form-urlencoded',
+							//	'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+							//	},
 							/*data: qs.stringify({
 								j_username: this.config.username,
 								j_password: this.config.password,
 								rememberme: 'true'
 							}),
 							*/
-							maxRedirects: 0, // set to 0, nowe want no redirects
+							maxRedirects: 0, // set to 0, we want no redirects
 							validateStatus: function (status) {
 								return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
 							 	},
@@ -474,21 +470,21 @@ tvAccessory.prototype = {
 								this.log('Step 3 response.status:',response.status, response.statusText);
 								this.log('Step 3 response.headers.location:',response.headers.location); 
 								//this.log('Step 3 response.headers:',response.headers);
-								let url3 = response.headers.location;
+								var url = response.headers.location;
 								//location is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
 								//location is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
 								//this.log.warn('Step 3: >0 means authentication_error:',url.indexOf('authentication_error=true'));
-								if (url3.indexOf('authentication_error=true') > 0 ) { // >0 if found
-									this.log.warn('Step 3: Unable to login, wrong credentials');
+								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
+									this.log.warn('Step 3 Unable to login, wrong credentials');
 								} else {
-									this.log.warn('Step 3: login successful');
+									this.log.warn('Step 3 login successful');
 
 									// Step 4: # follow redirect url
-									this.log.warn('Step 4: follow redirect url');
-									this.log('Cookies for the login url:',cookieJar.getCookies(url3));
+									this.log.warn('Step 4 follow redirect url');
+									this.log('Cookies for the login url:',cookieJar.getCookies(url));
 									axiosWS({
 										method: 'get',
-										url: url3,
+										url: url,
 										jar: cookieJar,
 										maxRedirects: 0, // If set to 0, no redirects will be followed.
 										validateStatus: function (status) {
@@ -499,36 +495,33 @@ tvAccessory.prototype = {
 											this.log('Step 4 response.status:',response.status, response.statusText);
 											this.log('Step 4 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
 											//this.log('Step 4 response.headers:',response.headers);
-											let url4 = response.headers.location;
+											url = response.headers.location;
 											// look for login_success?code=
-											if (url4.indexOf('login_success?code=') < 0 ) { // <0 if not found
-												this.log.warn('Step 4: Unable to login, wrong credentials');
+											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
+												this.log.warn('Step 4 Unable to login, wrong credentials');
 											} else {
 
 												// Step 5: # obtain authorizationCode
-												let url5 = response.headers.location;
-												this.log('Step 5 url5:',url5);
-												var codeMatches = url5.match(/code=(?:[^&]+)/g)[0].split('=');
+												url = response.headers.location;
+												this.log('Step 5 url:',url);
+												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
 												var authorizationCode = codeMatches[1];
 												//this.log('Step 5 authorizationCode:', authorizationCode);
 												if (codeMatches.length != 2 ) { // length must be 2 if code found
-													this.log.warn('Step 5: Unable to obtain authorizationCode');
+													this.log.warn('Step 5 Unable to obtain authorizationCode');
 												} else {
 													// Step 6: # authorize again
-													var payload = {'authorizationGrant':{
+													payload = {'authorizationGrant':{
 														'authorizationCode':authorizationCode,
 														"validityToken":authValidtyToken,
 														"state":authState
 														}};
-													axiosWS({
-														method: 'post',
-														url: apiAuthorizationUrl,
+													axiosWS.post(apiAuthorizationUrl, payload, {
 														jar: cookieJar,
-														headers: {
-															'Content-Type': 'application/x-www-form-urlencoded',
-															'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-															},
-														data: payload,
+														//headers: {
+														//	'Content-Type': 'application/x-www-form-urlencoded',
+														//	'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+														//	},
 														})
 														.then(response => {	
 															this.log('Step 6 response.status:',response.status, response.statusText);
@@ -536,7 +529,7 @@ tvAccessory.prototype = {
 														})
 														// Step 6 http errors
 														.catch(error => {
-															this.log.warn("Step 6: Unable to authorize with oauth code, http error:",error);
+															this.log.warn("Step 6 Unable to authorize with oauth code, http error:",error);
 														});	
 														// Step 7: # get OESP code
 												
@@ -545,23 +538,23 @@ tvAccessory.prototype = {
 										})
 										// Step 4 http errors
 										.catch(error => {
-											this.log.warn("Step 4: Unable to oauth authorize, http error:",error);
+											this.log.warn("Step 4 Unable to oauth authorize, http error:",error);
 										});
 								};
 							})
 							// Step 3 http errors
 							.catch(error => {
-								this.log.warn("Step 3: Unable to login, http error:",error);
+								this.log.warn("Step 3 Unable to login, http error:",error);
 							});
 					})
 					// Step 2 http errors
 					.catch(error => {
-						this.log.warn("Step 2: Could not get authorizationUri, http error:",error);
+						this.log.warn("Step 2 Could not get authorizationUri, http error:",error);
 					});
 			})
 			// Step 1 http errors
 			.catch(error => {
-				this.log.warn("Step 1: Could not get apiAuthorizationUrl, http error:",error);
+				this.log.warn("Step 1 Could not get apiAuthorizationUrl, http error:",error);
 			});
 	
 
