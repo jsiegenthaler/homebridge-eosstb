@@ -459,7 +459,7 @@ tvAccessory.prototype = {
 							maxRedirects: 0, // set to 0, nowe want no redirects
 							validateStatus: function (status) {
 								return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
-							  },
+							 	},
 							})
 							.then(response => {	
 								this.log.warn('Step 3 response: got login response');
@@ -485,7 +485,7 @@ tvAccessory.prototype = {
 										maxRedirects: 0, // If set to 0, no redirects will be followed.
 										validateStatus: function (status) {
 											return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
-										  },
+											},
 										})
 										.then(response => {	
 											this.log('Step 4 response.status:',response.status, response.statusText);
@@ -501,29 +501,38 @@ tvAccessory.prototype = {
 												let url5 = response.headers.location;
 												this.log('Step 5 url5:',url5);
 												var codeMatches = url5.match(/code=(?:[^&]+)/g)[0].split('=');
-
-												this.log('Step 5 codeMatches:',codeMatches);
 												var authorizationCode = codeMatches[1];
-												this.log('Step 5 authorizationCode:', authorizationCode);
-
-												this.log('Step 5 codeMatches.length:',codeMatches.length);
-												if (codeMatches.length < 0 ) { // <0 if not found
+												//this.log('Step 5 authorizationCode:', authorizationCode);
+												if (codeMatches.length != 2 ) { // length must be 2 if code found
 													this.log.warn('Step 5: Unable to obtain authorizationCode');
 												} else {
-
-													// Step 5: # obtain authorizationCode
-													//let url5 = response.headers.location;
-
 													// Step 6: # authorize again
-
-													// Step 7: # get OESP code
+													var payload = {'authorizationGrant':{
+														'authorizationCode':authorizationCode,
+														"validityToken":authValidtyToken,
+														"state":authState
+														}};
+													axiosWS({
+														method: 'post',
+														url: apiAuthorizationUrl,
+														jar: cookieJar,
+														headers: {
+															'Content-Type': 'application/x-www-form-urlencoded',
+															'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+															},
+														data: payload,
+														})
+														.then(response => {	
+															this.log('Step 6 response.status:',response.status, response.statusText);
+															this.log('Step 6 response.headers:',response.headers); 
+														})
+														// Step 6 http errors
+														.catch(error => {
+															this.log.warn("Step 6: Unable to authorize with oauth code, http error:",error);
+														});	
+														// Step 7: # get OESP code
 												
 												};
-
-												// Step 6: # authorize again
-
-												// Step 7: # get OESP code
-											
 											};
 										})
 										// Step 4 http errors
