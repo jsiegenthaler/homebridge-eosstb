@@ -466,11 +466,11 @@ tvAccessory.prototype = {
 								this.log('Step 3 response.status:',response.status, response.statusText);
 								this.log('Step 3 response.headers.location:',response.headers.location); 
 								//this.log('Step 3 response.headers:',response.headers);
-								let url = response.headers.location;
+								let url3 = response.headers.location;
 								//location is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
 								//location is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
 								//this.log.warn('Step 3: >0 means authentication_error:',url.indexOf('authentication_error=true'));
-								if (url.indexOf('authentication_error=true') < 0 ) { // -1 if not found
+								if (url3.indexOf('authentication_error=true') < 0 ) { // -1 if not found
 									this.log.warn('Step 3: login successful');
 
 									// Step 4: # follow redirect url
@@ -487,32 +487,26 @@ tvAccessory.prototype = {
 											this.log('Step 4 response.status:',response.status, response.statusText);
 											this.log('Step 4 response.headers.location:',response.headers.location); // is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
 											this.log('Step 4 response.headers:',response.headers);
-											let url = response.headers.location;
-											if (url.indexOf('authentication_error=true') < 0 ) { // -1 if not found
+											let url4 = response.headers.location;
+											if (url4.indexOf('authentication_error=true') < 0 ) { // -1 if not found
 											
-											
-											} 
-											// Step 4 errors
-											else {
-												this.log.warn('Step 4: Unable to login, wrong credentials');
-											};
-
 											// Step 5: # obtain authorizationCode
 											let url = response.headers.location;
 
 											// Step 6: # authorize again
 
 											// Step 7: # get OESP code
-
-										})
-										.then(data => {
-											this.log.warn("Step 4 data: A non-errored response occured, which is what we want");
+											
+											} 
+											// Step 4 errors
+											else {
+												this.log.warn('Step 4: Unable to login, wrong credentials');
+											};
 										})
 										// Step 4 errors
 										.catch(error => {
-											this.log.warn("Step 4: Unable to oauth authorize, http error:",error);
+											this.log.warn("Step 4: Unable to follow redirect url, http error:",error);
 										});
-
 								} 
 								// Step 4 errors
 								else {
