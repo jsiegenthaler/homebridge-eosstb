@@ -436,10 +436,12 @@ tvAccessory.prototype = {
 				this.log.warn('Step 2: get AUTH cookie from',authSessionAuthorizationUri);
 				axiosWS.get(authSessionAuthorizationUri, {
 						jar: cookieJar,
-//						headers: {
-//							'Upgrade-Insecure-Requests': 1,
-//							Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-//						},
+						headers: {
+							'Upgrade-Insecure-Requests': 1,
+							Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+						},
+						// this call redirects to https://login.prd.telenet.be/openid/login 
+						//maxRedirects: 4, // If set to 0, no redirects will be followed.
 					})
 					.then(response => {	
 						this.log('Step 2 response.status:',response.status, response.statusText);
@@ -453,6 +455,9 @@ tvAccessory.prototype = {
 							method: 'post',
 							url: BE_AUTH_URL,
 							withCredentials: true, // IMPORTANT!
+							//timeout: 1000,
+							//xsrfCookieName: undefined,
+							//xsrfHeaderName: undefined,
 							jar: cookieJar,
 							headers: {
 								'Cache-Control': 'max-age=0',
@@ -471,7 +476,6 @@ tvAccessory.prototype = {
 								'Sec-Fetch-Site' : 'none',
 								'Sec-Fetch-User' : '?1',
 								'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36',
-								//'Cookie':'Cookie1=Value1',
 								},
 							data: qs.stringify({
 								j_username: this.config.username,
