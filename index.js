@@ -475,10 +475,10 @@ tvAccessory.prototype = {
 
 									// Step 4: # follow redirect url
 									this.log.warn('Step 4: follow redirect url');
-									this.log('Cookies for the login url:',cookieJar.getCookies(url));
+									this.log('Cookies for the login url:',cookieJar.getCookies(url3));
 									axiosWS({
 										method: 'get',
-										url: url,
+										url: url3,
 										jar: cookieJar,
 										maxRedirects: 0, // If set to 0, no redirects will be followed.
 										})
