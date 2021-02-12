@@ -450,17 +450,7 @@ tvAccessory.prototype = {
 						});
 						axiosWS.post(BE_AUTH_URL,payload,{
 							jar: cookieJar,
-							//headers: {
-							//	'Content-Type': 'application/x-www-form-urlencoded',
-							//	'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-							//	},
-							/*data: qs.stringify({
-								j_username: this.config.username,
-								j_password: this.config.password,
-								rememberme: 'true'
-							}),
-							*/
-							maxRedirects: 0, // set to 0, we want no redirects
+							maxRedirects: 0, // do not follow redirects
 							validateStatus: function (status) {
 								return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
 							 	},
@@ -473,7 +463,6 @@ tvAccessory.prototype = {
 								var url = response.headers.location;
 								//location is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
 								//location is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
-								//this.log.warn('Step 3: >0 means authentication_error:',url.indexOf('authentication_error=true'));
 								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
 									this.log.warn('Step 3 Unable to login, wrong credentials');
 								} else {
@@ -482,11 +471,11 @@ tvAccessory.prototype = {
 									// Step 4: # follow redirect url
 									this.log.warn('Step 4 follow redirect url');
 									this.log('Cookies for the login url:',cookieJar.getCookies(url));
-									axiosWS({
-										method: 'get',
-										url: url,
+									axiosWS.get(url,{
+										//method: 'get',
+										//url: url,
 										jar: cookieJar,
-										maxRedirects: 0, // If set to 0, no redirects will be followed.
+										maxRedirects: 0, // do not follow redirects
 										validateStatus: function (status) {
 											return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
 											},
@@ -502,36 +491,35 @@ tvAccessory.prototype = {
 											} else {
 
 												// Step 5: # obtain authorizationCode
+												this.log.warn('Step 5 obtain authorizationCode');
 												url = response.headers.location;
-												this.log('Step 5 url:',url);
 												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
 												var authorizationCode = codeMatches[1];
-												//this.log('Step 5 authorizationCode:', authorizationCode);
 												if (codeMatches.length != 2 ) { // length must be 2 if code found
 													this.log.warn('Step 5 Unable to obtain authorizationCode');
 												} else {
+													this.log('Step 5 got authorizationCode',authorizationCode);
+
 													// Step 6: # authorize again
+													this.log.warn('Step 6 post auth data to',apiAuthorizationUrl);
 													payload = {'authorizationGrant':{
 														'authorizationCode':authorizationCode,
 														"validityToken":authValidtyToken,
 														"state":authState
 														}};
-													axiosWS.post(apiAuthorizationUrl, payload, {
-														jar: cookieJar,
-														//headers: {
-														//	'Content-Type': 'application/x-www-form-urlencoded',
-														//	'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-														//	},
-														})
+													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
 														.then(response => {	
 															this.log('Step 6 response.status:',response.status, response.statusText);
 															this.log('Step 6 response.headers:',response.headers); 
+
+															// Step 7: # get OESP code
+															
+
 														})
 														// Step 6 http errors
 														.catch(error => {
 															this.log.warn("Step 6 Unable to authorize with oauth code, http error:",error);
 														});	
-														// Step 7: # get OESP code
 												
 												};
 											};
