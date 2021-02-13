@@ -12,10 +12,11 @@ sudo npm install -g https://github.com/jsiegenthaler/eosstb/
 ```
 Because you are a helper, I need your feedback
 
-# TO-DO as of 02.02.2020
-* Test with profiles - try and find a way to get the EOS box profile channels
+# TO-DO as of 13.02.2020
+* Test gb connections for Virgin Media
+* Test with profiles - try and find a way to get the EOS box profile channels so that the channel list can be reduced to your profile channel list
 * Re-write the plugin to get the right Homekit icon. I hate the House icon
-* Test gb connections
+
 
 # Recent Achievements
 13 Feb 2021: Got the Telenet session working finally. This plugin now works properly with the Telenet TV-Boxes in Belgium.
