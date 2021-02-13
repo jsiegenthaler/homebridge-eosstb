@@ -455,7 +455,6 @@ tvAccessory.prototype = {
 							 	},
 							})
 							.then(response => {	
-								this.log.warn('Step 3 response: got login response');
 								this.log('Step 3 response.status:',response.status, response.statusText);
 								this.log('Step 3 response.headers.location:',response.headers.location); 
 								//this.log('Step 3 response.headers:',response.headers);
@@ -469,7 +468,7 @@ tvAccessory.prototype = {
 
 									// Step 4: # follow redirect url
 									this.log.warn('Step 4 follow redirect url');
-									this.log('Cookies for the login url:',cookieJar.getCookies(url));
+									this.log('Cookies for the redirect url:',cookieJar.getCookies(url));
 									axiosWS.get(url,{
 										//method: 'get',
 										//url: url,
@@ -490,14 +489,14 @@ tvAccessory.prototype = {
 											} else {
 
 												// Step 5: # obtain authorizationCode
-												this.log.warn('Step 5 obtain authorizationCode');
+												this.log.warn('Step 5 extract authorizationCode');
 												url = response.headers.location;
 												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
 												var authorizationCode = codeMatches[1];
 												if (codeMatches.length != 2 ) { // length must be 2 if code found
-													this.log.warn('Step 5 Unable to obtain authorizationCode');
+													this.log.warn('Step 5 Unable to extract authorizationCode');
 												} else {
-													this.log('Step 5 got authorizationCode',authorizationCode);
+													this.log('Step 5 authorizationCode:',authorizationCode);
 
 													// Step 6: # authorize again
 													this.log.warn('Step 6 post auth data to',apiAuthorizationUrl);
@@ -506,22 +505,23 @@ tvAccessory.prototype = {
 														'validityToken':authValidtyToken,
 														'state':authState
 													}};
-													this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
+													this.log('Cookies for the session:',cookieJar.getCookies(apiAuthorizationUrl));
 													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
 														.then(response => {	
 															this.log('Step 6 response.status:',response.status, response.statusText);
 															
 															auth = response.data;
 															//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
-															this.log('Step 6 got refreshToken:',auth.refreshToken);
+															this.log('Step 6 refreshToken:',auth.refreshToken);
 
 															// Step 7: # get OESP code
+															this.log.warn('Step 7 post refreshToken request to',apiAuthorizationUrl);
 															payload = {'refreshToken':auth.refreshToken,'username':auth.username};
 															var sessionUrl = countryBaseUrlArray[this.config.country].concat('/session');
 															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
 																.then(response => {	
 																	this.log('Step 7 response.status:',response.status, response.statusText);
-																	this.log.warn('Successfully logged on'); 
+																	this.log.warn('Successfully authenticated'); 
 
 																	this.log('Step 7 response.headers:',response.headers); 
 																	this.log('Step 7 response.data:',response.data); 
