@@ -520,8 +520,10 @@ tvAccessory.prototype = {
 															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
 																.then(response => {	
 																	this.log('Step 7 response.status:',response.status, response.statusText);
-																	//this.log('Step 7 response.headers:',response.headers); 
 																	this.log.warn('Successfully logged on'); 
+
+																	this.log('Step 7 response.headers:',response.headers); 
+																	this.log('Step 7 response.data:',response.data); 
 																	this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
 
 																	// now get the Jwt token
