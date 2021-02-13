@@ -371,7 +371,7 @@ tvAccessory.prototype = {
 				//this.log(json);
 				sessionJson = json;
 
-				this.getJwtToken(sessionJson.oespToken, sessionJson.customer.householdId);
+				this.getJwtTokenReq(sessionJson.oespToken, sessionJson.customer.householdId);
 				this.log('Session created');			
 			})
 			.catch((err) => {
@@ -578,9 +578,9 @@ tvAccessory.prototype = {
 
 
 	getJwtTokenAxios(oespToken, householdId){
-		// axios version
+		// axios version, working
 		// get a JSON web token from the supplied oespToken and householdId
-		this.log.debug('getJwtToken Axios version');
+		this.log.debug('getJwtTokenAxios version');
 		const jwtAxiosConfig = {
 			method: 'GET',
 			url: countryBaseUrlArray[this.config.country].concat('/tokens/jwt'),
@@ -589,27 +589,24 @@ tvAccessory.prototype = {
 				'X-OESP-Username': myUpcUsername
 			}
 		};
-		this.log('jwtAxiosConfig:',jwtAxiosConfig);
-
 		axiosWS(jwtAxiosConfig)
 			.then(response => {	
-				this.log('jwttoken response.status:',response.status, response.statusText);
-				this.log('jwttoken response:',response);
 				mqttUsername = householdId;
 				mqttPassword = response.data.token;
 				this.startMqttClient(this);
 			})
 			.catch(error => {
-				this.log.warn('getJwtToken error:', error);
+				this.log.warn('getJwtTokenAxios error:', error);
 				return false;
 			});			
 	}, // end of getJwtTokenAxios
 
 
 
-	getJwtToken(oespToken, householdId){
+	getJwtTokenReq(oespToken, householdId){
+		// Request version
 		// get a JSON web token from the supplied oespToken and householdId
-		this.log.debug('getJwtToken');
+		this.log.debug('getJwtTokenReq');
 		const jwtRequestOptions = {
 			method: 'GET',
 			uri: countryBaseUrlArray[this.config.country].concat('/tokens/jwt'),
@@ -628,10 +625,10 @@ tvAccessory.prototype = {
 				this.startMqttClient(this);
 			})
 			.catch(function (err) {
-				//this.log('getJwtToken: ', err.message);
+				//this.log('getJwtTokenReq: ', err.message);
 				return false;
 			});
-	}, // end of getJwtToken
+	}, // end of getJwtTokenReq
 
 
 
