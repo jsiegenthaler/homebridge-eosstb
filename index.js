@@ -1,4 +1,4 @@
-'use strict';
+//'use strict';
 
 
 
@@ -16,21 +16,14 @@ const request = require('request-promise');
 // try axios instead of fetch
 const axios = require('axios'); // .default; does removing default help?
 axios.defaults.xsrfCookieName = undefined;
-//axios.defaults.xsrfHeaderName = undefined;
-
-const HTTP = axios.create({
-	timeout: 60000,
-   });
-
-
-
 
 const axiosCookieJarSupport = require('axios-cookiejar-support').default;
 const tough = require('tough-cookie');
 
+
+// create a new instance called axiosWS
+// add withCredentials: true to ensure credential cookie support
 // remove default header in axios that causes trouble with Telenet
-// and add withCredentials: true to ensure credential cookie support
-// name the new instance axiosWS (axios WebService)
 const axiosWS = axios.create({
 	withCredentials: true, // IMPORTANT!
 });
@@ -39,15 +32,12 @@ delete axiosWS.defaults.headers.common["Accept"];
 // setup the cookieJar
 axiosCookieJarSupport(axiosWS);
 const cookieJar = new tough.CookieJar();
-// set a dummy cookie to check cookie persistance
-//cookieJar.setCookieSync('key=value; domain=mockbin.org', 'https://mockbin.org');
 
 
 
 const qs = require('qs')
 
 const _ = require('underscore');
-//const express = require('express');
 const bodyParser = require('body-parser');
 const varClientId = makeId(30);
 
@@ -99,8 +89,9 @@ const BE_AUTH_URL = 'https://login.prd.telenet.be/openid/login.do';
 // oidc logon url used in VirginMedia for gb sessions
 const GB_AUTH_URL = 'https://id.virginmedia.com/sign-in/?protocol=oidc';
 
-
-
+// settop box identifiers
+let smartCardId = '';
+let physicalDeviceId = '';
 
 // general constants
 const NO_INPUT = 999999; // an input id that does not exist
@@ -156,13 +147,12 @@ function makeId(length) {
 
 
 
-
-
 // --== MAIN SETUP ==--
 function eosTvPlatform(log, config) {
 	console = log;
 	this.log = log;
 	this.log('In eosTvPlatform');
+	this.log('eosTvPlatform physicalDeviceId:',physicalDeviceId);
 	this.config = config;
 }
 
@@ -172,12 +162,14 @@ function eosTvPlatform(log, config) {
 function tvAccessory(log, config) {
 	this.log = log;
 	this.log('In tvAccessory');
+	this.log('tvAccessory physicalDeviceId:',physicalDeviceId);
 
 	this.config = config;
 	this.sysConfig = null;
 	
 	this.name = config.name || settopBoxName[this.config.country]; // market specific box name as default
 
+	this.log('clearing inputs and services');
 	this.inputs = [];
 	this.enabledServices = [];
 	this.inputServices = [];
@@ -185,18 +177,26 @@ function tvAccessory(log, config) {
 
 	// Configuration
 	myUpcUsername = this.config.username || '';
-	myUpcPassword = this.config.password || ''; // was username, changed to password, then things stopped working. changed back
+	myUpcPassword = this.config.password || '';
 
 	// this.getChannels();
 	this.log('Creating session...');
-	if (this.config.country == 'be-nl' || this.config.country == 'be-fr' || this.config.country == 'gb') {
-		this.log('Calling getSessionBE');
-		this.getSessionBE();
-	} else {
-		this.log('Calling getSession');
-		this.getSession();
-	}
-	this.log('Session should be created');
+	switch(this.config.country) {
+		case 'be-nl': case 'be-fr':
+			this.log('Calling getSessionBE');
+			this.getSessionBE();
+			break;
+		case 'gb':
+			this.log('Calling getSessionBE');
+			this.getSessionBE();
+			break;
+		  break;
+		default:
+			this.log('Calling getSession');
+			this.getSession();
+	  }
+	this.log('Session should be created now');
+	this.log('tvAccessory after session physicalDeviceId:',physicalDeviceId);
 
 	this.log('Loading inputs...');
 	this.setInputs();
@@ -214,13 +214,13 @@ module.exports = (homebridge) => {
 
 
 eosTvPlatform.prototype = {
-	accessories(callback) {
-	callback([
-		new tvAccessory(
-		this.log,
-		this.config
-		),
-	]);
+  	accessories(callback) {
+		callback([
+			new tvAccessory(
+			this.log,
+			this.config
+			),
+		]);
 	},
 };
 
@@ -229,14 +229,16 @@ eosTvPlatform.prototype = {
 tvAccessory.prototype = {
 	/* Services */
 	// max 100 services possible
+	// test the sleep function
 	getServices() {
-	this.prepareInformationService();				// service 1
-	this.prepareTelevisionService();				// service 2
-	this.prepareTelevisionSpeakerService();	// service 3
-	this.prepareInputSourceServices();			// services 4 to max 100
-	//this.volumeService(); // try and enable
-
-	return this.enabledServices;
+		this.log('start of getServices');
+		this.prepareInformationService();			// service 1
+		this.prepareTelevisionService();			// service 2
+		this.prepareTelevisionSpeakerService();		// service 3
+		this.prepareInputSourceServices();			// services 4 to max 100
+		//this.volumeService(); // try and enable
+		this.log('getServices: all services have been prepared');
+		return this.enabledServices;
 	},
 
 
@@ -244,6 +246,8 @@ tvAccessory.prototype = {
 	// informationService is the name, manufacturer etc of the accessory
 	prepareInformationService() {
 		// Create Information Service
+		this.log('start of prepareInformationService, physicalDeviceId',physicalDeviceId);
+
 		this.informationService = new Service.AccessoryInformation();
 
 		let boxName = 'DCX960 ('.concat(settopBoxName[this.config.country]).concat(')'); // market specific box name
@@ -255,6 +259,7 @@ tvAccessory.prototype = {
 			.setCharacteristic(Characteristic.Model, boxName)
 			.setCharacteristic(Characteristic.FirmwareRevision, PLUGIN_VERSION);
 
+		this.log('end of prepareInformationService, physicalDeviceId',physicalDeviceId);
 		this.enabledServices.push(this.informationService);
 	}, // end of prepareInformationService
 
@@ -289,8 +294,8 @@ tvAccessory.prototype = {
 			.on('set', this.remoteKeyPress.bind(this));
 
 		// PowerModeSelection enables the View TV Settings option in the Homekit TV accessory
-    this.tvService
-      .getCharacteristic(Characteristic.PowerModeSelection)
+		this.tvService
+			.getCharacteristic(Characteristic.PowerModeSelection)
 			.on('set', this.viewTvSettings.bind(this));
 
 		this.enabledServices.push(this.tvService);
@@ -357,22 +362,26 @@ tvAccessory.prototype = {
 
 
 	getSession() {
-		this.log.debug('getSession');
+		this.log.warn('getSession');
 
 		sessionRequestOptions.uri = countryBaseUrlArray[this.config.country].concat('/session');
-		this.log.debug('getSession sessionRequestOptions.uri:',sessionRequestOptions.uri);
+		this.log.warn('getSession sessionRequestOptions.uri:',sessionRequestOptions.uri);
 		
 		sessionRequestOptions.body.username = this.config.username;
 		sessionRequestOptions.body.password = this.config.password;
-		this.log.debug('getSession: sessionRequestOptions',sessionRequestOptions);
+		this.log.warn('getSession: sessionRequestOptions',sessionRequestOptions);
 		
 		request(sessionRequestOptions)
 			.then((json) => {
 				//this.log(json);
-				sessionJson = json;
+				var sessionJson = json;
+				//this.log('getSession: sessionJson.customer',sessionJson.customer);
+
+				smartCardId = sessionJson.customer.smartCardId;
+				physicalDeviceId = sessionJson.customer.physicalDeviceId;
 
 				this.getJwtTokenReq(sessionJson.oespToken, sessionJson.customer.householdId);
-				this.log('Session created');			
+				this.log.warn('getSession: Session created');			
 			})
 			.catch((err) => {
 				this.log.warn('getSession Error:', err.message); // likely invalid credentials
@@ -526,6 +535,9 @@ tvAccessory.prototype = {
 																	this.log('Step 7 response.headers:',response.headers); 
 																	this.log('Step 7 response.data:',response.data); 
 																	this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
+
+																	smartCardId = response.data.customer.smartCardId;
+																	physicalDeviceId = response.data.customer.physicalDeviceId;
 
 																	// now get the Jwt token
 																	// all subscriber data is in the response.data.customer
