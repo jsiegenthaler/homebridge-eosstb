@@ -3,8 +3,8 @@
   </a>
 </p>
 
-# WORK IN PROGRESS - HELP WANTED - ESPECIALLY FROM BELGIUM AND GREAT BRITAIN
-This is very much a work in progres.. Why? Because I'm not finished. If you can, give me a hand... especially if you have some javascript experience and use Telenet in Belgium or Virgin in Great Britain...
+# WORK IN PROGRESS - HELP WANTED - ESPECIALLY GREAT BRITAIN
+This is very much a work in progres.. Why? Because I'm not finished. If you can, give me a hand... especially if you have some javascript experience and use Virgin in Great Britain...
 
 Installation must be done using:
 ```sh
@@ -17,6 +17,8 @@ Because you are a helper, I need your feedback
 * Re-write the plugin to get the right Homekit icon. I hate the House icon
 * Test gb connections
 
+# Recent Achievements
+13 Feb 2021: Got the Telenet session working finally. This plugin now works properly with the Telenet TV-Boxes in Belgium.
 
 # homebridge-eosstb
 
