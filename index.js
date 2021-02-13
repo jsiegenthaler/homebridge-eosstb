@@ -505,7 +505,8 @@ tvAccessory.prototype = {
 														'authorizationCode':authorizationCode,
 														'validityToken':authValidtyToken,
 														'state':authState
-														}};
+													}};
+													this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
 													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
 														.then(response => {	
 															this.log('Step 6 response.status:',response.status, response.statusText);
@@ -527,16 +528,18 @@ tvAccessory.prototype = {
 																	this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
 
 																	// now get the Jwt token
-																	this.getJwtToken(response.oespToken, response.customer.householdId);
+																	// all subscriber data is in the response.data.customer
+																	// can get smartCardId, physicalDeviceId, stbType, and more
+																	this.log('Getting jwtToken for householdId',response.data.customer.householdId);
+																	this.getJwtToken(response.data.oespToken, response.data.customer.householdId);
 																	this.log('Session created');
 													
-																	})
+																})
 																// Step 7 http errors
 																.catch(error => {
 																	this.log.warn("Step 7 Unable to get OESP token, http error:",error);
 																});
-
-															})
+														})
 														// Step 6 http errors
 														.catch(error => {
 															this.log.warn("Step 6 Unable to authorize with oauth code, http error:",error);
@@ -574,7 +577,32 @@ tvAccessory.prototype = {
 
 
 
+	getJwtTokenAxios(oespToken, householdId){
+		// axios version
+		// get a JSON web token from the supplied oespToken and householdId
+		this.log.debug('getJwtToken Axios version');
+		const jwtAxiosConfig = {
+			method: 'GET',
+			url: countryBaseUrlArray[this.config.country].concat('/tokens/jwt'),
+			headers: {
+				'X-OESP-Token': oespToken,
+				'X-OESP-Username': myUpcUsername
+			}
+		};
 
+		axios(jwtAxiosConfig)
+			.then(response => {	
+				this.log('jwttoken response.status:',response.status, response.statusText);
+				this.log('jwttoken response:',response);
+				mqttUsername = householdId;
+				mqttPassword = response.token;
+				this.startMqttClient(this);
+			})
+			.catch(error => {
+				this.log.warn('getJwtToken error:', error);
+				return false;
+			});			
+	}, // end of getJwtTokenAxios
 
 
 
@@ -605,33 +633,7 @@ tvAccessory.prototype = {
 	}, // end of getJwtToken
 
 
-	getJwtTokenAxios(oespToken, householdId){
-		// axios version
-		// get a JSON web token from the supplied oespToken and householdId
-		this.log.debug('getJwtToken Axios version');
-		const jwtAxiosConfig = {
-			method: 'GET',
-			url: countryBaseUrlArray[this.config.country].concat('/tokens/jwt'),
-			headers: {
-				'X-OESP-Token': oespToken,
-				'X-OESP-Username': myUpcUsername
-			}
-		};
 
-		axios(jwtAxiosConfig)
-			.then(response => {	
-				this.log('jwttoken response.status:',response.status, response.statusText);
-				this.log('jwttoken response:',response);
-				mqttUsername = householdId;
-				mqttPassword = response.token;
-				this.startMqttClient(this);
-			})
-			// Step 1 http errors
-			.catch(error => {
-				//this.log('getJwtToken: ', error);
-				return false;
-			});			
-	}, // end of getJwtToken
 
 
 
