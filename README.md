@@ -160,7 +160,7 @@ Example full configuration as used on the author's Samsung TV (where x.x.x.x is 
 
 * **volDownCommand**: The bash command to decrease the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Down button on your device. Optional.
 
-* **muteCommand**: The bash command to mute the volume of the TV. Currently not supported in the Apple iOS remote (last checked in iOS v14.4). Maybe Apple will add this in the future? Optional.
+* **muteCommand**: The bash command to mute the volume of the TV. Currently not supported in the Apple iOS remote (last checked in iOS v14.4) but is supported in Homebridge and in other home controller apps like Eve. Optional.
 
 
 
