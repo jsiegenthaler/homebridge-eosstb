@@ -39,7 +39,7 @@ As UPC operates in multiple countries under multiple brands, this plugin will wo
 * Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **Entertain Box 4K**.
 * United Kingdom and Ireland: [Virgin Media](https://www.virginmedia.com/). The DCX960 appears to be called the **Virgin TV 360 mini box**. **TESTERS WANTED**
 
-So if you subscribe to a TV service from one of these countries, you are lucky, this plugic will work for you.
+So if you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
 
 May also work with other UPC countries, if you know of any, let me know.
 
