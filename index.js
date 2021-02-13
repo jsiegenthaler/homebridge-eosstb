@@ -531,7 +531,7 @@ tvAccessory.prototype = {
 																	// all subscriber data is in the response.data.customer
 																	// can get smartCardId, physicalDeviceId, stbType, and more
 																	this.log('Getting jwtToken for householdId',response.data.customer.householdId);
-																	this.getJwtToken(response.data.oespToken, response.data.customer.householdId);
+																	this.getJwtTokenAxios(response.data.oespToken, response.data.customer.householdId);
 																	this.log('Session created');
 													
 																})
@@ -589,8 +589,9 @@ tvAccessory.prototype = {
 				'X-OESP-Username': myUpcUsername
 			}
 		};
+		this.log('jwtAxiosConfig:',jwtAxiosConfig);
 
-		axios(jwtAxiosConfig)
+		axiosWS(jwtAxiosConfig)
 			.then(response => {	
 				this.log('jwttoken response.status:',response.status, response.statusText);
 				this.log('jwttoken response:',response);
