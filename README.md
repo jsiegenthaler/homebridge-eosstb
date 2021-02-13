@@ -14,7 +14,6 @@ Because you are a helper, I need your feedback
 
 # TO-DO as of 02.02.2020
 * Test with profiles - try and find a way to get the EOS box profile channels
-* Solve the connection problem to Telenet in Belgium
 * Re-write the plugin to get the right Homekit icon. I hate the House icon
 * Test gb connections
 
@@ -54,7 +53,7 @@ UPC can change their systems at any time and that might break this plugin. But I
 
 ## Requirements
 * An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1...14.4, earlier versions not tested.
-* [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116, earlier versions not tested.
+* [Homebridge](https://homebridge.io/) v1.2.5 (or later). Developed on Homebridge 1.1.116....1.2.5, earlier versions not tested.
 * A [TV subscription](https://www.upc.ch/en/bundles/buy-tv-internet/) (or the equivalent in your country)
 * A [My UPC account](https://www.upc.ch/en/account/login/credentials/) (or the equivalent in your country, part of your TV package)
 * The ARRIS mediabox DCX960 (provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries)
