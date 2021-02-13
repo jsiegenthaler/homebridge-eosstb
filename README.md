@@ -96,7 +96,7 @@ However, the more services you have, the slower the plugin might be. So I have l
 ## Configuration
 Add a new platform to your homebridge `config.json`.
 
-Example configuration:
+Example minimum configuration:
 
 ```js
 {
@@ -105,8 +105,31 @@ Example configuration:
         "platform": "eosstb",
         "name": "UPC TV Box",
         "country": "ch"
-        "username": "yourMyUpcEmail@email.com",
-        "password": "yourMyUpcPassword"
+        "username": "yourEmail@email.com",
+        "password": "yourPassword"
+      }
+    ]
+  }
+```
+
+Example full configuration as used on the author's Samsung TV (where x.x.x.x is the IP address of the TV):
+
+```js
+{
+    "platforms": [
+      {
+        "platform": "eosstb",
+        "name": "UPC TV Box",
+        "country": "ch"
+        "username": "yourEmail@email.com",
+        "password": "yourPassword"
+        "playPauseButton": "MediaPlayPause",
+        "backButton": "Escape",
+        "infoButton": "MediaTopMenu",
+        "maxChannels": 90,
+        "volUpCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_VOLUP",
+        "volDownCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_VOLDOWN",
+        "muteCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_MUTE"
       }
     ]
   }
@@ -133,6 +156,13 @@ Example configuration:
 
 * **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found. Loading times increase with higher maximums. Limited to 90.
 
+* **volUpCommand**: The bash command to increase the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Up button on your device. Optional.
+
+* **volDownCommand**: The bash command to decrease the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Down button on your device. Optional.
+
+* **muteCommand**: The bash command to mute the volume of the TV. Currently not supported in the Apple iOS remote (last checked in iOS v14.4). Maybe Apple will add this in the future? Optional.
+
+
 
 ## Known Relevant EOS Box Commands
 * **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the **HOME** button on the EOS box remote
@@ -150,8 +180,9 @@ Example configuration:
 * **MediaPause**: Toggles between Pause and Play of the current TV program
 
 
+
 ## Known Other Commands
-* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the EOS box, but instead via a bash command. So your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver.
+* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the EOS box, but instead via a bash command. So your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
 
 
 ## Siri
