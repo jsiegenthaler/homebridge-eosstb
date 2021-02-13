@@ -196,6 +196,7 @@ function tvAccessory(log, config) {
 		this.log('Calling getSession');
 		this.getSession();
 	}
+	this.log('Session should be created');
 
 	this.log('Loading inputs...');
 	this.setInputs();
@@ -363,8 +364,6 @@ tvAccessory.prototype = {
 		
 		sessionRequestOptions.body.username = this.config.username;
 		sessionRequestOptions.body.password = this.config.password;
-		//this.log.debug('getSession sessionRequestOptions.body.username:', sessionRequestOptions.body.username);
-		//this.log.debug('getSession sessionRequestOptions.body.password:', sessionRequestOptions.body.password);
 		this.log.debug('getSession: sessionRequestOptions',sessionRequestOptions);
 		
 		request(sessionRequestOptions)
@@ -504,27 +503,32 @@ tvAccessory.prototype = {
 													this.log.warn('Step 6 post auth data to',apiAuthorizationUrl);
 													payload = {'authorizationGrant':{
 														'authorizationCode':authorizationCode,
-														"validityToken":authValidtyToken,
-														"state":authState
+														'validityToken':authValidtyToken,
+														'state':authState
 														}};
 													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
 														.then(response => {	
 															this.log('Step 6 response.status:',response.status, response.statusText);
 															
 															auth = response.data;
-															var refreshToken = auth.refreshToken
-															this.log('Step 6 got refreshToken:',refreshToken);
+															//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
+															this.log('Step 6 got refreshToken:',auth.refreshToken);
 
 															// Step 7: # get OESP code
-															payload = {'refreshToken':refreshToken,'username':auth.username};
+															payload = {'refreshToken':auth.refreshToken,'username':auth.username};
 															var sessionUrl = countryBaseUrlArray[this.config.country].concat('/session');
 															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
-															.then(response => {	
+																.then(response => {	
 																	this.log('Step 7 response.status:',response.status, response.statusText);
 																	//this.log('Step 7 response.headers:',response.headers); 
 																	this.log.warn('Successfully logged on'); 
-																	this.log('cookieJar',cookieJar); 
-																})
+																	this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
+
+																	// now get the Jwt token
+																	this.getJwtToken(response.oespToken, response.customer.householdId);
+																	this.log('Session created');
+													
+																	})
 																// Step 7 http errors
 																.catch(error => {
 																	this.log.warn("Step 7 Unable to get OESP token, http error:",error);
@@ -558,90 +562,6 @@ tvAccessory.prototype = {
 			.catch(error => {
 				this.log.warn("Step 1 Could not get apiAuthorizationUrl, http error:",error);
 			});
-	
-
-/*
-		// STEP 1 
-		// fetch without options is a simple GET
-		const fetchOptions = {
-			method: 'GET',
-			//credentials: 'include',
-			json: true
-		};
-		fetch(apiAuthorizationUrl,fetchOptions)
-			.then(response => response.json()) // get the promise to return the json
-			.then(data => {
-				let auth = data;
-				let authorizationUri = auth.session.authorizationUri;
-				let authState = auth.session.state;
-				let authValidtyToken = auth.session.validityToken;
-				this.log('authValidtyToken',authValidtyToken);
-				this.log('authorizationUri',authorizationUri);
-
-				// next http call
-				// STEP 2 # follow authorizationUri to get AUTH cookie
-				this.log.warn('# follow authorizationUri to get AUTH cookie: apiAuthorizationUrl:',apiAuthorizationUrl);
-				let fetchOptions = {
-					method: 'GET',
-					credentials: 'include',
-					json: true
-				};
-				fetch(authorizationUri,fetchOptions)
-					//.then(response => {	this.log(response.status);	})
-					.then(response => response.text()) // get the promise to return the json
-					.then(data => {
-						// # login
-						let payload = 'j_username=username&j_password=password&rememberme=true'
-						this.log.warn('Login payload follows:',payload); // for debug only
-						let fetchOptions = {
-							headers: {
-								'Accept': 'application/json',
-								'Content-Type': 'application/json',
-							  },
-							//credentials: 'include',
-							credentials: 'same-origin', // Will set cookie 'set-cookie' only if this is set to 'same-origin'
-							method: 'POST',
-							body: payload,
-							followRedirect: false,
-							resolveWithFulLResponse: true,
-							json: true
-						};
-						this.log.warn('fetchOptions',fetchOptions); // for debug only
-						// send the POST, get the response
-						// we are trying to find a redirect in the response
-						fetch(BE_AUTH_URL,fetchOptions)
-							.then(response => {	
-								this.log.warn('got authorizationUri response');
-								this.log('url:',response.url); // is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
-								this.log('Status:',response.status);
-								this.log('Statustext:',response.statusText);
-								this.log('Headers:',response.headers);
-								//this.log('Headers.Raw:',response.headers.raw());
-								//this.log('Response:',response);
-							})
-							.then(data => {
-									// # follow redirect url
-									this.log.warn("should be logged on");
-									this.log.warn("headers folllow, looking for Location");
-									//this.log(data.headers);	
-								
-									this.log(data);
-							})
-							// catch any errors
-							.catch(error => {
-								this.log.warn("Unable to login, wrong credentials",error);
-							});
-
-					})
-					.catch(error => {
-						this.log.warn("Unable to authorize to get AUTH cookie",error);
-					});
-
-			})
-			.catch(error => {
-				this.log.warn("Could not get apiAuthorizationUrl",error);
-			});
-*/
 
 		this.log.warn('end of getSessionBE');
 
@@ -656,7 +576,8 @@ tvAccessory.prototype = {
 
 
 
-	getJwtToken(oespToken, householdId)	 {
+	getJwtToken(oespToken, householdId){
+		// get a JSON web token from the supplied oespToken and householdId
 		this.log.debug('getJwtToken');
 		const jwtRequestOptions = {
 			method: 'GET',
@@ -679,6 +600,35 @@ tvAccessory.prototype = {
 				//this.log('getJwtToken: ', err.message);
 				return false;
 			});
+	}, // end of getJwtToken
+
+
+	getJwtTokenAxios(oespToken, householdId){
+		// axios version
+		// get a JSON web token from the supplied oespToken and householdId
+		this.log.debug('getJwtToken Axios version');
+		const jwtAxiosConfig = {
+			method: 'GET',
+			url: countryBaseUrlArray[this.config.country].concat('/tokens/jwt'),
+			headers: {
+				'X-OESP-Token': oespToken,
+				'X-OESP-Username': myUpcUsername
+			}
+		};
+
+		axios(jwtAxiosConfig)
+			.then(response => {	
+				this.log('jwttoken response.status:',response.status, response.statusText);
+				this.log('jwttoken response:',response);
+				mqttUsername = householdId;
+				mqttPassword = response.token;
+				this.startMqttClient(this);
+			})
+			// Step 1 http errors
+			.catch(error => {
+				//this.log('getJwtToken: ', error);
+				return false;
+			});			
 	}, // end of getJwtToken
 
 
