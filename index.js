@@ -596,7 +596,7 @@ tvAccessory.prototype = {
 				this.log('jwttoken response.status:',response.status, response.statusText);
 				this.log('jwttoken response:',response);
 				mqttUsername = householdId;
-				mqttPassword = response.token;
+				mqttPassword = response.data.token;
 				this.startMqttClient(this);
 			})
 			.catch(error => {
@@ -639,9 +639,9 @@ tvAccessory.prototype = {
 
 
 	startMqttClient(parent) {
-		parent.log.debug('startMqttClient');		
+		parent.log.warn('startMqttClient');		
 		let mqttUrl = mqttUrlArray[this.config.country];
-		parent.log.debug('startMqttClient: connecting to',mqttUrl);		
+		parent.log.warn('startMqttClient: connecting to',mqttUrl);		
 		mqttClient = mqtt.connect(mqttUrl, {
 			connectTimeout: 10*1000, //10 seconds
 			clientId: varClientId,
