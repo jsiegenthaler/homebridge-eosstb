@@ -182,7 +182,7 @@ Example full configuration as used on the author's Samsung TV (where x.x.x.x is 
 
 
 ## Known Other Commands
-* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the EOS box, but instead via a bash command. So your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
+* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the EOS box, but instead via a bash command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See this post(https://github.com/homebridge/homebridge/issues/506) and scoll to the bottom to get working examples. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
 
 
 ## Siri
