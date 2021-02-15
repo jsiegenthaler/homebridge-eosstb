@@ -199,7 +199,7 @@ I have found that Siri can turn the box on and off with the command "Hey Siri, t
 
 * [ziggonext-python by Rudolf Offereins](https://pypi.org/project/ziggonext/#description) Rudolf is the best!
 
-* My helpers in Belgium (you know who you are) for helping me get the session code working for Telenet
+* My helpers in Belgium: [Wesley Liekens](https://www.facebook.com/deliekes) and Ant for helping me get the session code working for Telenet
 
 * UPC for making such a useful TV platform and EOS box
 
