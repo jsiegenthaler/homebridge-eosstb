@@ -253,7 +253,7 @@ class eosstbDevice {
 		this.manufacturer = config.manufacturer || 'ARRIS';
 		this.modelName = config.modelName || 'DCX960';
 		this.serialNumber = config.serialNumber || 'Unknown';
-		this.firmwareRevision = config.firmwareRevision || '123';
+		this.firmwareRevision = config.firmwareRevision || '1.0.0';
 		this.apiVersion = null;
 		// Configuration
 		myUpcUsername = this.config.username || '';
