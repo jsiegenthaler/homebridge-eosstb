@@ -17,7 +17,7 @@ This is very much a work in progres.. Why? Because I'm not finished. If you can,
 # Recent Major Achievements
 13 Feb 2021: Got the Telenet session working finally. This plugin now works properly with the Telenet TV-Boxes in Belgium.
 
-16 Feb 2021: got the plugin working as an External Accessory. NPM package coming soon.
+16 Feb 2021: Got the plugin working as an External Accessory. Got the NPM package configured. You can now search for the plugin and install it in Homebridge.
 
 # homebridge-eosstb
 
