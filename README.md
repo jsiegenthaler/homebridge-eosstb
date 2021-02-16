@@ -7,11 +7,6 @@
 # WORK IN PROGRESS - HELP WANTED - ESPECIALLY GREAT BRITAIN
 This is very much a work in progres.. Why? Because I'm not finished. If you can, give me a hand... especially if you have some javascript experience and use Virgin in Great Britain...
 
-Installation must be done using:
-```sh
-sudo npm install -g https://github.com/jsiegenthaler/homebridge-eosstb/
-```
-Because you are a helper, I need your feedback
 
 # TO-DO as of 16.02.2020
 * Test gb connections for Virgin Media
