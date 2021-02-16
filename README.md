@@ -121,7 +121,7 @@ Example full configuration as used on the author's Samsung TV (where x.x.x.x is 
       {
         "platform": "eosstb",
         "name": "UPC TV Box",
-        "country": "ch"
+        "country": "ch",
         "username": "yourEmail@email.com",
         "password": "yourPassword"
         "playPauseButton": "MediaPlayPause",
@@ -149,6 +149,8 @@ Example full configuration as used on the author's Samsung TV (where x.x.x.x is 
 
 * **settopboxId**: Your settopbox id. Only needed if you have more than one EOS box, so that the plugin can control the correct box. The id is shown in the HomeBridge log and is in the format 3C36E4-EOSSTB-00xxxxxxxxxx (xxxxxxxxxx is actually your CA code). Optional, defaults to the first detected settop box id in the mqtt traffic if not found.
 
+* **accessoryCategory**: The accessory category. This changes the image on the tile in Homekit. Allows you to use a TV or a Audio Receiver or a Set-Top Box (default). Available values are: TV = any of "television", "tv", "TV", "TELEVISION". Audio  Receiver = any of "receiver", "AUDIO_RECEIVER". Optional, defaults to Set-Top Box if the value is not recognised.
+
 * **playPauseButton**: The command issued to the EOS box when the Play/Pause button (**>||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
 
 * **backButton**: The command issued to the EOS box when the **BACK** button in the iOS remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
@@ -162,6 +164,8 @@ Example full configuration as used on the author's Samsung TV (where x.x.x.x is 
 * **volDownCommand**: The bash command to decrease the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Down button on your device. Optional.
 
 * **muteCommand**: The bash command to mute the volume of the TV. Currently not supported in the Apple iOS remote (last checked in iOS v14.4) but is supported in Homebridge and in other home controller apps like Eve. Optional.
+
+* **debugLevel**: Controls the amount of debug data shown in the Homebridge logs. Support values are: 0=Minimum logging, 1=Enhanced, 2=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of data is logged at higher than level 0.
 
 
 
