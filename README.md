@@ -3,6 +3,7 @@
   </a>
 </p>
 
+
 # WORK IN PROGRESS - HELP WANTED - ESPECIALLY GREAT BRITAIN
 This is very much a work in progres.. Why? Because I'm not finished. If you can, give me a hand... especially if you have some javascript experience and use Virgin in Great Britain...
 
@@ -32,6 +33,8 @@ You need a My UPC subscription or the appropriate equivalent from your local TV 
 The username and password are the same as used in the TV provider's TV app on your iOS device (the app varies by country, in Switzerland it is [upc tv Schweiz](https://apps.apple.com/ch/app/upc-tv-schweiz/id1292688012)).
 
 Supports multiple settop boxes, allowing you to create a TV accessory for each box (hould you have more than one).
+
+[![donate](https://badgen.net/badge/donate/paypal/91BE09)](https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468)
 
 # Works in Your Country (If you are with UPC / Ziggo / Telenet / Magenta and hopefully Virgin Media)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same UPC TV system with the ARRIS DCX960 settop box are:
