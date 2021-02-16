@@ -115,45 +115,53 @@ Services used in this EOS box accessory are:
 However, the more services you have, the slower the plugin might be. So I have limited the inputs to maximum 50, but you can override this in the config.
 
 ## Configuration
-Add a new platform to your homebridge `config.json`.
+Add a new platform to the platforms section of your homebridge `config.json`.
 
 Example minimum configuration:
 
 ```js
-{
     "platforms": [
-      {
-        "platform": "eosstb",
-        "name": "UPC TV Box",
-        "country": "ch"
-        "username": "yourEmail@email.com",
-        "password": "yourPassword"
-      }
+        {
+            "platform": "eosstb",
+            "devices": [
+                {
+                    "name": "EOSSTB",
+                    "country": "ch",
+                    "username": "yourEmail@email.com",
+                    "password": "yourPassword"
+                }
+            ]
+        }
     ]
-  }
 ```
 
-Example full configuration as used on the author's Samsung TV (where x.x.x.x is the IP address of the TV):
+Example extended configuration as used on the author's Samsung TV (where x.x.x.x is the IP address of the TV):
 
 ```js
-{
     "platforms": [
-      {
-        "platform": "eosstb",
-        "name": "UPC TV Box",
-        "country": "ch",
-        "username": "yourEmail@email.com",
-        "password": "yourPassword"
-        "playPauseButton": "MediaPlayPause",
-        "backButton": "Escape",
-        "infoButton": "MediaTopMenu",
-        "maxChannels": 90,
-        "volUpCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_VOLUP",
-        "volDownCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_VOLDOWN",
-        "muteCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_MUTE"
-      }
+        {
+            "platform": "eosstb",
+            "devices": [
+                {
+                    "name": "EOSSTB",
+                    "country": "ch",
+                    "username": "yourEmail@email.com",
+                    "password": "yourPassword"
+                    "playPauseButton": "MediaPlayPause",
+                    "backButton": "Escape",
+                    "infoButton": "MediaTopMenu",
+                    "volUpCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_VOLUP",
+                    "volDownCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_VOLDOWN",
+                    "muteCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_MUTE"
+                    "maxChannels": 50,
+                    "manufacturer": "ARRIS",
+                    "modelName": "DCX960",
+                    "serialNumber": "123456",
+                    "firmwareRevision": "v1.0.0"
+                }
+            ]
+        }
     ]
-  }
 ```
 
 ### Configuration Items:
@@ -187,6 +195,13 @@ Example full configuration as used on the author's Samsung TV (where x.x.x.x is 
 
 * **debugLevel**: Controls the amount of debug data shown in the Homebridge logs. Support values are: 0=Minimum logging, 1=Enhanced, 2=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of data is logged at higher than level 0.
 
+* **manufacturer**: You can add a manufacturer name if you wish. Defaults to "ARRIS". Optional.
+
+* **modelName**: You can add a model name if you wish. Defaults to "DCX960". Optional.
+
+* **serialNumber**: You can add a serial number if you wish. Defaults to "Unknown". Optional.
+
+* **firmwareRevision**: You can add a firmware revicsion if you wish. Defaults to "1.0.0". Optional.
 
 
 ## Known Relevant EOS Box Commands
