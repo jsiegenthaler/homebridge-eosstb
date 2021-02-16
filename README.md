@@ -63,9 +63,11 @@ UPC can change their systems at any time and that might break this plugin. But I
 * The ARRIS mediabox DCX960 (provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries)
 
 ## Installation
-Install homebridge-eosstb:
+Homebridge UI: the easiest way to install is seach for "eosstb" in the Homebridge UI, and then click INSTALL.
+
+Manual install:
 ```sh
-sudo npm install -g https://github.com/jsiegenthaler/homebridge-eosstb/
+sudo npm install -g homebridge-eosstb
 ```
 After installing, make sure you restart Homebridge.
 
