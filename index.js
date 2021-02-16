@@ -166,7 +166,9 @@ class eosstbPlatform {
 		this.devices = config.devices || [];
 
 		this.api.on('didFinishLaunching', () => {
-			this.log.warn('API event: didFinishLaunching');
+			if (this.config.debugLevel > 1) {
+				this.log.warn('API event: didFinishLaunching');
+			}
 			for (let i = 0, len = this.devices.length; i < len; i++) {
 				let deviceName = this.devices[i];
 				if (!deviceName.name) {
@@ -456,7 +458,7 @@ class eosstbDevice {
 	}
 
 
-	async getSessionOld() {
+	async getSession() {
 		if (this.config.debugLevel > 1) {
 			this.log.warn('getSession');
 		}
@@ -757,7 +759,6 @@ class eosstbDevice {
 			parent.log.warn('startMqttClient');		
 		}
 		let mqttUrl = mqttUrlArray[this.config.country];
-		parent.log.warn('startMqttClient: connecting to',mqttUrl);		
 		mqttClient = mqtt.connect(mqttUrl, {
 			connectTimeout: 10*1000, //10 seconds
 			clientId: varClientId,
@@ -769,30 +770,33 @@ class eosstbDevice {
 		mqttClient.on('connect', function () {
 			parent.log.debug('mqttClient: connect event');
 
+			// subscribe to base householdId
 			mqttClient.subscribe(mqttUsername, function (err) {
-				if(err){
+				if(!err){
+					parent.log('mqttClient: Subscribed to',mqttUsername);
+				} else {
 					parent.log('mqttClient subscribe: Error:',err);
 					return false;
-				} else {
-					parent.log('Subscribed to',mqttUsername);
 				}
 			});
 
-			mqttClient.subscribe(mqttUsername +'/+/status', function (err) {
+			// subscribe to base householdId/+/status
+			mqttClient.subscribe(mqttUsername + '/+/status', function (err) {
 				if(err){
 					parent.log('mqttClient connect: subscribe to status: Error:',err);
 					return false;
 				} else {
-					parent.log('Subscribed to topic',mqttUsername +'/+/status');
+					parent.log('mqttClient: Subscribed to topic',mqttUsername + '/+/status');
 				}
 			});
 
-			mqttClient.subscribe(mqttUsername +'/personalizationService', function (err) {
+			// subscribe to base householdId/personalizationService
+			mqttClient.subscribe(mqttUsername + '/personalizationService', function (err) {
 				if(err){
 					parent.log('mqttClient connect: subscribe to personalizationService: Error:',err);
 					return false;
 				} else {
-					parent.log('Subscribed to topic',mqttUsername +'/personalizationService');
+					parent.log('mqttClient: Subscribed to topic',mqttUsername + '/personalizationService');
 				}
 			});
 			
@@ -802,42 +806,28 @@ class eosstbDevice {
 					parent.log('mqttClient connect: subscribe to watchlistService: Error:',err);
 					return false;
 				} else {
-					parent.log('Subscribed to topic',mqttUsername +'/watchlistService');
+					parent.log('mqttClient: Subscribed to topic',mqttUsername +'/watchlistService');
 				}
 			});
 			*/
 			
 			// mqtt client event: message received
 			mqttClient.on('message', function (topic, payload) {
-				parent.log.warn('mqttClient message event');
+				// many messages occur. Be careful ith logging otherwise logs will be flooded
 				this.mqtttSessionActive = true;
 				let payloadValue = JSON.parse(payload);
+				if (parent.config.debugLevel > 2) {
+					parent.log.warn('mqttClient: Received Message: Topic:',topic);
+					parent.log.warn('mqttClient: Received Message: Message:',payloadValue);
+				}
 				
 				// check if this status message is for the desired EOSSTB
 				if(topic.startsWith(mqttUsername) && topic.includes('-EOSSTB-')){
 					parent.log('mqtt EOSSTB topic detected:',topic)
 				};
-				//if(topic.includes(parent.config.settopboxId)){
-				//	parent.log('Wanted EOSSTB topic detected:',topic)
-				//};
-				
-				//parent.log('mqttClient: Received Message: Topic:',topic);
-				//parent.log('mqttClient.on.message payload',payload);
-				//if(topic = mqttUsername +'/personalizationService'){
-				parent.log('mqttClient: Received Message: Topic:',topic);
-				//parent.log('mqttClient: Received Message: Message:',payloadValue);
-				//	let playerStatus = payloadValue.status
-				//	parent.log('mqttClient: Received Message: Message:',payloadValue.status);
-					//let playerSource = playerStatus.playerState.source
-					//parent.log('mqttClient: Received Message: Message:',playerSource);
-				//	}
-				
-				//parent.log('mqttClient: Received Message: Topic:',topic);
-				//parent.log('mqttClient: Received Message: Message:',payloadValue);
 				
 				//parent.log('mqttClient message: payloadValue.type',payloadValue.type);
 				//parent.log('mqttClient message: payloadValue.status',payloadValue.status);
-				// debugging power state
 				//parent.log('mqttClient message: payloadValue:',payloadValue);
 				//parent.log('mqttClient message: payloadValue.status',payloadValue.status);
 				//parent.log('mqttClient message: payloadValue.deviceType',payloadValue.deviceType);
@@ -848,7 +838,7 @@ class eosstbDevice {
 				// check if payloadValue.deviceType exists
 				// deviceType exists in Topic: 1076582_ch/2E59F6E9-8E23-41D2-921D-C13CA269A3BC/status
 				// Topic: 1076582_ch/3C36E4-EOSSTB-003656579806/status  
-				// multiple devices can exist! how to handle them?
+				// multiple devices exist!
 				if (payloadValue.deviceType){
 					// got some deviceType, but which one?
 						
@@ -863,7 +853,7 @@ class eosstbDevice {
 						if (typeof settopboxId === 'undefined'){
 							if (typeof parent.config.settopboxId === 'undefined') {
 								settopboxId = payloadValue.source;
-								parent.log('Auto-configured settopboxId to',settopboxId);
+								parent.log('mqttClient: Auto-configured settopboxId to',settopboxId);
 							} else {
 								settopboxId = parent.config.settopboxId;
 								parent.log('settopboxId configured, using', settopboxId);
@@ -872,32 +862,13 @@ class eosstbDevice {
 						parent.log('Using settopBoxId',settopboxId);
 
 						
-						// set serial number to the box
-						//parent.log('mqttClient: Received Message STB status: SerialNumber',parent.informationService.getCharacteristic(Characteristic.SerialNumber).value);
-						//if (parent.informationService.getCharacteristic(Characteristic.SerialNumber).value === 'unknown') {
-						//		parent.log('mqttClient: Calling updateInformationService with',payloadValue.source);
-						//		parent.informationService.updateCharacteristic(Characteristic.SerialNumber,payloadValue.source);
-						//};
-						//parent.informationService.getCharacteristic(Characteristic.SerialNumber).updateValue(payloadValue.source);
-						
-						// detect power state
-						/*
-						settopboxState = payloadValue.state;
-						parent.log('Detecting settopbox currentPowerState');
-						if (settopboxState == 'ONLINE_RUNNING') // ONLINE_RUNNING means power is turned on
-							currentPowerState = 1;
-						else if ((settopboxState == 'ONLINE_STANDBY') || (settopboxState == 'OFFLINE')) // ONLINE_STANDBY or OFFLINE: power is off
-							currentPowerState = 0;
-						parent.log('Settopbox power is',(currentPowerState ? "On" : "Off"));
-						*/
-
 						// subscribe to our own generated unique varClientId
 						mqttClient.subscribe(mqttUsername + '/' + varClientId, function (err) {
 							if(err){
 								parent.log('mqttClient subscribe to varClientId Error:',err);
 								return false;
 							} else {
-								parent.log('Subscribed to topic',mqttUsername + '/' + varClientId);
+								parent.log('mqttClient: Subscribed to topic',mqttUsername + '/' + varClientId);
 							}
 						});
 
@@ -906,7 +877,7 @@ class eosstbDevice {
 								parent.log('mqttClient subscribe to settopboxId Error:',err);
 								return false;
 							} else {
-								parent.log('Subscribed to topic',mqttUsername + '/' + settopboxId);
+								parent.log('mqttClient: Subscribed to topic',mqttUsername + '/' + settopboxId);
 							}
 						});
 
@@ -915,20 +886,18 @@ class eosstbDevice {
 								parent.log('mqttClient subscribe to settopbox status Error:',err);
 								return false;
 							} else {
-								parent.log('Subscribed to topic',mqttUsername + '/' + settopboxId +'/status');
+								parent.log('mqttClient: Subscribed to topic',mqttUsername + '/' + settopboxId +'/status');
 							}
 						});
 
 						parent.log.debug('mqttClient: Received Message STB status: currentPowerState:',currentPowerState);
 
-						// disabled whilst debugging load
-						parent.getUiStatus(); // get only if power is on?
+						parent.getUiStatus();
 					} // end of if deviceType=STB
 				}
 
 
-				// check if payloadValue.type exists, look for CPE.uiStatus, make sure it is for the wanted settopboxId
-				// CPE.uiStatus shows us the currently selected channel on the stb, and occurs in many topics
+				// check if payloadValue.deviceType = STB, make sure it is for the wanted settopboxId
 				// Topic: 1076582_ch/3C36E4-EOSSTB-003656579806/status
 				// Message: {"deviceType":"STB","source":"3C36E4-EOSSTB-003656579806","state":"ONLINE_RUNNING","mac":"F8:F5:32:45:DE:52","ipAddress":"192.168.0.33/255.255.255.0"}
 				if((payloadValue.deviceType == 'STB') && (payloadValue.source == settopboxId)) {
@@ -940,7 +909,10 @@ class eosstbDevice {
 						else if (((payloadValue.state == 'ONLINE_STANDBY') || (payloadValue.state == 'OFFLINE')) // ONLINE_STANDBY or OFFLINE: power is off
 							&& (currentPowerState != 0)){
 							currentPowerState = 0;
-							parent.log('Settopbox power:',(currentPowerState ? "On" : "Off"));
+							if (parent.config.debugLevel > 2) {
+								parent.log.debug('mqttClient: Detected current power state:', currentPowerState);
+								parent.log('Settopbox power:',(currentPowerState ? "On" : "Off"));
+							}
 						};
 						//parent.log('Settopbox power is',(currentPowerState ? "On" : "Off"));
 				};
@@ -959,14 +931,12 @@ class eosstbDevice {
 				if((payloadValue.type == 'CPE.uiStatus') && (payloadValue.source == settopboxId)) {
 						parent.log.debug('mqttClient: Received Message of type CPE.uiStatus for',payloadValue.source,'Detecting currentChannelId');
 						if(payloadValue.status.uiStatus == 'mainUI'){
-							parent.log.debug('mqttClient: Received Message CPE.uiStatus for mainUI');
 							// grab the status part of the payloadValue object as we cannot go any deeper with json
 							let playerStateSource = payloadValue.status.playerState.source;
-							// store the current channelId of the TV in currentChannelId
-							// as this routine is listening to mqtt messages sent by the polling, this will
-							// update the currentChannelId if the user changes it with the physical TV remote control
 							currentChannelId = playerStateSource.channelId;
-							parent.log.debug('mqttClient: Received Message CPE.uiStatus: Current channel:', currentChannelId);
+							if (parent.config.debugLevel > 2) {
+								parent.log.debug('mqttClient: Detected current channel:', currentChannelId);
+							}
 					};
 				};
 				
@@ -1306,7 +1276,7 @@ class eosstbDevice {
 		if (this.config.debugLevel > 1) {
 			this.log.warn('setInputState input:',input.id, input.name);
 		}
-		this.log(`Change channel to ${input.name}  (${input.id})`);
+		this.log(`Change channel to: ${input.name}  (${input.id})`);
 		this.switchChannel(input.id);
 		callback();
 	}
