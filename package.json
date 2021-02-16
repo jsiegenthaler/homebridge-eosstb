@@ -4,7 +4,7 @@
   "_location": "/homebridge-eosstb",
   "name": "homebridge-eosstb",
   "author": "jsiegenthaler (https://github.com/jsiegenthaler/)",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "bugs": {
     "url": "https://github.com/jsiegenthaler/homebridge-eosstb/issues"
   },
