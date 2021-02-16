@@ -17,18 +17,19 @@ This is very much a work in progres.. Why? Because I'm not finished. If you can,
 # Recent Major Achievements
 13 Feb 2021: Got the Telenet session working finally. This plugin now works properly with the Telenet TV-Boxes in Belgium.
 
-16 Feb 2021: Got the plugin working as an External Accessory. Got the NPM package configured. You can now search for the plugin and install it in Homebridge.
+16 Feb 2021: Got the plugin working as an External Accessory with the right Set-Top Box icon. Got the NPM package configured. You can now search for the plugin and install it in Homebridge.
 
 # homebridge-eosstb
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS settop box (typically a ARRIS DCX960 running on the UPC TV system), as well as connected HDMI-CEC controllable devices with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS settop box (typically a ARRIS DCX960 running on the UPC/Ziggo/Telenet/Magenta/Virgin Media
+TV system), as well as connected HDMI-CEC controllable devices with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
-This plugin displays your EOS settop box as a TV Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad, iMac, etc).
+This plugin displays your EOS settop box as a TV Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad, iMac, etc.).
 
-You need a My UPC subscription or the appropriate equivalent from your local TV provider.
+You need a subscription to the online TV service from your local TV provider.
 The username and password are the same as used in the TV provider's TV app on your iOS device (the app varies by country, in Switzerland it is [upc tv Schweiz](https://apps.apple.com/ch/app/upc-tv-schweiz/id1292688012)).
 
-Supports multiple settop boxes, allowing you to create a TV accessory for each box (hould you have more than one).
+Supports multiple settop boxes, allowing you to create a TV accessory for each box (should you have more than one).
 
 [![donate](https://badgen.net/badge/donate/paypal/91BE09)](https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468)
 
