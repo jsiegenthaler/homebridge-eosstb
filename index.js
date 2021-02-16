@@ -5,7 +5,7 @@
 // name and version
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.0.5';
+const PLUGIN_VERSION = '0.1.0';
 
 
 const mqtt = require('mqtt');  
@@ -45,22 +45,22 @@ const cookieJar = new tough.CookieJar();
 
 // different settop box names per country
 const settopBoxName = {
-    'nl':     'Mediabox Next (4K)',
-    'ch':     'UPC TV Box',
-    'be-nl':  'Telenet TV-Box',
-    'be-fr':  'Telenet TV-Box',
     'at':     'Entertain Box 4K',
-    'gb':     'Virgin Media 360'
+    'be-fr':  'Telenet TV-Box',
+    'be-nl':  'Telenet TV-Box',
+    'ch':     'UPC TV Box',
+    'gb':     'Virgin Media 360',
+    'nl':     'Mediabox Next (4K)'
 };
 
 // base url varies by country
 const countryBaseUrlArray = {
-    'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web',
-    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v3/CH/eng/web', // v3 and v4 works
-    'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/nld/web',
-    'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/fr/web',
     'at': 		'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web', // v3 and v4 works
-    'gb':       'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web'
+    'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/fr/web',
+    'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/nld/web',
+    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v3 and v4 works
+    'gb':       'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web',
+    'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web'
 };
 
 // session and jwt are based on countryBaseUrlArray
@@ -71,12 +71,12 @@ const countryBaseUrlArray = {
 
 // different mqtt endpoints per country
 const mqttUrlArray = {
-    'nl': 		'wss://obomsg.prod.nl.horizon.tv:443/mqtt',
-    'ch': 		'wss://obomsg.prod.ch.horizon.tv:443/mqtt',
-    'be-nl': 	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
-    'be-fr':  	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
     'at':		'wss://obomsg.prod.at.horizon.tv:443/mqtt',
-    'gb':       'wss://obomsg.prod.gb.horizon.tv:443/mqtt'
+    'be-fr':  	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
+    'be-nl': 	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
+    'ch': 		'wss://obomsg.prod.ch.horizon.tv:443/mqtt',
+    'gb':       'wss://obomsg.prod.gb.horizon.tv:443/mqtt',
+    'nl': 		'wss://obomsg.prod.nl.horizon.tv:443/mqtt'
 };
 
 // openid logon url used in Telenet.be Belgium for be-nl and be-fr sessions
@@ -417,7 +417,46 @@ class eosstbDevice {
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-	async getSession() {
+	async getSessionNew() {
+		if (this.config.debugLevel > 1) {
+			this.log.warn('getSession');
+		}
+		this.log('Creating session');
+
+		const axiosConfig = {
+			method: 'GET',
+			url: countryBaseUrlArray[this.config.country].concat('/session'),
+			data: {
+				'usernmae':this.config.username,
+				'password':this.config.password
+			}
+		};
+
+		axiosWS(axiosConfig)
+			.then(response => {	
+				this.log('getSession response',response.status, response.statusText);
+				
+				stbType	 = response.data.customer.stbType;
+				smartCardId = response.data.customer.smartCardId;
+				physicalDeviceId = response.data.customer.physicalDeviceId;
+
+				if (this.config.debugLevel > 0) {
+					this.log.warn('getSession: sessionJson.customer',sessionJson.customer);			
+				}
+
+				this.getJwtToken(response.data.oespToken, response.data.customer.householdId);
+				this.log('Session created');
+				return true;
+			})
+			.catch(error => {
+				this.log.warn('getSession error:', error);
+				return false;
+			});		
+		//return sessionJson || false;
+	}
+
+
+	async getSessionOld() {
 		if (this.config.debugLevel > 1) {
 			this.log.warn('getSession');
 		}
@@ -456,9 +495,6 @@ class eosstbDevice {
 		//return sessionJson || false;
 	}
 
-
-
-
 	getSessionBE() {
 		// only for be-nl and be-fr users, as the session logon using openid is different
 		// looks like also for gb users:
@@ -466,7 +502,6 @@ class eosstbDevice {
 		if (this.config.debugLevel > 1) {
 			this.log.warn('getSessionBE');
 		}
-
 
 		// axios interceptors to log request and response for debugging
 		// works on all following requests (everywhere or in this sub?)
@@ -547,8 +582,6 @@ class eosstbDevice {
 									this.log.warn('Step 4 follow redirect url');
 									this.log('Cookies for the redirect url:',cookieJar.getCookies(url));
 									axiosWS.get(url,{
-										//method: 'get',
-										//url: url,
 										jar: cookieJar,
 										maxRedirects: 0, // do not follow redirects
 										validateStatus: function (status) {
