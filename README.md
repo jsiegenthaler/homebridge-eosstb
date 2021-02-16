@@ -18,7 +18,7 @@ Because you are a helper, I need your feedback
 
 
 
-# Recent Achievements
+# Recent Major Achievements
 13 Feb 2021: Got the Telenet session working finally. This plugin now works properly with the Telenet TV-Boxes in Belgium.
 16 Feb 2021: got the plugin working as an External Accessory. NPM package coming soon.
 
@@ -65,12 +65,31 @@ UPC can change their systems at any time and that might break this plugin. But I
 ## Installation
 Install homebridge-eosstb:
 ```sh
-npm install -g homebridge-eosstb
+sudo npm install -g https://github.com/jsiegenthaler/homebridge-eosstb/
 ```
 After installing, make sure you restart Homebridge.
 
+## Adding EOSSTB to the Home app
+The EOSSTB is exposed as a separate external accessory and each device needs to be manually paired as follows:
+
+1. Open the **Home** app on your device.
+2. Tap the **Home** tab, then tap **+** in the top right corner.
+3. Tap **Add Accessory**, and select **I Don't Have a Code or Cannot Scan**.
+4. Select the accessory you want to pair. You should see your EOSSTB here. If not, check your Homebridge config.
+5. Accept the **Uncertified Accesory** warning by tapping **Add Anyway**
+5. Enter the **HomeKit Setup Code** (displayed in Homebridge under the QR code, format XXX-XX-XXX), or use the device's camera to scan the QR code in Homebridge.
+6. Select a room for your EOSSTB accessory and tap **Continue**.
+7. Give your EOSSTB a different name if you wish (you can change this in the Home app later) and tap **Continue**.
+8. Name your TV input sources if you wish (you can change these in the Home app later) and tap **Continue**.
+9. Switch on any offered automations if you wish (you can change these in the Home app later) and tap **Continue**.
+10. Tap **Done** to finish the setup.
+
+Your new accessory will appear shortly in the room that you selected.
+
 ## Remote Control Supported Keys
-The following keys are supported by in the iOS Remote in the Control Center
+To access the Apple TV Remote, open your Control Center by swiping down from the top (newer iPhones) or up from the bottom of the screen (older iPhones). If you do now see the Remote Control icon, you will need to activate it in Settings > Control Centre and ensutre that the Apple TV Remote is in the list of INCLUDED CONTROLS.
+
+The following keys are supported by in the Apple TV Remote in the Control Center:
 
 * Navigation (Up/Down/Left/Right)	
 * OK
@@ -87,7 +106,7 @@ The volume controls do not control the EOS box directly, as the EOS box has no v
 
 
 ## Limitations
-Due to HomeKit app limitations, the maximum services for a single accessory is 100. Over this value the HomeKit app will no longer respond. 
+Due to HomeKit limitations, the maximum services for a single accessory is 100. Over this value the Home app will no longer respond. 
 Services used in this EOS box accessory are: 
 1. Information service (Name, model, serial number of the accessory)
 2. Television service (for controlling the TV accessory)
