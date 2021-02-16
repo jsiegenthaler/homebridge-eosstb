@@ -1,17 +1,11 @@
 {
   "_from": "homebridge-eosstb",
-  "_id": "homebridge-eosstb@1.0.0",
   "_inBundle": false,
   "_location": "/homebridge-eosstb",
-  "author": {
-    "name": "jsiegenthaler",
-    "email": "jbsiegenthaler@gmail.com",
-    "url": "https://github.com/jsiegenthaler/"
-  },
+  "author": "jsiegenthaler (https://github.com/jsiegenthaler/)",
   "bugs": {
     "url": "https://github.com/jsiegenthaler/homebridge-eosstb/issues"
   },
-  "bundleDependencies": false,
   "dependencies": {
     "@types/tough-cookie": "^4.0.0",
     "axios": "^0.21.1",
@@ -31,24 +25,28 @@
     "underscore": "^1.9.2"
   },
   "deprecated": false,
-  "description": "homebridge-plugin - Add UPC TV Box (UPC Switzerland only) to Homekit",
+  "description": "homebridge-plugin - Add the EOSSTB to Homekit",
   "engines": {
     "homebridge": ">=0.2.5",
     "node": ">=0.12.0"
   },
   "homepage": "https://github.com/jsiegenthaler/homebridge-eosstb#readme",
   "keywords": [
+    "homebridge",
     "homebridge-plugin",
+    "HomeKit",
     "UPC Switzerland",
     "UPC Schweiz",
     "UPC Suisse",
-    "UPC CH",
     "UPC TV",
     "UPC TV Box",
+    "Ziggo",
+    "Telenet",
+    "EOSSTB",
     "EOS STB",
     "Arris"
   ],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "main": "index.js",
   "name": "homebridge-eosstb",
   "preferGlobal": true,
@@ -59,5 +57,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.0.0"
+  "version": "0.1.0",
+  "devDependencies": {}
 }
