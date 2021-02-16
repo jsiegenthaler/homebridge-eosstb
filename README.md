@@ -179,7 +179,11 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 * **settopboxId**: Your settopbox id. Only needed if you have more than one EOS box, so that the plugin can control the correct box. The id is shown in the HomeBridge log and is in the format 3C36E4-EOSSTB-00xxxxxxxxxx (xxxxxxxxxx is actually your CA code). Optional, defaults to the first detected settop box id in the mqtt traffic if not found.
 
-* **accessoryCategory**: The accessory category. This changes the image on the tile in Homekit. Allows you to use a TV or a Audio Receiver or a Set-Top Box (default). Available values are: TV = any of "television", "tv", "TV", "TELEVISION". Audio  Receiver = any of "receiver", "AUDIO_RECEIVER". Optional, defaults to Set-Top Box if the value is not recognised.
+* **accessoryCategory**: The accessory category. This changes the image on the tile in Homekit. Allows you to use a TV or a Audio Receiver or a Set-Top Box (default). Available values are: 
+    TV = any of "television", "tv", "TV", "TELEVISION". 
+    Audio Receiver = any of "receiver", "audio-receiver", "AUDIO_RECEIVER". 
+    TV Streaming Stick = any of "stick", "tv-streaming-stick", "TV_STREAMING_STICK". 
+Optional, defaults to TV Set-Top Box if the value is not recognised.
 
 * **playPauseButton**: The command issued to the EOS box when the Play/Pause button (**>||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
 
@@ -199,11 +203,11 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 * **manufacturer**: You can add a manufacturer name if you wish. Defaults to "ARRIS". Optional.
 
-* **modelName**: You can add a model name if you wish. Defaults to "DCX960". Optional.
+* **modelName**: You can add a model name if you wish. Defaults to the stb type. Optional.
 
-* **serialNumber**: You can add a serial number if you wish. Defaults to "Unknown". Optional.
+* **serialNumber**: You can add a serial number if you wish. Defaults to the physical device id. Optional.
 
-* **firmwareRevision**: You can add a firmware revicsion if you wish. Defaults to "1.0.0". Optional.
+* **firmwareRevision**: You can add a firmware revicsion if you wish. Defaults to "unknown". Optional.
 
 
 ## Known Relevant EOS Box Commands
