@@ -2,7 +2,9 @@
   "_from": "homebridge-eosstb",
   "_inBundle": false,
   "_location": "/homebridge-eosstb",
+  "name": "homebridge-eosstb",
   "author": "jsiegenthaler (https://github.com/jsiegenthaler/)",
+  "version": "0.1.0",
   "bugs": {
     "url": "https://github.com/jsiegenthaler/homebridge-eosstb/issues"
   },
@@ -25,7 +27,7 @@
     "underscore": "^1.9.2"
   },
   "deprecated": false,
-  "description": "homebridge-plugin - Add the EOSSTB to Homekit",
+  "description": "homebridge-plugin - Add the EOS set-top box to Homekit (as used by Ziggo, Telenet, Megenta, UPC CH, Virgin Media)",
   "engines": {
     "homebridge": ">=0.2.5",
     "node": ">=0.12.0"
@@ -42,13 +44,13 @@
     "UPC TV Box",
     "Ziggo",
     "Telenet",
+    "Magenta",
     "EOSSTB",
     "EOS STB",
     "Arris"
   ],
   "license": "MIT",
   "main": "index.js",
-  "name": "homebridge-eosstb",
   "preferGlobal": true,
   "repository": {
     "type": "git",
@@ -57,6 +59,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.1.0",
   "devDependencies": {}
 }
