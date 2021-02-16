@@ -115,12 +115,11 @@ Services used in this EOS box accessory are:
 However, the more services you have, the slower the plugin might be. So I have limited the inputs to maximum 50, but you can override this in the config.
 
 ## Configuration
-Add a new platform to your homebridge `config.json`.
+Add a new platform to the platforms section of your homebridge `config.json`.
 
 Example minimum configuration:
 
 ```js
-{
     "platforms": [
         {
             "platform": "eosstb",
@@ -134,10 +133,9 @@ Example minimum configuration:
             ]
         }
     ]
-  }
 ```
 
-Example full configuration as used on the author's Samsung TV (where x.x.x.x is the IP address of the TV):
+Example extended configuration as used on the author's Samsung TV (where x.x.x.x is the IP address of the TV):
 
 ```js
     "platforms": [
@@ -197,6 +195,13 @@ Example full configuration as used on the author's Samsung TV (where x.x.x.x is 
 
 * **debugLevel**: Controls the amount of debug data shown in the Homebridge logs. Support values are: 0=Minimum logging, 1=Enhanced, 2=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of data is logged at higher than level 0.
 
+* **manufacturer**: You can add a manufacturer name if you wish. Defaults to "ARRIS". Optional.
+
+* **modelName**: You can add a model name if you wish. Defaults to "DCX960". Optional.
+
+* **serialNumber**: You can add a serial number if you wish. Defaults to "Unknown". Optional.
+
+* **firmwareRevision**: You can add a firmware revicsion if you wish. Defaults to "1.0.0". Optional.
 
 
 ## Known Relevant EOS Box Commands
