@@ -33,11 +33,11 @@ Supports multiple settop boxes, allowing you to create a TV accessory for each b
 
 # Works in Your Country (If you are with UPC / Ziggo / Telenet / Magenta and hopefully Virgin Media)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same UPC TV system with the ARRIS DCX960 settop box are:
-* Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **UPC TV Box**. Also known as the EOSSTB. **confirmed working**
-* Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **Mediabox Next (4K)**. **confirmed working**
-* Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums call the DCX960 a **Telenet TV-Box**. **confirmed working**
-* Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **Entertain Box 4K**. **TESTERS NEEDED**
-* United Kingdom and Ireland: [Virgin Media](https://www.virginmedia.com/). The DCX960 appears to be called the **Virgin TV 360 mini box**. **TESTERS WANTED**
+* Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **UPC TV Box**. Also known as the EOSSTB.   **WORKING**
+* Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **Mediabox Next (4K)**.   **WORKING**
+* Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums call the DCX960 a **Telenet TV-Box**.   **WORKING**
+* Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **Entertain Box 4K**.   **TESTERS NEEDED**
+* United Kingdom and Ireland: [Virgin Media](https://www.virginmedia.com/). The DCX960 appears to be called the **Virgin TV 360 mini box**.   **TESTERS WANTED**
 
 So if you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
 
