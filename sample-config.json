@@ -1,0 +1,11 @@
+{
+    "platform": "eosstb",
+    "devices": [
+        {
+            "name": "UPC TV",
+            "country": "ch",
+            "username": "yourEmail@email.com",
+            "password": "yourPassword"
+        }
+    ]
+}
