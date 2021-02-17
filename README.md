@@ -203,7 +203,7 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 * **serialNumber**: You can add a serial number if you wish. Defaults to the physical device id. Optional.
 
-* **firmwareRevision**: You can add a firmware revicsion if you wish. Defaults to "unknown". Optional.
+* **firmwareRevision**: You can add a firmware revision if you wish. Must be numeric. Non-numeric values are not displayed. Defaults to "1.0.0". Optional.
 
 
 ## Known Relevant EOS Box Commands
