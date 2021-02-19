@@ -6,14 +6,16 @@ All notable changes to this project will be documented in this file.
 
 
 
-### Bug Fixes
+### Bug Fixes and Improvements
 
 ## 0.1.2 (2020-02-19)
 
 * Improve robustness if internet connection fails
 * Improve logging
 * Cleanup and document code
+* Added funding links
 * Start adding support for CurrentMediaState and TargetMediaState
+
 
 ## 0.1.1 (2020-02-17)
 
