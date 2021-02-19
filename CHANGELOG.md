@@ -4,7 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes and Improvements
 
-## 0.1.2 (2020-02-19)
+## 0.1.4 (2020-02-19)
+
+* Fixed error in mqtt session
+
+
+## 0.1.3 (2020-02-19)
 
 * Fixed error in changelog
 
