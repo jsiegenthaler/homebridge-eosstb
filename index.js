@@ -5,7 +5,7 @@
 // name and version
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.1.3';
+const PLUGIN_VERSION = '0.1.4';
 
 // required node modules
 const fs = require('fs');
@@ -1014,7 +1014,7 @@ class eosstbDevice {
 	startMqttClient(parent) {
 		this.log('Starting mqtt client...');
 		let mqttUrl = mqttUrlArray[this.config.country];
-		mqttClient = mqtt.connect(mqttUrl + 'xxxxxx', {
+		mqttClient = mqtt.connect(mqttUrl, {
 			connectTimeout: 10*1000, //10 seconds
 			clientId: varClientId,
 			username: mqttUsername,
@@ -1023,7 +1023,7 @@ class eosstbDevice {
 
 		// mqtt client event: connect
 		mqttClient.on('connect', function () {
-			this.log('mqtt client connecting or connected?...');
+			parent.log('mqtt client connecting');
 			parent.log.debug('mqttClient: connect event');
 
 			// subscribe to base householdId
