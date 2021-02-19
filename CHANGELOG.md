@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 * Cleanup and document code
 * Added funding links
 * Start adding support for CurrentMediaState and TargetMediaState
+* Further work on GB session code
 
 
 ## 0.1.1 (2020-02-17)
