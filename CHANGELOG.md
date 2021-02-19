@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-### [1.4.8](https://github.com/apexad/homebridge-airport-express-playing/compare/v1.4.7...v1.4.8) (2021-01-14)
-
-
-
 ### Bug Fixes and Improvements
+
+## 0.1.2 (2020-02-19)
+
+* Fixed error in changelog
+
 
 ## 0.1.2 (2020-02-19)
 
