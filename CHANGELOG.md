@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes and Improvements
 
 
+## 0.1.7 (2020-02-20)
+
+* Fixed bugs and improved robustness of Telenet sessions
+
+
 ## 0.1.6 (2020-02-20)
 
 * Improved detection and handling of expired sessions for Telenet

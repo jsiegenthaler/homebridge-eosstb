@@ -5,7 +5,7 @@
 // name and version
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.1.6';
+const PLUGIN_VERSION = '0.1.7';
 
 // required node modules
 const fs = require('fs');
@@ -86,6 +86,17 @@ const MAX_INPUT_SOURCES = 90; // max input services. Default = 90. Cannot be mor
 const STB_STATE_POLLING_INTERVAL_MS = 5000; // pollling interval in millisec. Default = 5000
 const SESSION_WATCHDOG_INTERVAL_MS = 2000; // session watchdog interval in millisec. Default = 2000
 const LOAD_CHANNEL_REFRESH_INTERVAL_S = 60; // load all channels refresh interval, in seconds. Default = 60
+// session state constants
+const SessionState = {
+	NOT_CREATED: 0,
+	LOADING: 1,
+	LOGGING_IN: 2,
+	AUTHENTICATING: 3,
+	VERIFYING: 4,
+	AUTHENTICATED: 5,
+	CREATED: 6
+};
+Object.freeze(SessionState);
 
 
 // global variables (urgh)
@@ -101,6 +112,7 @@ let mqttPassword;
 let settopboxId;
 let currentChannelId;
 let currentPowerState;
+let currentSessionState;
 let Accessory, Characteristic, Service, Categories, UUID;
 
 // used for request, to be deprecated
@@ -222,7 +234,8 @@ class eosstbDevice {
 		this.targetMediaState = Characteristic.TargetMediaState.STOP;
 
 		// initial power state. Will be set by mqtt message
-		currentPowerState = null;
+		currentPowerState = Characteristic.Active.INACTIVE;
+		currentSessionState = SessionState.NOT_CREATED;
 
 		//check if prefs directory ends with a /, if not then add it
 		//this.prefDir = path.join(api.user.storagePath(), 'eos'); // not in use yet
@@ -274,12 +287,13 @@ class eosstbDevice {
 			this.log.warn('sessionWatchdog');
 		}
 
-		// exit immediately if session exists
-		if (this.sessionCreated) { return; }
+		// exit immediately if session has any state other than NOT_CREATED
+		if (currentSessionState !== SessionState.NOT_CREATED) { return; }
 
 		// create a session, session type varies by country
 		switch(this.config.country) {
 			case 'be-nl': case 'be-fr':
+				this.log('sessionWatchdog: calling getSessionBE');
 				this.getSessionBE(); break;
 			case 'gb':
 				this.getSessionGB(); break;
@@ -507,6 +521,7 @@ class eosstbDevice {
 			this.log.warn('getSession');
 		}
 		this.log('Creating session...');
+		currentSessionState = SessionState.LOADING;
 
 		const axiosConfig = {
 			method: 'GET',
@@ -548,6 +563,7 @@ class eosstbDevice {
 			this.log.warn('getSession');
 		}
 		this.log('Creating %s session...',PLATFORM_NAME);
+		currentSessionState = SessionState.LOADING;
 
 		// set the request options
 		sessionRequestOptions.uri = countryBaseUrlArray[this.config.country].concat('/session');
@@ -555,8 +571,10 @@ class eosstbDevice {
 		sessionRequestOptions.body.password = this.config.password;
 		//this.log.warn('getSession: sessionRequestOptions',sessionRequestOptions);
 		
+		currentSessionState = SessionState.LOGGING_IN;
 		request(sessionRequestOptions)
 			.then((json) => {
+				currentSessionState = SessionState.VERIFYING;
 				var responseData = json;
 				if (this.config.debugLevel > 0) {
 					this.log.warn('getSession: responseData.customer',responseData.customer);			
@@ -567,18 +585,24 @@ class eosstbDevice {
 				this.stbType = responseData.customer.stbType;
 				this.smartCardId = responseData.customer.smartCardId;
 				this.physicalDeviceId = responseData.customer.physicalDeviceId;
+				if (responseData.customer.physicalDeviceId) {
+					currentSessionState = SessionState.AUTHENTICATED;
+				}
 
 				// get the Jwt Token
 				this.getJwtToken(responseData.oespToken, this.householdId);
 				this.log('Session created');
 				this.sessionCreated = true
+				currentSessionState = SessionState.CREATED;
 				return true;
 			})
 			.catch((err) => {
+				currentSessionState = SessionState.NOT_CREATED;
 				this.sessionCreated = false;
 				this.log('Failed to create session - check your internet connection.');
 				this.log.debug('getSession Error:', err.message); // likely invalid credentials
 			});
+		currentSessionState = SessionState.NOT_CREATED;
 		return false;
 	}
 
@@ -588,6 +612,7 @@ class eosstbDevice {
 		// looks like also for gb users:
 		// https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
 		this.log('Creating %s BE session...',PLATFORM_NAME);
+		currentSessionState = SessionState.LOADING;
 
 
 		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -642,6 +667,7 @@ class eosstbDevice {
 		
 						// Step 3: # login
 						this.log.warn('Step 3 post login to',BE_AUTH_URL);
+						currentSessionState = SessionState.LOGGING_IN;
 						//this.log('Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
 						var payload = qs.stringify({
 							j_username: this.config.username,
@@ -710,6 +736,7 @@ class eosstbDevice {
 
 														// Step 6: # authorize again
 														this.log.warn('Step 6 post auth data to',apiAuthorizationUrl);
+														currentSessionState = SessionState.AUTHENTICATING;
 														payload = {'authorizationGrant':{
 															'authorizationCode':authorizationCode,
 															'validityToken':authValidtyToken,
@@ -731,8 +758,9 @@ class eosstbDevice {
 																axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
 																	.then(response => {	
 																		this.log('Step 7 response.status:',response.status, response.statusText);
+																		currentSessionState = SessionState.VERIFYING;
 																		this.log.warn('Successfully authenticated'); 
-
+																		
 																		this.log('Step 7 response.headers:',response.headers); 
 																		this.log('Step 7 response.data:',response.data); 
 																		this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
@@ -742,14 +770,18 @@ class eosstbDevice {
 																		this.stbType = response.data.customer.stbType;
 																		this.smartCardId = response.data.customer.smartCardId;
 																		this.physicalDeviceId = response.data.customer.physicalDeviceId;
+																		if (response.data.customer.physicalDeviceId) {
+																			currentSessionState = SessionState.AUTHENTICATED;
+																		}
 
 																		// now get the Jwt token
 																		// all subscriber data is in the response.data.customer
 																		// can get smartCardId, physicalDeviceId, stbType, and more
 																		this.log('Getting jwtToken for householdId',response.data.customer.householdId);
 																		this.getJwtToken(response.data.oespToken, response.data.customer.householdId);
+																		currentSessionState = SessionState.CREATED;
 																		this.log('Session created');
-														
+																		return false;
 																	})
 																	// Step 7 http errors
 																	.catch(error => {
@@ -782,12 +814,14 @@ class eosstbDevice {
 			})
 			// Step 1 http errors
 			.catch(error => {
+				currentSessionState = SessionState.NOT_CREATED;
 				this.sessionCreated = false;
 				this.log('Failed to create BE session - check your internet connection.');
 				this.log.warn("Step 1 Could not get apiAuthorizationUrl, http error:",error);
 			});
 
-		this.log.warn('end of getSessionBE');
+		currentSessionState = SessionState.NOT_CREATED;
+		this.log.warn('end of getSessionBE, no session created');
 	}
 
 
@@ -795,6 +829,7 @@ class eosstbDevice {
 	getSessionGB() {
 		// this code is a copy of the be session code, adapted for gb
 		this.log('Creating %s GB session...',PLATFORM_NAME);
+		currentSessionState = SessionState.LOADING;
 
 		//var cookieJarGB = new cookieJar();
 
@@ -853,6 +888,7 @@ class eosstbDevice {
 						// Step 3: # login
 						this.log.warn('Step 3 post login to',GB_AUTH_URL);
 						//this.log('Cookies for the auth url:',cookieJar.getCookies(GB_AUTH_URL));
+						currentSessionState = SessionState.LOGGING_IN;
 						// +++++++++++need to form payload here properly
 						var payload = qs.stringify({
 							username: this.config.username,
@@ -923,6 +959,7 @@ class eosstbDevice {
 
 													// Step 6: # authorize again
 													this.log.warn('Step 6 post auth data to',apiAuthorizationUrl);
+													currentSessionState = SessionState.AUTHENTICATING;
 													payload = {'authorizationGrant':{
 														'authorizationCode':authorizationCode,
 														'validityToken':authValidtyToken,
@@ -944,8 +981,9 @@ class eosstbDevice {
 															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
 																.then(response => {	
 																	this.log('Step 7 response.status:',response.status, response.statusText);
+																	currentSessionState = SessionState.VERIFYING;
 																	this.log.warn('Successfully authenticated'); 
-
+																	
 																	this.log('Step 7 response.headers:',response.headers); 
 																	this.log('Step 7 response.data:',response.data); 
 																	this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
@@ -955,13 +993,18 @@ class eosstbDevice {
 																	this.stbType = response.data.customer.stbType;
 																	this.smartCardId = response.data.customer.smartCardId;
 																	this.physicalDeviceId = response.data.customer.physicalDeviceId;
+																	if (response.data.customer.physicalDeviceId) {
+																		currentSessionState = SessionState.AUTHENTICATED;
+																	}
 
 																	// now get the Jwt token
 																	// all subscriber data is in the response.data.customer
 																	// can get smartCardId, physicalDeviceId, stbType, and more
 																	this.log('Getting jwtToken for householdId',response.data.customer.householdId);
 																	this.getJwtToken(response.data.oespToken, response.data.customer.householdId);
+																	currentSessionState = SessionState.CREATED;
 																	this.log('Session created');
+																	return false
 													
 																})
 																// Step 7 http errors
@@ -994,12 +1037,14 @@ class eosstbDevice {
 			})
 			// Step 1 http errors
 			.catch(error => {
+				currentSessionState = SessionState.NOT_CREATED;
 				this.sessionCreated = false;
 				this.log('Failed to create GB session - check your internet connection.');
 				this.log.warn("Step 1 Could not get apiAuthorizationUrl, http error:",error);
 			});
 
-		this.log.warn('end of getSessionGB');
+		currentSessionState = SessionState.NOT_CREATED;
+		this.log.warn('end of getSessionGB, no session created');
 	}
 
 
@@ -1010,6 +1055,16 @@ class eosstbDevice {
 		if (this.config.debugLevel > 0) {
 			this.log.warn('getJwtToken');
 		}
+		// robustness checks
+		if (currentSessionState !== SessionState.AUTHENTICATED) {
+			this.log.warn('Cannot get JWT token: currentSessionState incorrect:', currentSessionState);
+			return false;
+		}
+		if (!oespToken) {
+			this.log.warn('Cannot get JWT token: oespToken not set');
+			return false;
+		}
+
 		const jwtAxiosConfig = {
 			method: 'GET',
 			url: countryBaseUrlArray[this.config.country].concat('/tokens/jwt'),
@@ -1038,6 +1093,11 @@ class eosstbDevice {
 	// start the mqtt client and handle mqtt messages
 	startMqttClient(parent) {
 		this.log('Starting mqtt client...');
+		if (currentSessionState !== SessionState.CREATED) {
+			this.log.warn('Cannot start mqtt client: currentSessionState incorrect:', currentSessionState);
+			return false;
+		}
+
 		let mqttUrl = mqttUrlArray[this.config.country];
 
 		mqttClient = mqtt.connect(mqttUrl, {
