@@ -5,7 +5,7 @@
 // name and version
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.1.5';
+const PLUGIN_VERSION = '0.1.6';
 
 // required node modules
 const fs = require('fs');
@@ -660,10 +660,16 @@ class eosstbDevice {
 								this.log('Step 3 response.headers.location:',response.headers.location); 
 								//this.log('Step 3 response.headers:',response.headers);
 								var url = response.headers.location;
+								if (url)
 								//location is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
 								//location is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
+								//location is https://login.prd.telenet.be/openid/login?error=session_expired if session has expired
 								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
-									this.log.warn('Step 3 Unable to login, wrong credentials');
+									this.log.warn('Step 3 Unable to login: wrong credentials');
+								} else if (url.indexOf('error=session_expired') > 0 ) {
+									this.log.warn('Step 3 Unable to login: session expired');
+									cookieJar.removeAllCookies();	// remove all the locally cached cookies
+									this.sessionCreated = false;	// flag the session as dead
 								} else {
 									this.log.warn('Step 3 login successful');
 
@@ -682,73 +688,79 @@ class eosstbDevice {
 											this.log('Step 4 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
 											//this.log('Step 4 response.headers:',response.headers);
 											url = response.headers.location;
-											// look for login_success?code=
-											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
-												this.log.warn('Step 4 Unable to login, wrong credentials');
-											} else {
-
-												// Step 5: # obtain authorizationCode
-												this.log.warn('Step 5 extract authorizationCode');
-												url = response.headers.location;
-												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
-												var authorizationCode = codeMatches[1];
-												if (codeMatches.length !== 2 ) { // length must be 2 if code found
-													this.log.warn('Step 5 Unable to extract authorizationCode');
+											if (url) {	// robustness: check url only if not null
+												// look for login_success?code=
+												if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
+													this.log.warn('Step 4 Unable to login: wrong credentials');
+												} else if (url.indexOf('error=session_expired') > 0 ) {
+													this.log.warn('Step 4 Unable to login: session expired');
+													cookieJar.removeAllCookies();	// remove all the locally cached cookies
+													this.sessionCreated = false;	// flag the session as dead
 												} else {
-													this.log('Step 5 authorizationCode:',authorizationCode);
 
-													// Step 6: # authorize again
-													this.log.warn('Step 6 post auth data to',apiAuthorizationUrl);
-													payload = {'authorizationGrant':{
-														'authorizationCode':authorizationCode,
-														'validityToken':authValidtyToken,
-														'state':authState
-													}};
-													this.log('Cookies for the session:',cookieJar.getCookies(apiAuthorizationUrl));
-													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
-														.then(response => {	
-															this.log('Step 6 response.status:',response.status, response.statusText);
-															
-															auth = response.data;
-															//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
-															this.log('Step 6 refreshToken:',auth.refreshToken);
+													// Step 5: # obtain authorizationCode
+													this.log.warn('Step 5 extract authorizationCode');
+													url = response.headers.location;
+													var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
+													var authorizationCode = codeMatches[1];
+													if (codeMatches.length !== 2 ) { // length must be 2 if code found
+														this.log.warn('Step 5 Unable to extract authorizationCode');
+													} else {
+														this.log('Step 5 authorizationCode:',authorizationCode);
 
-															// Step 7: # get OESP code
-															this.log.warn('Step 7 post refreshToken request to',apiAuthorizationUrl);
-															payload = {'refreshToken':auth.refreshToken,'username':auth.username};
-															var sessionUrl = countryBaseUrlArray[this.config.country].concat('/session');
-															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
-																.then(response => {	
-																	this.log('Step 7 response.status:',response.status, response.statusText);
-																	this.log.warn('Successfully authenticated'); 
+														// Step 6: # authorize again
+														this.log.warn('Step 6 post auth data to',apiAuthorizationUrl);
+														payload = {'authorizationGrant':{
+															'authorizationCode':authorizationCode,
+															'validityToken':authValidtyToken,
+															'state':authState
+														}};
+														this.log('Cookies for the session:',cookieJar.getCookies(apiAuthorizationUrl));
+														axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
+															.then(response => {	
+																this.log('Step 6 response.status:',response.status, response.statusText);
+																
+																auth = response.data;
+																//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
+																this.log('Step 6 refreshToken:',auth.refreshToken);
 
-																	this.log('Step 7 response.headers:',response.headers); 
-																	this.log('Step 7 response.data:',response.data); 
-																	this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
+																// Step 7: # get OESP code
+																this.log.warn('Step 7 post refreshToken request to',apiAuthorizationUrl);
+																payload = {'refreshToken':auth.refreshToken,'username':auth.username};
+																var sessionUrl = countryBaseUrlArray[this.config.country].concat('/session');
+																axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
+																	.then(response => {	
+																		this.log('Step 7 response.status:',response.status, response.statusText);
+																		this.log.warn('Successfully authenticated'); 
 
-																	// get device data from the session
-																	this.householdId = response.data.customer.householdId;
-																	this.stbType = response.data.customer.stbType;
-																	this.smartCardId = response.data.customer.smartCardId;
-																	this.physicalDeviceId = response.data.customer.physicalDeviceId;
+																		this.log('Step 7 response.headers:',response.headers); 
+																		this.log('Step 7 response.data:',response.data); 
+																		this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
 
-																	// now get the Jwt token
-																	// all subscriber data is in the response.data.customer
-																	// can get smartCardId, physicalDeviceId, stbType, and more
-																	this.log('Getting jwtToken for householdId',response.data.customer.householdId);
-																	this.getJwtToken(response.data.oespToken, response.data.customer.householdId);
-																	this.log('Session created');
-													
-																})
-																// Step 7 http errors
-																.catch(error => {
-																	this.log.warn("Step 7 Unable to get OESP token, http error:",error);
-																});
-														})
-														// Step 6 http errors
-														.catch(error => {
-															this.log.warn("Step 6 Unable to authorize with oauth code, http error:",error);
-														});	
+																		// get device data from the session
+																		this.householdId = response.data.customer.householdId;
+																		this.stbType = response.data.customer.stbType;
+																		this.smartCardId = response.data.customer.smartCardId;
+																		this.physicalDeviceId = response.data.customer.physicalDeviceId;
+
+																		// now get the Jwt token
+																		// all subscriber data is in the response.data.customer
+																		// can get smartCardId, physicalDeviceId, stbType, and more
+																		this.log('Getting jwtToken for householdId',response.data.customer.householdId);
+																		this.getJwtToken(response.data.oespToken, response.data.customer.householdId);
+																		this.log('Session created');
+														
+																	})
+																	// Step 7 http errors
+																	.catch(error => {
+																		this.log.warn("Step 7 Unable to get OESP token, http error:",error);
+																	});
+															})
+															// Step 6 http errors
+															.catch(error => {
+																this.log.warn("Step 6 Unable to authorize with oauth code, http error:",error);
+															});	
+													};
 												};
 											};
 										})
@@ -865,8 +877,13 @@ class eosstbDevice {
 								var url = response.headers.location;
 								//location is h??=... if success
 								//location is https?? if not authorised
+								//location is https:... error=session_expired if session has expired
 								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
 									this.log.warn('Step 3 Unable to login, wrong credentials');
+								} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
+									this.log.warn('Step 3 Unable to login: session expired');
+									cookieJar.removeAllCookies();	// remove all the locally cached cookies
+									this.sessionCreated = false;	// flag the session as dead
 								} else {
 									this.log.warn('Step 3 login successful');
 
@@ -887,7 +904,11 @@ class eosstbDevice {
 											url = response.headers.location;
 											// look for login_success?code=
 											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
-												this.log.warn('Step 4 Unable to login, wrong credentials');
+												this.log.warn('Step 4 Unable to login: wrong credentials');
+											} else if (url.indexOf('error=session_expired') > 0 ) {
+												this.log.warn('Step 4 Unable to login: session expired');
+												cookieJar.removeAllCookies();	// remove all the locally cached cookies
+												this.sessionCreated = false;	// flag the session as dead
 											} else {
 
 												// Step 5: # obtain authorizationCode
