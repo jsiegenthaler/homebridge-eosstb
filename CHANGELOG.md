@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes and Improvements
 
+
+## 0.1.5 (2020-02-20)
+
+* Fixed warnings appearing in Homebridge 1.3.0
+* Changed channel refresh time from 30s to 60s
+* Inhibited sending of View TV Settings command when device power is off
+* Improved detection of power state
+* Improved logging
+
+
 ## 0.1.4 (2020-02-19)
 
 * Fixed error in mqtt session
@@ -16,17 +26,17 @@ All notable changes to this project will be documented in this file.
 
 ## 0.1.2 (2020-02-19)
 
-* Improve robustness if internet connection fails
-* Improve logging
+* Improved robustness if internet connection fails
+* Improved logging
 * Cleanup and document code
 * Added funding links
-* Start adding support for CurrentMediaState and TargetMediaState
-* Further work on GB session code
+* Started adding support for CurrentMediaState and TargetMediaState
+* Further work done on GB session code
 
 
 ## 0.1.1 (2020-02-17)
 
-* Improve logging and robustness
+* Improved logging and robustness
 
 
 ### Initial Release
