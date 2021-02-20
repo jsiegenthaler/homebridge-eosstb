@@ -5,7 +5,7 @@
 // name and version
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.1.4';
+const PLUGIN_VERSION = '0.1.5';
 
 // required node modules
 const fs = require('fs');
@@ -85,7 +85,7 @@ const NO_INPUT = 999999; // an input id that does not exist
 const MAX_INPUT_SOURCES = 90; // max input services. Default = 90. Cannot be more than 97 (100 - all other services)
 const STB_STATE_POLLING_INTERVAL_MS = 5000; // pollling interval in millisec. Default = 5000
 const SESSION_WATCHDOG_INTERVAL_MS = 2000; // session watchdog interval in millisec. Default = 2000
-const LOAD_CHANNEL_REFRESH_INTERVAL_S = 30; // load all channels refresh interval, in seconds. Default = 30
+const LOAD_CHANNEL_REFRESH_INTERVAL_S = 60; // load all channels refresh interval, in seconds. Default = 60
 
 
 // global variables (urgh)
@@ -215,11 +215,14 @@ class eosstbDevice {
 		}
 
 		//setup variables
-		this.currentPowerState = false;
 		this.mqtttSessionActive = false;
 		this.accessoryConfigured = false;
 		this.sessionCreated = false;
-		this.CurrentMediaState = Characteristic.CurrentMediaState.LOADING; // 4
+		this.currentMediaState = Characteristic.CurrentMediaState.PLAY;
+		this.targetMediaState = Characteristic.TargetMediaState.STOP;
+
+		// initial power state. Will be set by mqtt message
+		currentPowerState = null;
 
 		//check if prefs directory ends with a /, if not then add it
 		//this.prefDir = path.join(api.user.storagePath(), 'eos'); // not in use yet
@@ -308,8 +311,9 @@ class eosstbDevice {
 			// prepare the accessory using the data found during the session
 			this.prepareAccessory();
 
-			// perform an initial load of all channels
+			// perform an initial load of all channels and set the initial device state
 			this.loadAllChannels();
+			this.updateDeviceState();
 
 		}).catch((error) => { 
 			this.log('Failed to create accessory - please enable Homebridge debugging to view all errors.');
@@ -340,7 +344,7 @@ class eosstbDevice {
 		this.prepareAccessoryInformationService();	// service 1 of 100
 		this.prepareTelevisionService();			// service 2 of 100
 		this.prepareTelevisionSpeakerService();		// service 3 of 100
-		//this.prepareSmartSpeakerService();			// service 4 of 100 TRIAL
+		//this.prepareSmartSpeakerService();			// service 4 of 100 experimental
 		this.prepareInputSourceServices();			// service 4...100 of 100
 
 		this.api.publishExternalAccessories(PLUGIN_NAME, [this.accessory]);
@@ -396,8 +400,8 @@ class eosstbDevice {
 
 		this.televisionService.getCharacteristic(Characteristic.TargetMediaState)
 			.on('get', this.getTargetMediaState.bind(this))
-			.on('set', (wantedMediaState, callback) => {
-				this.setTargetMediaState(wantedMediaState, callback);
+			.on('set', (mediaState, callback) => {
+				this.setTargetMediaState(mediaState, callback);
 			});
 
 		this.accessory.addService(this.televisionService);
@@ -415,10 +419,10 @@ class eosstbDevice {
 		this.speakerService.getCharacteristic(Characteristic.VolumeSelector)  // the volume selector allows the iOS device keys to be used to change volume
 			.on('set', (direction, callback) => { this.setVolume(direction, callback); });
 		this.speakerService.getCharacteristic(Characteristic.Volume)
-			.on('get', this.getVolume.bind(this))
+			//.on('get', this.getVolume.bind(this)) // not supported by most TVs, this plugin uses relative volume only
 			.on('set', this.setVolume.bind(this));
 		this.speakerService.getCharacteristic(Characteristic.Mute)
-			.on('get', this.getMute.bind(this))
+			//.on('get', this.getMute.bind(this)) // not supported by most TVs, this plugin uses mute toggle only
 			.on('set', this.setMute.bind(this));
 
 		this.accessory.addService(this.speakerService);
@@ -427,7 +431,7 @@ class eosstbDevice {
 	
 	//Prepare SmartSpeaker service
 	prepareSmartSpeakerService() {
-		// not in use yet, experimenting if I can use this to receive siri commands to Play and Pause
+		// EXPERIMENTAL: can I use this to receive siri commands to Play and Pause?
 		if (this.config.debugLevel > 0) {
 			this.log.warn('prepareTelevisionSpeakerService');
 		}
@@ -448,7 +452,7 @@ class eosstbDevice {
 	//Prepare InputSource services
 	prepareInputSourceServices() {
 		// This is the channel list, each input is a service, max 100 services less the services created so far
-		if (this.config.debugLevel > 0) {
+		if (this.config.debugLevel > 1) {
 			this.log.warn('prepareInputSourceServices');
 		}
 		// loop MAX_INPUT_SOURCES times to get the first MAX_INPUT_SOURCES channels
@@ -688,7 +692,7 @@ class eosstbDevice {
 												url = response.headers.location;
 												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
 												var authorizationCode = codeMatches[1];
-												if (codeMatches.length != 2 ) { // length must be 2 if code found
+												if (codeMatches.length !== 2 ) { // length must be 2 if code found
 													this.log.warn('Step 5 Unable to extract authorizationCode');
 												} else {
 													this.log('Step 5 authorizationCode:',authorizationCode);
@@ -891,7 +895,7 @@ class eosstbDevice {
 												url = response.headers.location;
 												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
 												var authorizationCode = codeMatches[1];
-												if (codeMatches.length != 2 ) { // length must be 2 if code found
+												if (codeMatches.length !== 2 ) { // length must be 2 if code found
 													this.log.warn('Step 5 Unable to extract authorizationCode');
 												} else {
 													this.log('Step 5 authorizationCode:',authorizationCode);
@@ -1014,6 +1018,7 @@ class eosstbDevice {
 	startMqttClient(parent) {
 		this.log('Starting mqtt client...');
 		let mqttUrl = mqttUrlArray[this.config.country];
+
 		mqttClient = mqtt.connect(mqttUrl, {
 			connectTimeout: 10*1000, //10 seconds
 			clientId: varClientId,
@@ -1023,8 +1028,7 @@ class eosstbDevice {
 
 		// mqtt client event: connect
 		mqttClient.on('connect', function () {
-			parent.log('mqtt client connecting');
-			parent.log.debug('mqttClient: connect event');
+			parent.log('mqttClient: Connected');
 
 			// subscribe to base householdId
 			mqttClient.subscribe(mqttUsername, function (err) {
@@ -1038,21 +1042,21 @@ class eosstbDevice {
 
 			// subscribe to base householdId/+/status
 			mqttClient.subscribe(mqttUsername + '/+/status', function (err) {
-				if(err){
+				if(!err){
+					parent.log('mqttClient: Subscribed to topic',mqttUsername + '/+/status');
+				} else {
 					parent.log('mqttClient connect: subscribe to status: Error:',err);
 					return false;
-				} else {
-					parent.log('mqttClient: Subscribed to topic',mqttUsername + '/+/status');
 				}
 			});
 
 			// subscribe to base householdId/personalizationService
 			mqttClient.subscribe(mqttUsername + '/personalizationService', function (err) {
-				if(err){
+				if(!err){
+					parent.log('mqttClient: Subscribed to topic',mqttUsername + '/personalizationService');
+				} else {
 					parent.log('mqttClient connect: subscribe to personalizationService: Error:',err);
 					return false;
-				} else {
-					parent.log('mqttClient: Subscribed to topic',mqttUsername + '/personalizationService');
 				}
 			});
 			
@@ -1062,11 +1066,11 @@ class eosstbDevice {
 
 			/*
 			mqttClient.subscribe(mqttUsername +'/watchlistService', function (err) {
-				if(err){
+				if(!err){
+					parent.log('mqttClient: Subscribed to topic',mqttUsername +'/watchlistService');
+				} else {
 					parent.log('mqttClient connect: subscribe to watchlistService: Error:',err);
 					return false;
-				} else {
-					parent.log('mqttClient: Subscribed to topic',mqttUsername +'/watchlistService');
 				}
 			});
 			*/
@@ -1076,15 +1080,17 @@ class eosstbDevice {
 				// many messages occur. Be careful ith logging otherwise logs will be flooded
 				this.mqtttSessionActive = true;
 				let payloadValue = JSON.parse(payload);
-				parent.log.warn('mqttClient: Received Message: Topic:',topic);
+				if (parent.config.debugLevel > 0) {
+					parent.log.warn('mqttClient: Received Message: Topic:',topic);
+				}
 				if (parent.config.debugLevel > 2) {
 					parent.log.warn('mqttClient: Received Message: Message:',payloadValue);
 				}
 				
 				// check if this status message is for the desired EOSSTB
 				if(topic.startsWith(mqttUsername) && topic.includes('-EOSSTB-')){
-					parent.log('mqtt EOSSTB topic detected:',topic)
-				};
+					parent.log('mqttClient: EOSSTB topic detected:',topic)
+				}
 				
 				//parent.log('mqttClient message: payloadValue.type',payloadValue.type);
 				//parent.log('mqttClient message: payloadValue.status',payloadValue.status);
@@ -1118,7 +1124,7 @@ class eosstbDevice {
 								settopboxId = parent.config.settopboxId;
 								parent.log('settopboxId configured, using', settopboxId);
 							}
-						};
+						}
 						parent.log('Using settopBoxId',settopboxId);
 
 						
@@ -1160,31 +1166,25 @@ class eosstbDevice {
 				// Topic: 1076582_ch/3C36E4-EOSSTB-003656579806/status
 				// Message: {"deviceType":"STB","source":"3C36E4-EOSSTB-003656579806","state":"ONLINE_RUNNING","mac":"F8:F5:32:45:DE:52","ipAddress":"192.168.0.33/255.255.255.0"}
 				if((payloadValue.deviceType == 'STB') && (payloadValue.source == settopboxId)) {
-						parent.log.debug('mqttClient: Received Message of deviceType STB for',payloadValue.source,'Detecting currentPowerState');
-						if ((payloadValue.state == 'ONLINE_RUNNING') && (currentPowerState != 1)){ // ONLINE_RUNNING: power is on
-							currentPowerState = 1; 
-							// for performance, set the state immediately, but only if the televisionService has been defined
-							if (parent.accessoryConfigured) {
-								parent.televisionService.setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE);
-							}
-							parent.log('Settopbox power:',(currentPowerState ? "On" : "Off"));
-						}          
-						else if (((payloadValue.state == 'ONLINE_STANDBY') || (payloadValue.state == 'OFFLINE')) // ONLINE_STANDBY or OFFLINE: power is off
-							&& (currentPowerState != 0)){
-							currentPowerState = 0;
-							// for performance, set the state immediately, but only if the televisionService has been defined
-							if (parent.accessoryConfigured) {
-								parent.televisionService.setCharacteristic(Characteristic.Active, Characteristic.Active.INACTIVE);
-							}
-							if (parent.config.debugLevel > 2) {
-								parent.log.debug('mqttClient: Detected current power state:', currentPowerState);
-								parent.log('Settopbox power:',(currentPowerState ? "On" : "Off"));
-							}
-						};
-						parent.log('Power state:',payloadValue.state);
+					parent.log.debug('mqttClient: Received Message of deviceType STB for',payloadValue.source,'Detecting currentPowerState');
+					parent.log.debug('mqttClient: Power state:',payloadValue.deviceType, payloadValue.state);
+					var varTargetPowerState = null;
+					if (payloadValue.state == 'ONLINE_RUNNING') { 				// ONLINE_RUNNING: power is on
+						varTargetPowerState = Characteristic.Active.ACTIVE; 
+					} else {													// ONLINE_STANDBY or OFFLINE: power is off
+						varTargetPowerState = Characteristic.Active.INACTIVE; 
+					}
 
-				};
-
+					// check if power state changed
+					if (currentPowerState !== varTargetPowerState) {
+						currentPowerState = varTargetPowerState;
+						parent.log('Power changed to:',(currentPowerState ? "On" : "Off"));
+						if (parent.televisionService) {
+							// change only if configured, use.getCharacteristic(charName).updateValue(someValue) to provide fast realtime updates
+							parent.televisionService.getCharacteristic(Characteristic.Active).updateValue(currentPowerState);
+						}
+					}
+				}
 
 				
 				// check if payloadValue.type exists, look for CPE.uiStatus, make sure it is for the wanted settopboxId
@@ -1193,57 +1193,56 @@ class eosstbDevice {
 				// Topic: 1076582_ch/vy9hvvxo8n6r1t3f4e05tgg590p8s0
 				// Message: {"version":"1.3.10","type":"CPE.uiStatus","source":"3C36E4-EOSSTB-003656579806","messageTimeStamp":1607205483257,"status":{"uiStatus":"mainUI","playerState":{"sourceType":"linear","speed":1,"lastSpeedChangeTime":1607203130936,"source":{"channelId":"SV09259","eventId":"crid:~~2F~~2Fbds.tv~~2F394850976,imi:3ef107f9a95f37e5fde84ee780c834b502be1226"}},"uiState":{}},"id":"fms4mjb9uf"}
 				if (parent.config.debugLevel > 1) {
-					parent.log.warn('mqttClient Detecting currentChannelId: payloadValue',payloadValue);
-					parent.log.warn('mqttClient Detecting currentChannelId: payloadValue.type',payloadValue.type, 'payloadValue.source',payloadValue.source);
+					parent.log.warn('mqttClient: Detecting currentChannelId: payloadValue',payloadValue);
+					parent.log.warn('mqttClient: Detecting currentChannelId: payloadValue.type',payloadValue.type, 'payloadValue.source',payloadValue.source);
 				}
-				if((payloadValue.type == 'CPE.uiStatus') && (payloadValue.source == settopboxId)) {
-						//parent.log('mqttClient: Received Message of type CPE.uiStatus for',payloadValue.source,'Detecting playerState');
-						if(payloadValue.status.uiStatus == 'mainUI'){
-							// grab the status part of the payloadValue object as we cannot go any deeper with json
-							//let playerStateSource = payloadValue.status.playerState.source;
-							let playerState = payloadValue.status.playerState;
+				if ((payloadValue.type == 'CPE.uiStatus') && (payloadValue.source == settopboxId)) {
+					//parent.log('mqttClient: Received Message of type CPE.uiStatus for',payloadValue.source,'Detecting playerState');
+					if (payloadValue.status.uiStatus == 'mainUI') {
+						// grab the status part of the payloadValue object as we cannot go any deeper with json
+						//let playerStateSource = payloadValue.status.playerState.source;
+						let playerState = payloadValue.status.playerState;
 
-							if (parent.config.debugLevel > 1) {
-								parent.log('mqttClient: Detected current playerState.speed:', playerState.speed);
-							}
+						if (parent.config.debugLevel > 0) {
+							parent.log('mqttClient: Detected current playerState.speed:', playerState.speed);
+						}
 
-							// set the CurrentMediaState to one of PLAY PAUSE STOP LOADING INTERRUPTED
-							// but only if configured
-							// speed can be one of: -64 -30 -6 -2 0 2 6 30 64
-							// where 0 is pause, 1 is play, and 2/6/30/64 are speed. positive = fastforward, negative = rewind
-							if (parent.accessoryConfigured) {
-								switch (playerState.speed) {
-									case 0:
-										// speed 0 is PAUSE
-										inputService.getCharacteristic(Characteristic.IsConfigured).updateValue(Characteristic.IsConfigured.CONFIGURED);
-										if (this.CurrentMediaState != Characteristic.CurrentMediaState.PAUSE) {
-											parent.log('mqttClient: setting CurrentMediaState to PAUSE');
-											this.CurrentMediaState = Characteristic.CurrentMediaState.PAUSE;
-											parent.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.CurrentMediaState);
-											parent.televisionService.getCharacteristic(Characteristic.TargetMediaState).updateValue(this.CurrentMediaState);
-											//parent.televisionService.setCharacteristic(Characteristic.TargetMediaState, this.CurrentMediaState);
-										}
-										break;
-									default:
-										// register all other speeds as PLAY (-64 -30 -6 1 2 6 30 64)
-										if (this.CurrentMediaState != Characteristic.CurrentMediaState.PLAY) {
-											parent.log('mqttClient: setting CurrentMediaState to PLAY');
-											this.CurrentMediaState = Characteristic.CurrentMediaState.PLAY;
-											parent.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.CurrentMediaState);
-											parent.televisionService.getCharacteristic(Characteristic.TargetMediaState).updateValue(this.CurrentMediaState);
-											//parent.televisionService.setCharacteristic(Characteristic.CurrentMediaState, this.CurrentMediaState);
-											//parent.televisionService.setCharacteristic(Characteristic.TargetMediaState, this.CurrentMediaState);
-										}
-										break;
-								}
+						// use.getCharacteristic(charName).updateValue(someValue) to provide fast realtime updates
+						// set the CurrentMediaState to one of 0=PLAY 1=PAUSE 2=STOP 3=LOADING 4=INTERRUPTED
+						// set the TurrentMediaState to one of 0=PLAY 1=PAUSE 2=STOP
+						// but only if configured. Must always set a value. Never set null.
+						// speed can be one of: -64 -30 -6 -2 0 2 6 30 64
+						// where 0 is pause, 1 is play, and 2/6/30/64 are speed. positive = fastforward, negative = rewind
+						if (parent.televisionService) {
+							switch (playerState.speed) {
+								case 0:
+									// speed 0 is PAUSE
+									inputService.getCharacteristic(Characteristic.IsConfigured).updateValue(Characteristic.IsConfigured.CONFIGURED);
+									if (this.currentMediaState !== Characteristic.CurrentMediaState.PAUSE) {
+										parent.log('mqttClient: setting CurrentMediaState to PAUSE');
+										this.currentMediaState = Characteristic.CurrentMediaState.PAUSE;
+										parent.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.currentMediaState);
+										parent.televisionService.getCharacteristic(Characteristic.TargetMediaState).updateValue(this.currentMediaState);
+									}
+									break;
+								default:
+									// register all other speeds as PLAY (-64 -30 -6 1 2 6 30 64)
+									if (this.currentMediaState !== Characteristic.CurrentMediaState.PLAY) {
+										parent.log('mqttClient: setting CurrentMediaState to PLAY');
+										this.currentMediaState = Characteristic.CurrentMediaState.PLAY;
+										parent.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.currentMediaState);
+										parent.televisionService.getCharacteristic(Characteristic.TargetMediaState).updateValue(this.currentMediaState);
+									}
+									break;
 							}
+						}
 
-							currentChannelId = playerState.source.channelId;
-							if (parent.config.debugLevel > 2) {
-								parent.log.debug('mqttClient: Detected current channel:', currentChannelId);
-							}
-					};
-				};
+						currentChannelId = playerState.source.channelId;
+						if (parent.config.debugLevel > 2) {
+							parent.log.debug('mqttClient: Detected current channel:', currentChannelId);
+						}
+					}
+				}
 				
 
 				if (parent.config.debugLevel > 1) {
@@ -1259,6 +1258,11 @@ class eosstbDevice {
 				return false;
 			}); // end of mqtt client event: error
 
+			// mqtt client event: disconnect
+			mqttClient.on('disconnect', function () {
+				parent.log('mqttClient: Disconnected');
+			});
+			
 			// mqtt client event: close
 			mqttClient.on('close', function () {
 				parent.log.warn('mqttClient: Connection closed');
@@ -1267,13 +1271,14 @@ class eosstbDevice {
 				return false;
 			});
 		}); // end of mqttClient.on('connect' ...
-		
+
 	} // end of startMqttClient
+
 
 	// send a channel change request to the settopbox via mqtt
 	switchChannel(channelId) {
 		if (this.config.debugLevel > 0) {
-			this.log.warn('switchChannel', channelId);
+			this.log.warn('switchChannel channelId:', channelId);
 		}
 		mqttClient.publish(mqttUsername + '/' + settopboxId, '{"id":"' + makeId(8) + '","type":"CPE.pushToTV","source":{"clientId":"' + varClientId + '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' + channelId + '"},"relativePosition":0,"speed":1}}');
 	}
@@ -1294,10 +1299,9 @@ class eosstbDevice {
 	// get the settopbox UI status from the settopbox via mqtt
 	// this needs to run regularly
 	getUiStatus() {
-		this.log.warn('getUiStatus');
 		// this connects us to the settop box, and must be the first mqtt message
 		// gets called at every mqtt uistatus message
-		if (this.config.debugLevel > 2) {
+		if (this.config.debugLevel > 1) {
 			this.log.warn('getUiStatus');
 			this.log.warn('getUiStatus settopboxId varClientId',settopboxId,varClientId);
 		}
@@ -1315,7 +1319,7 @@ class eosstbDevice {
 	// incomplete, not working
 	getProfilesUpdate() {
 		if (this.config.debugLevel > 0) {
-			this.log('getProfilesUpdate');
+			this.log.warn('getProfilesUpdate');
 		}
 		let mqttCmd = '{"action":"OPS.getProfilesUpdate","source":"' + varClientId + '"}';
 		this.log('sending:', mqttCmd);
@@ -1341,6 +1345,7 @@ class eosstbDevice {
 		// runs at the very start, and then every 5 seconds, so don't log it unless debugging
 		// doesn't get the data direct from the settop box, but rather gets it from the currentPowerState and currentChannelId
 		// which are received by the mqtt messages, which occurs very often
+		// must return a uint32, must never return null
 		if (this.config.debugLevel > 1) {
 			this.log.warn('updateDeviceState');
 		}
@@ -1352,19 +1357,19 @@ class eosstbDevice {
 
 
 		if (this.config.debugLevel > 0) {
-			this.log.warn('updateDeviceState: currentChannelId:', currentChannelId, 'currentPowerState:', currentPowerState);
+			this.log.warn('updateDeviceState: currentPowerState:', currentPowerState, 'currentChannelId:',currentChannelId);
 		}
 		
-		//this.loadAllChannels(); //load all the channels
-
+		// change only if configured
 		if (this.televisionService) {
 			// update power status value (currentPowerState, 0=off, 1=on)
+			// this is an extrarobusness level if it didn't get changed in the mqtt message handling
 			if (this.televisionService.getCharacteristic(Characteristic.Active).value !== currentPowerState) {
-					this.televisionService.getCharacteristic(Characteristic.Active).updateValue(currentPowerState == 1);
+					this.televisionService.getCharacteristic(Characteristic.Active).updateValue(currentPowerState);
 			}
 			
 			// log the entire object to see the data!
-			//this.log('TV ActiveIdentifier:',this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier)),
+			// this.log('updateDeviceState: televisionService ActiveIdentifier:',this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier)),
 
 			this.inputs.filter((input, index) => {
 				//this.log('updateDeviceState: input:',input, 'index', index); // log to view the inputs
@@ -1376,6 +1381,9 @@ class eosstbDevice {
 						this.log(`Current channel: ${input.name} (${input.id})`);
 						return this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(index);
 					}
+				} else {
+					// channel cannot be found, set to no channel as must never be null
+					return this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(NO_INPUT);
 				}
 			return null;
 			});
@@ -1388,7 +1396,6 @@ class eosstbDevice {
 	async loadAllChannels(callback) {
 		// called by loadAllChannels (state handler), thus runs at polling interval
 		// this could be changed to call the webservice at much less frequent intervals to reduce traffic
-
 		if (this.config.debugLevel > 1) {
 			this.log.warn('loadAllChannels');
 		}
@@ -1403,7 +1410,7 @@ class eosstbDevice {
 			//this.log('loadAllChannels: loading channels: this.inputServices',this.inputServices);
 			// channels can be retrieved for the country without having a mqtt session going
 			let channelsUrl = countryBaseUrlArray[this.config.country].concat('/channels');
-			if (this.config.debugLevel > 1) {
+			if (this.config.debugLevel > 2) {
 				this.log.warn('loadAllChannels: loading inputs from channelsUrl:',channelsUrl);
 			}
 			
@@ -1436,7 +1443,7 @@ class eosstbDevice {
 				});
 				this.log('Channel list refreshed');
 
-				if (this.config.debugLevel > 1) {
+				if (this.config.debugLevel > 3) {
 					this.log.warn('loadAllChannels: loaded inputs:',this.inputs);
 				}
 			},
@@ -1472,15 +1479,15 @@ class eosstbDevice {
 	}
 
 	// set power state
-	async setPower(wantedPowerState, callback) {
+	async setPower(targetPowerState, callback) {
 		// fired when the user clicks the power button in the TV accessory in Homekit
 		// fired when the user clicks the TV tile in Homekit
 		// fired when the first key is pressed after opening the Remote Control
 		// wantedPowerState is the wanted power state: 0=off, 1=on
 		if (this.config.debugLevel > 0) {
-			this.log.warn('setPower wantedPowerState:',wantedPowerState);
+			this.log.warn('setPower targetPowerState:',targetPowerState);
 		}
-		if(wantedPowerState !== currentPowerState){
+		if(currentPowerState !== targetPowerState){
 			this.sendKey('Power');
 		}
 		callback(null);
@@ -1496,19 +1503,20 @@ class eosstbDevice {
 	}
 
 	// set mute state
-	async setMute(state, callback) {
+	async setMute(muteState, callback) {
 		// sends the mute command
 		// works for TVs that accept a mute toggle command
 		if (this.config.debugLevel > 0) {
-			this.log.warn('setMute state:', state);
+			this.log.warn('setMute muteState:', muteState);
 		}
 		// mute state is a boolean, either true or false
 		// const NOT_MUTED = 0, MUTED = 1;
-		this.log('Set mute: %s', (state) ? 'Muted' : 'Not muted');
+		this.log('Set mute: %s', (muteState) ? 'Muted' : 'Not muted');
 
 		// Execute command to toggle mute
-		if (this.config.muteCommand) {
+		if (this.config.muteCommand) {	
 			var self = this;
+			// assumes the end device toggles between mute on and mute off with each command
 			exec(this.config.muteCommand, function (error, stdout, stderr) {
 				// Error detection. error is true when an exec error occured
 				if (!error) {
@@ -1540,7 +1548,7 @@ class eosstbDevice {
 		// here we send execute a bash command on the raspberry pi using the samsungctl command
 		// to control the authors samsung stereo at 192.168.0.152
 		if (this.config.debugLevel > 0) {
-			this.log.warn('setVolume volume:',volume);
+			this.log.warn('setVolume volumeSelectorValue:',volumeSelectorValue);
 		}
 
 		// volumeSelectorValue: only 2 values possible: INCREMENT: 0, DECREMENT: 1,
@@ -1567,6 +1575,7 @@ class eosstbDevice {
 		// fired when the user clicks away from the iOS Device TV Remote Control, regardless of which TV was selected
 		// fired when the icon is clicked in Homekit and Homekit requests a refresh
 		// currentChannelId is updated by the polling mechanisn
+		// must return a valid index, and must never return null
 		if (this.config.debugLevel > 0) {
 			this.log.warn('getInput');
 		}
@@ -1585,7 +1594,8 @@ class eosstbDevice {
 				}
 			});
 		if (!isDone)
-			return callback(null, null);
+			// must never return null for the input index, so return NO_INPUT
+			return callback(null, NO_INPUT);
 	}
 
 	// set input (TV channel)
@@ -1605,8 +1615,13 @@ class eosstbDevice {
 			this.log.warn('setPowerModeSelection state:',state);
 		}
 		this.log('Menu command: View TV Settings');
-		this.sendKey('Help'); // puts SETTINGS.INFO on the screen
-		setTimeout(() => { this.sendKey('ArrowRight'); }, 600); // move right to select SETTINGS.PROFILES, send after 600ms
+		// only send the keys if the power is on
+		if (currentPowerState == Characteristic.Active.ACTIVE) {
+			this.sendKey('Help'); // puts SETTINGS.INFO on the screen
+			setTimeout(() => { this.sendKey('ArrowRight'); }, 600); // move right to select SETTINGS.PROFILES, send after 600ms
+		} else {
+			this.log('Power is Off. View TV Settings command not sent');
+		}
 		callback(true);
 	}
 
@@ -1614,23 +1629,31 @@ class eosstbDevice {
 	async getCurrentMediaState(callback) {
 		// fired by ??
 		// cannot be controlled by Apple Home app, but could be controlled by other Homekit apps
-		this.log('getCurrentMediaState state:', this.CurrentMediaState);
-		return callback(null, this.CurrentMediaState);
+		// must never return null, so send STOP as default value
+		if (this.config.debugLevel > 0) {
+			this.log.warn('getCurrentMediaState currentMediaState:', this.currentMediaState);
+		}
+		return callback(null, this.currentMediaState || Characteristic.CurrentMediaState.STOP);
 	}
 
 	// get target media state
 	async getTargetMediaState(callback) {
 		// fired by ??
 		// cannot be controlled by Apple Home app, but could be controlled by other Homekit apps
-		this.log('getTargetMediaState');
-		return callback(null, this.CurrentMediaState);
+		// must never return null, so send STOP as default value
+		if (this.config.debugLevel > 0) {
+			this.log.warn('getTargetMediaState');
+		}
+		return callback(null, this.targetMediaState || Characteristic.TargetMediaState.STOP);
 	}
 
 	// set target media state
 	async setTargetMediaState(targetMediaState, callback) {
 		// fired by ??
 		// cannot be controlled by Apple Home app, but could be controlled by other Homekit apps
-		this.log.warn('setTargetMediaState state:',targetMediaState);
+		if (this.config.debugLevel > 0) {
+			this.log.warn('setTargetMediaState state:',targetMediaState);
+		}
 		switch (targetMediaState) {
 			case Characteristic.TargetMediaState.PLAY:
 				this.log.warn('setTargetMediaState setting PLAY');
