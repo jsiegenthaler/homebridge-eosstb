@@ -8,16 +8,20 @@
 This is very much a work in progres.. Why? Because I'm not finished. If you can, give me a hand... especially if you have some javascript experience and use Virgin in Great Britain...
 
 
-# TO-DO as of 16.02.2020
-* Test gb connections for Virgin Media
+# TO-DO as of 20.02.2020
+* Test GB connections for Virgin Media
 * Test with profiles - try and find a way to get the EOS box profile channels so that the channel list can be reduced to your profile channel list
+* Improve robustness and responsiveness even more
 
 
 
 # Recent Major Achievements
-13 Feb 2021: Got the Telenet session working finally. This plugin now works properly with the Telenet TV-Boxes in Belgium.
+20 Feb 2021: Resolved issues with homebridge v1.3.0 and improved robustness a lot
 
 16 Feb 2021: Got the plugin working as an External Accessory with the right Set-Top Box icon. Got the NPM package configured. You can now search for the plugin and install it in Homebridge.
+
+13 Feb 2021: Got the Telenet session working finally. This plugin now works properly with the Telenet TV-Boxes in Belgium.
+
 
 # homebridge-eosstb
 
