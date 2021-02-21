@@ -79,18 +79,19 @@ After installing, make sure you restart Homebridge.
 The EOSSTB is exposed as a separate external accessory and each device needs to be manually paired as follows:
 
 1. Open the **Home** app on your device.
-2. Tap the **Home** tab, then tap **+** in the top right corner.
-3. Tap **Add Accessory**, and select **I Don't Have a Code or Cannot Scan**.
-4. Select the accessory you want to pair. You should see your EOSSTB here. If not, check your Homebridge config.
-5. Accept the **Uncertified Accesory** warning by tapping **Add Anyway**
-5. Enter the **HomeKit Setup Code** (displayed in Homebridge under the QR code, format XXX-XX-XXX), or use the device's camera to scan the QR code in Homebridge.
-6. Select a room for your EOSSTB accessory and tap **Continue**.
-7. Give your EOSSTB a different name if you wish (you can change this in the Home app later) and tap **Continue**.
-8. Name your TV input sources if you wish (you can change these in the Home app later) and tap **Continue**.
-9. Switch on any offered automations if you wish (you can change these in the Home app later) and tap **Continue**.
-10. Tap **Done** to finish the setup.
+2. Tap **+** in the top right corner of the screen to start the process of adding a new accessory or scene.
+3. Tap **Add Accessory** to start the process of adding a new accessory.
+4. **Add Accessory**: tap **I Don't Have a Code or Cannot Scan**.
+5. **Select an Accessory to Add to (Home Name)**: Select the accessory you want to add. You should see your EOSSTB here. If not, check your Homebridge config.
+6. Accept the **Uncertified Accesory** warning by tapping **Add Anyway**.
+7. **Enter HomeKit Setup Code**: Enter the **HomeKit Setup Code** (displayed in Homebridge under the QR code, format XXX-XX-XXX), or use the device's camera to scan the QR code in Homebridge.
+8. **Set-Top Box Location**: Select a room for your EOSSTB accessory and tap **Continue**.
+9. **Set-Top Box Name**: Give your EOSSTB a different name if you wish (you can change this in the Home app later) and tap **Continue**.
+10. **Name TV Input Sources**: Name your TV input sources if you wish (you can change these in the Home app later) and tap **Continue**.
+11. **Set-Top Box Automations**: Switch on any suggested automations if you wish (you can change these in the Home app later) and tap **Continue**.
+12. **Set-Top Box Added to (Home Name)**: Tap **Done** to finish the setup.
 
-Your new accessory will appear shortly in the room that you selected.
+Your new accessory will appear shortly in the room that you selected. It may show **Updating...** for a while. You can force a Home app refresh by displaying a different room and then going back again to the previous room.
 
 ## Remote Control Supported Keys
 To access the Apple TV Remote, open your Control Center by swiping down from the top (newer iPhones) or up from the bottom of the screen (older iPhones). If you do now see the Remote Control icon, you will need to activate it in Settings > Control Centre and ensutre that the Apple TV Remote is in the list of INCLUDED CONTROLS.
