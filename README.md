@@ -192,7 +192,7 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 * **infoButton**: The command issued to the EOS box when the Info button (**i**) in the iOS remote is tapped. As the iOS remote has no Menu button, the Info button should be used to access the menu. This is why the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
 
-* **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found. Loading times increase with higher maximums. Limited to 90.
+* **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found. Loading times increase with higher maximums. Limited to 90. Note. You may need to remove and repair the accessory in the Home app after changing maxChannels to a different value.
 
 * **volUpCommand**: The bash command to increase the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Up button on your device. Optional.
 
@@ -209,6 +209,7 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 * **serialNumber**: You can add a serial number if you wish. Defaults to the physical device id. Optional.
 
 * **firmwareRevision**: You can add a firmware revision if you wish. Must be numeric. Non-numeric values are not displayed. Defaults to "1.0.0". Optional.
+
 
 
 ## Known Relevant EOS Box Commands
