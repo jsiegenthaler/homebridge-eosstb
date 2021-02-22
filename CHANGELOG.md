@@ -6,10 +6,13 @@ All notable changes to this project will be documented in this file.
 
 
 ## 0.1.8 (2020-02-21)
-* Migrated from request (deprecated) to axios for all web requests
 * Improved robustness and error messages for generic session
-* Improved loading of Channel List. Now only refreshes once the list has expired, this reduces web traffic a lot.
-* Pruned unused dependencies from package.json
+* Improved loading of Channel List. Now only refreshes once the list has expired, this reduces web traffic a lot
+* Improved mqtt session handling
+* Migrated from request (deprecated) to axios for all web requests
+* Bumped dependencies and pruned unused dependencies from package.json
+* Fixed homebridge v1.3.0 warning when renaming an input
+
 
 ## 0.1.7 (2020-02-20)
 * Fixed bugs and improved robustness of Telenet sessions

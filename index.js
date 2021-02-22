@@ -5,7 +5,7 @@
 // name and version
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.1.7';
+const PLUGIN_VERSION = '0.1.8';
 
 // required node modules
 const fs = require('fs');
@@ -13,10 +13,9 @@ const fsPromises = require('fs').promises;
 const path = require('path');
 
 const mqtt = require('mqtt');  
-const request = require('request-promise');
 const qs = require('qs')
-const _ = require('underscore');
-const varClientId = makeId(30);
+//const _ = require('underscore');
+const varClientId = makeId(30).toLowerCase();
 
 const axios = require('axios').default;
 axios.defaults.xsrfCookieName = undefined;
@@ -81,11 +80,11 @@ const GB_AUTH_URL = 'https://id.virginmedia.com/sign-in/?protocol=oidc';
 
 
 // general constants
-const NO_INPUT = 999999; // an input id that does not exist
+const NO_INPUT = 9999; // an input id that does not exist. Must be > 0 as a uint32 is expected
 const MAX_INPUT_SOURCES = 90; // max input services. Default = 90. Cannot be more than 97 (100 - all other services)
-const STB_STATE_POLLING_INTERVAL_MS = 5000; // pollling interval in millisec. Default = 5000
+const STB_STATE_POLLING_INTERVAL_MS = 10000; // pollling interval in millisec. Default = 5000
 const SESSION_WATCHDOG_INTERVAL_MS = 2000; // session watchdog interval in millisec. Default = 2000
-const LOAD_CHANNEL_REFRESH_INTERVAL_S = 60; // load all channels refresh interval, in seconds. Default = 60
+const LOAD_CHANNEL_REFRESH_CHECK_INTERVAL_S = 60; // load all channels refresh check interval, in seconds. Default = 60
 // session state constants
 const SessionState = {
 	NOT_CREATED: 0,
@@ -97,6 +96,10 @@ const SessionState = {
 	CREATED: 6
 };
 Object.freeze(SessionState);
+const mediaState = ["PLAY", "PAUSE", "STOP", "LOADING", "INTERRUPTED"];
+Object.freeze(mediaState);
+const powerState = ["OFF", "ON"];
+
 
 
 // global variables (urgh)
@@ -109,10 +112,14 @@ let myUpcPassword;
 
 let mqttUsername;
 let mqttPassword;
-let settopboxId;
+
+let deviceId;
+let currentSessionState;
+let mqttIsSubscribed;
 let currentChannelId;
 let currentPowerState;
-let currentSessionState;
+let currentMediaState;
+let channelListExpiryDate;
 let Accessory, Characteristic, Service, Categories, UUID;
 
 // used for request, to be deprecated
@@ -210,7 +217,7 @@ class eosstbDevice {
 		this.name = this.config.name || settopBoxName[this.config.country]; // market specific box name as default
 		this.debugLevel = this.config.debugLevel || 0; // debugLevel defaults to 0 (minimum)
 		this.inputs = [];
-		this.enabledServices = [];
+		this.configuredInputs = [];
 		this.inputServices = [];
 		this.playing = true;
 		// set one of the three suitable accessory categories
@@ -227,15 +234,19 @@ class eosstbDevice {
 		}
 
 		//setup variables
-		this.mqtttSessionActive = false;
+		this.mqttSessionActive = false;
 		this.accessoryConfigured = false;
 		this.sessionCreated = false;
-		this.currentMediaState = Characteristic.CurrentMediaState.PLAY;
+		
 		this.targetMediaState = Characteristic.TargetMediaState.STOP;
 
-		// initial power state. Will be set by mqtt message
-		currentPowerState = Characteristic.Active.INACTIVE;
+
+		// initial states. Will be updated by mqtt message
+		mqttIsSubscribed = false;
 		currentSessionState = SessionState.NOT_CREATED;
+		currentPowerState = Characteristic.Active.INACTIVE;
+		currentChannelId = NO_INPUT;
+		currentMediaState = Characteristic.CurrentMediaState.STOP;
 
 		//check if prefs directory ends with a /, if not then add it
 		//this.prefDir = path.join(api.user.storagePath(), 'eos'); // not in use yet
@@ -273,7 +284,7 @@ class eosstbDevice {
 		this.checkStateInterval = setInterval(this.updateDeviceState.bind(this),STB_STATE_POLLING_INTERVAL_MS);
 
 		// refresh channel list every 30 seconds as channel lists do not change often
-		this.checkChannelInterval = setInterval(this.loadAllChannels.bind(this),LOAD_CHANNEL_REFRESH_INTERVAL_S * 1000);
+		this.checkChannelInterval = setInterval(this.loadAllChannels.bind(this),LOAD_CHANNEL_REFRESH_CHECK_INTERVAL_S * 1000);
 
 	}
 
@@ -308,9 +319,10 @@ class eosstbDevice {
 			// only continue if a session was created
 			if (!this.sessionCreated) { return; }
 
-			this.log("Using stbtype",this.stbType); 
-			this.log("Using smartCardId",this.smartCardId); 
-			this.log("Using physicalDeviceId",this.physicalDeviceId); 
+			if (this.config.debugLevel > 2) {
+				this.log.warn('Session data retrieved from Session',this.sessionData);
+			}
+			// timeToIdleSeconds: 7200, // should use this for session control
 
 			// use defaults of plugin/platform name & version
 			// override with device details when loaded
@@ -327,6 +339,7 @@ class eosstbDevice {
 
 			// perform an initial load of all channels and set the initial device state
 			this.loadAllChannels();
+			this.getUiStatus();
 			this.updateDeviceState();
 
 		}).catch((error) => { 
@@ -470,10 +483,11 @@ class eosstbDevice {
 			this.log.warn('prepareInputSourceServices');
 		}
 		// loop MAX_INPUT_SOURCES times to get the first MAX_INPUT_SOURCES channels
-		// absolute max 100 services (less those already loaded)
-		let maxSources = this.config.maxChannels || MAX_INPUT_SOURCES;
-		for (let i = 0; i < Math.min(maxSources, MAX_INPUT_SOURCES); i++) {
-			if (this.config.debugLevel > 1) {
+		// absolute max 99 services (less those already loaded)
+		// robustness: hard limit to 96 (channels 0...95) in case user does a stupid config
+		let maxSources = Math.min(this.config.maxChannels || MAX_INPUT_SOURCES, MAX_INPUT_SOURCES, 96);
+		for (let i = 0; i < maxSources; i++) {
+			if (this.config.debugLevel > 2) {
 				this.log.warn('prepareInputSourceServices Adding service',i);
 			}
 
@@ -482,7 +496,7 @@ class eosstbDevice {
 			this.inputService
 				// setup the input source as not configured and hidden initially until loaded by loadAllChannels
 				.setCharacteristic(Characteristic.Identifier, i)
-				.setCharacteristic(Characteristic.ConfiguredName, `Input ${i < 9 ? `0${i + 1}` : i + 1}`)
+				.setCharacteristic(Characteristic.ConfiguredName, `Input ${i < 9 ? `0${i + 1}` : i + 1}`) // store Input 01...Input 99.
 				.setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.TUNER)
 				//.setCharacteristic(Characteristic.InputDeviceType, Characteristic.InputDeviceType.TUNER)
 				.setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.NOT_CONFIGURED) // initially not configured NOT_CONFIGURED. Testing with CONFIGURED
@@ -492,12 +506,14 @@ class eosstbDevice {
 			this.inputService
 				.getCharacteristic(Characteristic.ConfiguredName)
 				.on('set', (value, callback) => {
-					callback(null, value);
-				}
-			);
+					// fired by the user changing a channel name in Home app accessory setup
+					// we cannot handle this as we don't know which channel got renamed, as a user can change them all to the same name
+					this.setInputName(value, callback);
+					//callback(null);
+				});
 
 			this.inputServices.push(this.inputService);
-			this.enabledServices.push(this.inputService); // not used yet, keep for future use
+			this.configuredInputs.push(this.inputService); // used to store user-vonfigured inputs (renamed))
 			this.accessory.addService(this.inputService);
 			this.televisionService.addLinkedService(this.inputService);
 
@@ -515,96 +531,75 @@ class eosstbDevice {
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// get session (new)
-	async getSessionNew() {
+	async getSession() {
 		// a new version of getSession, not yet active
-		if (this.config.debugLevel > 0) {
-			this.log.warn('getSession');
-		}
-		this.log('Creating session...');
-		currentSessionState = SessionState.LOADING;
-
-		const axiosConfig = {
-			method: 'GET',
-			url: countryBaseUrlArray[this.config.country].concat('/session'),
-			data: {
-				'usernmae':this.config.username,
-				'password':this.config.password
-			}
-		};
-
-		axiosWS(axiosConfig)
-			.then(response => {	
-				this.log('getSession response',response.status, response.statusText);
-				
-				// get device data from the session
-				this.householdId = response.data.customer.householdId;
-				this.stbType = response.data.customer.stbType;
-				this.smartCardId = response.data.customer.smartCardId;
-				this.physicalDeviceId = response.data.customer.physicalDeviceId;
-
-				if (this.config.debugLevel > 0) {
-					this.log.warn('getSession: sessionJson.customer',sessionJson.customer);			
-				}
-
-				this.getJwtToken(response.data.oespToken, response.data.customer.householdId);
-				this.log('Session created');
-				return true;
-			})
-			.catch(error => {
-				this.log.warn('getSession error:', error);
-				return false;
-			});		
-		//return sessionJson || false;
-	}
-
-	// get session (generic, vaild for CH, AT and NL countries)
-	async getSession(callback) {
 		if (this.config.debugLevel > 0) {
 			this.log.warn('getSession');
 		}
 		this.log('Creating %s session...',PLATFORM_NAME);
 		currentSessionState = SessionState.LOADING;
 
-		// set the request options
-		sessionRequestOptions.uri = countryBaseUrlArray[this.config.country].concat('/session');
-		sessionRequestOptions.body.username = this.config.username;
-		sessionRequestOptions.body.password = this.config.password;
-		//this.log.warn('getSession: sessionRequestOptions',sessionRequestOptions);
-		
-		currentSessionState = SessionState.LOGGING_IN;
-		request(sessionRequestOptions)
-			.then((json) => {
-				currentSessionState = SessionState.VERIFYING;
-				var responseData = json;
-				if (this.config.debugLevel > 0) {
-					this.log.warn('getSession: responseData.customer',responseData.customer);			
-				}
+		const axiosConfig = {
+			method: 'POST',
+			url: countryBaseUrlArray[this.config.country].concat('/session'),
+			data: {
+				'username':this.config.username,
+				'password':this.config.password
+			}
+		};
 
+		// robustness: fail if url missing
+		if (!axiosConfig.url) {
+			this.log.warn('getSession: axiosConfig.url empty!');
+			currentSessionState = SessionState.NOT_CREATED;
+			return false;						
+		}
+		
+		axiosWS(axiosConfig)
+			.then(response => {	
+				this.log('getSession response',response.status, response.statusText);
+				//this.log('getSession: response',response);
+				
 				// get device data from the session
-				this.householdId = responseData.customer.householdId;
-				this.stbType = responseData.customer.stbType;
-				this.smartCardId = responseData.customer.smartCardId;
-				this.physicalDeviceId = responseData.customer.physicalDeviceId;
-				if (responseData.customer.physicalDeviceId) {
+				this.sessionData = response.data;
+				this.customer = response.data.customer;
+				//this.log('getSession: 3 customer',this.customer);
+				this.householdId = response.data.customer.householdId;
+				this.stbType = response.data.customer.stbType;
+				this.smartCardId = response.data.customer.smartCardId;
+				this.physicalDeviceId = response.data.customer.physicalDeviceId;
+				deviceId = response.data.customer.physicalDeviceId;
+				if (response.data.customer.physicalDeviceId) {
 					currentSessionState = SessionState.AUTHENTICATED;
 				}
 
+				if (this.config.debugLevel > 2) {
+					this.log.warn('getSession: response.data.customer',response.data.customer);			
+				}
+
 				// get the Jwt Token
-				this.getJwtToken(responseData.oespToken, this.householdId);
+				this.getJwtToken(response.data.oespToken, response.data.customer.householdId);
 				this.log('Session created');
 				this.sessionCreated = true
 				currentSessionState = SessionState.CREATED;
 				return true;
 			})
-			.catch((err) => {
+			.catch(error => {
 				currentSessionState = SessionState.NOT_CREATED;
 				this.sessionCreated = false;
-				this.log('Failed to create session - check your internet connection.');
-				this.log.debug('getSession Error:', err.message); // likely invalid credentials
-			});
+				if (!error.response) {
+					this.log('Failed to create session - check your internet connection.');
+				} else if (error.response.status == 400) {
+					this.log('Failed to create session - check your %s %s username and password.',this.config.name,PLATFORM_NAME);
+					this.log.warn('getSession: Failed to create session: error.response.statusText:',error.response.status,error.response.statusText);
+				}
+				this.log.debug('getSession: Failed to create session: error:',error);
+				return false;
+			});		
 		currentSessionState = SessionState.NOT_CREATED;
 		return false;
 	}
+
 
 	// get session for BE only (special logon sequence)
 	async getSessionBE() {
@@ -686,7 +681,12 @@ class eosstbDevice {
 								this.log('Step 3 response.headers.location:',response.headers.location); 
 								//this.log('Step 3 response.headers:',response.headers);
 								var url = response.headers.location;
-								if (url)
+								if (!url) {		// robustness: fail if url missing
+									this.log.warn('getSessionBE: Step 3: location url empty!');
+									currentSessionState = SessionState.NOT_CREATED;
+									return false;						
+								}
+
 								//location is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
 								//location is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
 								//location is https://login.prd.telenet.be/openid/login?error=session_expired if session has expired
@@ -714,87 +714,99 @@ class eosstbDevice {
 											this.log('Step 4 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
 											//this.log('Step 4 response.headers:',response.headers);
 											url = response.headers.location;
-											if (url) {	// robustness: check url only if not null
-												// look for login_success?code=
-												if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
-													this.log.warn('Step 4 Unable to login: wrong credentials');
-												} else if (url.indexOf('error=session_expired') > 0 ) {
-													this.log.warn('Step 4 Unable to login: session expired');
-													cookieJar.removeAllCookies();	// remove all the locally cached cookies
-													this.sessionCreated = false;	// flag the session as dead
+											if (!url) {		// robustness: fail if url missing
+												this.log.warn('getSessionBE: Step 4: location url empty!');
+												currentSessionState = SessionState.NOT_CREATED;
+												return false;						
+											}
+
+											// look for login_success?code=
+											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
+												this.log.warn('Step 4 Unable to login: wrong credentials');
+											} else if (url.indexOf('error=session_expired') > 0 ) {
+												this.log.warn('Step 4 Unable to login: session expired');
+												cookieJar.removeAllCookies();	// remove all the locally cached cookies
+												this.sessionCreated = false;	// flag the session as dead
+											} else {
+
+												// Step 5: # obtain authorizationCode
+												this.log.warn('Step 5 extract authorizationCode');
+												url = response.headers.location;
+												if (!url) {		// robustness: fail if url missing
+													this.log.warn('getSessionBE: Step 5: location url empty!');
+													currentSessionState = SessionState.NOT_CREATED;
+													return false;						
+												}
+	
+												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
+												var authorizationCode = codeMatches[1];
+												if (codeMatches.length !== 2 ) { // length must be 2 if code found
+													this.log.warn('Step 5 Unable to extract authorizationCode');
 												} else {
+													this.log('Step 5 authorizationCode:',authorizationCode);
 
-													// Step 5: # obtain authorizationCode
-													this.log.warn('Step 5 extract authorizationCode');
-													url = response.headers.location;
-													var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
-													var authorizationCode = codeMatches[1];
-													if (codeMatches.length !== 2 ) { // length must be 2 if code found
-														this.log.warn('Step 5 Unable to extract authorizationCode');
-													} else {
-														this.log('Step 5 authorizationCode:',authorizationCode);
-
-														// Step 6: # authorize again
-														this.log.warn('Step 6 post auth data to',apiAuthorizationUrl);
-														currentSessionState = SessionState.AUTHENTICATING;
-														payload = {'authorizationGrant':{
-															'authorizationCode':authorizationCode,
-															'validityToken':authValidtyToken,
-															'state':authState
-														}};
-														this.log('Cookies for the session:',cookieJar.getCookies(apiAuthorizationUrl));
-														axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
-															.then(response => {	
-																this.log('Step 6 response.status:',response.status, response.statusText);
+													// Step 6: # authorize again
+													this.log.warn('Step 6 post auth data to',apiAuthorizationUrl);
+													currentSessionState = SessionState.AUTHENTICATING;
+													payload = {'authorizationGrant':{
+														'authorizationCode':authorizationCode,
+														'validityToken':authValidtyToken,
+														'state':authState
+													}};
+													this.log('Cookies for the session:',cookieJar.getCookies(apiAuthorizationUrl));
+													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
+														.then(response => {	
+															this.log('Step 6 response.status:',response.status, response.statusText);
 																
-																auth = response.data;
-																//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
-																this.log('Step 6 refreshToken:',auth.refreshToken);
+															auth = response.data;
+															//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
+															this.log('Step 6 refreshToken:',auth.refreshToken);
 
-																// Step 7: # get OESP code
-																this.log.warn('Step 7 post refreshToken request to',apiAuthorizationUrl);
-																payload = {'refreshToken':auth.refreshToken,'username':auth.username};
-																var sessionUrl = countryBaseUrlArray[this.config.country].concat('/session');
-																axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
-																	.then(response => {	
-																		this.log('Step 7 response.status:',response.status, response.statusText);
-																		currentSessionState = SessionState.VERIFYING;
-																		this.log.warn('Successfully authenticated'); 
+															// Step 7: # get OESP code
+															this.log.warn('Step 7 post refreshToken request to',apiAuthorizationUrl);
+															payload = {'refreshToken':auth.refreshToken,'username':auth.username};
+															var sessionUrl = countryBaseUrlArray[this.config.country].concat('/session');
+															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
+																.then(response => {	
+																	this.log('Step 7 response.status:',response.status, response.statusText);
+																	currentSessionState = SessionState.VERIFYING;
+																	this.log.warn('Successfully authenticated'); 
 																		
-																		this.log('Step 7 response.headers:',response.headers); 
-																		this.log('Step 7 response.data:',response.data); 
-																		this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
+																	this.log('Step 7 response.headers:',response.headers); 
+																	this.log('Step 7 response.data:',response.data); 
+																	this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
 
-																		// get device data from the session
-																		this.householdId = response.data.customer.householdId;
-																		this.stbType = response.data.customer.stbType;
-																		this.smartCardId = response.data.customer.smartCardId;
-																		this.physicalDeviceId = response.data.customer.physicalDeviceId;
-																		if (response.data.customer.physicalDeviceId) {
-																			currentSessionState = SessionState.AUTHENTICATED;
-																		}
+																	// get device data from the session
+																	this.customer = response.data.customer;
+																	this.householdId = response.data.customer.householdId;
+																	this.stbType = response.data.customer.stbType;
+																	this.smartCardId = response.data.customer.smartCardId;
+																	this.physicalDeviceId = response.data.customer.physicalDeviceId;
+																	deviceId = response.data.customer.physicalDeviceId;
+																	if (response.data.customer.physicalDeviceId) {
+																		currentSessionState = SessionState.AUTHENTICATED;
+																	}
 
-																		// now get the Jwt token
-																		// all subscriber data is in the response.data.customer
-																		// can get smartCardId, physicalDeviceId, stbType, and more
-																		this.log('Getting jwtToken for householdId',response.data.customer.householdId);
-																		this.getJwtToken(response.data.oespToken, response.data.customer.householdId);
-																		currentSessionState = SessionState.CREATED;
-																		this.log('Session created');
-																		return false;
-																	})
-																	// Step 7 http errors
-																	.catch(error => {
-																		this.log.warn("Step 7 Unable to get OESP token, http error:",error);
-																	});
-															})
-															// Step 6 http errors
-															.catch(error => {
-																this.log.warn("Step 6 Unable to authorize with oauth code, http error:",error);
-															});	
+																	// now get the Jwt token
+																	// all subscriber data is in the response.data.customer
+																	// can get smartCardId, physicalDeviceId, stbType, and more
+																	this.log('Getting jwtToken for householdId',response.data.customer.householdId);
+																	this.getJwtToken(response.data.oespToken, response.data.customer.householdId);
+																	currentSessionState = SessionState.CREATED;
+																	this.log('Session created');
+																	return false;
+																})
+																// Step 7 http errors
+																.catch(error => {
+																	this.log.warn("Step 7 Unable to get OESP token, http error:",error);
+																});
+														})
+														// Step 6 http errors
+														.catch(error => {
+															this.log.warn("Step 6 Unable to authorize with oauth code, http error:",error);
+														});	
 													};
 												};
-											};
 										})
 										// Step 4 http errors
 										.catch(error => {
@@ -911,6 +923,11 @@ class eosstbDevice {
 								this.log('Step 3 response.headers.location:',response.headers.location); 
 								//this.log('Step 3 response.headers:',response.headers);
 								var url = response.headers.location;
+								if (!url) {		// robustness: fail if url missing
+									this.log.warn('getSessionGB: Step 3: location url empty!');
+									currentSessionState = SessionState.NOT_CREATED;
+									return false;						
+								}								
 								//location is h??=... if success
 								//location is https?? if not authorised
 								//location is https:... error=session_expired if session has expired
@@ -938,6 +955,12 @@ class eosstbDevice {
 											this.log('Step 4 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
 											//this.log('Step 4 response.headers:',response.headers);
 											url = response.headers.location;
+											if (!url) {		// robustness: fail if url missing
+												this.log.warn('getSessionGB: Step 4: location url empty!');
+												currentSessionState = SessionState.NOT_CREATED;
+												return false;						
+											}								
+			
 											// look for login_success?code=
 											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
 												this.log.warn('Step 4 Unable to login: wrong credentials');
@@ -950,6 +973,12 @@ class eosstbDevice {
 												// Step 5: # obtain authorizationCode
 												this.log.warn('Step 5 extract authorizationCode');
 												url = response.headers.location;
+												if (!url) {		// robustness: fail if url missing
+													this.log.warn('getSessionGB: Step 5: location url empty!');
+													currentSessionState = SessionState.NOT_CREATED;
+													return false;						
+												}								
+				
 												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
 												var authorizationCode = codeMatches[1];
 												if (codeMatches.length !== 2 ) { // length must be 2 if code found
@@ -989,10 +1018,12 @@ class eosstbDevice {
 																	this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
 
 																	// get device data from the session
+																	this.customer = response.data.customer;
 																	this.householdId = response.data.customer.householdId;
 																	this.stbType = response.data.customer.stbType;
 																	this.smartCardId = response.data.customer.smartCardId;
 																	this.physicalDeviceId = response.data.customer.physicalDeviceId;
+																	deviceId = response.data.customer.physicalDeviceId;
 																	if (response.data.customer.physicalDeviceId) {
 																		currentSessionState = SessionState.AUTHENTICATED;
 																	}
@@ -1092,9 +1123,9 @@ class eosstbDevice {
 
 	// start the mqtt client and handle mqtt messages
 	startMqttClient(parent) {
-		this.log('Starting mqtt client...');
+		this.log('Starting mqttClient...');
 		if (currentSessionState !== SessionState.CREATED) {
-			this.log.warn('Cannot start mqtt client: currentSessionState incorrect:', currentSessionState);
+			this.log.warn('Cannot start mqttClient: currentSessionState incorrect:', currentSessionState);
 			return false;
 		}
 
@@ -1111,147 +1142,58 @@ class eosstbDevice {
 		mqttClient.on('connect', function () {
 			parent.log('mqttClient: Connected');
 
-			// subscribe to base householdId
-			mqttClient.subscribe(mqttUsername, function (err) {
-				if(!err){
-					parent.log('mqttClient: Subscribed to',mqttUsername);
-				} else {
-					parent.log('mqttClient subscribe: Error:',err);
-					return false;
-				}
-			});
+			// subscribe to householdId/personalizationService
+			//do not think we need this....
+			//parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
 
-			// subscribe to base householdId/+/status
-			mqttClient.subscribe(mqttUsername + '/+/status', function (err) {
-				if(!err){
-					parent.log('mqttClient: Subscribed to topic',mqttUsername + '/+/status');
-				} else {
-					parent.log('mqttClient connect: subscribe to status: Error:',err);
-					return false;
-				}
-			});
+			// subscribe to householdId
+			parent.mqttSubscribeToTopic(mqttUsername);
 
-			// subscribe to base householdId/personalizationService
-			mqttClient.subscribe(mqttUsername + '/personalizationService', function (err) {
-				if(!err){
-					parent.log('mqttClient: Subscribed to topic',mqttUsername + '/personalizationService');
-				} else {
-					parent.log('mqttClient connect: subscribe to personalizationService: Error:',err);
-					return false;
-				}
-			});
-			
-			// once all subscriptions are in, send the first getUiStatus request
-			parent.log.debug('mqttClient: requesting first getUiStatus call');
-			parent.getUiStatus();
+			// subscribe to householdId/+/status
+			// get status of all devices from this householdId, including type HGO (web browser)
+			parent.mqttSubscribeToTopic(mqttUsername + '/+/status');
 
-			/*
-			mqttClient.subscribe(mqttUsername +'/watchlistService', function (err) {
-				if(!err){
-					parent.log('mqttClient: Subscribed to topic',mqttUsername +'/watchlistService');
-				} else {
-					parent.log('mqttClient connect: subscribe to watchlistService: Error:',err);
-					return false;
-				}
-			});
-			*/
+
 			
 			// mqtt client event: message received
 			mqttClient.on('message', function (topic, payload) {
-				// many messages occur. Be careful ith logging otherwise logs will be flooded
-				this.mqtttSessionActive = true;
-				let payloadValue = JSON.parse(payload);
+				// many messages occur. Be careful with logging otherwise logs will be flooded
+				this.mqttSessionActive = true;
+				let mqttMessage = JSON.parse(payload);
 				if (parent.config.debugLevel > 0) {
-					parent.log.warn('mqttClient: Received Message: Topic:',topic);
-				}
-				if (parent.config.debugLevel > 2) {
-					parent.log.warn('mqttClient: Received Message: Message:',payloadValue);
+					parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: \r\n%s',topic,mqttMessage);
 				}
 				
-				// check if this status message is for the desired EOSSTB
-				if(topic.startsWith(mqttUsername) && topic.includes('-EOSSTB-')){
-					parent.log('mqttClient: EOSSTB topic detected:',topic)
+				// check if mqttMessage.deviceType exists
+				// multiple devices can exist!
+				if (mqttMessage.deviceType) {
+					// got some deviceType, mqtt is running, subscribe once onlz
+					if (mqttIsSubscribed == false) {
+
+						// subscribe to our own generated unique householdId/varClientId and everything for our box
+						parent.mqttSubscribeToTopic(mqttUsername + '/' + varClientId);
+						// subscribe to our householdId/deviceId
+						parent.mqttSubscribeToTopic(mqttUsername + '/' + deviceId);
+						// subscribe to our householdId/deviceId/status
+						parent.mqttSubscribeToTopic(mqttUsername + '/' + deviceId + '/status');
+
+						mqttIsSubscribed = true;
+
+					}
 				}
 				
-				//parent.log('mqttClient message: payloadValue.type',payloadValue.type);
-				//parent.log('mqttClient message: payloadValue.status',payloadValue.status);
-				//parent.log('mqttClient message: payloadValue:',payloadValue);
-				//parent.log('mqttClient message: payloadValue.status',payloadValue.status);
-				//parent.log('mqttClient message: payloadValue.deviceType',payloadValue.deviceType);
-				//parent.log('mqttClient message: payloadValue.source',payloadValue.source); // use as serial number
-				//parent.log('mqttClient message: payloadValue.mac',payloadValue.mac);
-				//parent.log('mqttClient message: payloadValue.state',payloadValue.state);
 
-				// check if payloadValue.deviceType exists
-				// deviceType exists in Topic: 1076582_ch/2E59F6E9-8E23-41D2-921D-C13CA269A3BC/status
-				// Topic: 1076582_ch/3C36E4-EOSSTB-003656579806/status  
-				// multiple devices exist!
-				if (payloadValue.deviceType){
-					// got some deviceType, but which one?
-						
-					// check if this is the wanted settopboxId and that payloadValue.deviceType value = STB
-					// wanted = defined and correct, or not defined
-					//if(((payloadValue.source == parent.config.settopboxId) || (typeof parent.config.settopboxId === 'undefined'))
-					//	&& (payloadValue.deviceType == 'STB')) {
-					if (payloadValue.deviceType == 'STB'){
-						// got the STB device type, but which STB?
-						
-						// set or detect the settopboxId but only once
-						if (typeof settopboxId === 'undefined'){
-							if (typeof parent.config.settopboxId === 'undefined') {
-								settopboxId = payloadValue.source;
-								parent.log('mqttClient: Auto-configured settopboxId to',settopboxId);
-							} else {
-								settopboxId = parent.config.settopboxId;
-								parent.log('settopboxId configured, using', settopboxId);
-							}
-						}
-						parent.log('Using settopBoxId',settopboxId);
-
-						
-						// subscribe to our own generated unique varClientId
-						mqttClient.subscribe(mqttUsername + '/' + varClientId, function (err) {
-							if(err){
-								parent.log('mqttClient subscribe to varClientId Error:',err);
-								return false;
-							} else {
-								parent.log('mqttClient: Subscribed to topic',mqttUsername + '/' + varClientId);
-							}
-						});
-
-						mqttClient.subscribe(mqttUsername + '/' + settopboxId, function (err) {
-							if(err){
-								parent.log('mqttClient subscribe to settopboxId Error:',err);
-								return false;
-							} else {
-								parent.log('mqttClient: Subscribed to topic',mqttUsername + '/' + settopboxId);
-							}
-						});
-
-						mqttClient.subscribe(mqttUsername + '/' + settopboxId +'/status', function (err) {
-							if(err){
-								parent.log('mqttClient subscribe to settopbox status Error:',err);
-								return false;
-							} else {
-								parent.log('mqttClient: Subscribed to topic',mqttUsername + '/' + settopboxId +'/status');
-							}
-						});
-
-						parent.log.debug('mqttClient: Received Message STB status: currentPowerState:',currentPowerState);
-
-					} // end of if deviceType=STB
-				}
-
-
-				// check if payloadValue.deviceType = STB, make sure it is for the wanted settopboxId
+				// check if mqttMessage.deviceType = STB, make sure it is for the wanted deviceId
 				// Topic: 1076582_ch/3C36E4-EOSSTB-003656579806/status
 				// Message: {"deviceType":"STB","source":"3C36E4-EOSSTB-003656579806","state":"ONLINE_RUNNING","mac":"F8:F5:32:45:DE:52","ipAddress":"192.168.0.33/255.255.255.0"}
-				if((payloadValue.deviceType == 'STB') && (payloadValue.source == settopboxId)) {
-					parent.log.debug('mqttClient: Received Message of deviceType STB for',payloadValue.source,'Detecting currentPowerState');
-					parent.log.debug('mqttClient: Power state:',payloadValue.deviceType, payloadValue.state);
+				if (topic.includes(deviceId + '/status')) {
+				//if((mqttMessage.deviceType == 'STB') && (mqttMessage.source == deviceId)) {
+					parent.log.debug('mqttClient: Received Message of deviceType STB for',mqttMessage.source,'Detecting currentPowerState');
+					parent.log.debug('mqttClient: Power state:',mqttMessage.deviceType, mqttMessage.state);
 					var varTargetPowerState = null;
-					if (payloadValue.state == 'ONLINE_RUNNING') { 				// ONLINE_RUNNING: power is on
+					if (mqttMessage.state == 'ONLINE_RUNNING') { 				// ONLINE_RUNNING: power is on
 						varTargetPowerState = Characteristic.Active.ACTIVE; 
+						parent.getUiStatus();									// update the UI status only if turned on
 					} else {													// ONLINE_STANDBY or OFFLINE: power is off
 						varTargetPowerState = Characteristic.Active.INACTIVE; 
 					}
@@ -1259,68 +1201,71 @@ class eosstbDevice {
 					// check if power state changed
 					if (currentPowerState !== varTargetPowerState) {
 						currentPowerState = varTargetPowerState;
-						parent.log('Power changed to:',(currentPowerState ? "On" : "Off"));
+						parent.log('Power changed to:',currentPowerState, powerState[currentPowerState]);
 						if (parent.televisionService) {
-							// change only if configured, use.getCharacteristic(charName).updateValue(someValue) to provide fast realtime updates
+							// change only if configured
+							// HomeKit polls every 2 minutes, so use.getCharacteristic(charName).updateValue(someValue) to provide fast realtime updates
 							parent.televisionService.getCharacteristic(Characteristic.Active).updateValue(currentPowerState);
 						}
 					}
 				}
 
 				
-				// check if payloadValue.type exists, look for CPE.uiStatus, make sure it is for the wanted settopboxId
+				// check if mqttMessage.type exists, look for CPE.uiStatus, make sure it is for the wanted deviceId
 				// type exists in Topic: 1076582_ch/jrtmev583ijsntldvrk1fl95c6nrai
 				// CPE.uiStatus shows us the currently selected channel on the stb, and occurs in many topics
 				// Topic: 1076582_ch/vy9hvvxo8n6r1t3f4e05tgg590p8s0
 				// Message: {"version":"1.3.10","type":"CPE.uiStatus","source":"3C36E4-EOSSTB-003656579806","messageTimeStamp":1607205483257,"status":{"uiStatus":"mainUI","playerState":{"sourceType":"linear","speed":1,"lastSpeedChangeTime":1607203130936,"source":{"channelId":"SV09259","eventId":"crid:~~2F~~2Fbds.tv~~2F394850976,imi:3ef107f9a95f37e5fde84ee780c834b502be1226"}},"uiState":{}},"id":"fms4mjb9uf"}
 				if (parent.config.debugLevel > 1) {
-					parent.log.warn('mqttClient: Detecting currentChannelId: payloadValue',payloadValue);
-					parent.log.warn('mqttClient: Detecting currentChannelId: payloadValue.type',payloadValue.type, 'payloadValue.source',payloadValue.source);
+					parent.log.warn('mqttClient: Detecting currentChannelId: mqttMessage.type',mqttMessage.type, 'mqttMessage.source',mqttMessage.source);
 				}
-				if ((payloadValue.type == 'CPE.uiStatus') && (payloadValue.source == settopboxId)) {
-					//parent.log('mqttClient: Received Message of type CPE.uiStatus for',payloadValue.source,'Detecting playerState');
-					if (payloadValue.status.uiStatus == 'mainUI') {
-						// grab the status part of the payloadValue object as we cannot go any deeper with json
-						//let playerStateSource = payloadValue.status.playerState.source;
-						let playerState = payloadValue.status.playerState;
+				if ((mqttMessage.type == 'CPE.uiStatus') && (mqttMessage.source == deviceId)) {
+					parent.log.debug('mqttClient: Received Message of type CPE.uiStatus for',mqttMessage.source,'Detecting playerState');
+					parent.log.debug('mqttClient: mqttMessage.status',mqttMessage.status);
+					if (mqttMessage.status.uiStatus == 'mainUI') {
+						// grab the status part of the mqttMessage object as we cannot go any deeper with json
+						let playerState = mqttMessage.status.playerState;
 
 						if (parent.config.debugLevel > 0) {
-							parent.log('mqttClient: Detected current playerState.speed:', playerState.speed);
+							parent.log('mqttClient: Detected mqtt current playerState.speed:', playerState.speed);
 						}
 
-						// use.getCharacteristic(charName).updateValue(someValue) to provide fast realtime updates
-						// set the CurrentMediaState to one of 0=PLAY 1=PAUSE 2=STOP 3=LOADING 4=INTERRUPTED
-						// set the TurrentMediaState to one of 0=PLAY 1=PAUSE 2=STOP
-						// but only if configured. Must always set a value. Never set null.
-						// speed can be one of: -64 -30 -6 -2 0 2 6 30 64
-						// where 0 is pause, 1 is play, and 2/6/30/64 are speed. positive = fastforward, negative = rewind
+						// get playerState.speed (shows if playing or paused)
+						// speed can be one of: -64 -30 -6 -2 0 2 6 30 64. 0=Paused, 1=Play, >1=FastForward, <0=Rewind
 						if (parent.televisionService) {
+							var mediaStateChanged = false;
 							switch (playerState.speed) {
-								case 0:
-									// speed 0 is PAUSE
-									inputService.getCharacteristic(Characteristic.IsConfigured).updateValue(Characteristic.IsConfigured.CONFIGURED);
-									if (this.currentMediaState !== Characteristic.CurrentMediaState.PAUSE) {
-										parent.log('mqttClient: setting CurrentMediaState to PAUSE');
-										this.currentMediaState = Characteristic.CurrentMediaState.PAUSE;
-										parent.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.currentMediaState);
-										parent.televisionService.getCharacteristic(Characteristic.TargetMediaState).updateValue(this.currentMediaState);
+								case 0:		// speed 0 is PAUSE
+									if (currentMediaState !== Characteristic.CurrentMediaState.PAUSE) {
+										currentMediaState = Characteristic.CurrentMediaState.PAUSE;
+										mediaStateChanged = true;
 									}
 									break;
-								default:
-									// register all other speeds as PLAY (-64 -30 -6 1 2 6 30 64)
-									if (this.currentMediaState !== Characteristic.CurrentMediaState.PLAY) {
-										parent.log('mqttClient: setting CurrentMediaState to PLAY');
-										this.currentMediaState = Characteristic.CurrentMediaState.PLAY;
-										parent.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.currentMediaState);
-										parent.televisionService.getCharacteristic(Characteristic.TargetMediaState).updateValue(this.currentMediaState);
+								default:	// register all other speeds as PLAY (-64 -30 -6 1 2 6 30 64)
+									if (currentMediaState !== Characteristic.CurrentMediaState.PLAY) {
+										currentMediaState = Characteristic.CurrentMediaState.PLAY;
+										mediaStateChanged = true;
 									}
 									break;
 							}
+							if (mediaStateChanged) {
+								parent.log('mqttClient: setting currentMediaState to', currentMediaState, mediaState[currentMediaState]);
+								parent.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(currentMediaState);
+								parent.televisionService.getCharacteristic(Characteristic.TargetMediaState).updateValue(currentMediaState);
+							};
+
 						}
 
-						currentChannelId = playerState.source.channelId;
-						if (parent.config.debugLevel > 2) {
-							parent.log.debug('mqttClient: Detected current channel:', currentChannelId);
+						// get channelId (current playing channel)
+						var varChannelId = playerState.source.channelId;
+						if (parent.config.debugLevel > 0) {
+							parent.log('mqttClient: Detected mqtt current channelId: %s, currentChannelId: %s', varChannelId, currentChannelId);
+						}
+						// check if channelId changed
+						if (currentChannelId !== varChannelId) {
+							currentChannelId = varChannelId;
+							parent.log('ChannelId changed to:',currentChannelId);
+							parent.updateDeviceState();
 						}
 					}
 				}
@@ -1348,7 +1293,7 @@ class eosstbDevice {
 			mqttClient.on('close', function () {
 				parent.log.warn('mqttClient: Connection closed');
 				mqttClient.end();
-				this.mqtttSessionActive = false;
+				this.mqttSessionActive = false;
 				return false;
 			});
 		}); // end of mqttClient.on('connect' ...
@@ -1356,12 +1301,34 @@ class eosstbDevice {
 	} // end of startMqttClient
 
 
+	// publish an mqtt message, with logging, to help in debugging
+	mqttPublishMessage(Topic,Message) {
+		if (this.config.debugLevel > 0) {
+			this.log.warn('mqttClient: Publish Message:\r\nTopic: %s\r\nMessage: %s', Topic, Message);
+		}
+		mqttClient.publish(Topic,Message);
+	}
+
+	// subscribe to an mqtt message, with logging, to help in debugging
+	mqttSubscribeToTopic(Topic) {
+		this.log('mqttClient: Subscribe to topic:',Topic);
+		mqttClient.subscribe(Topic, function (err) {
+			if(err){
+				this.log('mqttClient connect: subscribe to %s Error %s:',Topic,err);
+				return false;
+			}
+		});
+	}
+
 	// send a channel change request to the settopbox via mqtt
 	switchChannel(channelId) {
 		if (this.config.debugLevel > 0) {
 			this.log.warn('switchChannel channelId:', channelId);
 		}
-		mqttClient.publish(mqttUsername + '/' + settopboxId, '{"id":"' + makeId(8) + '","type":"CPE.pushToTV","source":{"clientId":"' + varClientId + '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' + channelId + '"},"relativePosition":0,"speed":1}}');
+		this.mqttPublishMessage(
+			mqttUsername + '/' + deviceId, 
+			'{"id":"' + makeId(10) + '","type":"CPE.pushToTV","source":{"clientId":"' + varClientId + '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' + channelId + '"},"relativePosition":0,"speed":1}}'
+			);
 	}
 
 	// send a remote control keypress to the settopbox via mqtt
@@ -1370,7 +1337,12 @@ class eosstbDevice {
 			this.log.warn('sendKey keyName:', keyName);
 		}
 		this.log('Send key:', keyName);
-		mqttClient.publish(mqttUsername + '/' + settopboxId, '{"id":"' + makeId(8) + '","type":"CPE.KeyEvent","source":"' + varClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}');
+		this.mqttPublishMessage(
+			mqttUsername + '/' + deviceId, 
+			'{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + varClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}'
+			);
+
+		//mqttClient.publish(mqttUsername + '/' + deviceId, '{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + varClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}');
 		
 		// could update profiles on every button press...
 		//this.getProfilesUpdate;
@@ -1384,15 +1356,14 @@ class eosstbDevice {
 		// gets called at every mqtt uistatus message
 		if (this.config.debugLevel > 1) {
 			this.log.warn('getUiStatus');
-			this.log.warn('getUiStatus settopboxId varClientId',settopboxId,varClientId);
+			this.log.warn('getUiStatus deviceId varClientId',deviceId,varClientId);
 		}
-		
-		mqttClient.publish(mqttUsername + '/' + settopboxId, '{"id":"' + makeId(8) + '","type":"CPE.getUiStatus","source":"' + varClientId + '"}')
-		//this.log('Get UI status mqttClient payload',mqttClient); // see the mqtt full detail if needed
-		//let mqttPayloadValue = JSON.parse(mqttClient);
-		//this.log('getUiStatus: mqtt connected:',mqttClient['connected']);
-		//this.log('getUiStatus: mqtt disconnecting:',mqttClient['disconnecting']);
-		//this.log('getUiStatus: mqtt reconnecting:',mqttClient['reconnecting']);
+		var mqttTopic = mqttUsername + '/' + deviceId;
+		var mqttMessage =  '{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + varClientId + '"}';
+		this.mqttPublishMessage(
+			mqttUsername + '/' + deviceId,
+			'{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + varClientId + '"}'
+			);
 
 	}
 
@@ -1404,9 +1375,11 @@ class eosstbDevice {
 		}
 		let mqttCmd = '{"action":"OPS.getProfilesUpdate","source":"' + varClientId + '"}';
 		this.log('sending:', mqttCmd);
-		mqttClient.publish(mqttUsername +'/personalizationService', mqttCmd);
+		this.mqttPublishMessage(
+			mqttUsername + '/personalizationService',
+			'{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + varClientId + '"}'
+			);
 
-	//		mqttClient.publish(mqttUsername +'/personalizationService', '{"action":"OPS.getProfilesUpdate","source":"' + varClientId + '"}');
 	}
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1422,52 +1395,43 @@ class eosstbDevice {
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// update the device state
-	updateDeviceState(error, status) {
-		// runs at the very start, and then every 5 seconds, so don't log it unless debugging
-		// doesn't get the data direct from the settop box, but rather gets it from the currentPowerState and currentChannelId
+	updateDeviceState(error) {
+		// runs at the very start, and then every few seconds, so don't log it unless debugging
+		// doesn't get the data direct from the settop box, but rather gets it from the currentPowerState and currentChannelId variables
 		// which are received by the mqtt messages, which occurs very often
-		// must return a uint32, must never return null
 		if (this.config.debugLevel > 1) {
-			this.log.warn('updateDeviceState');
+			this.log.warn('updateDeviceState: currentPowerState:', currentPowerState, 'currentChannelId:',currentChannelId);
 		}
 
 		// only continue if a session was created. If the internet conection is doen then we have no session
-		if (!this.sessionCreated) {
-			return null;
-		}
+		if (!this.sessionCreated) { return null; }
 
-
-		if (this.config.debugLevel > 0) {
-			this.log.warn('updateDeviceState: currentPowerState:', currentPowerState, 'currentChannelId:',currentChannelId);
-		}
-		
-		// change only if configured
+		// change only if configured, and update only if changed
 		if (this.televisionService) {
-			// update power status value (currentPowerState, 0=off, 1=on)
-			// this is an extrarobusness level if it didn't get changed in the mqtt message handling
+			if (this.config.debugLevel > 1) {
+				this.log.warn('updateDeviceState: checking currentPowerState: updating to %s if needed', currentPowerState);
+			}
+			// extra robustness level if it didn't get changed in the mqtt message handling
 			if (this.televisionService.getCharacteristic(Characteristic.Active).value !== currentPowerState) {
-					this.televisionService.getCharacteristic(Characteristic.Active).updateValue(currentPowerState);
+				this.televisionService.getCharacteristic(Characteristic.Active).updateValue(currentPowerState);
 			}
 			
-			// log the entire object to see the data!
-			// this.log('updateDeviceState: televisionService ActiveIdentifier:',this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier)),
-
-			this.inputs.filter((input, index) => {
-				//this.log('updateDeviceState: input:',input, 'index', index); // log to view the inputs
-				// input: { id: 'SV09029', name: 'SRF info HD', index: 2 }
-				// loop through all inputs until the input.id is found that matches the currentChannelId 
-				if (input.id === currentChannelId) {
-					// Update HomeKit accessory with the current input if it has changed
-					if (this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value !== index) {
-						this.log(`Current channel: ${input.name} (${input.id})`);
-						return this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(index);
-					}
-				} else {
-					// channel cannot be found, set to no channel as must never be null
-					return this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(NO_INPUT);
-				}
+			if (this.config.debugLevel > 1) {
+				this.log.warn('updateDeviceState: checking currentChannelId: updating to %s if needed', currentChannelId);
+			}
+			var foundIndex = this.inputs.findIndex(input => input.channelId === currentChannelId);
+			if (foundIndex == -1) { foundIndex = NO_INPUT } // if nothing found, set to NO_INPUT to clear the name from the Home app tile
+			if (this.config.debugLevel > 1) {
+				this.log.warn('updateDeviceState: current ActivieIdentifier is %s. Should be %s %s', 
+					this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value, 
+					foundIndex,
+					this.inputs[foundIndex]
+					);
+			}
+			if (this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value !== foundIndex) {
+				this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(foundIndex);
+			}
 			return null;
-			});
 
 		}
 	}
@@ -1479,6 +1443,14 @@ class eosstbDevice {
 		// this could be changed to call the webservice at much less frequent intervals to reduce traffic
 		if (this.config.debugLevel > 1) {
 			this.log.warn('loadAllChannels');
+		}
+
+		var now = new Date();
+		if (channelListExpiryDate > now) {
+			if (this.config.debugLevel > 1) {
+				this.log('Channel List has not expired yet. Next refresh will occur after %s', channelListExpiryDate.toLocaleString());
+			}
+			return false;
 		}
 
 		// only continue if a session was created. If the internet conection is doen then we have no session
@@ -1496,45 +1468,59 @@ class eosstbDevice {
 			}
 			
 			// call the webservice to get all available channels
-			request({ url: channelsUrl, json: true}).then(availableInputs => {
-				const sanitizedInputs = [];
-				//this.log('loadAllChannels: availableInputs.channels',availableInputs.channels.length);
-				//this.log('channel data',availableInputs.channels[197]);
-
-				let i = 0;
-				let maxSources = this.config.maxChannels || MAX_INPUT_SOURCES;
-				availableInputs.channels.forEach(function (channel) {
-					if (i < Math.min(maxSources, MAX_INPUT_SOURCES)){ // limit to the amount of channels applicable
-						sanitizedInputs.push({id: channel.stationSchedules[0].station.serviceId, name: channel.title, index: i});
+			axios.get(channelsUrl)
+				.then(response => {
+					if (this.config.debugLevel > 0) {
+						this.log.warn('Processing %s channels...', response.data.totalResults);
 					}
-					i++;
-				});
-				// store all loaded  inputs
-				this.inputs = sanitizedInputs;
-				
-				// need to cater for not-available channels. maybe??
-				this.inputs.forEach((input, i) => {
-					const inputService = this.inputServices[i];
+					channelListExpiryDate = new Date(response.data.expires);
+			
+					// load channels, limited to the amount of channels applicable, but can never exceed 96
+					const preparedChannelList = [];
+					let i = 0;
+					let maxChannels = Math.min(this.config.maxChannels || MAX_INPUT_SOURCES, MAX_INPUT_SOURCES, response.data.totalResults, 96);
+					response.data.channels.forEach(function (channel) {
+						if (i < maxChannels) { 
+							preparedChannelList.push({channelId: channel.stationSchedules[0].station.serviceId, name: channel.title, index: i});
+						}
+						i++;
+					});
+					// store the prepared channel list
+					this.inputs = preparedChannelList;
+					// store in configuredInputs if empty. configuredInputs can be changed by the user
+					if (!this.configuredInputs) {
+						this.configuredInputs = this.inputs;
+					}
 					
-					// update the input services with the name, and set to configured & shown
-					inputService.getCharacteristic(Characteristic.ConfiguredName).updateValue( `${i < 9 ? `0${i + 1}` : i + 1}` + ". " + input.name);
-					inputService.getCharacteristic(Characteristic.IsConfigured).updateValue(Characteristic.IsConfigured.CONFIGURED);
-					inputService.getCharacteristic(Characteristic.CurrentVisibilityState).updateValue(Characteristic.CurrentVisibilityState.SHOWN);
-					
-				});
-				this.log('Channel list refreshed');
+					// need to cater for not-available channels. maybe??
+					this.inputs.forEach((input, i) => {
+						const inputService = this.inputServices[i];
+						
+						// update the input services with the name, and set to configured & shown
+						// Channel name: number name, make number single digit to conserve space
+						inputService.getCharacteristic(Characteristic.ConfiguredName).updateValue(`${i + 1}` + " " + input.name);
+						//inputService.getCharacteristic(Characteristic.ConfiguredName).updateValue( `${i < 9 ? `0${i + 1}` : i + 1}` + " " + input.name);
+						inputService.getCharacteristic(Characteristic.IsConfigured).updateValue(Characteristic.IsConfigured.CONFIGURED);
+						inputService.getCharacteristic(Characteristic.CurrentVisibilityState).updateValue(Characteristic.CurrentVisibilityState.SHOWN);
+						
+					});
+					this.log('Channel List refreshed with first %s channels from maximum %s channels, valid until %s', maxChannels, response.data.totalResults, channelListExpiryDate.toLocaleString());
 
-				if (this.config.debugLevel > 3) {
-					this.log.warn('loadAllChannels: loaded inputs:',this.inputs);
-				}
-			},
-			error => {
-				this.log.warn(`Failed to get available inputs from ${this.config.name}. Please verify the EOS set-top box is connected to the LAN`);
-			}
-			);
+					if (this.config.debugLevel > 3) {
+						this.log.warn('loadAllChannels: loaded inputs:',this.inputs);
+					}
+				})
+				// Step 7 http errors
+				.catch(error => {
+					this.log.warn(`Failed to get available inputs from ${this.config.name}. Please verify the EOS set-top box is connected to the LAN`);
+					this.log.warn(`loadAllChannels error:`,error);
+					
+				});
+			//);
 		}
 		//callback();
 	}
+
 
 	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// END regular device update polling functions
@@ -1545,28 +1531,29 @@ class eosstbDevice {
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// START of accessory get/set state handlers
+	// HomeKit polls for status regularly at intervals from 2min to 15min
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// get power state
 	async getPower(callback) {
 		// fired when the user clicks away from the Remote Control, regardless of which TV was selected
-		// fired when Homekit wants to refresh the TV tile in Homekit. Refresh occurs when tile is displayed.
+		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
 		// currentPowerState is updated by the polling mechanisn
 		//this.log('getPowerState current power state:', currentPowerState);
 		if (this.config.debugLevel > 0) {
-			this.log.warn('getPower currentPowerState:',currentPowerState);
+			this.log('getPower currentPowerState:',currentPowerState, powerState[currentPowerState]);
 		}
 		callback(null, currentPowerState); // return current state: 0=off, 1=on
 	}
 
 	// set power state
 	async setPower(targetPowerState, callback) {
-		// fired when the user clicks the power button in the TV accessory in Homekit
-		// fired when the user clicks the TV tile in Homekit
+		// fired when the user clicks the power button in the TV accessory in HomeKit
+		// fired when the user clicks the TV tile in HomeKit
 		// fired when the first key is pressed after opening the Remote Control
 		// wantedPowerState is the wanted power state: 0=off, 1=on
 		if (this.config.debugLevel > 0) {
-			this.log.warn('setPower targetPowerState:',targetPowerState);
+			this.log.warn('setPower targetPowerState:',targetPowerState, powerState[targetPowerState]);
 		}
 		if(currentPowerState !== targetPowerState){
 			this.sendKey('Power');
@@ -1580,7 +1567,7 @@ class eosstbDevice {
 		if (this.config.debugLevel > 0) {
 			this.log.warn("getMute");
 		}
-		callback(true);
+		callback(null);
 	}
 
 	// set mute state
@@ -1609,8 +1596,7 @@ class eosstbDevice {
 		} else {
 			this.log('Mute command not configured');
 		}
-	
-		callback(true);
+		callback(null);
 	}
 
 	// get volume
@@ -1618,7 +1604,7 @@ class eosstbDevice {
 		if (this.config.debugLevel > 0) {
 			this.log.warn("getVolume");
 		}
-		callback(true);
+		callback(null);
 	}
 
 	// set volume
@@ -1648,50 +1634,57 @@ class eosstbDevice {
 			this.log('Set volume: Volume commands not configured');
 		}
 
-		callback(true);
+		callback(null);
 	}
 
 	// get input (TV channel)
 	async getInput(callback) {
 		// fired when the user clicks away from the iOS Device TV Remote Control, regardless of which TV was selected
-		// fired when the icon is clicked in Homekit and Homekit requests a refresh
+		// fired when the icon is clicked in HomeKit and HomeKit requests a refresh
 		// currentChannelId is updated by the polling mechanisn
 		// must return a valid index, and must never return null
 		if (this.config.debugLevel > 0) {
-			this.log.warn('getInput');
+			this.log('getInput');
 		}
-		var isDone = false;
+		var foundIndex = NO_INPUT;
 		this.inputs.filter((input, index) => {
 			// getInput input 
-			// { id: 'SV09038', name: 'SRF 1 HD', index: 0 }
-			// { id: 'SV00044', name: 'RTL plus', index: 44 }
-			//this.log(`getInput: ${input.index} ${input.name} (${input.id})`);
+			// { id: 'SV09038', name: 'SRF 1 HD', index: 0 }	{ id: 'SV00044', name: 'RTL plus', index: 44 }
+			//this.log(`getInput: ${input.index} ${input.name} (${input.channelId})`);
 			// find the currentChannelId in the inputs and return the index once found
-			// this allows Homekit to show the selected current channel
-			if (input.id === currentChannelId) {
-				this.log('Current channel:', index, input.name, input.id);
-				isDone = true;
-				return callback(null, index);
-				}
-			});
-		if (!isDone)
-			// must never return null for the input index, so return NO_INPUT
-			return callback(null, NO_INPUT);
+			// this allows HomeKit to show the selected current channel
+			if (input.channelId === currentChannelId) {
+				this.log('Current channel:', index, input.name, input.channelId);
+				foundIndex = index;
+			}
+		});
+		return callback(null, foundIndex);
 	}
 
 	// set input (TV channel)
 	async setInput(input, callback) {
 		if (this.config.debugLevel > 0) {
-			this.log.warn('setInput input:',input.id, input.name);
+			this.log.warn('setInput input:',input.channelId, input.name);
 		}
-		this.log(`Change channel to: ${input.name}  (${input.id})`);
-		this.switchChannel(input.id);
-		callback(true);
+		this.log(`Change channel to: ${input.name}  (${input.channelId})`);
+		this.switchChannel(input.channelId);
+		callback(null);
 	}
+
+	// set input name (TV channel)
+	async setInputName(inputName, callback) {
+		// fired by the user changing a channel name in Home app accessory setup
+		// we cannot handle this as we don't know which channel got renamed
+		// as user could name multiple channels to xxx
+		if (this.config.debugLevel > 0) {
+			this.log.warn('setInputName inputName:',inputName);
+		}
+		callback(null);
+	};
 
 	// set power mode selection (View TV Settings menu option)
 	async setPowerModeSelection(state, callback) {
-		// fired by the View TV Settings command in the Homekit TV accessory Settings
+		// fired by the View TV Settings command in the HomeKit TV accessory Settings
 		if (this.config.debugLevel > 0) {
 			this.log.warn('setPowerModeSelection state:',state);
 		}
@@ -1703,37 +1696,37 @@ class eosstbDevice {
 		} else {
 			this.log('Power is Off. View TV Settings command not sent');
 		}
-		callback(true);
+		callback(null);
 	}
 
 	// get current media state
 	async getCurrentMediaState(callback) {
 		// fired by ??
-		// cannot be controlled by Apple Home app, but could be controlled by other Homekit apps
+		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		// must never return null, so send STOP as default value
 		if (this.config.debugLevel > 0) {
-			this.log.warn('getCurrentMediaState currentMediaState:', this.currentMediaState);
+			this.log('getCurrentMediaState currentMediaState:', currentMediaState, mediaState[currentMediaState]);
 		}
-		return callback(null, this.currentMediaState || Characteristic.CurrentMediaState.STOP);
+		callback(null, currentMediaState || Characteristic.CurrentMediaState.STOP);
 	}
 
 	// get target media state
 	async getTargetMediaState(callback) {
 		// fired by ??
-		// cannot be controlled by Apple Home app, but could be controlled by other Homekit apps
+		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		// must never return null, so send STOP as default value
 		if (this.config.debugLevel > 0) {
-			this.log.warn('getTargetMediaState');
+			this.log('getTargetMediaState currentMediaState:', currentMediaState, mediaState[currentMediaState]);
 		}
-		return callback(null, this.targetMediaState || Characteristic.TargetMediaState.STOP);
+		callback(null, currentMediaState);
 	}
 
 	// set target media state
 	async setTargetMediaState(targetMediaState, callback) {
 		// fired by ??
-		// cannot be controlled by Apple Home app, but could be controlled by other Homekit apps
+		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		if (this.config.debugLevel > 0) {
-			this.log.warn('setTargetMediaState state:',targetMediaState);
+			this.log.warn('setTargetMediaState targetMediaState:',targetMediaState, mediaState[targetMediaState]);
 		}
 		switch (targetMediaState) {
 			case Characteristic.TargetMediaState.PLAY:
@@ -1749,7 +1742,7 @@ class eosstbDevice {
 				//this.sendKey(this.config.playPauseButton || "MediaPause");
 				break;
 			}
-		return callback(null);
+		callback(null);
 	}
 
 	// set remote key
