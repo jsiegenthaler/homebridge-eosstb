@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes and Improvements
 
 
-## 0.1.8 (2020-02-21)
+## 0.1.8 (2020-02-22)
 * Improved robustness and error messages for generic session
 * Improved loading of Channel List. Now only refreshes once the list has expired, this reduces web traffic a lot
 * Improved mqtt session handling
