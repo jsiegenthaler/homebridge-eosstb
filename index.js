@@ -5,7 +5,7 @@
 // name and version
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.1.8';
+const PLUGIN_VERSION = '0.1.9';
 
 // required node modules
 const fs = require('fs');
@@ -272,7 +272,18 @@ class eosstbDevice {
 		// Configuration
 		myUpcUsername = this.config.username || '';
 		myUpcPassword = this.config.password || '';
-		
+
+		// use defaults of plugin/platform name & version
+		// until device is discovered
+		this.householdId = '';
+		this.manufacturer = this.config.manufacturer || PLUGIN_NAME;
+		this.modelName = this.config.modelName || this.stbType || PLATFORM_NAME;
+		this.serialNumber = this.config.serialNumber || this.physicalDeviceId || 'unknown';
+		this.firmwareRevision = this.config.firmwareRevision || PLUGIN_VERSION; // must be numeric. Non-numeric values are not displayed
+		this.apiVersion = ''; // not used
+
+		// prepare the accessory
+		this.prepareAccessory();
 
 		// the session watchdog creates a session when none exists, and recreates one if it ever fails
 		// retry every few seconds in case the session ever fails due to no internet or an error
@@ -312,6 +323,13 @@ class eosstbDevice {
 				this.getSession();
 		}
 
+
+
+
+			// prepare the accessory using the data found during the session
+			this.prepareAccessory();
+
+
 		// async wait a few seconds session to load, then continue
 		// capture all accessory loading errors
 		wait(4*1000).then(() => { 
@@ -324,6 +342,7 @@ class eosstbDevice {
 			}
 			// timeToIdleSeconds: 7200, // should use this for session control
 
+			/*
 			// use defaults of plugin/platform name & version
 			// override with device details when loaded
 			// allow user to override with config if he wants
@@ -336,6 +355,7 @@ class eosstbDevice {
 
 			// prepare the accessory using the data found during the session
 			this.prepareAccessory();
+			*/
 
 			// perform an initial load of all channels and set the initial device state
 			this.loadAllChannels();
@@ -591,7 +611,7 @@ class eosstbDevice {
 					this.log('Failed to create session - check your internet connection.');
 				} else if (error.response.status == 400) {
 					this.log('Failed to create session - check your %s %s username and password.',this.config.name,PLATFORM_NAME);
-					this.log.warn('getSession: Failed to create session: error.response.statusText:',error.response.status,error.response.statusText);
+					this.log.debug('getSession: Failed to create session: error.response.statusText:',error.response.status,error.response.statusText);
 				}
 				this.log.debug('getSession: Failed to create session: error:',error);
 				return false;
@@ -1147,8 +1167,13 @@ class eosstbDevice {
 			//parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
 
 			// subscribe to householdId
-			parent.mqttSubscribeToTopic(mqttUsername);
-
+			parent.mqttSubscribeToTopic(mqttUsername, function (err) {
+//			mqttClient.subscribe(Topic, function (err) {
+				if(err){
+					this.log('mqttClient subscribe error caught, exiting');
+					return true;
+				}
+			});
 			// subscribe to householdId/+/status
 			// get status of all devices from this householdId, including type HGO (web browser)
 			parent.mqttSubscribeToTopic(mqttUsername + '/+/status');
@@ -1176,6 +1201,9 @@ class eosstbDevice {
 						parent.mqttSubscribeToTopic(mqttUsername + '/' + deviceId);
 						// subscribe to our householdId/deviceId/status
 						parent.mqttSubscribeToTopic(mqttUsername + '/' + deviceId + '/status');
+
+						// try again
+						parent.getUiStatus();
 
 						mqttIsSubscribed = true;
 
@@ -1206,6 +1234,7 @@ class eosstbDevice {
 							// change only if configured
 							// HomeKit polls every 2 minutes, so use.getCharacteristic(charName).updateValue(someValue) to provide fast realtime updates
 							parent.televisionService.getCharacteristic(Characteristic.Active).updateValue(currentPowerState);
+
 						}
 					}
 				}
@@ -1306,7 +1335,10 @@ class eosstbDevice {
 		if (this.config.debugLevel > 0) {
 			this.log.warn('mqttClient: Publish Message:\r\nTopic: %s\r\nMessage: %s', Topic, Message);
 		}
-		mqttClient.publish(Topic,Message);
+		if (mqttIsSubscribed = true) {
+			mqttClient.publish(Topic,Message)
+		}
+
 	}
 
 	// subscribe to an mqtt message, with logging, to help in debugging
@@ -1315,7 +1347,7 @@ class eosstbDevice {
 		mqttClient.subscribe(Topic, function (err) {
 			if(err){
 				this.log('mqttClient connect: subscribe to %s Error %s:',Topic,err);
-				return false;
+				return true;
 			}
 		});
 	}
@@ -1325,10 +1357,12 @@ class eosstbDevice {
 		if (this.config.debugLevel > 0) {
 			this.log.warn('switchChannel channelId:', channelId);
 		}
-		this.mqttPublishMessage(
+		if (mqttUsername) {
+			this.mqttPublishMessage(
 			mqttUsername + '/' + deviceId, 
 			'{"id":"' + makeId(10) + '","type":"CPE.pushToTV","source":{"clientId":"' + varClientId + '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' + channelId + '"},"relativePosition":0,"speed":1}}'
 			);
+		}
 	}
 
 	// send a remote control keypress to the settopbox via mqtt
@@ -1336,11 +1370,13 @@ class eosstbDevice {
 		if (this.config.debugLevel > 0) {
 			this.log.warn('sendKey keyName:', keyName);
 		}
-		this.log('Send key:', keyName);
-		this.mqttPublishMessage(
-			mqttUsername + '/' + deviceId, 
-			'{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + varClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}'
+		if (mqttUsername) {
+			this.log('Send key:', keyName);
+			this.mqttPublishMessage(
+				mqttUsername + '/' + deviceId, 
+				'{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + varClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}'
 			);
+		}
 
 		//mqttClient.publish(mqttUsername + '/' + deviceId, '{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + varClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}');
 		
@@ -1358,13 +1394,14 @@ class eosstbDevice {
 			this.log.warn('getUiStatus');
 			this.log.warn('getUiStatus deviceId varClientId',deviceId,varClientId);
 		}
-		var mqttTopic = mqttUsername + '/' + deviceId;
-		var mqttMessage =  '{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + varClientId + '"}';
-		this.mqttPublishMessage(
-			mqttUsername + '/' + deviceId,
-			'{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + varClientId + '"}'
-			);
-
+		if (mqttUsername) {
+			var mqttTopic = mqttUsername + '/' + deviceId;
+			var mqttMessage =  '{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + varClientId + '"}';
+			this.mqttPublishMessage(
+				mqttUsername + '/' + deviceId,
+				'{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + varClientId + '"}'
+				);
+		}
 	}
 
 	// request profile details via mqtt
@@ -1646,18 +1683,14 @@ class eosstbDevice {
 		if (this.config.debugLevel > 0) {
 			this.log('getInput');
 		}
-		var foundIndex = NO_INPUT;
-		this.inputs.filter((input, index) => {
-			// getInput input 
-			// { id: 'SV09038', name: 'SRF 1 HD', index: 0 }	{ id: 'SV00044', name: 'RTL plus', index: 44 }
-			//this.log(`getInput: ${input.index} ${input.name} (${input.channelId})`);
-			// find the currentChannelId in the inputs and return the index once found
-			// this allows HomeKit to show the selected current channel
-			if (input.channelId === currentChannelId) {
-				this.log('Current channel:', index, input.name, input.channelId);
-				foundIndex = index;
-			}
-		});
+
+		// find the currentChannelId in the inputs and return the index once found
+		// this allows HomeKit to show the selected current channel
+		// { id: 'SV09038', name: 'SRF 1 HD', index: 0 }	{ id: 'SV00044', name: 'RTL plus', index: 44 }
+		var foundIndex = this.inputs.findIndex(input => input.channelId === currentChannelId);
+		if (foundIndex == -1) { foundIndex = NO_INPUT } // if nothing found, set to NO_INPUT to clear the name from the Home app tile
+		this.log('Current channel:', foundIndex, this.inputs[foundIndex]);
+
 		return callback(null, foundIndex);
 	}
 
