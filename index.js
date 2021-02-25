@@ -5,7 +5,7 @@
 // name and version
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.1.11';
+const PLUGIN_VERSION = '0.1.12';
 
 // required node modules
 const fs = require('fs');
@@ -1456,7 +1456,7 @@ class eosstbDevice {
 		}
 
 		// only continue if a session was created. If the internet conection is doen then we have no session
-		if (currentSessionState != sessionState.NOT_CREATED;) { return null; }
+		if (currentSessionState != sessionState.NOT_CREATED) { return null; }
 
 		// change only if configured, and update only if changed
 		if (this.televisionService) {

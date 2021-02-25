@@ -4,8 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes and Improvements
 
+## 0.1.12 (2020-02-25)
+* Fixed Typo in code for BE
+
 ## 0.1.11 (2020-02-25)
-* Fixed bug with session state handle for BE
+* Fixed bug with session state handler for BE
 
 ## 0.1.10 (2020-02-25)
 * Added support of Profiles. Desired profile can be configured in config.json. Defaults to Shared if not found
