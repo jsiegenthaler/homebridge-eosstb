@@ -5,7 +5,7 @@
 // name and version
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.1.12';
+const PLUGIN_VERSION = '0.1.13';
 
 // required node modules
 const fs = require('fs');
@@ -650,6 +650,7 @@ class eosstbDevice {
 		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		// axios interceptors to log request and response for debugging
 		// works on all following requests in this sub
+		/*
 		axios.interceptors.request.use(req => {
 			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
 			'\nMethod:',req.method, '\nURL:', req.url, 
@@ -668,6 +669,7 @@ class eosstbDevice {
 			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
 			return res; // must return response
 		});
+		*/
 		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -715,7 +717,7 @@ class eosstbDevice {
 							})
 							.then(response => {	
 								this.log('Step 3 response.status:',response.status, response.statusText);
-								this.log('Step 3 response.headers.location:',response.headers.location); 
+								//this.log('Step 3 response.headers.location:',response.headers.location); 
 								//this.log('Step 3 response.headers:',response.headers);
 								var url = response.headers.location;
 								if (!url) {		// robustness: fail if url missing
@@ -738,7 +740,7 @@ class eosstbDevice {
 
 									// Step 4: # follow redirect url
 									this.log.warn('Step 4 follow redirect url');
-									this.log('Cookies for the redirect url:',cookieJar.getCookies(url));
+									//this.log('Cookies for the redirect url:',cookieJar.getCookies(url));
 									axiosWS.get(url,{
 										jar: cookieJar,
 										maxRedirects: 0, // do not follow redirects
@@ -790,14 +792,14 @@ class eosstbDevice {
 														'validityToken':authValidtyToken,
 														'state':authState
 													}};
-													this.log('Cookies for the session:',cookieJar.getCookies(apiAuthorizationUrl));
+													//this.log('Cookies for the session:',cookieJar.getCookies(apiAuthorizationUrl));
 													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
 														.then(response => {	
 															this.log('Step 6 response.status:',response.status, response.statusText);
 																
 															auth = response.data;
 															//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
-															this.log('Step 6 refreshToken:',auth.refreshToken);
+															//this.log('Step 6 refreshToken:',auth.refreshToken);
 
 															// Step 7: # get OESP code
 															this.log.warn('Step 7 post refreshToken request to',apiAuthorizationUrl);
@@ -809,11 +811,12 @@ class eosstbDevice {
 																	currentSessionState = sessionState.VERIFYING;
 																	this.log.warn('Successfully authenticated'); 
 																		
-																	this.log('Step 7 response.headers:',response.headers); 
-																	this.log('Step 7 response.data:',response.data); 
-																	this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
+																	//this.log('Step 7 response.headers:',response.headers); 
+																	//this.log('Step 7 response.data:',response.data); 
+																	//this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
 
 																	// get device data from the session
+																	this.sessionData = response.data;
 																	this.customer = response.data.customer;
 																	this.householdId = response.data.customer.householdId;
 																	this.stbType = response.data.customer.stbType;
@@ -1054,6 +1057,7 @@ class eosstbDevice {
 																	this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
 
 																	// get device data from the session
+																	this.sessionData = response.data;
 																	this.customer = response.data.customer;
 																	this.householdId = response.data.customer.householdId;
 																	this.stbType = response.data.customer.stbType;
