@@ -5,7 +5,7 @@
 // name and version
 const PLUGIN_NAME = 'homebridge-eosstb';
 const PLATFORM_NAME = 'eosstb';
-const PLUGIN_VERSION = '0.1.10';
+const PLUGIN_VERSION = '0.1.11';
 
 // required node modules
 const fs = require('fs');
@@ -244,7 +244,6 @@ class eosstbDevice {
 
 		//setup variables
 		this.accessoryConfigured = false;	// true when the accessory is configured
-		this.sessionCreated = false;		// true when the session is created
 		this.mqttSessionActive = false;		// true when the mqtt session is active
 		
 		this.targetMediaState = Characteristic.TargetMediaState.STOP; // default until received by mqtt
@@ -349,7 +348,7 @@ class eosstbDevice {
 		wait(4*1000).then(() => { 
 
 			// only continue if a session was created
-			if (!this.sessionCreated) { return; }
+			if (currentSessionState != sessionState.CREATED) { return; }
 
 			if (this.config.debugLevel > 2) {
 				this.log.warn('Session data retrieved from Session',this.sessionData);
@@ -620,13 +619,11 @@ class eosstbDevice {
 				// get the Jwt Token
 				this.getJwtToken(response.data.oespToken, response.data.customer.householdId);
 				this.log('Session created');
-				this.sessionCreated = true
 				currentSessionState = sessionState.CREATED;
 				return true;
 			})
 			.catch(error => {
 				currentSessionState = sessionState.NOT_CREATED;
-				this.sessionCreated = false;
 				if (!error.response) {
 					this.log('Failed to create session - check your internet connection.');
 				} else if (error.response.status == 400) {
@@ -735,7 +732,7 @@ class eosstbDevice {
 								} else if (url.indexOf('error=session_expired') > 0 ) {
 									this.log.warn('Step 3 Unable to login: session expired');
 									cookieJar.removeAllCookies();	// remove all the locally cached cookies
-									this.sessionCreated = false;	// flag the session as dead
+									currentSessionState = sessionState.NOT_CREATED;;	// flag the session as dead
 								} else {
 									this.log.warn('Step 3 login successful');
 
@@ -766,7 +763,7 @@ class eosstbDevice {
 											} else if (url.indexOf('error=session_expired') > 0 ) {
 												this.log.warn('Step 4 Unable to login: session expired');
 												cookieJar.removeAllCookies();	// remove all the locally cached cookies
-												this.sessionCreated = false;	// flag the session as dead
+												currentSessionState = sessionState.NOT_CREATED;;	// flag the session as dead
 											} else {
 
 												// Step 5: # obtain authorizationCode
@@ -867,7 +864,6 @@ class eosstbDevice {
 			// Step 1 http errors
 			.catch(error => {
 				currentSessionState = sessionState.NOT_CREATED;
-				this.sessionCreated = false;
 				this.log('Failed to create BE session - check your internet connection.');
 				this.log.warn("Step 1 Could not get apiAuthorizationUrl, http error:",error);
 			});
@@ -976,7 +972,7 @@ class eosstbDevice {
 								} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
 									this.log.warn('Step 3 Unable to login: session expired');
 									cookieJar.removeAllCookies();	// remove all the locally cached cookies
-									this.sessionCreated = false;	// flag the session as dead
+									currentSessionState = sessionState.NOT_CREATED;	// flag the session as dead
 								} else {
 									this.log.warn('Step 3 login successful');
 
@@ -1007,7 +1003,7 @@ class eosstbDevice {
 											} else if (url.indexOf('error=session_expired') > 0 ) {
 												this.log.warn('Step 4 Unable to login: session expired');
 												cookieJar.removeAllCookies();	// remove all the locally cached cookies
-												this.sessionCreated = false;	// flag the session as dead
+												currentSessionState = sessionState.NOT_CREATED;;	// flag the session as dead
 											} else {
 
 												// Step 5: # obtain authorizationCode
@@ -1109,7 +1105,6 @@ class eosstbDevice {
 			// Step 1 http errors
 			.catch(error => {
 				currentSessionState = sessionState.NOT_CREATED;
-				this.sessionCreated = false;
 				this.log('Failed to create GB session - check your internet connection.');
 				this.log.warn("Step 1 Could not get apiAuthorizationUrl, http error:",error);
 			});
@@ -1461,7 +1456,7 @@ class eosstbDevice {
 		}
 
 		// only continue if a session was created. If the internet conection is doen then we have no session
-		if (!this.sessionCreated) { return null; }
+		if (currentSessionState != sessionState.NOT_CREATED;) { return null; }
 
 		// change only if configured, and update only if changed
 		if (this.televisionService) {
@@ -1646,7 +1641,7 @@ class eosstbDevice {
 		this.log('Refreshing master channel list...');
 
 		// only continue if a session was created. If the internet conection is doen then we have no session
-		if (!this.sessionCreated) { return; }
+		if (currentSessionState != sessionState.CREATED) { return; }
 		
 		// channels can be retrieved for the country without having a mqtt session going
 		let url = countryBaseUrlArray[this.config.country].concat('/channels');
