@@ -16,6 +16,8 @@ This is very much a work in progres.. Why? Because I'm not finished. If you can,
 
 
 # Recent Major Achievements
+25 Feb 2021: Profiles are working and undergoing test. Mqtt EOSSTB device status is working and undergoing test. Will be released soon
+
 20 Feb 2021: Resolved issues with homebridge v1.3.0 and improved robustness a lot
 
 16 Feb 2021: Got the plugin working as an External Accessory with the right Set-Top Box icon. Got the NPM package configured. You can now search for the plugin and install it in Homebridge.
@@ -43,7 +45,7 @@ As UPC operates in multiple countries under multiple brands, this plugin will wo
 * Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **Mediabox Next (4K)**.   **WORKING**
 * Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums call the DCX960 a **Telenet TV-Box**.   **WORKING**
 * Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **Entertain Box 4K**.   **TESTERS NEEDED**
-* United Kingdom and Ireland: [Virgin Media](https://www.virginmedia.com/). The DCX960 appears to be called the **Virgin TV 360 mini box**.   **TESTERS WANTED**
+* United Kingdom and Ireland: [Virgin Media](https://www.virginmedia.com/). The DCX960 appears to be called the **Virgin TV 360 mini box**, introduced to in August 2020.   **TESTERS WANTED** Note: my plugin does not work with the older Virgin Media TiVo boxes.
 
 So if you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
 
@@ -153,18 +155,19 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
                     "name": "EOSSTB",
                     "country": "ch",
                     "username": "yourEmail@email.com",
-                    "password": "yourPassword"
+                    "password": "yourPassword",
                     "playPauseButton": "MediaPlayPause",
                     "backButton": "Escape",
                     "infoButton": "MediaTopMenu",
                     "volUpCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_VOLUP",
                     "volDownCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_VOLDOWN",
-                    "muteCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_MUTE"
+                    "muteCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_MUTE",
                     "maxChannels": 50,
                     "manufacturer": "ARRIS",
                     "modelName": "DCX960",
                     "serialNumber": "123456",
-                    "firmwareRevision": "v1.0.0"
+                    "firmwareRevision": "v1.0.0",
+                    "debugLevel": 0
                 }
             ]
         }
