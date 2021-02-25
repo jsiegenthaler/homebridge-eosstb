@@ -153,18 +153,19 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
                     "name": "EOSSTB",
                     "country": "ch",
                     "username": "yourEmail@email.com",
-                    "password": "yourPassword"
+                    "password": "yourPassword",
                     "playPauseButton": "MediaPlayPause",
                     "backButton": "Escape",
                     "infoButton": "MediaTopMenu",
                     "volUpCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_VOLUP",
                     "volDownCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_VOLDOWN",
-                    "muteCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_MUTE"
+                    "muteCommand": "samsungctl --host x.x.x.x --name HomeKit --timeout 0.2 KEY_MUTE",
                     "maxChannels": 50,
                     "manufacturer": "ARRIS",
                     "modelName": "DCX960",
                     "serialNumber": "123456",
-                    "firmwareRevision": "v1.0.0"
+                    "firmwareRevision": "v1.0.0",
+                    "debugLevel": 0
                 }
             ]
         }
