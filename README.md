@@ -10,13 +10,11 @@ This is very much a work in progres.. Why? Because I'm not finished. If you can,
 
 # TO-DO as of 20.02.2020
 * Test GB connections for Virgin Media
-* Test with profiles - try and find a way to get the EOS box profile channels so that the channel list can be reduced to your profile channel list
 * Improve robustness and responsiveness even more
 
 
-
 # Recent Major Achievements
-25 Feb 2021: Profiles are working and undergoing test. Mqtt EOSSTB device status is working and undergoing test. Will be released soon
+25 Feb 2021: Released v0.1.10 with full profile support and mqtt EOSSTB device status support.
 
 20 Feb 2021: Resolved issues with homebridge v1.3.0 and improved robustness a lot
 
