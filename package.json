@@ -4,7 +4,7 @@
   "_location": "/homebridge-eosstb",
   "name": "homebridge-eosstb",
   "author": "jsiegenthaler (https://github.com/jsiegenthaler/)",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "dependencies": {
     "@types/tough-cookie": "^4.0.0",
     "axios": "^0.21.1",
