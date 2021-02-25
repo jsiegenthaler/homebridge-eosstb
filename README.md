@@ -16,6 +16,8 @@ This is very much a work in progres.. Why? Because I'm not finished. If you can,
 
 
 # Recent Major Achievements
+25 Feb 2021: Profiles are working and undergoing test. Mqtt EOSSTB device status is working and undergoing test. Will be released soon
+
 20 Feb 2021: Resolved issues with homebridge v1.3.0 and improved robustness a lot
 
 16 Feb 2021: Got the plugin working as an External Accessory with the right Set-Top Box icon. Got the NPM package configured. You can now search for the plugin and install it in Homebridge.
