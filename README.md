@@ -212,7 +212,7 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 * **volDownCommand**: The bash command to decrease the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Down button on your device. Optional.
 
-* **muteCommand**: The bash command to mute the TV. Currently not supported in the Apple iOS remote (last checked in iOS v14.4) but is supported in Homebridge. Optional.
+* **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple iOS remote, I have integrated it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
 
 * **manufacturer**: You can add a manufacturer name if you wish. Defaults to "ARRIS". Optional.
 
@@ -244,8 +244,11 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 
 ## Known Other Commands
+### Volume
 * **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the EOS box, but instead via a bash command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scoll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
 
+### Mute
+* **Mute** is not supported natively by the iOS remote, but I have added it with a triple-press detection on the volume down button. Press the button three times within 1 second, and the Mute command will be sent using the command stored in the **muteCommand** config item.
 
 ## Siri
 I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <yourEosBoxName>". However, I haven't been able to get Siri to change channels or change volume yet. If you find out how, let me know!
