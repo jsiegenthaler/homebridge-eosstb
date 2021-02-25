@@ -8,7 +8,7 @@
 This is very much a work in progres.. Why? Because I'm not finished. If you can, give me a hand... especially if you have some javascript experience and use Virgin in Great Britain...
 
 
-# TO-DO as of 20.02.2020
+# TO-DO as of 25.02.2020
 * Test GB connections for Virgin Media
 * Improve robustness and responsiveness even more
 
