@@ -4,7 +4,7 @@
   "_location": "/homebridge-eosstb",
   "name": "homebridge-eosstb",
   "author": "jsiegenthaler (https://github.com/jsiegenthaler/)",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "dependencies": {
     "@types/tough-cookie": "^4.0.0",
     "axios": "^0.21.1",
@@ -41,6 +41,7 @@
     "Virgin Media 360",
     "EOSSTB",
     "EOS STB",
+    "Horizon",
     "Arris",
     "DCX960"
   ],

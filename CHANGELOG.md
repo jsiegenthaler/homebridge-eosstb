@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes and Improvements
 
+## 0.1.10 (2020-02-25)
+* Added support of Profiles. Desired profile can be configured in config.json. Defaults to Shared if not found
+* Added support of showing/hiding channel numbers in the channel list
+* Added triple-volume-down click detection. A triple down sends the muteCommand instead of volDownCommand
+* Finaly fixed the mqtt device connection. UI status data starts flowing when the device pushes a change or the user makes a change in HomeKit
+* Improved responsiveness
+* Improved the currentMediaState and targetMediaState code
+* Refactored the device status code
+* Cleaned up and improved logging even more
 
 ## 0.1.9 (2020-02-22)
 * Fixed problem where accessory would not load when the session would not get created
