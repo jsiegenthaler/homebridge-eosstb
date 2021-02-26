@@ -25,20 +25,20 @@ This is very much a work in progres.. Why? Because I'm not finished. If you can,
 
 # homebridge-eosstb
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS settop box (typically a ARRIS DCX960 running on the UPC/Ziggo/Telenet/Magenta/Virgin Media
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS set-top box (typically a ARRIS DCX960 running on the UPC/Ziggo/Telenet/Magenta/Virgin Media
 TV system), as well as connected HDMI-CEC controllable devices with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
-This plugin displays your EOS settop box as a TV Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad, iMac, etc.).
+This plugin displays your EOS set-top box as a Set-Top Box Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad, iMac, etc.).
 
 You need a subscription to the online TV service from your local TV provider.
 The username and password are the same as used in the TV provider's TV app on your iOS device (the app varies by country, in Switzerland it is [upc tv Schweiz](https://apps.apple.com/ch/app/upc-tv-schweiz/id1292688012)).
 
-Supports multiple settop boxes, allowing you to create a TV accessory for each box (should you have more than one).
+Supports multiple set-top boxes, allowing you to create a TV accessory for each box (should you have more than one).
 
 [![donate](https://badgen.net/badge/donate/paypal/91BE09)](https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468)
 
 # Works in Your Country (If you are with UPC / Ziggo / Telenet / Magenta and hopefully Virgin Media)
-As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same UPC TV system with the ARRIS DCX960 settop box are:
+As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same UPC TV system with the ARRIS DCX960 set-top box are:
 * Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **UPC TV Box**. Also known as the EOSSTB.   **WORKING**
 * Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **Mediabox Next (4K)**.   **WORKING**
 * Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums call the DCX960 a **Telenet TV-Box**.   **WORKING**
@@ -50,7 +50,7 @@ So if you subscribe to a TV service from one of these countries, you are lucky, 
 May also work with other UPC countries, if you know of any, let me know.
 
 ## Made in Switzerland
-This plugin was written and tested on the author's EOS settop box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland.
+This plugin was written and tested on the author's EOS set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland.
 
 ## Why I chose the name EOSSTB
 I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, runs on an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. So I stuck with the box identifier that appears in the mqtt messages: EOSSTB.
@@ -61,13 +61,13 @@ UPC can change their systems at any time and that might break this plugin. But I
 
 ## Requirements
 * An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1...14.4, earlier versions not tested.
-* [Homebridge](https://homebridge.io/) v1.2.5 (or later). Developed on Homebridge 1.1.116....1.2.5, earlier versions not tested.
+* [Homebridge](https://homebridge.io/) v1.2.5 (or later). Developed on Homebridge 1.1.116....1.3.1, earlier versions not tested.
 * A [TV subscription](https://www.upc.ch/en/bundles/buy-tv-internet/) (or the equivalent in your country)
 * A [My UPC account](https://www.upc.ch/en/account/login/credentials/) (or the equivalent in your country, part of your TV package)
 * The ARRIS mediabox DCX960 (provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries)
 
 ## Installation
-Homebridge UI: the easiest way to install is seach for "eosstb" in the Homebridge UI, and then click INSTALL.
+Homebridge UI: the easiest way to install is seach for "eosstb" in the Homebridge UI, and then click **INSTALL**.
 
 Manual install:
 ```sh
@@ -194,9 +194,9 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 * **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found, and is hard limited to 90. The more channels configured, the longer the startup time after a Homebridge reboot. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
 
-* **showChannelNumbers**: Shows or hides the channel numbers in the channel selector in HomeKit. Values: true or false. If channel numbers are displayed, there is less room for the channel name. Optional, defaults to false (false = channel numbers are not displayed).
+* **showChannelNumbers**: Shows or hides the channel numbers in the channel selector in HomeKit. Values: true or false (default). If channel numbers are displayed, there is less room for the channel name. Optional, defaults to false (channel numbers are not displayed).
 
-* **settopboxId**: DEPRECATED (NOT IN USE ANY MORE) Your settopbox id. Only needed if you have more than one EOS box, so that the plugin can control the correct box. The id is shown in the HomeBridge log and is in the format 3C36E4-EOSSTB-00xxxxxxxxxx (xxxxxxxxxx is actually your CA code). Optional, defaults to the first detected settop box id in the mqtt traffic if not found.
+* **settopboxId**: DEPRECATED (NOT IN USE ANY MORE) Your set-topbox id. Only needed if you have more than one EOS box, so that the plugin can control the correct box. The id is shown in the HomeBridge log and is in the format 3C36E4-EOSSTB-00xxxxxxxxxx (xxxxxxxxxx is actually your CA code). Optional, defaults to the first detected set-top box id in the mqtt traffic if not found.
 
 * **accessoryCategory**: The accessory category. This changes the image on the tile in Homekit. Allows you to use a TV or a Audio Receiver or a Set-Top Box (default). Available values are:  TV = any of "television", "tv", "TV", "TELEVISION".  Audio Receiver = any of "receiver", "audio-receiver", "AUDIO_RECEIVER".  Optional, defaults to TV Set-Top Box if the value is not recognised.
 
