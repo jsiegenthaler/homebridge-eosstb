@@ -212,13 +212,13 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 * **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple iOS remote, I have integrated it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
 
-* **manufacturer**: You can add a manufacturer name if you wish. Defaults to "ARRIS". Optional.
+* **manufacturer**: You can add a manufacturer name if you wish. Defaults to the plugin name. Optional.
 
 * **modelName**: You can add a model name if you wish. Defaults to the set-top box type. Optional.
 
 * **serialNumber**: You can add a serial number if you wish. Defaults to the physical device id. Optional.
 
-* **firmwareRevision**: You can add a firmware revision if you wish. Must be numeric. Non-numeric values are not displayed. Defaults to "1.0.0". Optional.
+* **firmwareRevision**: You can add a firmware revision if you wish. Must be numeric, non-numeric values are not displayed. Defaults to the plugin version. Optional.
 
 * **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
 
