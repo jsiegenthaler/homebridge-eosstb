@@ -5,6 +5,9 @@
 
 
 # homebridge-eosstb
+[![npm](https://img.shields.io/npm/v/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
+[![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
+[![donate](https://badgen.net/badge/donate/paypal/91BE09)](https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468)
 
 `homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS set-top box (typically a ARRIS DCX960 running on the UPC/Ziggo/Telenet/Magenta/Virgin Media
 TV system), as well as connected HDMI-CEC controllable devices with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
@@ -16,9 +19,7 @@ The username and password are the same as used in the TV provider's TV app on yo
 
 Supports multiple set-top boxes, allowing you to create a TV accessory for each box (should you have more than one).
 
-[![npm](https://img.shields.io/npm/v/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
-[![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
-[![donate](https://badgen.net/badge/donate/paypal/91BE09)](https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468)
+
 
 # Works in Your Country (If you are with UPC / Ziggo / Telenet / Magenta and hopefully Virgin Media)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same UPC TV system with the ARRIS DCX960 set-top box are:
