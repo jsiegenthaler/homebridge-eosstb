@@ -171,7 +171,12 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
                     "modelName": "DCX960",
                     "serialNumber": "123456",
                     "firmwareRevision": "v1.0.0",
-                    "debugLevel": 0
+                    "debugLevel": 0,
+                    "channelNames": [
+                        {
+                            "channelId": "SV09690",
+                            "channelName": "Netflix"
+                        }
                 }
             ]
         }
@@ -199,6 +204,8 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 * **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found, and is hard limited to 90. The more channels configured, the longer the startup time after a Homebridge reboot. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
 
 * **showChannelNumbers**: Shows or hides the channel numbers in the channel selector in HomeKit. Values: true or false (default). If channel numbers are displayed, there is less room for the channel name. Optional, defaults to false (channel numbers are not displayed).
+
+* **channelNames**: Allows you to add unknown channel names, or to rename any channel as you wish. Required as some channels (e.g. Netflix) are not published on the master channel list. If a channel displays in your iOS device like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
 
 * **settopboxId**: DEPRECATED (NOT IN USE ANY MORE) Your set-topbox id. Only needed if you have more than one EOS box, so that the plugin can control the correct box. The id is shown in the HomeBridge log and is in the format 3C36E4-EOSSTB-00xxxxxxxxxx (xxxxxxxxxx is actually your CA code). Optional, defaults to the first detected set-top box id in the mqtt traffic if not found.
 
