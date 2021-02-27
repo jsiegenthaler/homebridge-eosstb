@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes and Improvements
 
+## 0.1.14-beta.1 (2020-02-26)
+* Bump engine dependencies (Node and Homebridge)
+* Set source type to application and device type to TV
+* Improved handling of profile channels
+* Added ability to add a customer channel names (needed for Netflix)
+* Added better handling of non-linear TV and apps
+
+
 ## 0.1.13 (2020-02-25)
 * Fixed bugs in the BE session
 
