@@ -35,6 +35,8 @@ The username and password are the same as used in the TV provider's TV app on yo
 
 Supports multiple set-top boxes, allowing you to create a TV accessory for each box (should you have more than one).
 
+[![npm](https://img.shields.io/npm/v/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
+[![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![donate](https://badgen.net/badge/donate/paypal/91BE09)](https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468)
 
 # Works in Your Country (If you are with UPC / Ziggo / Telenet / Magenta and hopefully Virgin Media)
