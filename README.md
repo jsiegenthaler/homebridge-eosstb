@@ -4,11 +4,6 @@
 </p>
 
 
-# WORK IN PROGRESS - HELP WANTED - ESPECIALLY GREAT BRITAIN
-If you can, give me a hand... especially if you have some javascript experience and use Virgin in Great Britain...
-
-
-
 # homebridge-eosstb
 
 `homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS set-top box (typically a ARRIS DCX960 running on the UPC/Ziggo/Telenet/Magenta/Virgin Media
