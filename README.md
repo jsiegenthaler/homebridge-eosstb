@@ -5,22 +5,8 @@
 
 
 # WORK IN PROGRESS - HELP WANTED - ESPECIALLY GREAT BRITAIN
-This is very much a work in progres.. Why? Because I'm not finished. If you can, give me a hand... especially if you have some javascript experience and use Virgin in Great Britain...
+If you can, give me a hand... especially if you have some javascript experience and use Virgin in Great Britain...
 
-
-# TO-DO as of 25.02.2020
-* Test GB connections for Virgin Media
-* Improve robustness and responsiveness even more
-
-
-# Recent Major Achievements
-25 Feb 2021: Released v0.1.10 with full profile support and mqtt EOSSTB device status support.
-
-20 Feb 2021: Resolved issues with homebridge v1.3.0 and improved robustness a lot
-
-16 Feb 2021: Got the plugin working as an External Accessory with the right Set-Top Box icon. Got the NPM package configured. You can now search for the plugin and install it in Homebridge.
-
-13 Feb 2021: Got the Telenet session working finally. This plugin now works properly with the Telenet TV-Boxes in Belgium.
 
 
 # homebridge-eosstb
@@ -50,6 +36,22 @@ As UPC operates in multiple countries under multiple brands, this plugin will wo
 So if you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
 
 May also work with other UPC countries, if you know of any, let me know.
+
+# TO-DO as of 25.02.2020
+* Test GB connections for Virgin Media
+* Improve robustness and responsiveness even more
+
+
+# Recent Major Achievements
+25 Feb 2021: Released v0.1.10 with full profile support and mqtt EOSSTB device status support.
+
+20 Feb 2021: Resolved issues with homebridge v1.3.0 and improved robustness a lot
+
+16 Feb 2021: Got the plugin working as an External Accessory with the right Set-Top Box icon. Got the NPM package configured. You can now search for the plugin and install it in Homebridge.
+
+13 Feb 2021: Got the Telenet session working finally. This plugin now works properly with the Telenet TV-Boxes in Belgium.
+
+
 
 ## Made in Switzerland
 This plugin was written and tested on the author's EOS set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland.
