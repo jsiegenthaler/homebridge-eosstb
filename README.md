@@ -233,7 +233,11 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 * **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
 
-
+## Netflix and other special app channels ##
+Netflix is actually an app on the set-top box, and not a normal linear TV channel. It appears in the channel list on the TV, and can be added to favorites. However, it is not broadcast as a normal linear TV channel in the master channel list. Therefore the name cannot be determined from the profile favorite channel list, and the name appears as "Channel xxx" where xxx is the channel id. Known channel ids for Netflix are:
+* Telenet Belgium: netflix
+* UPC Switzerland: SVO9690
+Add the channelId and the channelName to channelNames in the config, and then the proper name will appear.
 
 ## Known Relevant EOS Box Commands
 * **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the **HOME** button on the EOS box remote
