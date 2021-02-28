@@ -239,7 +239,9 @@ Netflix is actually an app on the set-top box, and not a normal linear TV channe
 * UPC Switzerland: SVO9690
 Add the channelId and the channelName to channelNames in the config, and then the proper name will appear.
 
-## Known Relevant EOS Box Commands
+## EOS Set-Top Box KeyEvent Commands
+A collection of known key event commands that control the set-top box. 
+
 * **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the **HOME** button on the EOS box remote
 
 * **Escape**: Escapes (exits) out of any current menu on the TV. Same as the **RETURN** button on the EOS box remote
@@ -252,8 +254,11 @@ Add the channelId and the channelName to channelNames in the config, and then th
 
 * **Guide**: Displays the TV GUIDE page on the TV, same as the Guide button on the EOS box remote
 
-* **MediaPause**: Toggles between Pause and Play of the current TV program
+* **MediaPause**: Toggles between Pause and Play of the currently playing program
 
+* **MediaPlayPause**: Toggles between Pause and Play of the currently playing program (same as MediaPause)
+
+* **TV**: Goes back to live TV from whatever state the set-top box was in
 
 
 ## Known Other Commands
