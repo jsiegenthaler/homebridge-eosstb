@@ -37,12 +37,14 @@ So if you subscribe to a TV service from one of these countries, you are lucky, 
 
 May also work with other UPC countries, if you know of any, let me know.
 
-# TO-DO as of 25.02.2020
+# TO-DO as of 28.02.2020
 * Test GB connections for Virgin Media
-* Improve robustness and responsiveness even more
+* Handle multiple set-top boxes per household
 
 
 # Recent Major Achievements
+27 Feb 2021: Working on v0.1.14 with live channel change updates and many improvements
+
 25 Feb 2021: Released v0.1.10 with full profile support and mqtt EOSSTB device status support.
 
 20 Feb 2021: Resolved issues with homebridge v1.3.0 and improved robustness a lot
