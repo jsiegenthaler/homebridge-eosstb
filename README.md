@@ -88,6 +88,8 @@ UPC can change their systems at any time and that might break this plugin. But I
 
 **Optional Channel Numbers**: If you wish, you can display a channel number before the channel name. As this consumes some space on the Home app tile, it is off by default.
 
+**Master Channel List Refreshed Regularly**: The master channel list is refreshed at the correct intervals requested by the TV provider, minimising network traffic.
+
 **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
 TO_DO **Intelligent Favorite Channel Support**: Synchronise favorites from iOS to the TV. The iOS visibility control can hide a channel from your iOS channel list, and also hides it on your TV channel list.
