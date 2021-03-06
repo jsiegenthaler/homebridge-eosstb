@@ -37,12 +37,13 @@ So if you subscribe to a TV service from one of these countries, you are lucky, 
 
 May also work with other UPC countries, if you know of any, let me know.
 
-# TO-DO as of 28.02.2020
+# TO-DO as of 06.03.2020
 * Test GB connections for Virgin Media
-* Handle multiple set-top boxes per household
 
 
 # Recent Major Achievements
+06 Feb 2021: Full multi-device support added
+
 27 Feb 2021: Working on v0.1.14 with live channel change updates and many improvements
 
 25 Feb 2021: Released v0.1.10 with full profile support and mqtt EOSSTB device status support.
@@ -72,8 +73,31 @@ UPC can change their systems at any time and that might break this plugin. But I
 * A [My UPC account](https://www.upc.ch/en/account/login/credentials/) (or the equivalent in your country, part of your TV package)
 * The ARRIS mediabox DCX960 (provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries)
 
+## Features
+**Full Remote Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, volume and mute commands.
+
+**Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute.
+
+**Synchronised Set-Top Box Name**: Changing the name of the set-top box in the iOS device changes it on the TV and backend systems in real time, and vice-versa. No reboot required.
+
+**Synchronised Channel List Order**: Changing the channel list order of channels in a profile on your set-top box changes the channel list order on your iOS device. Note that the Shared Profile channel list order cannot be changed.
+
+**Ignores Not-Subscribed Channels**: Only the channels you subscribe to are shown in the iOS device, saving you valuable slots in the limited iOS channel list.
+
+**Optional Channel Numbers**: If you wish, you can display a channel number before the channel name. As this consumes some space on the Home app tile, it is off by default.
+
+**Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
+
+TO_DO **Intelligent Favorite Channel Support**: Synchronise favorites from iOS to the TV. The iOS visibility control can hide a channel from your iOS channel list, and also hides it on your TV channel list.
+
+TO_DO **Intelligent Profile Support**: If the master channel list is too large for your iOS device, then the plugin will chose the best fitting profile, should you have any custom profiles stored. The best profile is the most recently edited profile that contains less than 90 channels.
+
+
+
+
+
 ## Installation
-Homebridge UI: the easiest way to install is seach for "eosstb" in the Homebridge UI, and then click **INSTALL**.
+Homebridge UI: the easiest way to install is seach for **eosstb** in the Homebridge UI, and then click **INSTALL**.
 
 Manual install:
 ```sh
@@ -82,25 +106,25 @@ sudo npm install -g homebridge-eosstb
 After installing, make sure you restart Homebridge.
 
 ## Adding EOSSTB to the Home app
-The EOSSTB is exposed as a separate external accessory and each device needs to be manually paired as follows:
+The EOSSTB is exposed as a separate external accessory and each set-top box needs to be manually paired as follows:
 
 1. Open the **Home** app on your device.
 2. Tap **+** in the top right corner of the screen to start the process of adding a new accessory or scene.
 3. Tap **Add Accessory** to start the process of adding a new accessory.
 4. **Add Accessory**: tap **I Don't Have a Code or Cannot Scan**.
-5. **Select an Accessory to Add to (Home Name)**: Select the accessory you want to add. You should see your EOSSTB here. If not, check your Homebridge config.
+5. **Select an Accessory to Add to (Home Name)**: Select the accessory you want to add. You should see your set-top box here. If not, check your Homebridge config.
 6. Accept the **Uncertified Accesory** warning by tapping **Add Anyway**.
 7. **Enter HomeKit Setup Code**: Enter the **HomeKit Setup Code** (displayed in Homebridge under the QR code, format XXX-XX-XXX), or use the device's camera to scan the QR code in Homebridge.
 8. **Set-Top Box Location**: Select a room for your EOSSTB accessory and tap **Continue**.
-9. **Set-Top Box Name**: Give your EOSSTB a different name if you wish (you can change this in the Home app later) and tap **Continue**.
+9. **Set-Top Box Name**: Give your set-top box a different name if you wish (you can change this in the Home app later) and tap **Continue**.
 10. **Name TV Input Sources**: Name your TV input sources if you wish (you can change these in the Home app later) and tap **Continue**.
 11. **Set-Top Box Automations**: Switch on any suggested automations if you wish (you can change these in the Home app later) and tap **Continue**.
 12. **Set-Top Box Added to (Home Name)**: Tap **Done** to finish the setup.
 
-Your new accessory will appear shortly in the room that you selected. It may show **Updating...** for a while. You can force a Home app refresh by displaying a different room and then going back again to the previous room.
+Your new accessory will appear shortly in the room that you selected. It may show **Updating...** for a while. You can force a Home app refresh by switching to another room and then back again.
 
 ## Remote Control Supported Keys
-To access the **Apple TV Remote**, open your **Control Center** by swiping down from the top (newer iPhones) or up from the bottom of the screen (older iPhones). If you do not see the remote control icon, you will need to activate it in **Settings > Control Centre** and ensure that the **Apple TV Remote** is in the list of **INCLUDED CONTROLS**.
+To access the **Apple TV Remote**, open your **Control Center** by swiping down from the top (newer iPhones and iPads) or up from the bottom of the screen (older iPhones). If you do not see the remote control icon, you will need to activate it in **Settings > Control Centre** and ensure that the **Apple TV Remote** is in the list of **INCLUDED CONTROLS**.
 
 The following keys are supported by in the **Apple TV Remote** in the Control Center:
 
@@ -110,7 +134,7 @@ The following keys are supported by in the **Apple TV Remote** in the Control Ce
 * Back
 * Info (i)
 * Volume Up
-* Volume Down
+* Volume Down (three clicks = Mute)
 
 You can configure the (i) button to be Info, Help, Guide, ContextMenu or MediaTopMenu.
 Most useful is MediaTopMenu, which is the default.
@@ -120,12 +144,12 @@ The volume controls do not control the EOS set-top box directly, as the EOS box 
 
 ## Limitations
 Due to HomeKit limitations, the maximum services for a single accessory is 100. Over this value the Home app will no longer respond. 
-Services used in this EOS box accessory are:
+Services used in this set-top box accessory are:
 1. Information service (Name, model, serial number of the accessory)
 2. Television service (for controlling the TV accessory)
 3. Speaker service (for the controlling the TV accessory volume)
 4. Input service. The input (TV channels) utilise one service per input. The maximum possible channels (inputs) are thus 100 - 3 = 97.
-However, the more services you have, the slower the plugin loads. So I have limited the inputs to maximum 50, but you can override this in the config.
+However, the more services you have, the slower the plugin loads. So I have limited the inputs to maximum 50, but you can override this in the config. The inputs are hard limited to 90 inputs.
 
 
 ## Configuration
@@ -137,30 +161,26 @@ Example minimum (mandatory) configuration:
     "platforms": [
         {
             "platform": "eosstb",
-            "devices": [
-                {
-                    "name": "EOSSTB",
-                    "country": "ch",
-                    "username": "yourEmail@email.com",
-                    "password": "yourPassword"
-                }
-            ]
+            "country": "ch",
+            "username": "yourEmail@email.com",
+            "password": "yourPassword"
         }
     ]
 ```
 
-Example extended configuration as used on the author's Samsung TV (where x.x.x.x is the IP address of the TV):
+Example extended configuration as used on the author's Samsung TV (where x.x.x.x is the IP address of the TV). An extended configuration allows you to control the behaviour of each device. You must identify the devices by their id:
 
 ```js
     "platforms": [
         {
             "platform": "eosstb",
+            "country": "ch",
+            "username": "yourEmail@email.com",
+            "password": "yourPassword",
+            "debugLevel": 0,
             "devices": [
                 {
-                    "name": "EOSSTB",
-                    "country": "ch",
-                    "username": "yourEmail@email.com",
-                    "password": "yourPassword",
+                    "id": "EOSSTB",
                     "profile": "Dad",
                     "maxChannels": 50,
                     "playPauseButton": "MediaPlayPause",
@@ -173,7 +193,6 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
                     "modelName": "DCX960",
                     "serialNumber": "123456",
                     "firmwareRevision": "v1.0.0",
-                    "debugLevel": 0,
                     "channelNames": [
                         {
                             "channelId": "SV09690",
@@ -185,23 +204,37 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
     ]
 ```
 
-### Configuration Items:
+### Platform Configuration Items
+Unless otherwise stated, all configuration items are case sensitive.
 
 #### Mandatory
+Mandatory configuration items must always exist. These are used to establish the session to the EOS platform.
 
-* **platform**: the name of your platform. Mandatory, must be eosstb.
+* **platform**: the name of the platform. Mandatory, must be eosstb.
 
-* **name**: The displayed name of your device. Default is the name of your box from your country, you can set it to whatever you want. Mandatory.
++ **country**: Your country. Must be one of ch, nl, be-nl, be-fr, at or gb. Not case sensistive. This controls the country-specific logon sequence and the mqtt sessions. Mandatory.
 
-+ **country**: Your country. Must be one of ch, nl, be-nl, be-fr, at or gb. This controls the country-specific logon sequence and the mqtt sessions. Mandatory.
-
-* **username**: Your login username for your TV provider's online account (My UPC in Switzerland). Normally an email address. Mandatory.
+* **username**: Your login username for your TV provider's online account (Switzerland: My UPC). Normally an email address. Mandatory.
 
 * **password**: Your password associated with your TV provider's account. Mandatory.
 
+
 #### Optional
 
-* **profile**: The profile name to use to load the channel list. Optional, defaults to Shared if not found. The iOS device can only handle maximum 90 (a bit more but I hard limited it to 90). Most cable providers offer many more than 90 channels: my provider has 483. To ensure you have a meaningful list on your iOS device, setup a profile on your set-top box, and enter the profile name in the config. The channels from the profile will be loaded in order. If your profile is changed to the set/top box, the changes will be pushed to HomeKit.
+* **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
+
+
+### Device Configuration Items
+Most people will be happy with the default device configuration. If you do not need to change anything, you can omit the device configuration section.
+If you want to configure your devices differently, do so here. Multiple devices are supported, each device can be configured separately. The devices are identified by their physical device id.
+
+#### Mandatory
+
+* **deviceid**: The unique set-top box physical device id, in format 3C36E4-EOSSTB-001234567890. Required to identify the set-top box in your network, as multiple boxes can exist. Review the Homebridge log to see your device id, it is displayed shortly after a Homebridge reboot. Mandatory for a device configuration.
+
+#### Optional
+
+* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the Shared Profile if not found. if using the Shared Profile,, the device loads the first 90 channels found. Most cable providers offer many more than 90 channels: my provider has 483, of which I am entitled to 287. To ensure you have a useful channel list on your iOS device, create a profile on your set-top box, and enter the profile name in the config. The channels will then be loaded from the profile. If your profile is changed to the set/top box, the changes will be pushed to HomeKit.
 
 * **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found, and is hard limited to 90. The more channels configured, the longer the startup time after a Homebridge reboot. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
 
@@ -209,9 +242,7 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 * **channelNames**: Allows you to add unknown channel names, or to rename any channel as you wish. Required as some channels (e.g. Netflix) are not published on the master channel list. If a channel displays in your iOS device like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
 
-* **settopboxId**: DEPRECATED (NOT IN USE ANY MORE) Your set-topbox id. Only needed if you have more than one EOS box, so that the plugin can control the correct box. The id is shown in the HomeBridge log and is in the format 3C36E4-EOSSTB-00xxxxxxxxxx (xxxxxxxxxx is actually your CA code). Optional, defaults to the first detected set-top box id in the mqtt traffic if not found.
-
-* **accessoryCategory**: The accessory category. This changes the image on the tile in Homekit. Allows you to use a TV or a Audio Receiver or a Set-Top Box (default). Available values are:  TV = any of "television", "tv", "TV", "TELEVISION".  Audio Receiver = any of "receiver", "audio-receiver", "AUDIO_RECEIVER".  Optional, defaults to TV Set-Top Box if the value is not recognised.
+* **accessoryCategory**: The accessory category. This changes the image on the tile in Homekit. Allows you to use a TV or a Audio Receiver or a Set-Top Box (default). Available values are:  TV = any of "television", "tv".  Audio Receiver = any of "receiver", "audio-receiver", "avr".  Not case snsitive. Optional, defaults to TV Set-Top Box if the value is not recognised.
 
 * **playPauseButton**: The command issued to the EOS box when the Play/Pause button (**>||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
 
@@ -225,15 +256,14 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 * **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple iOS remote, I have integrated it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
 
-* **manufacturer**: You can add a manufacturer name if you wish. Defaults to the plugin name. Optional.
+* **manufacturer**: You can add a manufacturer name if you wish. Defaults to the detected device and platform type, otherwise to the platform name. Optional.
 
-* **modelName**: You can add a model name if you wish. Defaults to the set-top box type. Optional.
+* **modelName**: You can add a model name if you wish. Defaults to the detected device model and device type, otherwise to the plugin name. Optional.
 
-* **serialNumber**: You can add a serial number if you wish. Defaults to the physical device id. Optional.
+* **serialNumber**: You can add a serial number if you wish. Defaults to the set-top box serial number id, otherwise to the physical device id. Optional.
 
 * **firmwareRevision**: You can add a firmware revision if you wish. Must be numeric, non-numeric values are not displayed. Defaults to the plugin version. Optional.
 
-* **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
 
 ## Netflix and other special app channels ##
 Netflix is actually an app on the set-top box, and not a normal linear TV channel. It appears in the channel list on the TV, and can be added to favorites. However, it is not broadcast as a normal linear TV channel in the master channel list. Therefore the name cannot be determined from the profile favorite channel list, and the name appears as "Channel xxx" where xxx is the channel id. Known channel ids for Netflix are:
@@ -263,7 +293,9 @@ A collection of known key event commands that control the set-top box.
 * **TV**: Goes back to live TV from whatever state the set-top box was in
 
 
-## Known Other Commands
+## Other Commands
+These commands do not control the set-top box directly, but can be used to control the TV or Receiver or stereo volume (network remote control required) 
+
 ### Volume
 * **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the EOS box, but instead via a bash command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scoll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
 
@@ -271,7 +303,7 @@ A collection of known key event commands that control the set-top box.
 * **Mute** is not supported natively by the iOS remote, but I have added it with a triple-press detection on the volume down button. Press the button three times within 1 second, and the Mute command will be sent using the command stored in the **muteCommand** config item.
 
 ## Siri
-I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <yourEosBoxName>". However, I haven't been able to get Siri to change channels or change volume yet. If you find out how, let me know!
+I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <SetTopBoxName>". However, I haven't been able to get Siri to change channels or change volume yet. If you find out how, let me know!
 
 
 ## Thanks to
