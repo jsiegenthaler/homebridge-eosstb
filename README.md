@@ -80,7 +80,7 @@ UPC can change their systems at any time and that might break this plugin. But I
 
 **Synchronised Set-Top Box Name**: Changing the name of the set-top box in the iOS device changes it on the TV and backend systems in real time, and vice-versa. No reboot required.
 
-**Synchronised Channel List Order**: Changing the channel list order of channels in a profile on your set-top box changes the channel list order on your iOS device. Note that the Shared Profile channel list order cannot be changed.
+**Synchronised Channel List Order**: Changing the channel list order of channels in a profile on your set-top box changes the channel list order on your iOS device in real time. No reboot required. Note that the Shared Profile channel list order cannot be changed.
 
 **Ignores Not-Subscribed Channels**: Only the channels you subscribe to are shown in the iOS device, saving you valuable slots in the limited iOS channel list.
 
