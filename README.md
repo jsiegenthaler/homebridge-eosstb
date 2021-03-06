@@ -92,9 +92,8 @@ UPC can change their systems at any time and that might break this plugin. But I
 
 **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
-TO_DO **Intelligent Favorite Channel Support**: Synchronise favorites from iOS to the TV. The iOS visibility control can hide a channel from your iOS channel list, and also hides it on your TV channel list.
+**Intelligent Profile Support**: If the master channel list is too large for your iOS device, then the plugin will chose the best fitting profile, should you have any user profiles stored. The best fitting user profile is the first user profile found that fits fully within the available channel list space. Of course, you can specify your own profile which overrides this intelligent selection.
 
-TO_DO **Intelligent Profile Support**: If the master channel list is too large for your iOS device, then the plugin will chose the best fitting profile, should you have any custom profiles stored. The best profile is the most recently edited profile that contains less than 90 channels.
 
 
 
@@ -306,8 +305,24 @@ These commands do not control the set-top box directly, but can be used to contr
 ### Mute
 * **Mute** is not supported natively by the iOS remote, but I have added it with a triple-press detection on the volume down button. Press the button three times within 1 second, and the Mute command will be sent using the command stored in the **muteCommand** config item.
 
-## Siri
-I have found that Siri can turn the box on and off with the command "Hey Siri, turn on <SetTopBoxName>". However, I haven't been able to get Siri to change channels or change volume yet. If you find out how, let me know!
+### View TV Settings
+You can use **View TV Settings** to open the set-top box main menu at the PROFILES menu. To use: in the Home app, tap-and-wait on the set-top box tile to open the channel changer, then tap on the cog/wheel to open the settings for the accessory, and scroll down to **View TV Settings**. 
+
+### Media State (Play/Pause) Limitations
+The eosstb plugin can detect the current and target media state and shows PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, Apple Home app cannot do anything with the media state (as at iOS 14.4). Hopefully this will improve in the future
+
+
+### Siri
+Known Siri commands that work with a Set-Top Box accessory are:
+* "Hey Siri, turn on <SetTopBoxName>": turns on the set-top box
+* "Hey Siri, turn off <SetTopBoxName>": turns off the set-top box
+* "Hey Siri, start <SetTopBoxName>": turns on the set-top box
+* "Hey Siri, stop <SetTopBoxName>": turns off the set-top box
+* "Hey Siri, pause <SetTopBoxName>": Siri says "Stopping on the <SetTopBoxName> and shows an AirPlay Connecting dialog but doesn't do anything
+
+As you can see, these are limited to power on and off. Unfortunately, this is an Apple limitatio. Hopefully Apply will improve Siri contol in the future.
+If you find any more commands, let me know!
+    
 
 
 ## Thanks to
