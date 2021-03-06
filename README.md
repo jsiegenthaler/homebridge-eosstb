@@ -80,6 +80,8 @@ UPC can change their systems at any time and that might break this plugin. But I
 
 **Synchronised Set-Top Box Name**: Changing the name of the set-top box in the iOS device changes it on the TV and backend systems in real time, and vice-versa. No reboot required.
 
+**Synchronised Current Channel Display**: Changing the channel on the set-top box changes the displayed channel name in the Home app in real time, and vice-versa.
+
 **Synchronised Channel List Order**: Changing the channel list order of channels in a profile on your set-top box changes the channel list order on your iOS device in real time. No reboot required. Note that the Shared Profile channel list order cannot be changed.
 
 **Ignores Not-Subscribed Channels**: Only the channels you subscribe to are shown in the iOS device, saving you valuable slots in the limited iOS channel list.
@@ -115,13 +117,13 @@ The EOSSTB is exposed as a separate external accessory and each set-top box need
 5. **Select an Accessory to Add to (Home Name)**: Select the accessory you want to add. You should see your set-top box here. If not, check your Homebridge config.
 6. Accept the **Uncertified Accesory** warning by tapping **Add Anyway**.
 7. **Enter HomeKit Setup Code**: Enter the **HomeKit Setup Code** (displayed in Homebridge under the QR code, format XXX-XX-XXX), or use the device's camera to scan the QR code in Homebridge.
-8. **Set-Top Box Location**: Select a room for your EOSSTB accessory and tap **Continue**.
-9. **Set-Top Box Name**: Give your set-top box a different name if you wish (you can change this in the Home app later) and tap **Continue**.
-10. **Name TV Input Sources**: Name your TV input sources if you wish (you can change these in the Home app later) and tap **Continue**.
+8. **Set-Top Box Location**: Select a room for your new accessory and tap **Continue**.
+9. **Set-Top Box Name**: Give your set-top box a different name if you wish (synchronised to your real set-top box, you can change this in the Home app later) and tap **Continue**.
+10. **Name TV Input Sources**: Re-name your TV input sources if you wish (you can change these in the Home app later) and tap **Continue**.
 11. **Set-Top Box Automations**: Switch on any suggested automations if you wish (you can change these in the Home app later) and tap **Continue**.
 12. **Set-Top Box Added to (Home Name)**: Tap **Done** to finish the setup.
 
-Your new accessory will appear shortly in the room that you selected. It may show **Updating...** for a while. You can force a Home app refresh by switching to another room and then back again.
+Your new accessory will appear shortly in the room that you selected. It may show **Updating...** for a while as it loads all the data. You can force a Home app refresh by switching to another room and then back again.
 
 ## Remote Control Supported Keys
 To access the **Apple TV Remote**, open your **Control Center** by swiping down from the top (newer iPhones and iPads) or up from the bottom of the screen (older iPhones). If you do not see the remote control icon, you will need to activate it in **Settings > Control Centre** and ensure that the **Apple TV Remote** is in the list of **INCLUDED CONTROLS**.
@@ -134,10 +136,10 @@ The following keys are supported by in the **Apple TV Remote** in the Control Ce
 * Back
 * Info (i)
 * Volume Up
-* Volume Down (three clicks = Mute)
+* Volume Down (also used for Mute)
 
 You can configure the (i) button to be Info, Help, Guide, ContextMenu or MediaTopMenu.
-Most useful is MediaTopMenu, which is the default.
+Most useful is MediaTopMenu (the normal menu command), which is the default.
 
 The volume controls do not control the EOS set-top box directly, as the EOS box has no volume capability. The EOS physical remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
 
