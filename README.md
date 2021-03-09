@@ -39,7 +39,7 @@ May also work with other UPC countries, if you know of any, let me know.
 
 # TO-DO as of 09.03.2020
 * Test GB connections for Virgin Media
-* Handle multiple set-top boxes per household - Progressing Well! This will be come v1.0.0 as it has a different config file.
+* Handle multiple set-top boxes per household - Progressing Well! This will be come v1.0.0 as it has a different config file. Feel free to try the Beta Version 8Install in Homebridge with Install Previous Version, then select the Beta. The Beta has a config file change, the username and passwor must under the platform, and not under device.
 
 
 # Recent Major Achievements
