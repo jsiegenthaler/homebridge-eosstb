@@ -37,11 +37,13 @@ So if you subscribe to a TV service from one of these countries, you are lucky, 
 
 May also work with other UPC countries, if you know of any, let me know.
 
-# TO-DO as of 06.03.2020
+# TO-DO as of 09.03.2020
 * Test GB connections for Virgin Media
 
 
 # Recent Major Achievements
+09 Feb 2021: Full multi-device support working properly
+
 06 Feb 2021: Full multi-device support added
 
 27 Feb 2021: Working on v0.1.14 with live channel change updates and many improvements
@@ -90,9 +92,9 @@ UPC can change their systems at any time and that might break this plugin. But I
 
 **Master Channel List Refreshed Regularly**: The master channel list is refreshed at the correct intervals requested by the TV provider, minimising network traffic.
 
-**Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
+**Intelligent Profile Support**: If the master channel list is too large for your iOS device, then the plugin will chose the best fitting profile, should you have any user profiles stored on your set-top box. The best fitting user profile is the first user profile found that fits fully within the available channel list space. Of course, you can specify your own profile which overrides this intelligent selection.
 
-**Intelligent Profile Support**: If the master channel list is too large for your iOS device, then the plugin will chose the best fitting profile, should you have any user profiles stored. The best fitting user profile is the first user profile found that fits fully within the available channel list space. Of course, you can specify your own profile which overrides this intelligent selection.
+**Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
 
 
@@ -146,6 +148,7 @@ The volume controls do not control the EOS set-top box directly, as the EOS box 
 
 
 ## Limitations
+### Channel Count
 Due to HomeKit limitations, the maximum services for a single accessory is 100. Over this value the Home app will no longer respond. 
 Services used in this set-top box accessory are:
 1. Information service (Name, model, serial number of the accessory)
@@ -153,6 +156,12 @@ Services used in this set-top box accessory are:
 3. Speaker service (for the controlling the TV accessory volume)
 4. Input service. The input (TV channels) utilise one service per input. The maximum possible channels (inputs) are thus 100 - 3 = 97.
 However, the more services you have, the slower the plugin loads. So I have limited the inputs to maximum 50, but you can override this in the config. The inputs are hard limited to 90 inputs.
+
+### Web App Controllers Take Over Sometimes
+The Homekit plugin emulates the web app. If the web app is started on a web browser on a laptop or PC, the backend systems may prefer the web app to HomeKit, and disconnect Homekit from the mqtt session. The best thing to do is not use the web app. I'm considering ways to make the mqtt session more robust.
+
+### Media State (Play/Pause) Limitations
+The eosstb plugin can detect the current and target media state and shows PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 14.4). Hopefully this will improve in the future.
 
 
 ## Configuration
@@ -229,11 +238,11 @@ Mandatory configuration items must always exist. These are used to establish the
 
 ### Device Configuration Items
 Most people will be happy with the default device configuration. If you do not need to change anything, you can omit the device configuration section.
-If you want to configure your devices differently, do so here. Multiple devices are supported, each device can be configured separately. The devices are identified by their physical device id.
+If you want to configure your devices differently, do so here. Multiple devices are supported, each device can be configured separately. The devices are identified by their physical device id. you Yill see that there is no option to set the name, as the name of the set-top box displayed in the Home app is always synchronised to the physical set-top box.
 
 #### Mandatory
 
-* **deviceid**: The unique set-top box physical device id, in format 3C36E4-EOSSTB-001234567890. Required to identify the set-top box in your network, as multiple boxes can exist. Review the Homebridge log to see your device id, it is displayed shortly after a Homebridge reboot. Mandatory for a device configuration.
+* **deviceid**: The unique set-top box physical device id, in Switzerland and Belgium this is in the format 3C36E4-EOSSTB-001234567890. Other countries may be the same. Required to identify the set-top box in your network, as multiple boxes can exist. Review the Homebridge log to see your device id, it is displayed shortly after a Homebridge reboot. Mandatory for a device configuration.
 
 #### Optional
 
@@ -293,7 +302,7 @@ A collection of known key event commands that control the set-top box.
 
 * **MediaPlayPause**: Toggles between Pause and Play of the currently playing program (same as MediaPause)
 
-* **TV**: Goes back to live TV from whatever state the set-top box was in
+* **TV**: Goes back to live (linear) TV from whatever state the set-top box was in
 
 
 ## Other Commands
@@ -308,8 +317,6 @@ These commands do not control the set-top box directly, but can be used to contr
 ### View TV Settings
 You can use **View TV Settings** to open the set-top box main menu at the PROFILES menu. To use: in the Home app, tap-and-wait on the set-top box tile to open the channel changer, then tap on the cog/wheel to open the settings for the accessory, and scroll down to **View TV Settings**. 
 
-### Media State (Play/Pause) Limitations
-The eosstb plugin can detect the current and target media state and shows PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, Apple Home app cannot do anything with the media state (as at iOS 14.4). Hopefully this will improve in the future
 
 
 ### Siri
