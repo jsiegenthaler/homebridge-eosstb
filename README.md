@@ -37,9 +37,9 @@ So if you subscribe to a TV service from one of these countries, you are lucky, 
 
 May also work with other UPC countries, if you know of any, let me know.
 
-# TO-DO as of 28.02.2020
+# TO-DO as of 09.03.2020
 * Test GB connections for Virgin Media
-* Handle multiple set-top boxes per household
+* Handle multiple set-top boxes per household - Progressing Well! This will be come v1.0.0 as it has a different config file.
 
 
 # Recent Major Achievements
