@@ -277,6 +277,9 @@ If you want to configure your devices differently, do so here. Multiple devices 
 * **firmwareRevision**: You can add a firmware revision if you wish. Must be numeric, non-numeric values are not displayed. Defaults to the plugin version. Optional.
 
 
+
+
+
 ## Netflix and other special app channels ##
 Netflix is actually an app on the set-top box, and not a normal linear TV channel. It appears in the channel list on the TV, and can be added to favorites. However, it is not broadcast as a normal linear TV channel in the master channel list. Therefore the name cannot be determined from the profile favorite channel list, and the name appears as "Channel xxx" where xxx is the channel id. Known channel ids for Netflix are:
 * Telenet Belgium: netflix
@@ -286,30 +289,34 @@ Add the channelId and the channelName to channelNames in the config, and then th
 ## EOS Set-Top Box KeyEvent Commands
 A collection of known key event commands that control the set-top box. 
 
-* **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the **HOME** button on the EOS box remote
+* **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the **HOME** button on the set-top box remote
 
-* **Escape**: Escapes (exits) out of any current menu on the TV. Same as the **RETURN** button on the EOS box remote
+* **Escape**: Escapes (exits) out of any current menu on the TV. Same as the **RETURN** button on the set-top box remote
 
-* **ContextMenu**: Displays a context menu on the current TV program. Same as the **...** button on the EOS box remote
+* **ContextMenu**: Displays a context menu on the current TV program. Same as the **...** button on the set-top box remote
 
 * **Info**: Displays the INFO screen on the TV showing info about the current TV program
 
 * **Help**: Displays the SETTINGS INFO page on the TV, allowing you to access settings quickly
 
-* **Guide**: Displays the TV GUIDE page on the TV, same as the Guide button on the EOS box remote
+* **Guide**: Displays the TV GUIDE page on the TV, same as the Guide button on the set-top box remote
 
 * **MediaPause**: Toggles between Pause and Play of the currently playing program
 
 * **MediaPlayPause**: Toggles between Pause and Play of the currently playing program (same as MediaPause)
 
-* **TV**: Goes back to live (linear) TV from whatever state the set-top box was in
+* **TV**: Goes back to live TV from whatever state the set-top box was in
+
+* **ChannelUp**: Move up the channel list by one channel, same as the **/\\** (channel up) button on the set-top box remote
+
+* **ChannelDown**: Move down the channel list by one channel, same as the **\\/** (channel down) button on the set-top box remote
 
 
 ## Other Commands
 These commands do not control the set-top box directly, but can be used to control the TV or Receiver or stereo volume (network remote control required) 
 
 ### Volume
-* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the EOS box, but instead via a bash command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scoll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
+* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the set-top box, but instead via a bash command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scoll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
 
 ### Mute
 * **Mute** is not supported natively by the iOS remote, but I have added it with a triple-press detection on the volume down button. Press the button three times within 1 second, and the Mute command will be sent using the command stored in the **muteCommand** config item.
