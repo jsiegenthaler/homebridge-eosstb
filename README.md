@@ -328,11 +328,11 @@ You can use **View TV Settings** to open the set-top box main menu at the PROFIL
 
 ### Siri
 Known Siri commands that work with a Set-Top Box accessory are:
-* "Hey Siri, turn on <SetTopBoxName>": turns on the set-top box
-* "Hey Siri, turn off <SetTopBoxName>": turns off the set-top box
-* "Hey Siri, start <SetTopBoxName>": turns on the set-top box
-* "Hey Siri, stop <SetTopBoxName>": turns off the set-top box
-* "Hey Siri, pause <SetTopBoxName>": Siri says "Stopping on the <SetTopBoxName> and shows an AirPlay Connecting dialog but doesn't do anything
+* "Hey Siri, turn on \<SetTopBoxName\>": turns on the set-top box
+* "Hey Siri, turn off \<SetTopBoxName\>": turns off the set-top box
+* "Hey Siri, start \<SetTopBoxName\>": turns on the set-top box
+* "Hey Siri, stop \<SetTopBoxName\>": turns off the set-top box
+* "Hey Siri, pause \<SetTopBoxName\>": Siri says "Stopping on the <SetTopBoxName> and shows an AirPlay Connecting dialog but doesn't do anything
 
 As you can see, these are limited to power on and off. Unfortunately, this is an Apple limitatio. Hopefully Apply will improve Siri contol in the future.
 If you find any more commands, let me know!
