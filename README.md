@@ -146,6 +146,8 @@ Most useful is MediaTopMenu (the normal menu command), which is the default.
 
 The volume controls do not control the EOS set-top box directly, as the EOS box has no volume capability. The EOS physical remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
 
+Rewind and Fast Forward are also supported in the EOSSTB plugin, but these commands are not exposed in the current Apple TV Remote. If Apple TV ever expose buttons for these commands in the future, then they will work.
+
 
 ## Limitations
 ### Channel Count
