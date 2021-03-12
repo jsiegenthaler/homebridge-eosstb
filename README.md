@@ -286,8 +286,8 @@ Netflix is actually an app on the set-top box, and not a normal linear TV channe
 * UPC Switzerland: SVO9690
 Add the channelId and the channelName to channelNames in the config, and then the proper name will appear.
 
-## EOS Set-Top Box KeyEvent Commands
-A collection of known key event commands that control the set-top box. 
+## Set-Top Box KeyEvent Commands
+A collection of known key event commands that control the set-top box. You can use these to change the remote key mappings if you wish. Note that the standard Applye TV Remote is limited and does not provide buttons for all possible commands.
 
 * **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the **HOME** button on the set-top box remote
 
@@ -297,13 +297,21 @@ A collection of known key event commands that control the set-top box.
 
 * **Info**: Displays the INFO screen on the TV showing info about the current TV program
 
-* **Help**: Displays the SETTINGS INFO page on the TV, allowing you to access settings quickly
+* **Help**: Displays the **SETTINGS INFO** page on the TV, allowing you to access settings quickly
 
-* **Guide**: Displays the TV GUIDE page on the TV, same as the Guide button on the set-top box remote
+* **Guide**: Displays the **TV GUIDE** page on the TV, same as the Guide button on the set-top box remote
 
 * **MediaPause**: Toggles between Pause and Play of the currently playing program
 
 * **MediaPlayPause**: Toggles between Pause and Play of the currently playing program (same as MediaPause)
+
+* **MediaRecord**: Starts recording the currently playing program
+
+* **MediaStop**: Stops the currently playing program
+
+* **MediaRewind**: Rewinds the currently playing program
+
+* **MediaFastForward**: Fast-forwards the currently playing program
 
 * **TV**: Goes back to live TV from whatever state the set-top box was in
 
@@ -322,12 +330,12 @@ These commands do not control the set-top box directly, but can be used to contr
 * **Mute** is not supported natively by the iOS remote, but I have added it with a triple-press detection on the volume down button. Press the button three times within 1 second, and the Mute command will be sent using the command stored in the **muteCommand** config item.
 
 ### View TV Settings
-You can use **View TV Settings** to open the set-top box main menu at the PROFILES menu. To use: in the Home app, tap-and-wait on the set-top box tile to open the channel changer, then tap on the cog/wheel to open the settings for the accessory, and scroll down to **View TV Settings**. 
+You can use **View TV Settings** to open the set-top box main menu at the **PROFILES** menu. To use: in the Home app, tap-and-wait on the set-top box tile to open the channel changer, then tap on the cog/wheel to open the settings for the accessory, and scroll down to **View TV Settings**. 
 
 
 
 ### Siri
-Known Siri commands that work with a Set-Top Box accessory are:
+Known Siri commands that work with a **Set-Top Box** accessory are:
 * "Hey Siri, turn on \<SetTopBoxName\>": turns on the set-top box
 * "Hey Siri, turn off \<SetTopBoxName\>": turns off the set-top box
 * "Hey Siri, start \<SetTopBoxName\>": turns on the set-top box
