@@ -194,9 +194,8 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
             "debugLevel": 0,
             "devices": [
                 {
-                    "id": "EOSSTB",
+                    "deviceId": "3C36E4-EOSSTB-00365657xxxx",
                     "profile": "Dad",
-                    "maxChannels": 50,
                     "playPauseButton": "MediaPlayPause",
                     "backButton": "Escape",
                     "infoButton": "MediaTopMenu",
@@ -206,7 +205,8 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
                     "manufacturer": "ARRIS",
                     "modelName": "DCX960",
                     "serialNumber": "123456",
-                    "firmwareRevision": "v1.0.0",
+                    "firmwareRevision": "4.29",
+                    "maxChannels": 50,
                     "channelNames": [
                         {
                             "channelId": "SV09690",
