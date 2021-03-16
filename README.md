@@ -74,6 +74,7 @@ UPC can change their systems at any time and that might break this plugin. But I
 * A [TV subscription](https://www.upc.ch/en/bundles/buy-tv-internet/) (or the equivalent in your country)
 * A [My UPC account](https://www.upc.ch/en/account/login/credentials/) (or the equivalent in your country, part of your TV package)
 * The ARRIS mediabox DCX960 (provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries)
+* The ARRIS DCX960 must be set to **Fast Startup** mode to ensure it is online all the time and can respond to to switch-on requests
 
 ## Features
 **Full Remote Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, volume and mute commands.
