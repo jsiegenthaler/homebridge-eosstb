@@ -202,7 +202,7 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 #### Optional
 
-* **profile**: The profile name to use to load the channel list. Optional, defaults to Shared if not found. The iOS device can only handle maximum 90 (a bit more but I hard limited it to 90). Most cable providers offer many more than 90 channels: my provider has 483. To ensure you have a meaningful list on your iOS device, setup a profile on your set-top box, and enter the profile name in the config. The channels from the profile will be loaded in order. If your profile is changed to the set/top box, the changes will be pushed to HomeKit.
+* **profile**: The profile name to use to load the channel list. Optional, defaults to Shared if not found. The iOS device can only handle maximum 90 channels (a bit more but I hard limited it to 90). Most cable providers offer many more than 90 channels: my provider has 483. To ensure you have a meaningful list on your iOS device, setup a profile on your set-top box, and enter the profile name in the config. The channels from the profile will be loaded in order. If your profile is changed to the set-top box, the changes will be pushed to HomeKit.
 
 * **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found, and is hard limited to 90. The more channels configured, the longer the startup time after a Homebridge reboot. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
 
