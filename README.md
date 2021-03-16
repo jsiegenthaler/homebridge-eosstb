@@ -69,8 +69,8 @@ This plugin is not provided by UPC or Ziggo or Telenet or Magenta or Vigin Media
 UPC can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
-* An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1...14.4, earlier versions not tested.
-* [Homebridge](https://homebridge.io/) v1.2.5 (or later). Developed on Homebridge 1.1.116....1.3.1, earlier versions not tested.
+* An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1...14.4.1, earlier versions not tested.
+* [Homebridge](https://homebridge.io/) v1.3.0 (or later). Developed on Homebridge 1.1.116....1.3.3, earlier versions not tested.
 * A [TV subscription](https://www.upc.ch/en/bundles/buy-tv-internet/) (or the equivalent in your country)
 * A [My UPC account](https://www.upc.ch/en/account/login/credentials/) (or the equivalent in your country, part of your TV package)
 * The ARRIS mediabox DCX960 (provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries)
@@ -83,9 +83,7 @@ UPC can change their systems at any time and that might break this plugin. But I
 
 **Synchronised Set-Top Box Name**: Changing the name of the set-top box in the iOS device changes it on the TV and backend systems in real time, and vice-versa. No reboot required.
 
-**Synchronised Current Channel Display**: Changing the channel on the set-top box changes the displayed channel name in the Home app in real time, and vice-versa.
-
-**Synchronised Channel List Order**: Changing the channel list order of channels in a profile on your set-top box changes the channel list order on your iOS device in real time. No reboot required. Note that the Shared Profile channel list order cannot be changed.
+**Synchronised Channel List Order**: Changing the order of channels in a profile on your set-top box changes the channel list order on your iOS device in real time. No reboot required. Note that the Shared Profile channel list order cannot be changed.
 
 **Ignores Not-Subscribed Channels**: Only the channels you subscribe to are shown in the iOS device, saving you valuable slots in the limited iOS channel list.
 
@@ -95,9 +93,19 @@ UPC can change their systems at any time and that might break this plugin. But I
 
 **Intelligent Profile Support**: If the master channel list is too large for your iOS device, then the plugin will chose the best fitting profile, should you have any user profiles stored on your set-top box. The best fitting user profile is the first user profile found that fits fully within the available channel list space. Of course, you can specify your own profile which overrides this intelligent selection.
 
+**Robust Session Handler**: If the web session or mqtt sessions are lost, the plugin will automatically try to reconnect.
+
+**Informative Log Entries**: The plugin logs show lots of information about your session and the state of the set-top box.
+
 **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
+**Shortcut Support**: In Apple Shortcuts you can turn the set-top box on and off and change channels.
 
+**Future Services Support**: The plugin supports current and target media state, even though the Home app accessory cannot currently display this data (as at iOS 14.x). Hopefully, Apple will add support in the future.
+
+
+### TO-DO:
+**Synchronised Current Channel Display**: Changing the channel on the set-top box changes the displayed channel name in the Home app in real time, and vice-versa.
 
 
 
