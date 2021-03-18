@@ -42,7 +42,7 @@ May also work with other UPC countries, if you know of any, let me know.
 
 
 # Recent Major Achievements
-18 Mar 2021: Getting ready for Releae v1.0.0, but might be able to squeeze some Virgin Media code fixes in before scheduled release date
+18 Mar 2021: Getting ready for Release v1.0.0, but might be able to squeeze some Virgin Media code fixes in before scheduled release date
 
 09 Feb 2021: Full multi-device support working properly
 
