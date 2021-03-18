@@ -37,9 +37,9 @@ So if you subscribe to a TV service from one of these countries, you are lucky, 
 
 May also work with other UPC countries, if you know of any, let me know.
 
-# TO-DO as of 09.03.2020
+# TO-DO as of 18.03.2020
 * Test GB connections for Virgin Media
-* Handle multiple set-top boxes per household - Progressing Well! This will become v1.0.0 as it has a different config file. Feel free to try the Beta Version 8Install in Homebridge with Install Previous Version, then select the Beta. The Beta has a config file change, the username and password must under the platform, and not under device.
+* Publish release v1.0.0 very soon (within a few days)
 
 
 # Recent Major Achievements
