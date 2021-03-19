@@ -25,20 +25,20 @@ If you like this plugin, consider making a donation or buying me a coffee!<br>
 
 
 
-# Works in Your Country (If you are with UPC / Ziggo / Telenet / Magenta and hopefully Virgin Media)
+# Works in Your Country (If you are with UPC / Ziggo / Telenet / Magenta or Virgin Media)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same UPC TV system with the ARRIS DCX960 set-top box are:
 * Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **UPC TV Box**. Also known as the EOSSTB.   **WORKING**
 * Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **Mediabox Next (4K)**.   **WORKING**
 * Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums call the DCX960 a **Telenet TV-Box**.   **WORKING**
 * Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **Entertain Box 4K**.   **TESTERS NEEDED**
-* United Kingdom and Ireland: [Virgin Media](https://www.virginmedia.com/). The DCX960 appears to be called the **Virgin TV 360** box, introduced to in August 2020.   **TESTERS WANTED** Note: my plugin does not work with the older Virgin Media TiVo boxes.
+* United Kingdom and Ireland: [Virgin Media](https://www.virginmedia.com/). The DCX960 appears to be called the **Virgin TV 360** box, introduced to in August 2020.   **WOKRING IN BETA VERSION** Note: my plugin does not work with the older Virgin Media TiVo boxes.
 
 So if you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
 
 May also work with other UPC countries, if you know of any, let me know.
 
-# TO-DO as of 18.03.2020
-* Test GB connections for Virgin Media
+# TO-DO as of 19.03.2020
+* Test GB connections for Virgin Media - WORKING IN THE BETA VERSION
 * Publish release v1.0.0 very soon (within a few days)
 
 
