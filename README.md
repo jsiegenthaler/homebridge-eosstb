@@ -166,14 +166,13 @@ Services used in this set-top box accessory are:
 1. Information service (Name, model, serial number of the accessory)
 2. Television service (for controlling the TV accessory)
 3. Speaker service (for the controlling the TV accessory volume)
-4. Input service. The input (TV channels) utilises one service per input. The maximum possible channels (inputs) are thus 100 - 3 = 97.
-However, the more services you have, the slower the plugin loads. So, I have limited the inputs to maximum 50, but you can override this in the config. The inputs are hard limited to 90 inputs.
+4. Input service. The input (TV channels) utilises one service per input. The maximum possible channels (inputs) are thus 100 - 3 = 97. I have limited the inputs to maximum 95, but you can override this in the config (helpful to reduce log entries when debugging). The inputs are hard limited to 95 inputs.
 
 ### Web App Controllers Take Over Sometimes
-The eosstb plugin emulates the TV service web app. If the web app is started on a web browser on a laptop or PC, the backend systems may prefer the web app to HomeKit, and disconnect HomeKit from the mqtt session. The best thing to do is not use the web app. The mqtt session will try and reconnect if it gets disconnected.
+The eosstb plugin emulates the TV service web app. If the web app is started on a web browser on a laptop or PC, the backend systems may prefer the web app to HomeKit, and disconnect HomeKit from the mqtt session. The mqtt session will try and reconnect if it gets disconnected.
 
 ### Media State (Play/Pause) Limitations
-The eosstb plugin can detect the current and target media state and shows PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 14.4). Hopefully this will improve in the future.
+The eosstb plugin can detect the current and target media state and shows PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 14.4) apart from allow you to read it in the Shortcuts app. Hopefully this will improve in the future.
 
 
 ## Configuration
