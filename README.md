@@ -225,7 +225,7 @@ Mandatory config items must always exist. These are used to establish the sessio
 
 * **name**: The platform name that appears in the Homebridge logs. In Switzerland, the platform is called EOS. In Belgium and Great Britain the platform is called Horizon. Optional, defaults to "eosstb".
 
-* **triplePressTime**: The amount of time to detect triple-press of a button. Used for triple-press features, such as triple-press of Volume Down generates Mute. Optional, defaults to 800ms.
+* **triplePressTime**: The amount of time in ms to detect triple-press of a button. Used for triple-press features, such as triple-press of Volume Down generates Mute. Optional, defaults to 800ms.
 
 * **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Debug messages are shown in the Homebridge log in the warning colour, normally yellow. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
 
@@ -247,7 +247,7 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 * **channelNames**: Allows you to add unknown channel names, or to rename any channel as you wish. Required as some channels (e.g., Netflix) are not published on the master channel list. If a channel displays in your iOS device like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
 
-* **accessoryCategory**: The accessory category. This changes the image on the tile in Homekit. Allows you to use a TV or an Audio Receiver or a Set-Top Box (default). Available values are:  Set-Top-Box = any of "settopbox", "stb". TV = any of "television", "tv".  Audio Receiver = any of "receiver", "audio-receiver", "avr".  Not case sensitive. Optional, defaults to Set-Top Box if the value is not recognised.
+* **accessoryCategory**: The accessory category. This changes the image on the tile in the Home app. Allows you to use a TV or an Audio Receiver or a Set-Top Box (default). Available values are:  Set-Top-Box = any of "settopbox", "stb". TV = any of "television", "tv".  Audio Receiver = any of "receiver", "audio-receiver", "avr".  Not case sensitive. Optional, defaults to Set-Top Box if the value is not recognised.
 
 * **playPauseButton**: The command issued to the set-top box when the Play/Pause button (**> ||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
 
@@ -271,7 +271,7 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 
 ## Special app channels (Netflix) ##
-Some channels such as Netflix are actually apps on the set-top box, and not normal linear TV channels. They appear in the channel list on the TV, and can be added to favourites. However, they are not broadcast as a normal linear TV channel in the master channel list. Therefore, the name cannot be determined from the profile favourite channel list, and the name appears as "Channel xxx" where xxx is the channel id. To overcome this, add the channelId and the channelName to channelNames in the config as per the examples below:
+Some channels such as Netflix are actually apps on the set-top box, and not normal linear TV channels. They appear in the channel list on the TV, and can be added to favourites. However, they are not broadcast as a normal linear TV channel in the master channel list. Therefore, the name cannot be determined from the profile favourite channel list, and the name appears as "Channel xxxxxx" where xxxxxx is the channelId. To overcome this, add the channelId and the channelName to the channelNames section in the config as per the examples below:
 
 * Telenet BE: 
 ```js
@@ -339,19 +339,19 @@ A collection of known key event commands that control the set-top box. You can u
 
 * **ChannelDown**: Move down the channel list by one channel, same as the **\\/** (channel down) button on the set-top box remote
 
-* **Red**, **Green**, **Yellow**, **Blue**: The four coloured buttons found on GB remote controls, to access special functions
+* **Red**, **Green**, **Yellow**, **Blue**: The four coloured buttons found on GB and IE remote controls, to access special TV functions
 
 ## Other Commands
-These commands do not control the set-top box directly, but can be used to control the TV or Receiver or stereo volume (network remote control required) 
+These commands do not control the set-top box directly, but can be used to control the TV or Receiver volume (network remote control required) 
 
 ### Volume
-* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the set-top box, but instead via a bash command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scroll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
+* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the set-top box, but instead via a command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP, KEY_VOLDOWN and KEY_MUTE to be easily sent to the Samsung Receiver. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scroll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
 
 ### Mute
 * **Mute** is not supported natively by the iOS remote, but I have added it with a triple-press detection on the volume down button. Press the button three times within 1 second, and the Mute command will be sent using the command stored in the **muteCommand** config item.
 
 ### View TV Settings
-You can use **View TV Settings** to open the set-top box main menu at the **PROFILES** menu. To use: in the Home app, tap-and-wait on the set-top box tile to open the channel changer, then tap on the cogwheel to open the settings for the accessory, and scroll down to **View TV Settings**. 
+You can use **View TV Settings** to open the set-top box main menu at the **PROFILES** menu. Usage: in the Home app, tap-and-wait on the set-top box tile to open the channel changer, then tap on the cogwheel to open the settings for the accessory, and scroll down to **View TV Settings**. 
 
 
 ## Siri
@@ -362,27 +362,28 @@ Known Siri commands that work with a **Set-Top Box** accessory are:
 * "Hey Siri, stop \<SetTopBoxName\>": turns off the set-top box
 * "Hey Siri, pause \<SetTopBoxName\>": Siri says "Stopping on the \<SetTopBoxName\>" and shows an AirPlay Connecting dialog but doesn't do anything
 
-As you can see, these are limited to power on and off. Unfortunately, this is an Apple limitation. Hopefully Apply will improve Siri control in the future.
+As you can see, these are limited to power on and off. Unfortunately, this is an Apple limitation. Hopefully Apple will improve Siri control in the future.
 If you find any more commands, let me know!
     
 
 ## Shortcuts
 The set-top box state can be read and controlled in the Shortcuts app as follows:
 
-Search for **Get the state of \<HomeName\>** then select **Get \<SetTopBoxName\> \<Characteristic\>**
-Characteristic is one of the following supported characteristics:
+### Reading the current state of the Set-Top Box
+Search for **Get the state of \<HomeName\>** then select **Get \<SetTopBoxName\> \<Characteristic\>**, where Characteristic is one of the following supported characteristics:
 * **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
 * **Active Identifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
 * **Configured Name**: The set-top box name. See https://developers.homebridge.io/#/characteristic/ConfiguredName
-* **Current Media State**: The set-top box current media state, either 0 (PLAY), 1 (PAUSE) or 4 (LOADING). See. https://developers.homebridge.io/#/characteristic/CurrentMediaState
+* **Current Media State**: The set-top box current media state, either 0 (PLAY), 1 (PAUSE), 2 (STOP) or 4 (LOADING). See. https://developers.homebridge.io/#/characteristic/CurrentMediaState
 * **Name**: The set-top box name as at last restart of Homebridge. See https://developers.homebridge.io/#/characteristic/Name
 * **Power Mode Selection**: Operation not supported (this characteristic does not support reading of its state)
 * **Remote Key**: Operation not supported (this characteristic does not support reading of its state)
 * **Sleep Discovery Mode**: Always 1 (ALWAYS_DISCOVERABLE). See https://developers.homebridge.io/#/characteristic/SleepDiscoveryMode
 * **Target Media State**: The set-top box target media state, follows current media state. See https://developers.homebridge.io/#/characteristic/TargetMediaState
 
+### Controlling the Set-Top Box
 Search for **Control \<HomeName\>** then select **Set \<SetTopBoxName\>**
-You can only control the items accessible through the Home app tile. Unfortunately, this is an Apple limitation. Hopefully Apply will improve Shortcut’s control in the future. Press and hold to adjust the accessory. Possible controlable items are:
+You can only control the items accessible through the Home app tile. Unfortunately, this is an Apple limitation. Hopefully Apple will improve Shortcut’s control in the future. Press and hold to adjust the accessory. Possible controlable items are:
 
 * **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
 * **Active Identifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
