@@ -21,7 +21,7 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 * Added lots of customisation capabilities (see [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md))
 * Improved display of accessory properties
 * Bumped all dependencies
-* Many more improvements, see the [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md) for full plugin documentation
+* Many more improvements, see the [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#features) for full plugin documentation
 
 ## 0.1.13 (2021-02-25)
 * Fixed bugs in the BE session
