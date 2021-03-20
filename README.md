@@ -192,20 +192,23 @@ Example minimum (mandatory) configuration:
     ]
 ```
 
-Example extended configuration as used on the author's Samsung TV (where x.x.x.x is the IP address of the TV). An extended configuration allows you to control the behaviour of each device. You must identify the devices by their id:
+Example extended configuration as used on the author's Samsung TV (where x.x.x.x is the IP address of the TV). An extended configuration allows you to customise the behaviour of each device. You must identify the devices by their deviceId:
 
 ```js
     "platforms": [
         {
             "platform": "eosstb",
+            "name": "EOS",
             "country": "ch",
             "username": "yourEmail@email.com",
             "password": "yourPassword",
+            "triplePressTime": 800,
             "debugLevel": 0,
             "devices": [
                 {
                     "deviceId": "3C36E4-EOSSTB-00365657xxxx",
                     "profile": "Dad",
+                    "accessoryCategory": "settopbox",
                     "playPauseButton": "MediaPlayPause",
                     "backButton": "Escape",
                     "infoButton": "MediaTopMenu",
@@ -216,6 +219,7 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
                     "modelName": "DCX960",
                     "serialNumber": "123456",
                     "firmwareRevision": "4.29",
+                    "showChannelNumbers": false,
                     "maxChannels": 50,
                     "channelNames": [
                         {
@@ -270,7 +274,7 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 * **channelNames**: Allows you to add unknown channel names, or to rename any channel as you wish. Required as some channels (e.g. Netflix) are not published on the master channel list. If a channel displays in your iOS device like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
 
-* **accessoryCategory**: The accessory category. This changes the image on the tile in Homekit. Allows you to use a TV or an Audio Receiver or a Set-Top Box (default). Available values are:  TV = any of "television", "tv".  Audio Receiver = any of "receiver", "audio-receiver", "avr".  Not case sensitive. Optional, defaults to Set-Top Box if the value is not recognised.
+* **accessoryCategory**: The accessory category. This changes the image on the tile in Homekit. Allows you to use a TV or an Audio Receiver or a Set-Top Box (default). Available values are:  Set-Top-Box = any of "settopbox", "stb". TV = any of "television", "tv".  Audio Receiver = any of "receiver", "audio-receiver", "avr".  Not case sensitive. Optional, defaults to Set-Top Box if the value is not recognised.
 
 * **playPauseButton**: The command issued to the EOS box when the Play/Pause button (**>||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
 
