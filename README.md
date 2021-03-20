@@ -3,7 +3,6 @@
   </a>
 </p>
 
-
 # homebridge-eosstb
 [![npm](https://img.shields.io/npm/v/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
@@ -12,10 +11,10 @@
 `homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS set-top box (typically a ARRIS DCX960 running on the UPC/Ziggo/Telenet/Magenta/Virgin Media
 TV system), as well as connected HDMI-CEC controllable devices with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
-This plugin displays your EOS set-top box as a Set-Top Box Accessory with Power, Input & Remote Control capabilities in your iOS device (iPhone, iPad, iMac, etc.).
+This plugin displays your EOS set-top box as a Set-Top Box Accessory with Power, Input & Remote-Control capabilities in your iOS device (iPhone, iPad, iMac, etc.).
 
 You need a subscription to the online TV service from your local TV provider.
-The username and password are the same as used in the TV provider's TV app on your iOS device (the app varies by country, in Switzerland it is [upc tv Schweiz](https://apps.apple.com/ch/app/upc-tv-schweiz/id1292688012)).
+The username and password are the same as used in the TV provider's TV app on your iOS device (the app varies by country; in Switzerland it is [upc tv Schweiz](https://apps.apple.com/ch/app/upc-tv-schweiz/id1292688012)).
 
 Supports multiple set-top boxes, allowing you to create a TV accessory for each box (should you have more than one).
 
@@ -24,46 +23,24 @@ If you like this plugin, consider making a donation or buying me a coffee!<br>
 
 
 
-
-# Works in Your Country (If you are with UPC / Ziggo / Telenet / Magenta or Virgin Media)
+# Works in Your Country (If you are with Magenta / Telenet / UPC / Virgin Media / Ziggo)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same UPC TV system with the ARRIS DCX960 set-top box are:
-* Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **UPC TV Box**. Also known as the EOSSTB.   **WORKING**
-* Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **Mediabox Next (4K)**.   **WORKING**
-* Belgium: [Telenet](https://www2.telenet.be/en/). The Belgium’s call the DCX960 a **Telenet TV-Box**.   **WORKING**
-* United Kingdom and Ireland: [Virgin Media](https://www.virginmedia.com/). The DCX960 appears to be called the **Virgin TV 360** box, introduced to in August 2020.   **WORKING** Note: my plugin does not work with the older Virgin Media TiVo boxes.
-* Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **Entertain Box 4K**.   **TESTERS NEEDED**
+* Belgium: [Telenet](https://www2.telenet.be/en/). The Belgium’s call the DCX960 a **[Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/)**.   **WORKING**
+* Great Britain: [Virgin Media](https://www.virginmedia.com/). The DCX960 is called the **[Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360)** box, introduced to in August 2020 (not for the older Virgin Media TiVo boxes).   **WORKING** 
+* Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **[Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv)**.   **WORKING**
+* Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **[UPC TV Box](https://www.upc.ch/en/television/learn-about-tv/tv/)**. Also known as the EOSSTB.   **WORKING**
 
-So if you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
+* Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **[Entertain Box 4K](https://www.magenta.at/entertain-box)**.   **TESTERS NEEDED**
+
+If you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
 
 May also work with other UPC countries, if you know of any, let me know.
-
-
-# Recent Major Achievements
-19 Mar 2021: Got VirginMedia working
-
-18 Mar 2021: Getting ready for Release v1.0.0, but might be able to squeeze some Virgin Media code fixes in before scheduled release date
-
-09 Feb 2021: Full multi-device support working properly
-
-06 Feb 2021: Full multi-device support added
-
-27 Feb 2021: Working on v0.1.14 with live channel change updates and many improvements
-
-25 Feb 2021: Released v0.1.10 with full profile support and mqtt EOSSTB device status support.
-
-20 Feb 2021: Resolved issues with homebridge v1.3.0 and improved robustness a lot
-
-16 Feb 2021: Got the plugin working as an External Accessory with the right Set-Top Box icon. Got the NPM package configured. You can now search for the plugin and install it in Homebridge.
-
-13 Feb 2021: Got the Telenet session working finally. This plugin now works properly with the Telenet TV-Boxes in Belgium.
-
-
 
 ## Made in Switzerland
 This plugin was written and tested on the author's EOS set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland.
 
 ## Why I chose the name EOSSTB
-I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, runs on an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. So, I stuck with the box identifier that appears in the mqtt messages: EOSSTB.
+I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, runs on an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. I stuck with the box identifier that appears in the mqtt messages: EOSSTB.
 
 ## Disclaimer (The Legal Stuff)
 This plugin is not provided by UPC or Ziggo or Telenet or Magenta or Virgin Media any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. 
@@ -72,27 +49,33 @@ UPC can change their systems at any time and that might break this plugin. But I
 ## Requirements
 * An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1...14.4.1, earlier versions not tested.
 * [Homebridge](https://homebridge.io/) v1.3.0 (or later). Developed on Homebridge 1.1.116....1.3.3, earlier versions not tested.
-* A [TV subscription](https://www.upc.ch/en/bundles/buy-tv-internet/) (or the equivalent in your country)
-* A [My UPC account](https://www.upc.ch/en/account/login/credentials/) (or the equivalent in your country, part of your TV package)
+* A [TV subscription] from one of the supported TV providers.
+* An online account for viewing TV on the web app (often part of your TV package)
 * The ARRIS mediabox DCX960 (provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries)
-* The ARRIS DCX960 should be set to **Standby power consumption** = **Fast start**  to ensure it is always online and can respond to switch-on requests from HomeKit.
+* The ARRIS DCX960 should be set to **Standby power consumption** = **Fast start** to ensure it is always online and can respond to switch-on requests from HomeKit.
 
 ## Features
-**Full Remote Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, volume and mute commands.
+**Full Remote-Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, volume and mute commands.
 
-**Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute. The triple-press timing is configurable.
+**Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports)
+
+**Shortcuts Support** You can read and control your box with Shortcuts and Homekit automations (to the extent of what Apple Siri supports), allowing you to schedule switch-on and channel in HomeKit
 
 **Synchronised Set-Top Box Name**: Changing the name of the set-top box in the iOS device changes it on the TV and backend systems in real time, and vice-versa. No reboot required.
 
+**Synchronised Current Channel**: Changing the channel on the set-top box changes the displayed channel in the Home app in real time, and vice-versa.
+
 **Synchronised Channel List Order**: Changing the order of channels in a profile on your set-top box changes the channel list order on your iOS device in real time. No reboot required. Note that the Shared Profile channel list order cannot be changed.
+
+**Master Channel List Refreshed Regularly**: The master channel list is refreshed at the correct intervals requested by the TV provider, minimising network traffic.
 
 **Ignores Not-Subscribed Channels**: Only the channels you subscribe to are shown in the iOS device, saving you valuable slots in the limited iOS channel list.
 
 **Optional Channel Numbers**: If you wish, you can display a channel number before the channel name. As this consumes some space on the Home app tile, it is off by default.
 
-**Master Channel List Refreshed Regularly**: The master channel list is refreshed at the correct intervals requested by the TV provider, minimising network traffic.
+**Intelligent Profile Support**: If the master channel list is too large for your iOS device, then the plugin will choose the best fitting profile, should you have any user profiles stored on your set-top box. The best fitting user profile is the first user profile found that fits fully within the available channel list space. Of course, you can specify your own profile which overrides this intelligent selection.
 
-**Intelligent Profile Support**: If the master channel list is too large for your iOS device, then the plugin will chose the best fitting profile, should you have any user profiles stored on your set-top box. The best fitting user profile is the first user profile found that fits fully within the available channel list space. Of course, you can specify your own profile which overrides this intelligent selection.
+**Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute. The triple-press timing is configurable.
 
 **Robust Session Handler**: If the web session or mqtt sessions are lost, the plugin will automatically try to reconnect.
 
@@ -100,14 +83,7 @@ UPC can change their systems at any time and that might break this plugin. But I
 
 **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
-**Shortcut Support**: In Apple Shortcuts you can turn the set-top box on and off and change channels.
-
 **Future Services Support**: The plugin supports current and target media state, even though the Home app accessory cannot currently display this data (as at iOS 14.x). Hopefully, Apple will add support in the future.
-
-
-### TO-DO:
-**Synchronised Current Channel Display**: Changing the channel on the set-top box changes the displayed channel name in the Home app in real time, and vice-versa.
-
 
 
 
@@ -127,23 +103,23 @@ The set-top box accessory is exposed as a separate external accessory and each s
 2. Tap **+** in the top right corner of the screen to start the process of adding a new accessory or scene.
 3. Tap **Add Accessory** to start the process of adding a new accessory.
 4. **Add Accessory**: tap **I Don't Have a Code or Cannot Scan**.
-5. **Select an Accessory to Add to (Home Name)**: Select the accessory you want to add. You should see your set-top box here. If not, check your Homebridge config.
+5. **Select an Accessory to Add to HomeName**: Select the accessory you want to add. You should see your set-top box here. If not, check your Homebridge config.
 6. Accept the **Uncertified Accessory** warning by tapping **Add Anyway**.
 7. **Enter HomeKit Setup Code**: Enter the **HomeKit Setup Code** (displayed in Homebridge under the QR code, format XXX-XX-XXX), or use the device's camera to scan the QR code in Homebridge.
 8. **Set-Top Box Location**: Select a room for your new accessory and tap **Continue**.
 9. **Set-Top Box Name**: Give your set-top box a different name if you wish (synchronised to your real set-top box, you can change this in the Home app later) and tap **Continue**.
 10. **Name TV Input Sources**: Re-name your TV input sources if you wish (you can change these in the Home app later) and tap **Continue**.
 11. **Set-Top Box Automations**: Switch on any suggested automations if you wish (you can change these in the Home app later) and tap **Continue**.
-12. **Set-Top Box Added to (Home Name)**: Tap **Done** to finish the setup.
+12. **Set-Top Box Added to HomeName**: Tap **Done** to finish the setup.
 
 Your new accessory will appear shortly in the room that you selected. It may show **Updating...** for a few minutes as it loads all the data. You can force a Home app refresh by switching to another room and then back again.
 
 ## Remote Control Supported Keys
-To access the **Apple TV Remote**, open your **Control Center** by swiping down from the top (newer iPhones and iPads) or up from the bottom of the screen (older iPhones). If you do not see the remote control icon, you will need to activate it in **Settings > Control Centre** and ensure that the **Apple TV Remote** is in the list of **INCLUDED CONTROLS**.
+To access the **Apple TV Remote**, open your **Control Center** by swiping down from the top (newer iPhones and iPads) or up from the bottom of the screen (older iPhones). If you do not see the remote-control icon, you will need to activate it in **Settings > Control Centre** and ensure that the **Apple TV Remote** is in the list of **INCLUDED CONTROLS**.
 
 The following keys are supported by in the **Apple TV Remote** in the Control Center:
 
-* Navigation (Up/Down/Left/Right)	
+* Navigation (Up/Down/Left/Right)   
 * OK
 * Play/Pause
 * Back
@@ -158,10 +134,9 @@ The volume controls do not control the set-top box directly, as the set-top box 
 
 Rewind and Fast Forward are also supported in the EOSSTB plugin, but these commands are not exposed in the current Apple TV Remote. If Apple TV ever expose buttons for these commands in the future, then they will work.
 
-
 ## Limitations
 ### Channel Count
-Due to HomeKit limitations, the maximum services for a single accessory is 100. Over this value the Home app will no longer respond. 
+Due to HomeKit limitations, the maximum services for a single accessory are 100. Over this value the Home app will no longer respond. 
 Services used in this set-top box accessory are:
 1. Information service (Name, model, serial number of the accessory)
 2. Television service (for controlling the TV accessory)
@@ -173,7 +148,6 @@ The eosstb plugin emulates the TV service web app. If the web app is started on 
 
 ### Media State (Play/Pause) Limitations
 The eosstb plugin can detect the current and target media state and shows PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 14.4) apart from allow you to read it in the Shortcuts app. Hopefully this will improve in the future.
-
 
 ## Configuration
 Add a new platform to the platforms section of your homebridge `config.json`.
@@ -245,7 +219,6 @@ Mandatory config items must always exist. These are used to establish the sessio
 
 * **password**: Your password associated with your TV provider's account. Mandatory.
 
-
 #### Optional
 
 * **name**: The platform name that appears in the Homebridge logs. In Switzerland, the platform is called EOS. In Belgium, the platform is called Horizon. Optional, defaults to "eosstb".
@@ -253,7 +226,6 @@ Mandatory config items must always exist. These are used to establish the sessio
 * **triplePressTime**: The amount of time to detect triple-press of a button. Used for triple-press features, such as triple-press of Volume Done generates Mute. Optional, defaults to 800ms.
 
 * **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Debug messages are shown in the Homebridge log in the warning colour, normally yellow. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
-
 
 ### Device Config Items
 Most people will be happy with the default device config. If you do not need to change anything, you can omit the device config section.
@@ -271,7 +243,7 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 * **showChannelNumbers**: Shows or hides the channel numbers in the channel selector in HomeKit. Values: true or false (default). If channel numbers are displayed, there is less room for the channel name. Optional, defaults to false.
 
-* **channelNames**: Allows you to add unknown channel names, or to rename any channel as you wish. Required as some channels (e.g. Netflix) are not published on the master channel list. If a channel displays in your iOS device like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
+* **channelNames**: Allows you to add unknown channel names, or to rename any channel as you wish. Required as some channels (e.g., Netflix) are not published on the master channel list. If a channel displays in your iOS device like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
 
 * **accessoryCategory**: The accessory category. This changes the image on the tile in Homekit. Allows you to use a TV or an Audio Receiver or a Set-Top Box (default). Available values are:  Set-Top-Box = any of "settopbox", "stb". TV = any of "television", "tv".  Audio Receiver = any of "receiver", "audio-receiver", "avr".  Not case sensitive. Optional, defaults to Set-Top Box if the value is not recognised.
 
@@ -296,9 +268,8 @@ If you want to configure your devices differently, do so here. Multiple devices 
 * **firmwareRevision**: You can add a firmware revision if you wish. Must be numeric, non-numeric values are not displayed. Defaults to the plugin version. Optional.
 
 
-
 ## Special app channels (Netflix) ##
-Some channels such as Netflix are actually apps on the set-top box, and not normal linear TV channels. They appear in the channel list on the TV, and can be added to favourites. However, they are not broadcast as a normal linear TV channel in the master channel list. Therefore the name cannot be determined from the profile favourite channel list, and the name appears as "Channel xxx" where xxx is the channel id. To overcome this, add the channelId and the channelName to channelNames in the config as per the examples bwlow:
+Some channels such as Netflix are actually apps on the set-top box, and not normal linear TV channels. They appear in the channel list on the TV, and can be added to favourites. However, they are not broadcast as a normal linear TV channel in the master channel list. Therefore, the name cannot be determined from the profile favourite channel list, and the name appears as "Channel xxx" where xxx is the channel id. To overcome this, add the channelId and the channelName to channelNames in the config as per the examples bwlow:
 
 * Telenet BE: 
 ```js
@@ -331,7 +302,6 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
             "channelName": "Netflix"
     ]
 ```
-
 
 
 ## Set-Top Box KeyEvent Commands
@@ -369,7 +339,6 @@ A collection of known key event commands that control the set-top box. You can u
 
 * **Red** **Green** **Yellow** **Blue**: The four coloured buttons found on GB remote controls, to access special functions
 
-
 ## Other Commands
 These commands do not control the set-top box directly, but can be used to control the TV or Receiver or stereo volume (network remote control required) 
 
@@ -381,7 +350,6 @@ These commands do not control the set-top box directly, but can be used to contr
 
 ### View TV Settings
 You can use **View TV Settings** to open the set-top box main menu at the **PROFILES** menu. To use: in the Home app, tap-and-wait on the set-top box tile to open the channel changer, then tap on the cogwheel to open the settings for the accessory, and scroll down to **View TV Settings**. 
-
 
 
 ## Siri
@@ -406,17 +374,16 @@ Characteristic is one of the following supported characteristics:
 * **Configured Name**: The set-top box name. See https://developers.homebridge.io/#/characteristic/ConfiguredName
 * **Current Media State**: The set-top box current media state, either 0 (PLAY), 1 (PAUSE) or 4 (LOADING). See. https://developers.homebridge.io/#/characteristic/CurrentMediaState
 * **Name**: The set-top box name as at last restart of Homebridge. See https://developers.homebridge.io/#/characteristic/Name
-* **Power Mode Selection**: Operation not supported (this characteristic does not support reading of it's state)
-* **Remote Key**: Operation not supported (this characteristic does not support reading of it's state)
+* **Power Mode Selection**: Operation not supported (this characteristic does not support reading of its state)
+* **Remote Key**: Operation not supported (this characteristic does not support reading of its state)
 * **Sleep Discovery Mode**: Always 1 (ALWAYS_DISCOVERABLE). See https://developers.homebridge.io/#/characteristic/SleepDiscoveryMode
 * **Target Media State**: The set-top box target media state, follows current media state. See https://developers.homebridge.io/#/characteristic/TargetMediaState
 
 Search for **Control \<HomeName\>** then select **Set \<SetTopBoxName\>**
-You can only control the items accessible through the Home app tile. Unfortunately, this is an Apple limitation. Hopefully Apply will improve Shortcuts control in the future. Press and hold to adjust the accessory. Possible controlable items are:
+You can only control the items accessible through the Home app tile. Unfortunately, this is an Apple limitation. Hopefully Apply will improve Shortcut’s control in the future. Press and hold to adjust the accessory. Possible controlable items are:
 
 * **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
 * **Active Identifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
-
 
 
 ## Thanks to
@@ -431,4 +398,3 @@ You can only control the items accessible through the Home app tile. Unfortunate
 * My helpers in Belgium: [Wesley Liekens](https://www.facebook.com/deliekes) and [Anthony Dekimpe](https://www.facebook.com/anthony.dekimpe) for helping me get the session code working for Telenet
 
 * UPC for making such a useful TV platform and EOS box
-
