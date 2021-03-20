@@ -294,13 +294,42 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 
 
+## Special app channels (Netflix) ##
+Some channels such as Netflix are actually apps on the set-top box, and not normal linear TV channels. They appear in the channel list on the TV, and can be added to favourites. However, they are not broadcast as a normal linear TV channel in the master channel list. Therefore the name cannot be determined from the profile favourite channel list, and the name appears as "Channel xxx" where xxx is the channel id. To overcome this, add the channelId and the channelName to channelNames in the config as per the examples bwlow:
+
+* Telenet BE: 
+```js
+    "channelNames": [
+        {
+            "channelId": "netflix",
+            "channelName": "Netflix"
+    ]
+```
+ 
+* Virgin Media GB:
+ ```js
+    "channelNames": [
+        {
+            "channelId": "1755",
+            "channelName": "Netflix"
+           },
+        {
+            "channelId": "2054",
+            "channelName": "Prime Video"
+        }
+    ]
+```
+
+* UPC CH: 
+```js
+    "channelNames": [
+        {
+            "channelId": "SVO9690",
+            "channelName": "Netflix"
+    ]
+```
 
 
-## Netflix and other special app channels ##
-Netflix is actually an app on the set-top box, and not a normal linear TV channel. It appears in the channel list on the TV, and can be added to favourites. However, it is not broadcast as a normal linear TV channel in the master channel list. Therefore the name cannot be determined from the profile favourite channel list, and the name appears as "Channel xxx" where xxx is the channel id. Known channel ids for Netflix are:
-* Telenet Belgium: netflix
-* UPC Switzerland: SVO9690
-Add the channelId and the channelName to channelNames in the config, and then the proper name will appear.
 
 ## Set-Top Box KeyEvent Commands
 A collection of known key event commands that control the set-top box. You can use these to change the remote key mappings if you wish. Note that the standard Apple TV Remote is limited and does not provide buttons for all possible commands.
@@ -365,10 +394,10 @@ If you find any more commands, let me know!
 ## Shortcuts
 The set-top box state can be read and controlled in the Shortcuts app as follows:
 
-**Get the state of \<homeName\>** > **Get \<setTopBoxName\> <\characteristic\>**
-Chacteristic is one of the following supported characteristics:
+Search for **Get the state of \<HomeName\>** then select **Get \<SetTopBoxName\> \<Characteristic\>**
+Characteristic is one of the following supported characteristics:
 * **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
-* **Activeidentifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
+* **Active Identifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
 * **Configured Name**: The set-top box name. See https://developers.homebridge.io/#/characteristic/ConfiguredName
 * **Current Media State**: The set-top box current media state, either 0 (PLAY), 1 (PAUSE) or 4 (LOADING). See. https://developers.homebridge.io/#/characteristic/CurrentMediaState
 * **Name**: The set-top box name as at last restart of Homebridge. See https://developers.homebridge.io/#/characteristic/Name
@@ -377,11 +406,11 @@ Chacteristic is one of the following supported characteristics:
 * **Sleep Discovery Mode**: Always 1 (ALWAYS_DISCOVERABLE). See https://developers.homebridge.io/#/characteristic/SleepDiscoveryMode
 * **Target Media State**: The set-top box target media state, follows current media state. See https://developers.homebridge.io/#/characteristic/TargetMediaState
 
-**Control \<homeName\>** > **Set \<setTopBoxName\>**
+Search for **Control \<HomeName\>** then select **Set \<SetTopBoxName\>**
 You can only control the items accessible through the Home app tile. Unfortunately, this is an Apple limitation. Hopefully Apply will improve Shortcuts control in the future. Press and hold to adjust the accessory. Possible controlable items are:
 
 * **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
-* **Activeidentifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
+* **Active Identifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
 
 
 
