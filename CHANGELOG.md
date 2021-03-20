@@ -1,5 +1,4 @@
 # Changelog
-
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
@@ -8,18 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please restart Homebridge after every plugin update.
 
 # CONFIG CHANGES REQUIRED
-You must updated your config when updating from 0.1.13 to >= 1.0.0. 
+You must updated your config when updating from 0.1.13 to 1.0.0 (or later versions)
 See https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration
 
 ### Bug Fixes and Improvements
 
-## 0.9.0-beta.2 (2021-03-20)
-## 0.9.0-beta.1 (2021-03-20)
-Preparations for v1.0.0 release
+## 1.0.0 (2021-03-20)
 ### Important Note
-You must updated your config when updating from 0.1.13 to >= 1.0.0. 
-### ChangeS
-* Added Virgin Media GB support for the TV 360 box
+You must updated your config when updating from 0.1.13 to 1.0.0 (or later versions)
+### Changes
+* Added Virgin Media GB support for the Virgin TV 360 box
 * Added full multi-device support, great if you have more than one set-top box
 * Added personalisation and profile support, including set-top box renaming
 * Added full channel list support, showing only subscribed channels
