@@ -1,6 +1,6 @@
 # Changelog
 All notable changes to this project will be documented in this file.
-See the [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md)) for full documentation.
+See the [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md) for full plugin documentation.
 
 Please restart Homebridge after every plugin update.
 
