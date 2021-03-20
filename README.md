@@ -8,15 +8,15 @@
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![donate](https://badgen.net/badge/donate/paypal/91BE09)](https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468)
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS set-top box (typically a ARRIS DCX960 running on the UPC/Ziggo/Telenet/Magenta/Virgin Media
-TV system), as well as connected HDMI-CEC controllable devices with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your EOS set-top box (typically an ARRIS DCX960 running on the Magenta/Telenet/UPC/Virgin Media/Ziggo
+TV platform) with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
-This plugin displays your EOS set-top box as a Set-Top Box Accessory with Power, Input & Remote-Control capabilities in your iOS device (iPhone, iPad, iMac, etc.).
+This plugin displays your set-top box as a Set-Top Box accessory with power, channel and remote-control capabilities on your iOS device (iPhone, iPad, iMac, etc.).
 
 You need a subscription to the online TV service from your local TV provider.
 The username and password are the same as used in the TV provider's TV app on your iOS device (the app varies by country; in Switzerland it is [upc tv Schweiz](https://apps.apple.com/ch/app/upc-tv-schweiz/id1292688012)).
 
-Supports multiple set-top boxes, allowing you to create a TV accessory for each box (should you have more than one).
+Supports multiple set-top boxes, should you have more than one.
 
 If you like this plugin, consider making a donation or buying me a coffee!<br>
 <a target="blank" href="https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468"><img src="https://img.shields.io/badge/PayPal-Donate-blue.svg?logo=paypal"/></a>  <a target="blank" href="https://ko-fi.com/jsiegenthaler"><img src="https://img.shields.io/badge/Ko--Fi-Buy%20me%20a%20coffee-29abe0.svg?logo=ko-fi"/></a>
@@ -37,29 +37,28 @@ If you subscribe to a TV service from one of these countries, you are lucky, thi
 May also work with other UPC countries, if you know of any, let me know.
 
 ## Made in Switzerland
-This plugin was written and tested on the author's EOS set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland.
+This plugin was written and tested on the author's set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland.
 
 ## Why I chose the name EOSSTB
-I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, runs on an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. I stuck with the box identifier that appears in the mqtt messages: EOSSTB.
+I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, uses an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. I stuck with the box identifier that appears in the mqtt messages: EOSSTB.
 
 ## Disclaimer (The Legal Stuff)
-This plugin is not provided by UPC or Ziggo or Telenet or Magenta or Virgin Media any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. 
-UPC can change their systems at any time and that might break this plugin. But I hope not.
+This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Ziggo any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. UPC can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
 * An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1...14.4.1, earlier versions not tested.
-* [Homebridge](https://homebridge.io/) v1.3.0 (or later). Developed on Homebridge 1.1.116....1.3.3, earlier versions not tested.
-* A [TV subscription] from one of the supported TV providers.
-* An online account for viewing TV on the web app (often part of your TV package)
+* [Homebridge](https://homebridge.io/) v1.3.3 (or later). Developed on Homebridge 1.1.116....1.3.3, earlier versions not tested.
+* A [TV subscription] from one of the supported countries and TV providers.
+* An online account for viewing TV in the web app (often part of your TV package)
 * The ARRIS mediabox DCX960 (provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries)
 * The ARRIS DCX960 should be set to **Standby power consumption** = **Fast start** to ensure it is always online and can respond to switch-on requests from HomeKit.
 
 ## Features
 **Full Remote-Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, volume and mute commands.
 
-**Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports)
+**Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports).
 
-**Shortcuts Support** You can read and control your box with Shortcuts and Homekit automations (to the extent of what Apple Siri supports), allowing you to schedule switch-on and channel in HomeKit
+**Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple Siri supports), allowing you to schedule switch-on and channel in HomeKit.
 
 **Synchronised Set-Top Box Name**: Changing the name of the set-top box in the iOS device changes it on the TV and backend systems in real time, and vice-versa. No reboot required.
 
@@ -75,7 +74,7 @@ UPC can change their systems at any time and that might break this plugin. But I
 
 **Intelligent Profile Support**: If the master channel list is too large for your iOS device, then the plugin will choose the best fitting profile, should you have any user profiles stored on your set-top box. The best fitting user profile is the first user profile found that fits fully within the available channel list space. Of course, you can specify your own profile which overrides this intelligent selection.
 
-**Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute. The triple-press timing is configurable.
+**Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute (TV dependent). The triple-press timing is configurable.
 
 **Robust Session Handler**: If the web session or mqtt sessions are lost, the plugin will automatically try to reconnect.
 
