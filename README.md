@@ -211,15 +211,15 @@ Example extended configuration as used on the author with his Samsung TV (where 
 Unless otherwise stated, all config items are case sensitive.
 
 #### Mandatory
-Mandatory config items must always exist. These are used to establish the session to the EOS platform. If any mandatory config items are missing, a warning is shown and initialization is aborted.
+Mandatory config items must always exist. These are used to establish the session to the EOS / Horizon platform. If any mandatory config items are missing, a warning is shown and initialization is aborted.
 
 * **platform**: the name of the platform. Mandatory, must be eosstb.
 
 + **country**: Your country. Must be one of ch, nl, be-nl, be-fr, at or gb. Not case sensitive. This controls the country-specific logon sequence and the mqtt sessions. Mandatory.
 
-* **username**: Your login username for your TV provider's online account (Switzerland: My UPC). Normally an email address. Mandatory.
+* **username**: Your login username for your TV account (Switzerland: My UPC). Normally an email address. Mandatory.
 
-* **password**: Your password associated with your TV provider's account. Mandatory.
+* **password**: Your password associated with your TV account. Mandatory.
 
 #### Optional
 
