@@ -22,7 +22,7 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 * Added full channel list support, showing only subscribed channels
 * Added Mute support
 * Added auto session recovery if session fails
-* Added lots of customisation capabilities (see Readme file)
+* Added lots of customisation capabilities (see [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md))
 * Improved display of accessory properties
 * Bumped all dependencies
 * Many more improvements, see the Readme file for full plugin documentation
