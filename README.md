@@ -249,29 +249,29 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 * **accessoryCategory**: The accessory category. This changes the image on the tile in Homekit. Allows you to use a TV or an Audio Receiver or a Set-Top Box (default). Available values are:  Set-Top-Box = any of "settopbox", "stb". TV = any of "television", "tv".  Audio Receiver = any of "receiver", "audio-receiver", "avr".  Not case sensitive. Optional, defaults to Set-Top Box if the value is not recognised.
 
-* **playPauseButton**: The command issued to the EOS box when the Play/Pause button (**>||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
+* **playPauseButton**: The command issued to the set-top box when the Play/Pause button (**> ||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
 
-* **backButton**: The command issued to the EOS box when the **BACK** button in the iOS remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
+* **backButton**: The command issued to the set-top box when the **BACK** button in the iOS remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
 
-* **infoButton**: The command issued to the EOS box when the Info button (**i**) in the iOS remote is tapped. As the iOS remote has no Menu button, the Info button should be used to access the menu. This is why the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
+* **infoButton**: The command issued to the set-top box when the Info button (**i**) in the iOS remote is tapped. As the iOS remote has no Menu button, the Info button should be used to access the menu. This is why the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
 
-* **volUpCommand**: The bash command to increase the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Up button on your device. Optional.
+* **volUpCommand**: The bash command to increase the volume of the TV. This command is sent when the iOS Apple TV Remote is open and you press the Volume Up button on your device. Optional.
 
-* **volDownCommand**: The bash command to decrease the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Down button on your device. Optional.
+* **volDownCommand**: The bash command to decrease the volume of the TV. This command is sent when the iOS Apple TV Remote is open and you press the Volume Down button on your device. Optional.
 
-* **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple iOS remote, I have integrated it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
+* **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple iOS Apple TV Remote, I have integrated it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
 
-* **manufacturer**: You can add a manufacturer name if you wish. Defaults to the detected device and platform type, otherwise to the platform name. Optional.
+* **manufacturer**: You can add a manufacturer name if you wish. Defaults to the detected device and platform type, otherwise to the eosstb platform name. Optional.
 
-* **modelName**: You can add a model name if you wish. Defaults to the detected device model and device type, otherwise to the plugin name. Optional.
+* **modelName**: You can add a model name if you wish. Defaults to the detected device model and device type, otherwise to the eosstb plugin name. Optional.
 
-* **serialNumber**: You can add a serial number if you wish. Defaults to the set-top box serial number id, otherwise to the physical device id. Optional.
+* **serialNumber**: You can add a serial number if you wish. Defaults to the set-top box serial number id, otherwise to the physical deviceId. Optional.
 
-* **firmwareRevision**: You can add a firmware revision if you wish. Must be numeric, non-numeric values are not displayed. Defaults to the plugin version. Optional.
+* **firmwareRevision**: You can add a firmware revision if you wish. Must be numeric (non-numeric values are not displayed in the Home app). Defaults to the eosstb plugin version. Optional.
 
 
 ## Special app channels (Netflix) ##
-Some channels such as Netflix are actually apps on the set-top box, and not normal linear TV channels. They appear in the channel list on the TV, and can be added to favourites. However, they are not broadcast as a normal linear TV channel in the master channel list. Therefore, the name cannot be determined from the profile favourite channel list, and the name appears as "Channel xxx" where xxx is the channel id. To overcome this, add the channelId and the channelName to channelNames in the config as per the examples bwlow:
+Some channels such as Netflix are actually apps on the set-top box, and not normal linear TV channels. They appear in the channel list on the TV, and can be added to favourites. However, they are not broadcast as a normal linear TV channel in the master channel list. Therefore, the name cannot be determined from the profile favourite channel list, and the name appears as "Channel xxx" where xxx is the channel id. To overcome this, add the channelId and the channelName to channelNames in the config as per the examples below:
 
 * Telenet BE: 
 ```js
@@ -339,7 +339,7 @@ A collection of known key event commands that control the set-top box. You can u
 
 * **ChannelDown**: Move down the channel list by one channel, same as the **\\/** (channel down) button on the set-top box remote
 
-* **Red** **Green** **Yellow** **Blue**: The four coloured buttons found on GB remote controls, to access special functions
+* **Red**, **Green**, **Yellow**, **Blue**: The four coloured buttons found on GB remote controls, to access special functions
 
 ## Other Commands
 These commands do not control the set-top box directly, but can be used to control the TV or Receiver or stereo volume (network remote control required) 
@@ -399,4 +399,4 @@ You can only control the items accessible through the Home app tile. Unfortunate
 
 * My helpers in Belgium: [Wesley Liekens](https://www.facebook.com/deliekes) and [Anthony Dekimpe](https://www.facebook.com/anthony.dekimpe) for helping me get the session code working for Telenet
 
-* UPC for making such a useful TV platform and EOS box
+* UPC for making such a useful TV platform and EOS set-top box
