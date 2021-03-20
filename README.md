@@ -40,7 +40,7 @@ May also work with other UPC countries, if you know of any, let me know.
 ## Made in Switzerland
 This plugin was written and tested on the author's set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland. It has also been extensively tested on Telenet in Belgium,  Virgin Media in Great Britain and Ziggo in the Netherlands.
 
-## Why I chose the name EOSSTB
+## Why I chose the Name EOSSTB
 I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, uses an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. I stuck with the box identifier that appears in the mqtt messages: EOSSTB.
 
 ## Disclaimer (The Legal Stuff)
@@ -96,7 +96,7 @@ sudo npm install -g homebridge-eosstb
 ```
 After installing, make sure you restart Homebridge.
 
-## Adding the Set-Top Box to the Home app
+## Adding the Set-Top Box to the Home App
 The set-top box accessory is exposed as a separate external accessory and each set-top box needs to be manually paired as follows:
 
 1. Open the **Home** app on your device.
@@ -270,7 +270,7 @@ If you want to configure your devices differently, do so here. Multiple devices 
 * **firmwareRevision**: You can add a firmware revision if you wish. Must be numeric (non-numeric values are not displayed in the Home app). Defaults to the eosstb plugin version. Optional.
 
 
-## Special app channels (Netflix) ##
+## Special App Channels (Netflix) ##
 Some channels such as Netflix are actually apps on the set-top box, and not normal linear TV channels. They appear in the channel list on the TV, and can be added to favourites. However, they are not broadcast as a normal linear TV channel in the master channel list. Therefore, the name cannot be determined from the profile favourite channel list, and the name appears as "Channel xxxxxx" where xxxxxx is the channelId. To overcome this, add the channelId and the channelName to the channelNames section in the config as per the examples below:
 
 * Telenet BE: 
@@ -369,7 +369,7 @@ If you find any more commands, let me know!
 ## Shortcuts
 The set-top box state can be read and controlled in the Shortcuts app as follows:
 
-### Reading the current state of the Set-Top Box
+### Reading the Current State of the Set-Top Box
 Search for **Get the state of \<HomeName\>** then select **Get \<SetTopBoxName\> \<Characteristic\>**, where Characteristic is one of the following supported characteristics:
 * **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
 * **Active Identifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
