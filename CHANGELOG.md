@@ -6,7 +6,7 @@ Please restart Homebridge after every plugin update.
 
 # CONFIG CHANGES REQUIRED
 You must updated your config when updating from 0.1.13 to 1.0.0 (or later versions)
-See https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration
+See the [configuration section in the Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration)
 
 ### Bug Fixes and Improvements
 
