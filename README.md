@@ -346,11 +346,11 @@ These commands do not control the set-top box directly, but can be used to contr
 * **Mute** is not supported natively by the iOS remote, but I have added it with a triple-press detection on the volume down button. Press the button three times within 1 second, and the Mute command will be sent using the command stored in the **muteCommand** config item.
 
 ### View TV Settings
-You can use **View TV Settings** to open the set-top box main menu at the **PROFILES** menu. To use: in the Home app, tap-and-wait on the set-top box tile to open the channel changer, then tap on the cog/wheel to open the settings for the accessory, and scroll down to **View TV Settings**. 
+You can use **View TV Settings** to open the set-top box main menu at the **PROFILES** menu. To use: in the Home app, tap-and-wait on the set-top box tile to open the channel changer, then tap on the cogwheel to open the settings for the accessory, and scroll down to **View TV Settings**. 
 
 
 
-### Siri
+## Siri
 Known Siri commands that work with a **Set-Top Box** accessory are:
 * "Hey Siri, turn on \<SetTopBoxName\>": turns on the set-top box
 * "Hey Siri, turn off \<SetTopBoxName\>": turns off the set-top box
@@ -361,6 +361,28 @@ Known Siri commands that work with a **Set-Top Box** accessory are:
 As you can see, these are limited to power on and off. Unfortunately, this is an Apple limitation. Hopefully Apply will improve Siri control in the future.
 If you find any more commands, let me know!
     
+
+## Shortcuts
+The set-top box state can be read and controlled in the Shortcuts app as follows:
+
+**Get the state of \<homeName\>** > **Get \<setTopBoxName\> <\characteristic\>**
+Chacteristic is one of the following supported characteristics:
+* **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
+* **Activeidentifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
+* **Configured Name**: The set-top box name. See https://developers.homebridge.io/#/characteristic/ConfiguredName
+* **Current Media State**: The set-top box current media state, either 0 (PLAY), 1 (PAUSE) or 4 (LOADING). See. https://developers.homebridge.io/#/characteristic/CurrentMediaState
+* **Name**: The set-top box name as at last restart of Homebridge. See https://developers.homebridge.io/#/characteristic/Name
+* **Power Mode Selection**: Operation not supported (this characteristic does not support reading of it's state)
+* **Remote Key**: Operation not supported (this characteristic does not support reading of it's state)
+* **Sleep Discovery Mode**: Always 1 (ALWAYS_DISCOVERABLE). See https://developers.homebridge.io/#/characteristic/SleepDiscoveryMode
+* **Target Media State**: The set-top box target media state, follows current media state. See https://developers.homebridge.io/#/characteristic/TargetMediaState
+
+**Control \<homeName\>** > **Set \<setTopBoxName\>**
+You can only control the items accessible through the Home app tile. Unfortunately, this is an Apple limitation. Hopefully Apply will improve Shortcuts control in the future. Press and hold to adjust the accessory. Possible controlable items are:
+
+* **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
+* **Activeidentifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
+
 
 
 ## Thanks to
