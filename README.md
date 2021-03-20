@@ -150,6 +150,8 @@ The eosstb plugin emulates the TV service web app. If the web app is started on 
 The eosstb plugin can detect the current and target media state and shows PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 14.4) apart from allow you to read it in the Shortcuts app. Hopefully this will improve in the future.
 
 ## Configuration
+_Note that the config changed from 0.1.13 to 1.0.0. If you are updating, please make sure your config matches the examples shown here._
+
 Add a new platform to the platforms section of your homebridge `config.json`.
 
 Example minimum (mandatory) configuration:
@@ -165,7 +167,7 @@ Example minimum (mandatory) configuration:
     ]
 ```
 
-Example extended configuration as used on the author's Samsung TV (where x.x.x.x is the IP address of the TV). An extended configuration allows you to customise the behaviour of each device. You must identify the devices by their deviceId:
+Example extended configuration as used on the author with his Samsung TV (where x.x.x.x is the IP address of the TV). An extended configuration allows you to customise the behaviour of each set-top box device. You must identify the devices by their deviceId:
 
 ```js
     "platforms": [
