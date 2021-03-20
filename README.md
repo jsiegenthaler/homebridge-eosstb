@@ -8,8 +8,7 @@
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![donate](https://badgen.net/badge/donate/paypal/91BE09)](https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468)
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960) running on the Magenta/Telenet/UPC/Virgin Media/Ziggo
-TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960) running on the Magenta AT / Telenet BE / UPC CH / Virgin Media GB & IE / Ziggo NL TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
 This plugin displays your set-top box as a Set-Top Box accessory with power, channel and remote-control capabilities on your iOS device (iPhone, iPad, iMac, etc.).
 
@@ -29,6 +28,7 @@ As UPC operates in multiple countries under multiple brands, this plugin will wo
 * BE Belgium: [Telenet](https://www2.telenet.be/en/). The Belgium’s call the DCX960 a **[Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/)**. **CONFIRMED WORKING**
 * CH Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **[UPC TV Box](https://www.upc.ch/en/television/learn-about-tv/tv/)**. Also known as the EOSSTB. **CONFIRMED WORKING**
 * GB Great Britain: [Virgin Media](https://www.virginmedia.com/). The DCX960 is called the **[Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360)** box, introduced to in August 2020. **CONFIRMED WORKING** (this plugin is not for the older Virgin Media TiVo boxes)
+* IE Ireland: [Virgin Media](https://www.virginmedia.ie/). The DCX960 is called the **[Virgin TV 360](https://www.virginmedia.ie/virgintv360support/)** box. **TESTERS NEEDED**
 * NL Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **[Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv)**. 
 **CONFIRMED WORKING**
 

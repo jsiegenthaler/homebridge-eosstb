@@ -51,6 +51,7 @@ const settopBoxName = {
     'be-nl':  'Telenet TV-Box',
     'ch':     'UPC TV Box',
     'gb':     'Virgin Media 360',
+    'ie':     'Virgin Media 360',
     'nl':     'Mediabox Next (4K)'
 };
 
@@ -61,6 +62,7 @@ const countryBaseUrlArray = {
     'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/nld/web',
     'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v3 and v4 works
     'gb':       'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web',
+    'ie':       'https://web-api-prod-obo.horizon.tv/oesp/v4/IE/eng/web',
     'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web'
 };
 
@@ -71,6 +73,7 @@ const mqttUrlArray = {
     'be-nl': 	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
     'ch': 		'wss://obomsg.prod.ch.horizon.tv:443/mqtt',
     'gb':       'wss://obomsg.prod.gb.horizon.tv/mqtt', // gb only works without a port number!
+    'ie':       'wss://obomsg.prod.ie.horizon.tv/mqtt', // ie only works without a port number!
     'nl': 		'wss://obomsg.prod.nl.horizon.tv:443/mqtt'
 		
 };
@@ -84,6 +87,7 @@ const personalizationServiceUrlArray = {
     'be-nl': 	'https://prod.spark.telenettv.be/nld/web/personalization-service/v1/customer/{householdId}',
     'ch': 		'https://prod.spark.upctv.ch/eng/web/personalization-service/v1/customer/{householdId}',
     'gb':       'https://prod.spark.virginmedia.com/eng/web/personalization-service/v1/customer/{householdId}',
+    'ie':       'https://prod.spark.virginmedia.ie/eng/web/personalization-service/v1/customer/{householdId}',
     'nl': 		'https://prod.spark.ziggogo.tv/nld/web/personalization-service/v1/customer/{householdId}'
 };
 
@@ -96,6 +100,7 @@ const specialChannelNames = {
     'be-nl': 	'',
     'ch': 		[ { channelId: 'SV09690', channelName: 'Netflix' } ],
     'gb':       '',
+    'ie':       '',
     'nl': 		''
 };
 
@@ -362,7 +367,7 @@ class stbPlatform {
 		switch(country.toLowerCase()) {
 			case 'be-nl': case 'be-fr':
 				this.getSessionBE(); break;
-			case 'gb':
+			case 'gb': case 'ie':
 				this.getSessionGB(); break;
 			default:
 				this.getSession();

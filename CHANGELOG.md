@@ -13,6 +13,7 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 You must updated your config when updating from 0.1.13 to 1.0.0 (or later versions). See the [configuration section in the Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration).
 ### Changes
 * Added Virgin Media GB support for the Virgin TV 360 box
+* Added Virgin Media IE support (testers needed) for the Virgin TV 360 box
 * Added full multi-device support, great if you have more than one set-top box
 * Added personalisation and profile support, including set-top box renaming
 * Added full channel list support, showing only subscribed channels
