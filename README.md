@@ -55,35 +55,35 @@ This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Zigg
 * The ARRIS DCX960 should be set to **Standby power consumption** = **Fast start** to ensure it is always online and can respond to switch-on requests from HomeKit.
 
 ## Features
-**Full Remote-Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, volume and mute commands.
+* **Full Remote-Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, volume and mute commands.
 
-**Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports).
+* **Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports).
 
-**Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple Siri supports), allowing you to schedule switch-on and channel in HomeKit.
+* **Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple Siri supports), allowing you to schedule switch-on and channel in HomeKit.
 
-**Synchronised Set-Top Box Name**: Changing the name of the set-top box in the iOS device changes it on the TV and backend systems in real time, and vice-versa. No reboot required.
+* **Synchronised Set-Top Box Name**: Changing the name of the set-top box in the iOS device changes it on the TV and backend systems in real time, and vice-versa. No reboot required.
 
-**Synchronised Current Channel**: Changing the channel on the set-top box changes the displayed channel in the Home app in real time, and vice-versa.
+* **Synchronised Current Channel**: Changing the channel on the set-top box changes the displayed channel in the Home app in real time, and vice-versa.
 
-**Synchronised Channel List Order**: Changing the order of channels in a profile on your set-top box changes the channel list order on your iOS device in real time. No reboot required. Note that the Shared Profile channel list order cannot be changed.
+* **Synchronised Channel List Order**: Changing the order of channels in a profile on your set-top box changes the channel list order on your iOS device in real time. No reboot required. Note that the Shared Profile channel list order cannot be changed.
 
-**Master Channel List Refreshed Regularly**: The master channel list is refreshed at the correct intervals requested by the TV provider, minimising network traffic.
+* **Master Channel List Refreshed Regularly**: The master channel list is refreshed at the correct intervals requested by the TV provider, minimising network traffic.
 
-**Ignores Not-Subscribed Channels**: Only the channels you subscribe to are shown in the iOS device, saving you valuable slots in the limited iOS channel list.
+* **Ignores Not-Subscribed Channels**: Only the channels you subscribe to are shown in the iOS device, saving you valuable slots in the limited iOS channel list.
 
-**Optional Channel Numbers**: If you wish, you can display a channel number before the channel name. As this consumes some space on the Home app tile, it is off by default.
+* **Optional Channel Numbers**: If you wish, you can display a channel number before the channel name. As this consumes some space on the Home app tile, it is off by default.
 
-**Intelligent Profile Support**: If the master channel list is too large for your iOS device, then the plugin will choose the best fitting profile, should you have any user profiles stored on your set-top box. The best fitting user profile is the first user profile found that fits fully within the available channel list space. Of course, you can specify your own profile which overrides this intelligent selection.
+* **Intelligent Profile Support**: If the master channel list is too large for your iOS device, then the plugin will choose the best fitting profile, should you have any user profiles stored on your set-top box. The best fitting user profile is the first user profile found that fits fully within the available channel list space. Of course, you can specify your own profile which overrides this intelligent selection.
 
-**Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute (TV dependent). The triple-press timing is configurable.
+* **Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute (TV dependent). The triple-press timing is configurable.
 
-**Robust Session Handler**: If the web session or mqtt sessions are lost, the plugin will automatically try to reconnect.
+* **Robust Session Handler**: If the web session or mqtt sessions are lost, the plugin will automatically try to reconnect.
 
-**Informative Log Entries**: The plugin logs show lots of information about your session and the state of the set-top box.
+* **Informative Log Entries**: The plugin logs show lots of information about your session and the state of the set-top box. Log levels are configurable with debugLevel.
 
-**Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
+* **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
-**Future Services Support**: The plugin supports current and target media state, even though the Home app accessory cannot currently display this data (as at iOS 14.x). Hopefully, Apple will add support in the future.
+* **Future Services Support**: The plugin supports current and target media state, even though the Home app accessory cannot currently display this data (as at iOS 14.x). Hopefully, Apple will add support in the future.
 
 
 
