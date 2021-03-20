@@ -25,12 +25,13 @@ If you like this plugin, consider making a donation or buying me a coffee!<br>
 
 # Works in Your Country (If you are with Magenta / Telenet / UPC / Virgin Media / Ziggo)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same UPC TV system with the ARRIS DCX960 set-top box are:
-* Belgium: [Telenet](https://www2.telenet.be/en/). The Belgium’s call the DCX960 a **[Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/)**.   **WORKING**
-* Great Britain: [Virgin Media](https://www.virginmedia.com/). The DCX960 is called the **[Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360)** box, introduced to in August 2020 (not for the older Virgin Media TiVo boxes).   **WORKING** 
-* Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **[Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv)**.   **WORKING**
-* Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **[UPC TV Box](https://www.upc.ch/en/television/learn-about-tv/tv/)**. Also known as the EOSSTB.   **WORKING**
+* AT Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **[Entertain Box 4K](https://www.magenta.at/entertain-box)**. **TESTERS NEEDED**
+* BE Belgium: [Telenet](https://www2.telenet.be/en/). The Belgium’s call the DCX960 a **[Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/)**. **CONFIRMED WORKING**
+* CH Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **[UPC TV Box](https://www.upc.ch/en/television/learn-about-tv/tv/)**. Also known as the EOSSTB. **CONFIRMED WORKING**
+* GB Great Britain: [Virgin Media](https://www.virginmedia.com/). The DCX960 is called the **[Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360)** box, introduced to in August 2020 (not for the older Virgin Media TiVo boxes). **CONFIRMED WORKING**
+* NL Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **[Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv)**. 
+**CONFIRMED WORKING**
 
-* Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **[Entertain Box 4K](https://www.magenta.at/entertain-box)**.   **TESTERS NEEDED**
 
 If you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
 
