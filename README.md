@@ -161,8 +161,8 @@ Example minimum (mandatory) configuration:
         {
             "platform": "eosstb",
             "country": "ch",
-            "username": "yourEmail@email.com",
-            "password": "yourPassword"
+            "username": "yourTvProviderUsername",
+            "password": "yourTvProviderPassword"
         }
     ]
 ```
@@ -175,8 +175,8 @@ Example extended configuration as used on the author with his Samsung TV (where 
             "platform": "eosstb",
             "name": "EOS",
             "country": "ch",
-            "username": "yourEmail@email.com",
-            "password": "yourPassword",
+            "username": "yourTvProviderUsername",
+            "password": "yourTvProviderPassword",
             "triplePressTime": 800,
             "debugLevel": 0,
             "devices": [
