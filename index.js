@@ -1977,8 +1977,8 @@ class stbDevice {
 
 		// limit the amount of max channels to load. Hard limit 96.
 		// Total services = absolute max 99 services (all types)
-		// robustness: hard limit to 96 (channels 0...95) in case user does a stupid config
-		var maxSources = Math.min(MAX_INPUT_SOURCES, 96);
+		// robustness: hard limit to 96 (channels 0...94) in case user does a stupid config
+		var maxSources = Math.min(MAX_INPUT_SOURCES, 95);
 
 		// get a custom configDevice if one exists, used for adding channelNumber
 		let configDevice;
@@ -2214,7 +2214,7 @@ class stbDevice {
 		}
 
 		// limit the amount of max channels to load. Hard limit 96.
-		var maxSources = Math.min(MAX_INPUT_SOURCES, 96);
+		var maxSources = Math.min(MAX_INPUT_SOURCES, 95);
 
 		//this.loadedProfileId = this.platform.profiles.findIndex(profile => profile.name === this.config.profile);
 		/*

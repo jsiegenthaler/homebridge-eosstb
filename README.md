@@ -147,7 +147,7 @@ Services used in this set-top box accessory are:
 The eosstb plugin emulates the TV service web app. If the web app is started on a web browser on a laptop or PC, the backend systems may prefer the web app to HomeKit, and disconnect HomeKit from the mqtt session. The mqtt session will try and reconnect if it gets disconnected.
 
 ### Media State (Play/Pause) Limitations
-The eosstb plugin can detect the current and target media state and shows PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 14.4) apart from allow you to read it in the Shortcuts app. Hopefully this will improve in the future.
+The eosstb plugin can detect the current and target media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 14.4) apart from allow you to read it in the Shortcuts app. Hopefully this will improve in the future.
 
 ## Configuration
 _Note that the config changed from 0.1.13 to 1.0.0. If you are updating, please make sure your config matches the examples shown here._
@@ -223,7 +223,7 @@ Mandatory config items must always exist. These are used to establish the sessio
 
 #### Optional
 
-* **name**: The platform name that appears in the Homebridge logs. In Switzerland, the platform is called EOS. In Belgium, the platform is called Horizon. Optional, defaults to "eosstb".
+* **name**: The platform name that appears in the Homebridge logs. In Switzerland, the platform is called EOS. In Belgium and Great Britain the platform is called Horizon. Optional, defaults to "eosstb".
 
 * **triplePressTime**: The amount of time to detect triple-press of a button. Used for triple-press features, such as triple-press of Volume Done generates Mute. Optional, defaults to 800ms.
 
@@ -231,17 +231,17 @@ Mandatory config items must always exist. These are used to establish the sessio
 
 ### Device Config Items
 Most people will be happy with the default device config. If you do not need to change anything, you can omit the device config section.
-If you want to configure your devices differently, do so here. Multiple devices are supported, each device can be configured separately. The devices are identified by their physical device id. You will see that there is no option to set the name, as the name of the set-top box displayed in the Home app is always synchronised to the physical set-top box.
+If you want to configure your devices differently, do so here. Multiple devices are supported, each device can be configured separately. The devices are identified by their physical deviceId. You will see that there is no option to set the name in the config, as the name of the set-top box displayed in the Home app is always synchronised to the physical set-top box. You can change the set-top box name in the Home app.
 
 #### Mandatory
 
-* **deviceId**: The unique set-top box physical device id, in Switzerland, Belgium and the Netherlands this is in the format 3C36E4-EOSSTB-001234567890. Other countries may be the same. Required to identify the set-top box in your network, as multiple boxes can exist. Review the Homebridge log to see your device id, it is displayed shortly after a Homebridge reboot. Mandatory for a device configuration.
+* **deviceId**: The unique set-top box physical device id, in Switzerland, Belgium and the Netherlands this is in the format 3C36E4-EOSSTB-001234567890. Other countries may be the same. Required to identify the set-top box in your network, as multiple boxes can exist. Review the Homebridge log to see your deviceId, it is displayed shortly after a Homebridge restart. Mandatory for a device configuration.
 
 #### Optional
 
-* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the Shared Profile if not found. If using the Shared Profile, the device loads the first 90 channels found. Most cable providers offer many more than 90 channels: my provider has 483, of which I am entitled to 287. To ensure you have a useful channel list on your iOS device, create a profile on your set-top box, and enter the profile name in the config. The channels will then be loaded from the profile. If your profile is changed to the set/top box, the changes will be pushed to HomeKit.
+* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the Shared Profile if not found. If using the Shared Profile, the device loads the first 95 channels found. Most cable providers offer many more than 95 channels: my provider has 483, of which I am entitled to 287. To ensure you have a useful channel list on your iOS device, create a profile on your set-top box, and enter the profile name in the config. The channels will then be loaded from the profile. If your profile is changed to the set-top box, the changes will be pushed to HomeKit.
 
-* **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found, and is hard limited to 90. The more channels configured, the longer the start-up time after a Homebridge reboot. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
+* **maxChannels**: The maximum number of channels to load. Optional, defaults to 95 if not found. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
 
 * **showChannelNumbers**: Shows or hides the channel numbers in the channel selector in HomeKit. Values: true or false (default). If channel numbers are displayed, there is less room for the channel name. Optional, defaults to false.
 
