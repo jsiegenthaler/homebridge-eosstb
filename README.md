@@ -399,4 +399,6 @@ You can only control the items accessible through the Home app tile. Unfortunate
 
 * My helpers in Belgium: [Wesley Liekens](https://www.facebook.com/deliekes) and [Anthony Dekimpe](https://www.facebook.com/anthony.dekimpe) for helping me get the session code working for Telenet
 
+* My helpers in Great Britain (you know who you are) for helping me get the session code working for Virgin Media
+
 * UPC for making such a useful TV platform and EOS set-top box
