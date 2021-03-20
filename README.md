@@ -38,7 +38,7 @@ If you subscribe to a TV service from one of these countries, you are lucky, thi
 May also work with other UPC countries, if you know of any, let me know.
 
 ## Made in Switzerland
-This plugin was written and tested on the author's set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland.
+This plugin was written and tested on the author's set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland. it has also been extensively tested on Telenet in Belgium,  Virgin Media in Great Britain and Ziggo in the Netherlands.
 
 ## Why I chose the name EOSSTB
 I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, uses an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. I stuck with the box identifier that appears in the mqtt messages: EOSSTB.
