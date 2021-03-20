@@ -367,6 +367,8 @@ A collection of known key event commands that control the set-top box. You can u
 
 * **ChannelDown**: Move down the channel list by one channel, same as the **\\/** (channel down) button on the set-top box remote
 
+* **Red** **Green** **Yellow** **Blue**: The four coloured buttons found on GB remote controls, to access special functions
+
 
 ## Other Commands
 These commands do not control the set-top box directly, but can be used to control the TV or Receiver or stereo volume (network remote control required) 
