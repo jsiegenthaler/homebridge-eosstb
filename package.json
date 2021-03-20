@@ -5,7 +5,7 @@
   "_location": "/homebridge-eosstb",
   "name": "homebridge-eosstb",
   "displayName": "Homebridge EOSSTB",
-  "description": "Homebridge plugin to add a EOS set-top box to Homekit (as used by Ziggo NL, Telenet BE, Magenta AT, UPC CH, Virgin Media GB)",
+  "description": "homebridge-plugin - Add the EOS set-top box to Homekit (as used by Ziggo NL, Telenet BE, Magenta AT, UPC CH, Virgin Media GB)",
   "author": "jsiegenthaler (https://github.com/jsiegenthaler/)",
   "version": "0.2.0-beta.76",
   "platformname": "eosstb",
@@ -13,7 +13,6 @@
     "@types/tough-cookie": "^4.0.0",
     "axios": "^0.21.1",
     "axios-cookiejar-support": "^1.0.1",
-    "ip": "^=1.1.5",
     "mqtt": "^3.0.0",
     "qs": "^6.9.6",
     "tough-cookie": "^4.0.0",
@@ -26,23 +25,49 @@
   },
   "homepage": "https://github.com/jsiegenthaler/homebridge-eosstb#readme",
   "keywords": [
+    "homebridge",
     "homebridge-plugin",
+    "HomeKit",
     "UPC Switzerland",
     "UPC Schweiz",
     "UPC Suisse",
-    "UPC CH",
     "UPC TV",
     "UPC TV Box",
+    "Ziggo",
+    "Ziggo Next",
+    "Telenet",
+    "Telenet TV",
+    "Magenta",
+    "Entertain Box",
+    "Virgin",
+    "Virginmedia",
+    "Virgin Media 360",
+    "EOSSTB",
     "EOS STB",
-    "Arris"
+    "Horizon",
+    "Arris",
+    "DCX960"
   ],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "main": "index.js",
   "preferGlobal": true,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jsiegenthaler/homebridge-eosstb.git"
   },
+  "bugs": {
+    "url": "https://github.com/jsiegenthaler/homebridge-eosstb/issues"
+  },
+  "funding": [
+    {
+      "type": "paypal",
+      "url": "https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468"
+    },
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/jsiegenthaler"
+    }
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   }
