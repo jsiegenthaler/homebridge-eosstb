@@ -25,24 +25,26 @@ If you like this plugin, consider making a donation or buying me a coffee!<br>
 
 
 
-# Works in Your Country (If you are with UPC / Ziggo / Telenet / Magenta and hopefully Virgin Media)
+# Works in Your Country (If you are with UPC / Ziggo / Telenet / Magenta or Virgin Media)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same UPC TV system with the ARRIS DCX960 set-top box are:
 * Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **UPC TV Box**. Also known as the EOSSTB.   **WORKING**
 * Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **Mediabox Next (4K)**.   **WORKING**
 * Belgium: [Telenet](https://www2.telenet.be/en/). The Belgiums call the DCX960 a **Telenet TV-Box**.   **WORKING**
 * Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **Entertain Box 4K**.   **TESTERS NEEDED**
-* United Kingdom and Ireland: [Virgin Media](https://www.virginmedia.com/). The DCX960 appears to be called the **Virgin TV 360** box, introduced to in August 2020.   **TESTERS WANTED** Note: my plugin does not work with the older Virgin Media TiVo boxes.
+* United Kingdom and Ireland: [Virgin Media](https://www.virginmedia.com/). The DCX960 appears to be called the **Virgin TV 360** box, introduced to in August 2020.   **WOKRING IN BETA VERSION** Note: my plugin does not work with the older Virgin Media TiVo boxes.
 
 So if you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
 
 May also work with other UPC countries, if you know of any, let me know.
 
-# TO-DO as of 25.02.2020
-* Test GB connections for Virgin Media
-* Improve robustness and responsiveness even more
+# TO-DO as of 19.03.2020
+* Test GB connections for Virgin Media - WORKING IN THE BETA VERSION
+* Publish release v1.0.0 very soon (within a few days)
 
 
 # Recent Major Achievements
+27 Feb 2021: Working on v0.1.14 with live channel change updates and many improvements
+
 25 Feb 2021: Released v0.1.10 with full profile support and mqtt EOSSTB device status support.
 
 20 Feb 2021: Resolved issues with homebridge v1.3.0 and improved robustness a lot
@@ -60,7 +62,7 @@ This plugin was written and tested on the author's EOS set-top box (ARRIS mediab
 I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, runs on an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. So I stuck with the box identifier that appears in the mqtt messages: EOSSTB.
 
 ## Disclaimer (The Legal Stuff)
-This plugin is not provided by UPC or Ziggo or Telenet or Magenta or Vigin Media any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. 
+This plugin is not provided by UPC or Ziggo or Telenet or Magenta or Virgin Media any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. 
 UPC can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
@@ -69,9 +71,10 @@ UPC can change their systems at any time and that might break this plugin. But I
 * A [TV subscription](https://www.upc.ch/en/bundles/buy-tv-internet/) (or the equivalent in your country)
 * A [My UPC account](https://www.upc.ch/en/account/login/credentials/) (or the equivalent in your country, part of your TV package)
 * The ARRIS mediabox DCX960 (provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries)
+* The ARRIS DCX960 should be set to **Standby power consumption** = **Fast start**  to ensure it is online all the time and can respond to switch-on requests from HomeKit
 
 ## Installation
-Homebridge UI: the easiest way to install is seach for "eosstb" in the Homebridge UI, and then click **INSTALL**.
+Homebridge UI: the easiest way to install is search for "eosstb" in the Homebridge UI, and then click **INSTALL**.
 
 Manual install:
 ```sh
@@ -87,7 +90,7 @@ The EOSSTB is exposed as a separate external accessory and each device needs to 
 3. Tap **Add Accessory** to start the process of adding a new accessory.
 4. **Add Accessory**: tap **I Don't Have a Code or Cannot Scan**.
 5. **Select an Accessory to Add to (Home Name)**: Select the accessory you want to add. You should see your EOSSTB here. If not, check your Homebridge config.
-6. Accept the **Uncertified Accesory** warning by tapping **Add Anyway**.
+6. Accept the **Uncertified Accessory** warning by tapping **Add Anyway**.
 7. **Enter HomeKit Setup Code**: Enter the **HomeKit Setup Code** (displayed in Homebridge under the QR code, format XXX-XX-XXX), or use the device's camera to scan the QR code in Homebridge.
 8. **Set-Top Box Location**: Select a room for your EOSSTB accessory and tap **Continue**.
 9. **Set-Top Box Name**: Give your EOSSTB a different name if you wish (you can change this in the Home app later) and tap **Continue**.
@@ -117,13 +120,13 @@ The volume controls do not control the EOS set-top box directly, as the EOS box 
 
 
 ## Limitations
-Due to HomeKit limitations, the maximum services for a single accessory is 100. Over this value the Home app will no longer respond. 
+Due to HomeKit limitations, the maximum services for a single accessory are 100. Over this value the Home app will no longer respond. 
 Services used in this EOS box accessory are:
 1. Information service (Name, model, serial number of the accessory)
 2. Television service (for controlling the TV accessory)
 3. Speaker service (for the controlling the TV accessory volume)
-4. Input service. The input (TV channels) utilise one service per input. The maximum possible channels (inputs) are thus 100 - 3 = 97.
-However, the more services you have, the slower the plugin loads. So I have limited the inputs to maximum 50, but you can override this in the config.
+4. Input service. The input (TV channels) utilises one service per input. The maximum possible channels (inputs) are thus 100 - 3 = 97.
+However, the more services you have, the slower the plugin loads. So, I have limited the inputs to maximum 50, but you can override this in the config.
 
 
 ## Configuration
@@ -199,17 +202,17 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 #### Optional
 
-* **profile**: The profile name to use to load the channel list. Optional, defaults to Shared if not found. The iOS device can only handle maximum 90 (a bit more but I hard limited it to 90). Most cable providers offer many more than 90 channels: my provider has 483. To ensure you have a meaningful list on your iOS device, setup a profile on your set-top box, and enter the profile name in the config. The channels from the profile will be loaded in order. If your profile is changed to the set/top box, the changes will be pushed to HomeKit.
+* **profile**: The profile name to use to load the channel list. Optional, defaults to Shared if not found. The iOS device can only handle maximum 90 channels (a bit more but I hard limited it to 90). Most cable providers offer many more than 90 channels: my provider has 483. To ensure you have a meaningful list on your iOS device, setup a profile on your set-top box, and enter the profile name in the config. The channels from the profile will be loaded in order. If your profile is changed to the set-top box, the changes will be pushed to HomeKit.
 
-* **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found, and is hard limited to 90. The more channels configured, the longer the startup time after a Homebridge reboot. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
+* **maxChannels**: The maximum number of channels to load. Optional, defaults to 50 if not found, and is hard limited to 90. The more channels configured, the longer the start-up time after a Homebridge reboot. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
 
 * **showChannelNumbers**: Shows or hides the channel numbers in the channel selector in HomeKit. Values: true or false (default). If channel numbers are displayed, there is less room for the channel name. Optional, defaults to false (channel numbers are not displayed).
 
 * **channelNames**: Allows you to add unknown channel names, or to rename any channel as you wish. Required as some channels (e.g. Netflix) are not published on the master channel list. If a channel displays in your iOS device like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
 
-* **settopboxId**: DEPRECATED (NOT IN USE ANY MORE) Your set-topbox id. Only needed if you have more than one EOS box, so that the plugin can control the correct box. The id is shown in the HomeBridge log and is in the format 3C36E4-EOSSTB-00xxxxxxxxxx (xxxxxxxxxx is actually your CA code). Optional, defaults to the first detected set-top box id in the mqtt traffic if not found.
+* **settopboxId**: DEPRECATED (NOT IN USE ANY MORE) Your set-top box id. Only needed if you have more than one EOS box, so that the plugin can control the correct box. The id is shown in the HomeBridge log and is in the format 3C36E4-EOSSTB-00xxxxxxxxxx (xxxxxxxxxx is actually your CA code). Optional, defaults to the first detected set-top box id in the mqtt traffic if not found.
 
-* **accessoryCategory**: The accessory category. This changes the image on the tile in Homekit. Allows you to use a TV or a Audio Receiver or a Set-Top Box (default). Available values are:  TV = any of "television", "tv", "TV", "TELEVISION".  Audio Receiver = any of "receiver", "audio-receiver", "AUDIO_RECEIVER".  Optional, defaults to TV Set-Top Box if the value is not recognised.
+* **accessoryCategory**: The accessory category. This changes the image on the tile in HomeKit. Allows you to use a TV or a Audio Receiver or a Set-Top Box (default). Available values are:  TV = any of "television", "tv", "TV", "TELEVISION".  Audio Receiver = any of "receiver", "audio-receiver", "AUDIO_RECEIVER".  Optional, defaults to TV Set-Top Box if the value is not recognised.
 
 * **playPauseButton**: The command issued to the EOS box when the Play/Pause button (**>||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
 
@@ -233,28 +236,42 @@ Example extended configuration as used on the author's Samsung TV (where x.x.x.x
 
 * **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
 
+## Netflix and other special app channels ##
+Netflix is actually an app on the set-top box, and not a normal linear TV channel. It appears in the channel list on the TV, and can be added to favourites. However, it is not broadcast as a normal linear TV channel in the master channel list. Therefore, the name cannot be determined from the profile favourite channel list, and the name appears as "Channel xxx" where xxx is the channel id. Known channel ids for Netflix are:
+* Telenet Belgium: netflix
+* UPC Switzerland: SVO9690
+Add the channelId and the channelName to channelNames in the config, and then the proper name will appear.
 
+## EOS Set-Top Box KeyEvent Commands
+A collection of known key event commands that control the set-top box. 
 
-## Known Relevant EOS Box Commands
-* **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the **HOME** button on the EOS box remote
+* **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the **HOME** button on the set-top box remote
 
-* **Escape**: Escapes (exits) out of any current menu on the TV. Same as the **RETURN** button on the EOS box remote
+* **Escape**: Escapes (exits) out of any current menu on the TV. Same as the **RETURN** button on the set-top box remote
 
-* **ContextMenu**: Displays a context menu on the current TV program. Same as the **...** button on the EOS box remote
+* **ContextMenu**: Displays a context menu on the current TV program. Same as the **...** button on the set-top box remote
 
 * **Info**: Displays the INFO screen on the TV showing info about the current TV program
 
 * **Help**: Displays the SETTINGS INFO page on the TV, allowing you to access settings quickly
 
-* **Guide**: Displays the TV GUIDE page on the TV, same as the Guide button on the EOS box remote
+* **Guide**: Displays the TV GUIDE page on the TV, same as the Guide button on the set-top box remote
 
-* **MediaPause**: Toggles between Pause and Play of the current TV program
+* **MediaPause**: Toggles between Pause and Play of the currently playing program
+
+* **MediaPlayPause**: Toggles between Pause and Play of the currently playing program (same as MediaPause)
+
+* **TV**: Goes back to live TV from whatever state the set-top box was in
+
+* **ChannelUp**: Move up the channel list by one channel, same as the **/\\** (channel up) button on the set-top box remote
+
+* **ChannelDown**: Move down the channel list by one channel, same as the **\\/** (channel down) button on the set-top box remote
 
 
 
 ## Known Other Commands
 ### Volume
-* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the EOS box, but instead via a bash command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scoll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
+* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the set-top box, but instead via a bash command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP and KEY_VOLDOWN to be easily sent to the Samsung Receiver. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scroll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
 
 ### Mute
 * **Mute** is not supported natively by the iOS remote, but I have added it with a triple-press detection on the volume down button. Press the button three times within 1 second, and the Mute command will be sent using the command stored in the **muteCommand** config item.
