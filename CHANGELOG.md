@@ -1,16 +1,19 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
 Please restart Homebridge after every plugin update.
 
 =====================================================================
-  PLEASE READ
-  NOTE: You must updated your config when updating from 0.1.13 to >= 1.0.0
-  See https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration
+
+PLEASE READ
+NOTE: You must updated your config when updating from 0.1.13 to >= 1.0.0
+See https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration
 =====================================================================
 
 ### Bug Fixes and Improvements
 
+## 0.9.0-beta.2 (2021-03-20)
 ## 0.9.0-beta.1 (2021-03-20)
 Preparations for v1.0.0 release
 Change summary:
