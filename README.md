@@ -225,7 +225,7 @@ Mandatory config items must always exist. These are used to establish the sessio
 
 * **name**: The platform name that appears in the Homebridge logs. In Switzerland, the platform is called EOS. In Belgium and Great Britain the platform is called Horizon. Optional, defaults to "eosstb".
 
-* **triplePressTime**: The amount of time to detect triple-press of a button. Used for triple-press features, such as triple-press of Volume Done generates Mute. Optional, defaults to 800ms.
+* **triplePressTime**: The amount of time to detect triple-press of a button. Used for triple-press features, such as triple-press of Volume Down generates Mute. Optional, defaults to 800ms.
 
 * **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Debug messages are shown in the Homebridge log in the warning colour, normally yellow. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
 
