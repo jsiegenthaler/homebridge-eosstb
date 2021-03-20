@@ -5,14 +5,13 @@ See the [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/ma
 Please restart Homebridge after every plugin update.
 
 # CONFIG CHANGES REQUIRED
-You must updated your config when updating from 0.1.13 to 1.0.0 (or later versions). 
-See the [configuration section in the Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration).
+You must updated your config when updating from 0.1.13 to 1.0.0 (or later versions). See the [configuration section in the Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration).
 
 # Bug Fixes and Improvements
 
 ## 1.0.0 (2021-03-20)
 ### Important Note
-You must updated your config when updating from 0.1.13 to 1.0.0 (or later versions)
+You must updated your config when updating from 0.1.13 to 1.0.0 (or later versions). See the [configuration section in the Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration).
 ### Changes
 * Added Virgin Media GB support for the Virgin TV 360 box
 * Added full multi-device support, great if you have more than one set-top box
