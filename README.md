@@ -385,7 +385,9 @@ If you find any more commands, let me know!
 The set-top box state can be read and controlled in the Shortcuts app as follows:
 
 ### Reading the Current State of the Set-Top Box
+
 <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/ShortcutsActions.png" alt="ShortcutsActions" height="300" align="right">
+
 Search for **Get the state of HomeName** then select **Get SetTopBoxName Characteristic**, where Characteristic is one of the following supported characteristics:
 * **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
 * **Active Identifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
@@ -398,7 +400,9 @@ Search for **Get the state of HomeName** then select **Get SetTopBoxName Charact
 * **Target Media State**: The set-top box target media state, follows current media state. See https://developers.homebridge.io/#/characteristic/TargetMediaState
 
 ### Controlling the Set-Top Box
+
 <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/Shortcuts.png" alt="Shortcuts" height="300" align="right">
+
 Search for **Get the state of HomeName** then select **Get SetTopBoxName Characteristic**, where Characteristic is one of the 
 Search for **Control HomeName** then select **Set SetTopBoxName**
 You can only control the items accessible through the Home app tile. Unfortunately, this is an Apple limitation. Hopefully Apple will improve Shortcut’s control in the future. Press and hold to adjust the accessory. Possible controlable items are:
