@@ -8,10 +8,10 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 
 # Bug Fixes and Improvements
 
-## 1.0.1-beta.0 (2021-03-21)
+## 1.0.1 (2021-03-21)
 ### Changes
 * Cleaned up some left-over debug logging
-* Started session code for IE
+* Started session code for IE (unfinished)
 
 
 ## 1.0.0 (2021-03-20)
