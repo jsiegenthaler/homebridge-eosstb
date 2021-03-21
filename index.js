@@ -273,7 +273,7 @@ class stbPlatform {
 								tipText = tipText + '   "deviceNameAtRestart": "' + this.devices[i].settings.deviceFriendlyName + '"\n';
 								tipText = tipText + ' }';
 							}
-							this.log('Config tip: Add these lines to your Homebridge ' + PLATFORM_NAME + ' config: \n"devices": [\n' + tipText + '\n]');
+							this.log('Config tip: Add these lines to your Homebridge ' + PLATFORM_NAME + ' config if you wish to customise your device config: \n"devices": [\n' + tipText + '\n]');
 
 							// setup each device in turn, as we can only setup the accessory after the session is created and the physicalDevices are retrieved
 							for (let i = 0; i < this.devices.length; i++) {
@@ -2178,8 +2178,8 @@ class stbDevice {
 
 		switch (deviceType[0]) {
 			case '3C36E4':
-				manufacturer = 'ARRIS [' + this.device.platformType || '' + ']';
-				model = 'DCX960 [' + this.device.deviceType || '' + ']'; // NL has no deviceType in their device settings
+				manufacturer = 'ARRIS [' + (this.device.platformType || '') + ']';
+				model = 'DCX960 [' + (this.device.deviceType || '') + ']'; // NL has no deviceType in their device settings
 				serialnumber = this.device.deviceId; // same as shown on TV
 				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
 				break;
