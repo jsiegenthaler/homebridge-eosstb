@@ -367,11 +367,11 @@ You can use **View TV Settings** to open the set-top box main menu at the **PROF
 
 ## Siri
 Known Siri commands that work with a **Set-Top Box** accessory are:
-* "Hey Siri, turn on \<SetTopBoxName\>": turns on the set-top box
-* "Hey Siri, turn off \<SetTopBoxName\>": turns off the set-top box
-* "Hey Siri, start \<SetTopBoxName\>": turns on the set-top box
-* "Hey Siri, stop \<SetTopBoxName\>": turns off the set-top box
-* "Hey Siri, pause \<SetTopBoxName\>": Siri says "Stopping on the \<SetTopBoxName\>" and shows an AirPlay Connecting dialog but doesn't do anything
+* "Hey Siri, turn on SetTopBoxName": turns on the set-top box
+* "Hey Siri, turn off SetTopBoxName": turns off the set-top box
+* "Hey Siri, start SetTopBoxName": turns on the set-top box
+* "Hey Siri, stop SetTopBoxName": turns off the set-top box
+* "Hey Siri, pause SetTopBoxName": Siri says "Stopping on the SetTopBoxName" and shows an AirPlay Connecting dialog but doesn't do anything
 
 As you can see, these are limited to power on and off. Unfortunately, this is an Apple limitation. Hopefully Apple will improve Siri control in the future.
 If you find any more commands, let me know!
@@ -382,7 +382,7 @@ The set-top box state can be read and controlled in the Shortcuts app as follows
 
 ### Reading the Current State of the Set-Top Box
 <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/Shortcuts.png" alt="Shortcuts" height="300" align="right">
-Search for **Get the state of \<HomeName\>** then select **Get \<SetTopBoxName\> \<Characteristic\>**, where Characteristic is one of the following supported characteristics:
+Search for **Get the state of HomeName** then select **Get SetTopBoxName Characteristic**, where Characteristic is one of the following supported characteristics:
 * **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
 * **Active Identifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
 * **Configured Name**: The set-top box name. See https://developers.homebridge.io/#/characteristic/ConfiguredName
@@ -395,7 +395,7 @@ Search for **Get the state of \<HomeName\>** then select **Get \<SetTopBoxName\>
 
 ### Controlling the Set-Top Box
 <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/ShortcutsActions.png" alt="ShortcutsActions" height="300" align="right">
-Search for **Control \<HomeName\>** then select **Set \<SetTopBoxName\>**
+Search for **Control HomeName** then select **Set SetTopBoxName**
 You can only control the items accessible through the Home app tile. Unfortunately, this is an Apple limitation. Hopefully Apple will improve Shortcut’s control in the future. Press and hold to adjust the accessory. Possible controlable items are:
 
 * **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
