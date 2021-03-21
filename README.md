@@ -126,10 +126,10 @@ You can force a Home app refresh by switching to another room and then back agai
 ## Remote Control Supported Keys
 To access the **Apple TV Remote**, open your **Control Center** by swiping down from the top (newer iPhones and iPads) or up from the bottom of the screen (older iPhones). If you do not see the remote-control icon, you will need to activate it in **Settings > Control Centre** and ensure that the **Apple TV Remote** is in the list of **INCLUDED CONTROLS**.
 Make sure you select the correct device from the drop-doown list at the top of the Apple TV Remote:
-<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/SelectingDeviceForRemoteControl.png" alt="SelectingDeviceForRemoteControl" height="300" align="right">
-<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="300" align="right">
 
 The following keys are supported by in the **Apple TV Remote** in the Control Center:
+<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="300" align="right">
+<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/SelectingDeviceForRemoteControl.png" alt="SelectingDeviceForRemoteControl" height="300" align="right">
 
 * Navigation (Up/Down/Left/Right)   
 * OK
