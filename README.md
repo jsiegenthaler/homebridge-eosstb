@@ -324,8 +324,8 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
 ## Set-Top Box KeyEvent Commands
 See the Wiki for [a collection of known key event commands that control the set-top box](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents). 
 
-## Other Commands
-These commands do not control the set-top box directly, but can be used to control the TV or Receiver volume (network remote control required) 
+## Special Commands
+The volume and mute commands do not control the set-top box directly, but can be used to control the TV or Receiver volume (network remote control required).
 
 ### Volume
 * **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS volume controls can be used to control the volume of your TV. However, this is not done via the set-top box, but instead via a command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Receiver and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP, KEY_VOLDOWN and KEY_MUTE to be easily sent to the Samsung Receiver. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scroll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
@@ -338,16 +338,8 @@ You can use **View TV Settings** to open the set-top box main menu at the **PROF
 
 
 ## Siri
-Known Siri commands that work with a **Set-Top Box** accessory are:
-* "Hey Siri, turn on SetTopBoxName": turns on the set-top box
-* "Hey Siri, turn off SetTopBoxName": turns off the set-top box
-* "Hey Siri, start SetTopBoxName": turns on the set-top box
-* "Hey Siri, stop SetTopBoxName": turns off the set-top box
-* "Hey Siri, pause SetTopBoxName": Siri says "Stopping on the SetTopBoxName" and shows an AirPlay Connecting dialog but doesn't do anything
-
-As you can see, these are limited to power on and off. Unfortunately, this is an Apple limitation. Hopefully Apple will improve Siri control in the future.
-If you find any more commands, let me know!
-    
+See the Wiki for [details on how to control the set-top box with Siri](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/Siri). 
+   
 
 ## Shortcuts
 See the Wiki for [details on how to read and control the set-top box in the Shortcuts app](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/Shortcuts). 
