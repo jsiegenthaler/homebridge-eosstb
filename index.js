@@ -62,7 +62,7 @@ const countryBaseUrlArray = {
     'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/nld/web',
     'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v3 and v4 works
     'gb':       'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web',
-    'ie':       'https://web-api-prod-obo.horizon.tv/oesp/v4/IE/eng/web',
+    'ie':       'https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web',
     'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web'
 };
 
@@ -138,6 +138,7 @@ Object.freeze(powerStateName);
 // exec spawns child process to run a bash script
 var exec = require("child_process").exec;
 const { waitForDebugger } = require('inspector');
+const { ENGINE_METHOD_CIPHERS } = require('constants');
 var PLUGIN_ENV = ''; // controls the development environment, appended to UUID to make unique device when developing
 
 // variables for session and all devices
@@ -252,8 +253,6 @@ class stbPlatform {
 					// wait for personalization data to load then see how many devices were found
 					wait(5*1000).then(() => { 
 
-						this.log.warn('ChannelListExpiryDate', this.channelListExpiryDate);
-
 						// show feedback for devices found
 						if (!this.devices[0].settings) {
 							this.log('Failed to find any devices - the backend systems may be down')
@@ -367,8 +366,10 @@ class stbPlatform {
 		switch(country.toLowerCase()) {
 			case 'be-nl': case 'be-fr':
 				this.getSessionBE(); break;
-			case 'gb': case 'ie':
+			case 'gb':
 				this.getSessionGB(); break;
+			case 'ie':
+				this.getSessionIE(); break;
 			default:
 				this.getSession();
 			}
@@ -932,6 +933,267 @@ class stbPlatform {
 		currentSessionState = sessionState.NOT_CREATED;
 	}
 
+	// get session for IE only (special logon sequence)
+	getSessionIE() {
+		// this code is a copy of the gb session code, adapted for ie
+		this.log('Creating %s IE session...',PLATFORM_NAME);
+		currentSessionState = sessionState.LOADING;
+
+		//var cookieJarGB = new cookieJar();
+
+		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		// axios interceptors to log request and response for debugging
+		// works on all following requests in this sub
+		axiosWS.interceptors.request.use(req => {
+			this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
+			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
+			'\nMethod:',req.method, '\nURL:', req.url, 
+			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers, '\nWithCredentials:', req.withCredentials, 
+			//'\nParams:', req.params, '\nData:', req.data
+			);
+			return req; // must return request
+		});
+		axiosWS.interceptors.response.use(res => {
+			this.log('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
+			'\nHeaders:', res.headers, 
+			//'\nData:', res.data, 
+			//'\nLast Request:', res.request
+			);
+			this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
+			return res; // must return response
+		});
+		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+		// Step 1: # get authentication details
+		// normal /authorization does not work for IE:
+		// [{"type":"state","code":"authorizationNotSupported","reason":"invalid"}]
+
+		// first step posts here:
+		// https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session?token=true
+		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country] + '/authorization';
+		// Step 1: # login
+		this.log('Step 1 of 7 logging in with username %s', this.config.username);
+		axiosWS.get('https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session')
+			.then(response => {	
+				this.log('Step 1 of 7 response:',response.status, response.statusText);
+				this.log.debug('Step 1 of 7 response.data',response.data);
+				
+				// get the data we need for further steps
+				let auth = response.data;
+				let authState = auth.session.state;
+				let authAuthorizationUri = auth.session.authorizationUri;
+				let authValidtyToken = auth.session.validityToken;
+				this.log.debug('Step 1 of 7 results: authState',authState);
+				this.log.debug('Step 1 of 7 results: authAuthorizationUri',authAuthorizationUri);
+				this.log.debug('Step 1 of 7 results: authValidtyToken',authValidtyToken);
+
+				// Step 2: # follow authorizationUri to get AUTH cookie (ULM-JSESSIONID)
+				this.log('Step 2 of 7 get AUTH cookie');
+				this.log.debug('Step 2 of 7 get AUTH cookie from',authAuthorizationUri);
+				axiosWS.get(authAuthorizationUri, {
+						jar: cookieJar,
+						ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie
+					})
+					.then(response => {	
+						this.log('Step 2 of 7 response:',response.status, response.statusText);
+						//this.log.warn('Step 2 of 7 response.data',response.data); // an html logon page
+		
+						// Step 3: # login
+						this.log('Step 3 of 7 logging in with username %s', this.config.username);
+						//this.log('Cookies for the auth url:',cookieJar.getCookies(GB_AUTH_URL));
+						currentSessionState = sessionState.LOGGING_IN;
+
+						// we just want to POST to 
+						// 'https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session/session?token=true';
+						const IE_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
+						this.log.debug('Step 3 of 7 POST request will contain this data: {"username":"' + this.config.username + '","password":"' + this.config.password + '"}');
+						axiosWS(IE_AUTH_URL,{
+						//axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
+							jar: cookieJar,
+							ignoreCookieErrors: true,
+							data: '{"username":"' + this.config.username + '","password":"' + this.config.password + '"}',
+							method: "POST",
+							// minimum headers are "accept": "*/*",
+							headers: {
+								"accept": "application/json; charset=UTF-8, */*",
+							//	"accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+							//	"authorization": 'Atmosphere atmosphere_app_id="AEM_UK"',
+							//	"content-type": "application/json; charset=UTF-8",
+							//	"sec-ch-ua": '"Google Chrome";v="89", "Chromium";v="89", ";Not A Brand";v="99"',
+							//	"sec-ch-ua-mobile": "?0",
+							//	"sec-fetch-dest": "empty",
+							//	"sec-fetch-mode": "cors",
+							//	"sec-fetch-site": "same-origin",	
+							//	"referrer": "https://id.virginmedia.com/sign-in/?protocol=oidc",
+							//	"referrerPolicy": "strict-origin-when-cross-origin",
+							//	"mode": "cors",											
+							},
+							maxRedirects: 0, // do not follow redirects
+							validateStatus: function (status) {
+								return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK. GB returns 200
+							},
+							})
+							.then(response => {	
+								this.log('Step 3 of 7 response:',response.status, response.statusText);
+								this.log.debug('Step 3 of 7 response.headers:',response.headers); 
+								this.log.debug('Step 3 of 7 response.data:',response.data);
+
+								//this.log('Step 3 of 7 response.headers:',response.headers);
+								var url = response.headers['x-redirect-location']
+								if (!url) {		// robustness: fail if url missing
+									this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
+									currentSessionState = sessionState.NOT_CREATED;
+									return false;						
+								}								
+								//location is h??=... if success
+								//location is https?? if not authorised
+								//location is https:... error=session_expired if session has expired
+								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
+									this.log.warn('Step 3 of 7 Unable to login: wrong credentials');
+								} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
+									this.log.warn('Step 3 of 7 Unable to login: session expired');
+									cookieJar.removeAllCookies();	// remove all the locally cached cookies
+									currentSessionState = sessionState.NOT_CREATED;	// flag the session as dead
+								} else {
+									this.log.debug('Step 3 of 7 login successful');
+
+									// Step 4: # follow redirect url
+									this.log('Step 4 of 7 follow redirect url');
+									axiosWS.get(url,{
+										jar: cookieJar,
+										maxRedirects: 0, // do not follow redirects
+										validateStatus: function (status) {
+											return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
+											},
+										})
+										.then(response => {	
+											this.log('Step 4 of 7 response:',response.status, response.statusText);
+											this.log.debug('Step 4 of 7 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
+											this.log.debug('Step 4 of 7 response.data:',response.data);
+											//this.log('Step 4 response.headers:',response.headers);
+											url = response.headers.location;
+											if (!url) {		// robustness: fail if url missing
+												this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
+												currentSessionState = sessionState.NOT_CREATED;
+												return false;						
+											}								
+			
+											// look for login_success?code=
+											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
+												this.log.warn('Step 4 of 7 Unable to login: wrong credentials');
+												currentSessionState = sessionState.NOT_CREATED;;	// flag the session as dead
+											} else if (url.indexOf('error=session_expired') > 0 ) {
+												this.log.warn('Step 4 of 7 Unable to login: session expired');
+												cookieJar.removeAllCookies();	// remove all the locally cached cookies
+												currentSessionState = sessionState.NOT_CREATED;;	// flag the session as dead
+											} else {
+
+												// Step 5: # obtain authorizationCode
+												this.log('Step 5 of 7 extract authorizationCode');
+												url = response.headers.location;
+												if (!url) {		// robustness: fail if url missing
+													this.log.warn('getSessionGB: Step 5: location url empty!');
+													currentSessionState = sessionState.NOT_CREATED;
+													return false;						
+												}								
+				
+												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
+												var authorizationCode = codeMatches[1];
+												if (codeMatches.length !== 2 ) { // length must be 2 if code found
+													this.log.warn('Step 5 of 7 Unable to extract authorizationCode');
+												} else {
+													this.log('Step 5 of 7 authorizationCode OK');
+													this.log.debug('Step 5 of 7 authorizationCode:',authorizationCode);
+
+													// Step 6: # authorize again
+													this.log('Step 6 of 7 post auth data with valid code');
+													this.log.debug('Step 6 of 7 post auth data with valid code to',apiAuthorizationUrl);
+													currentSessionState = sessionState.AUTHENTICATING;
+													var payload = {'authorizationGrant':{
+														'authorizationCode':authorizationCode,
+														'validityToken':authValidtyToken,
+														'state':authState
+													}};
+													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
+														.then(response => {	
+															this.log('Step 6 of 7 response:',response.status, response.statusText);
+															this.log.debug('Step 6 of 7 response.data:',response.data);
+															
+															auth = response.data;
+															//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
+															this.log.debug('Step 6 of 7 refreshToken:',auth.refreshToken);
+
+															// Step 7: # get OESP code
+															this.log('Step 7 of 7 post refreshToken request');
+															this.log.debug('Step 7 of 7 post refreshToken request to',apiAuthorizationUrl);
+															payload = {'refreshToken':auth.refreshToken,'username':auth.username};
+															var sessionUrl = countryBaseUrlArray[this.config.country] + '/session';
+															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
+																.then(response => {	
+																	this.log('Step 7 of 7 response:',response.status, response.statusText);
+																	currentSessionState = sessionState.VERIFYING;
+																	
+																	this.log.debug('Step 7 of 7 response.headers:',response.headers); 
+																	this.log.debug('Step 7 of 7 response.data:',response.data); 
+																	this.log.debug('Cookies for the session:',cookieJar.getCookies(sessionUrl));
+
+																	// get device data from the session
+																	this.session = response.data;
+																	
+																	// get device data from the session
+																	this.session = response.data;
+																	currentSessionState = sessionState.CREATED;
+																	this.log('Session created');
+																	return true;
+																})
+																// Step 7 http errors
+																.catch(error => {
+																	this.log.warn("Step 7 of 7 Unable to get OESP token:",error.response.status, error.response.statusText);
+																	this.log.debug("Step 7 of 7 error:",error);
+																	currentSessionState = sessionState.NOT_CREATED;
+																});
+														})
+														// Step 6 http errors
+														.catch(error => {
+															this.log.warn("Step 6 of 7 Unable to authorize with oauth code, http error:",error);
+															currentSessionState = sessionState.NOT_CREATED;
+														});	
+												};
+											};
+										})
+										// Step 4 http errors
+										.catch(error => {
+											this.log.warn("Step 4 of 7 Unable to oauth authorize:",error.response.status, error.response.statusText);
+											this.log.debug("Step 4 of 7 error:",error);
+											currentSessionState = sessionState.NOT_CREATED;
+										});
+								};
+							})
+							// Step 3 http errors
+							.catch(error => {
+								this.log.warn("Step 3 of 7 Unable to login:",error.response.status, error.response.statusText);
+								this.log.debug("Step 3 of 7 error:",error);
+								currentSessionState = sessionState.NOT_CREATED;
+							});
+					})
+					// Step 2 http errors
+					.catch(error => {
+						this.log.warn("Step 2 of 7 Unable to get authorizationUri:",error.response.status, error.response.statusText);
+						this.log.debug("Step 2 of 7 error:",error);
+						currentSessionState = sessionState.NOT_CREATED;
+					});
+			})
+			// Step 1 http errors
+			.catch(error => {
+				this.log('Failed to create GB session - check your internet connection.');
+				this.log.warn("Step 1 of 7 Could not get apiAuthorizationUrl:",error.response.status, error.response.statusText);
+				this.log.debug("Step 1 of 7 error:",error);
+				currentSessionState = sessionState.NOT_CREATED;
+			});
+
+		currentSessionState = sessionState.NOT_CREATED;
+	}	
 	// load all available TV channels at regular intervals into an array
 	async loadMasterChannelList(callback) {
 		// called by loadMasterChannelList (state handler), thus runs at polling interval
@@ -2097,13 +2359,15 @@ class stbDevice {
 		// runs at the very start, and then every few seconds, so don't log it unless debugging
 		// doesn't get the data direct from the settop box, but rather: gets it from the this.currentPowerState and this.currentChannelId variables
 		// which are received by the mqtt messages, which occurs very often
-		this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], channelId %s, sourceType %s', 
-			this.name, 
-			powerState, 
-			mediaState, mediaStateName[mediaState], 
-			channelId,
-			sourceType
-		);
+		if (this.config.debugLevel > 0) {
+			this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], channelId %s, sourceType %s', 
+				this.name, 
+				powerState, 
+				mediaState, mediaStateName[mediaState], 
+				channelId,
+				sourceType
+			);
+		}
 
 		// grab the input variables
 		this.previousPowerState = this.currentPowerState;
@@ -2385,7 +2649,7 @@ class stbDevice {
 			//foundIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === chId); 
 			if (!channel) {
 				const newChName = customChannel.channelName || "Channel " + chId; 
-				this.log.warn("%s: Unknown channel %s [%s] discovered. Adding to the master channel list", this.name, chId, newChName);
+				this.log("%s: Unknown channel %s [%s] discovered. Adding to the master channel list", this.name, chId, newChName);
 				this.platform.masterChannelList.push({
 					channelId: chId, 
 					channelNumber: 10000 + this.platform.masterChannelList.length, 

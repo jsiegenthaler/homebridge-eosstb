@@ -8,6 +8,12 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 
 # Bug Fixes and Improvements
 
+## 1.0.1-beta.0 (2021-03-21)
+### Changes
+* Cleaned up some logging
+* Started session code for IE
+
+
 ## 1.0.0 (2021-03-20)
 ### Important Note
 You must updated your config when updating from 0.1.13 to 1.0.0 (or later versions). See the [configuration section in the Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration).
