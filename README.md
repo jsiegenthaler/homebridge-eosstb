@@ -1,6 +1,6 @@
 <p align="center">
-    <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/DCX960andRemoteSmall.jpg" alt="UPC TV Box (ARRIS DCX960)" height="300">
-    <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/RoomWithEosstb.png" alt="RoomWithEosstb" height="300" align="right">
+    <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/DCX960andRemoteSmall.jpg" alt="UPC TV Box (ARRIS DCX960)" height="300" align="center">
+    <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/RoomWithEosstb.png" alt="RoomWithEosstb" height="300" align="center">
 
   </a>
 </p>
