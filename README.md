@@ -197,6 +197,7 @@ Example extended configuration as used on the author with his Samsung TV (where 
             "devices": [
                 {
                     "deviceId": "3C36E4-EOSSTB-00365657xxxx",
+                    "deviceNameAtRestart": "UPC TV",
                     "profile": "Dad",
                     "accessoryCategory": "settopbox",
                     "playPauseButton": "MediaPlayPause",
@@ -253,6 +254,8 @@ If you want to configure your devices differently, do so here. Multiple devices 
 * **deviceId**: The unique set-top box physical device id, in Switzerland, Belgium and the Netherlands this is in the format 3C36E4-EOSSTB-001234567890. Other countries may be the same. Required to identify the set-top box in your network, as multiple boxes can exist. Review the Homebridge log to see your deviceId, it is displayed shortly after a Homebridge restart. Mandatory for a device configuration.
 
 #### Optional
+
+* **deviceNameAtRestart**: This is the device name discovered after Homebridge restart, and shown in the config tip in the Homebridge logs. It is purely for informative purposes. You can add it to your config if you wish. Changing it has no effect.
 
 * **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the Shared Profile if not found. If using the Shared Profile, the device loads the first 95 channels found. Most cable providers offer many more than 95 channels: my provider has 483, of which I am entitled to 287. To ensure you have a useful channel list on your iOS device, create a profile on your set-top box, and enter the profile name in the config. The channels will then be loaded from the profile. If your profile is changed to the set-top box, the changes will be pushed to HomeKit.
 
