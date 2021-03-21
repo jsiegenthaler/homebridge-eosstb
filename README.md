@@ -403,12 +403,17 @@ Search for **Get the state of HomeName** then select **Get SetTopBoxName Charact
 
 <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/Shortcuts.png" alt="Shortcuts" height="300" align="right">
 
-Search for **Get the state of HomeName** then select **Get SetTopBoxName Characteristic**, where Characteristic is one of the 
+#### Controlling via the Accessory
 Search for **Control HomeName** then select **Set SetTopBoxName**
 You can only control the items accessible through the Home app tile. Unfortunately, this is an Apple limitation. Hopefully Apple will improve Shortcut’s control in the future. Press and hold to adjust the accessory. Possible controlable items are:
 
 * **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
 * **Active Identifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
+
+#### Controlling via the iOS Remote-Control
+Search for **Apple TV Remote** then select **Show Remote Control** 
+Running the action **Show remote control for Shortcut Input** (when Shortcut Input is empty) will open the remote control with the last used device selected.
+Instead of Shortcut input, you can also pass an empty variable.
 
 
 ## Thanks to
