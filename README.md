@@ -322,39 +322,7 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
 
 
 ## Set-Top Box KeyEvent Commands
-A collection of known key event commands that control the set-top box. You can use these to change the remote key mappings if you wish. Note that the standard Apple TV Remote is limited and does not provide buttons for all possible commands.
-
-* **MediaTopMenu**: Displays the top menu page (home page) on the TV, same as the **HOME** button on the set-top box remote
-
-* **Escape**: Escapes (exits) out of any current menu on the TV. Same as the **RETURN** button on the set-top box remote
-
-* **ContextMenu**: Displays a context menu on the current TV program. Same as the **...** button on the set-top box remote
-
-* **Info**: Displays the INFO screen on the TV showing info about the current TV program
-
-* **Help**: Displays the **SETTINGS INFO** page on the TV, allowing you to access settings quickly
-
-* **Guide**: Displays the **TV GUIDE** page on the TV, same as the Guide button on the set-top box remote
-
-* **MediaPause**: Toggles between Pause and Play of the currently playing program
-
-* **MediaPlayPause**: Toggles between Pause and Play of the currently playing program (same as MediaPause)
-
-* **MediaRecord**: Starts recording the currently playing program
-
-* **MediaStop**: Stops the currently playing program
-
-* **MediaRewind**: Rewinds the currently playing program
-
-* **MediaFastForward**: Fast-forwards the currently playing program
-
-* **TV**: Goes back to live TV from whatever state the set-top box was in
-
-* **ChannelUp**: Move up the channel list by one channel, same as the **/\\** (channel up) button on the set-top box remote
-
-* **ChannelDown**: Move down the channel list by one channel, same as the **\\/** (channel down) button on the set-top box remote
-
-* **Red**, **Green**, **Yellow**, **Blue**: The four coloured buttons found on GB and IE remote controls, to access special TV functions
+See the Wiki for [a collection of known key event commands that control the set-top box](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents). 
 
 ## Other Commands
 These commands do not control the set-top box directly, but can be used to control the TV or Receiver volume (network remote control required) 
