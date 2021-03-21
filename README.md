@@ -10,7 +10,7 @@
 
 `homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960) running on the Magenta AT / Telenet BE / UPC CH / Virgin Media GB & IE / Ziggo NL TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
-<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/TileIcon.jpg" alt="Tileicon" height="80" align="left">
+<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="left">
 This plugin displays your set-top box as a Set-Top Box accessory with power, channel and remote-control capabilities on your iOS device (iPhone, iPad, iMac, etc.).
 
 
@@ -114,7 +114,7 @@ The set-top box accessory is exposed as a separate external accessory and each s
 11. **Set-Top Box Automations**: Switch on any suggested automations if you wish (you can change these in the Home app later) and tap **Continue**.
 12. **Set-Top Box Added to HomeName**: Tap **Done** to finish the setup.
 
-<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/TileIcon.jpg" alt="Tileicon" height="80" align="left">
+<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="left">
 Your new accessory will appear shortly in the room that you selected. It may show **Updating...** for a few minutes as it loads all the data.
 
 You can force a Home app refresh by switching to another room and then back again.
@@ -123,9 +123,10 @@ You can force a Home app refresh by switching to another room and then back agai
 
 ## Remote Control Supported Keys
 To access the **Apple TV Remote**, open your **Control Center** by swiping down from the top (newer iPhones and iPads) or up from the bottom of the screen (older iPhones). If you do not see the remote-control icon, you will need to activate it in **Settings > Control Centre** and ensure that the **Apple TV Remote** is in the list of **INCLUDED CONTROLS**.
+Make sure you select the correct device from the drop-doown list at the top of the Apple Tv Remote:
 
 The following keys are supported by in the **Apple TV Remote** in the Control Center:
-<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/RemoteControl.jpg" alt="RemoteControl" height="300" align="right">
+<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="300" align="right">
 
 * Navigation (Up/Down/Left/Right)   
 * OK
