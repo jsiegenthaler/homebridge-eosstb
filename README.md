@@ -350,36 +350,7 @@ If you find any more commands, let me know!
     
 
 ## Shortcuts
-The set-top box state can be read and controlled in the Shortcuts app as follows:
-
-### Reading the Current State of the Set-Top Box
-
-<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/ShortcutsActions.png" alt="ShortcutsActions" height="300" align="right">
-
-Search for **Get the state of HomeName** then select **Get SetTopBoxName Characteristic**, where Characteristic is one of the following supported characteristics:
-* **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
-* **Active Identifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
-* **Configured Name**: The set-top box name. See https://developers.homebridge.io/#/characteristic/ConfiguredName
-* **Current Media State**: The set-top box current media state, either 0 (PLAY), 1 (PAUSE), 2 (STOP) or 4 (LOADING). See. https://developers.homebridge.io/#/characteristic/CurrentMediaState
-* **Name**: The set-top box name as at last restart of Homebridge. See https://developers.homebridge.io/#/characteristic/Name
-* **Power Mode Selection**: Operation not supported (this characteristic does not support reading of its state)
-* **Remote Key**: Operation not supported (this characteristic does not support reading of its state)
-* **Sleep Discovery Mode**: Always 1 (ALWAYS_DISCOVERABLE). See https://developers.homebridge.io/#/characteristic/SleepDiscoveryMode
-* **Target Media State**: The set-top box target media state, follows current media state. See https://developers.homebridge.io/#/characteristic/TargetMediaState
-
-### Controlling the Set-Top Box
-
-<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/Shortcuts.png" alt="Shortcuts" height="300" align="right">
-
-#### Controlling via the Accessory
-Search for **Control HomeName** then select **Set SetTopBoxName**
-You can only control the items accessible through the Home app tile. Unfortunately, this is an Apple limitation. Hopefully Apple will improve Shortcut’s control in the future. Press and hold to adjust the accessory. Possible controlable items are:
-
-* **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
-* **Active Identifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
-
-#### Controlling via the iOS Remote-Control
-Search for **Apple TV Remote** then select **Show Remote Control**. Running the action **Show remote control for Shortcut Input** (when Shortcut Input is empty) will open the remote control with the last used device selected. Instead of Shortcut input, you can also pass an empty variable.
+See the Wiki for [details on how to read and control the set-top box in the Shortcuts app](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/Shortcuts). 
 
 
 ## Thanks to
