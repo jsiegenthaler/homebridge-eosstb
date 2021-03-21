@@ -400,7 +400,7 @@ class stbPlatform {
 			return false;						
 		}
 		
-		this.log('Step 1 of 7 logging in with username %s', this.config.username);
+		this.log('Step 1 of 1 logging in with username %s', this.config.username);
 		this.log.debug('Step 1 of 1: post login to',axiosConfig.url);
 		axiosWS(axiosConfig)
 			.then(response => {	
@@ -933,6 +933,8 @@ class stbPlatform {
 		currentSessionState = sessionState.NOT_CREATED;
 	}
 
+
+
 	// get session for IE only (special logon sequence)
 	getSessionIE() {
 		// this code is a copy of the gb session code, adapted for ie
@@ -971,64 +973,98 @@ class stbPlatform {
 
 		// first step posts here:
 		// https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session?token=true
-		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country] + '/authorization';
-		// Step 1: # login
-		this.log('Step 1 of 7 logging in with username %s', this.config.username);
-		axiosWS.get('https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session')
+		//let apiAuthorizationUrl = countryBaseUrlArray[this.config.country] + '/authorization';
+		// Step 1: # get session page (might not be needed)
+		this.log('Step 1 of 7 getting session page');
+		axiosWS('https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session',{
+			jar: cookieJar,
+			ignoreCookieErrors: true,
+			method: "GET",
+			headers: {
+				"accept": "application/json",
+				"content-type": "application/json",
+				"sec-ch-ua": "\"Google Chrome\";v=\"89\", \"Chromium\";v=\"89\", \";Not A Brand\";v=\"99\"",
+				"sec-ch-ua-mobile": "?0",
+				"x-client-id": "1.4.30.5||Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36"
+			},
+			referrer: "https://www.virginmediatv.ie/",
+			referrerPolicy: "strict-origin-when-cross-origin",
+			mode: "cors",
+			credentials: "omit",
+			maxRedirects: 0, // do not follow redirects
+			})		
 			.then(response => {	
 				this.log('Step 1 of 7 response:',response.status, response.statusText);
-				this.log.debug('Step 1 of 7 response.data',response.data);
+				this.log.warn('Step 1 of 7 response.data',response.data);
+				this.log.warn('Step 1 of 7 response.headers',response.headers);
 				
 				// get the data we need for further steps
+				let auth, authState, authAuthorizationUri, authValidtyToken;
+				/*
 				let auth = response.data;
 				let authState = auth.session.state;
 				let authAuthorizationUri = auth.session.authorizationUri;
 				let authValidtyToken = auth.session.validityToken;
-				this.log.debug('Step 1 of 7 results: authState',authState);
-				this.log.debug('Step 1 of 7 results: authAuthorizationUri',authAuthorizationUri);
-				this.log.debug('Step 1 of 7 results: authValidtyToken',authValidtyToken);
+				//this.log.debug('Step 1 of 7 results: authState',authState);
+				//this.log.debug('Step 1 of 7 results: authAuthorizationUri',authAuthorizationUri);
+				//this.log.debug('Step 1 of 7 results: authValidtyToken',authValidtyToken);
+				*/
 
-				// Step 2: # follow authorizationUri to get AUTH cookie (ULM-JSESSIONID)
-				this.log('Step 2 of 7 get AUTH cookie');
-				this.log.debug('Step 2 of 7 get AUTH cookie from',authAuthorizationUri);
-				axiosWS.get(authAuthorizationUri, {
-						jar: cookieJar,
-						ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie
+				// Step 3: # login, POST to
+				// https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session?token=true
+				currentSessionState = sessionState.LOGGING_IN;
+				const IE_LOGIN_URL = 'https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session?token=true';
+				this.log('Step 2 of 7 logging in with username %s', this.config.username);
+				axiosWS(IE_LOGIN_URL,{
+					//jar: cookieJar,
+					//ignoreCookieErrors: true,
+					//{username: "sadadasd", password: "asdasdadads"}
+					//data: { username: this.config.username + '","password":"' + this.config.password + '"}',
+					data: { username: this.config.username , password: this.config.password },
+					method: "POST",
+					headers: {
+						"accept": "application/json",
+						"content-type": "application/json",
+						"Connection": "keep-alive",
+						"Origin": "https://www.virginmediatv.ie",
+						"Referer": "https://www.virginmediatv.ie/",
+						"sec-ch-ua": "\"Google Chrome\";v=\"89\", \"Chromium\";v=\"89\", \";Not A Brand\";v=\"99\"",
+						"sec-ch-ua-mobile": "?0",
+						"sec-fetch-dest": "empty",
+						"sec-fetch-mode": "cors",
+						"sec-fetch-site": "cross-site",
+						"x-client-id": "1.4.30.5||Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36"
+					},
+					//maxRedirects: 0, // do not follow redirects
 					})
 					.then(response => {	
 						this.log('Step 2 of 7 response:',response.status, response.statusText);
-						//this.log.warn('Step 2 of 7 response.data',response.data); // an html logon page
+						this.log.warn('Step 2 of 7 response.headers',response.headers);
+						this.log.warn('Step 2 of 7 response.data',response.data);
 		
 						// Step 3: # login
-						this.log('Step 3 of 7 logging in with username %s', this.config.username);
+						this.log('Step 3 of 7 some next step...');
 						//this.log('Cookies for the auth url:',cookieJar.getCookies(GB_AUTH_URL));
-						currentSessionState = sessionState.LOGGING_IN;
 
+
+						/*
 						// we just want to POST to 
 						// 'https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session/session?token=true';
 						const IE_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
-						this.log.debug('Step 3 of 7 POST request will contain this data: {"username":"' + this.config.username + '","password":"' + this.config.password + '"}');
+						//this.log.debug('Step 3 of 7 POST request will contain this data: {"username":"' + this.config.username + '","password":"' + this.config.password + '"}');
 						axiosWS(IE_AUTH_URL,{
-						//axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
 							jar: cookieJar,
 							ignoreCookieErrors: true,
 							data: '{"username":"' + this.config.username + '","password":"' + this.config.password + '"}',
 							method: "POST",
+						*/
 							// minimum headers are "accept": "*/*",
-							headers: {
-								"accept": "application/json; charset=UTF-8, */*",
-							//	"accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
-							//	"authorization": 'Atmosphere atmosphere_app_id="AEM_UK"',
-							//	"content-type": "application/json; charset=UTF-8",
-							//	"sec-ch-ua": '"Google Chrome";v="89", "Chromium";v="89", ";Not A Brand";v="99"',
-							//	"sec-ch-ua-mobile": "?0",
-							//	"sec-fetch-dest": "empty",
-							//	"sec-fetch-mode": "cors",
-							//	"sec-fetch-site": "same-origin",	
-							//	"referrer": "https://id.virginmedia.com/sign-in/?protocol=oidc",
-							//	"referrerPolicy": "strict-origin-when-cross-origin",
-							//	"mode": "cors",											
-							},
+						
+						//	headers: {
+						//		"accept": "application/json; charset=UTF-8, */*",
+								
+						//	},
+						/*
 							maxRedirects: 0, // do not follow redirects
 							validateStatus: function (status) {
 								return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK. GB returns 200
@@ -1150,7 +1186,7 @@ class stbPlatform {
 																// Step 7 http errors
 																.catch(error => {
 																	this.log.warn("Step 7 of 7 Unable to get OESP token:",error.response.status, error.response.statusText);
-																	this.log.debug("Step 7 of 7 error:",error);
+																	this.log.warn("Step 7 of 7 error:",error);
 																	currentSessionState = sessionState.NOT_CREATED;
 																});
 														})
@@ -1165,7 +1201,7 @@ class stbPlatform {
 										// Step 4 http errors
 										.catch(error => {
 											this.log.warn("Step 4 of 7 Unable to oauth authorize:",error.response.status, error.response.statusText);
-											this.log.debug("Step 4 of 7 error:",error);
+											this.log.warn("Step 4 of 7 error:",error);
 											currentSessionState = sessionState.NOT_CREATED;
 										});
 								};
@@ -1173,27 +1209,32 @@ class stbPlatform {
 							// Step 3 http errors
 							.catch(error => {
 								this.log.warn("Step 3 of 7 Unable to login:",error.response.status, error.response.statusText);
-								this.log.debug("Step 3 of 7 error:",error);
+								this.log.warn("Step 3 of 7 error:",error);
 								currentSessionState = sessionState.NOT_CREATED;
 							});
+
+							*/
+
 					})
 					// Step 2 http errors
 					.catch(error => {
-						this.log.warn("Step 2 of 7 Unable to get authorizationUri:",error.response.status, error.response.statusText);
-						this.log.debug("Step 2 of 7 error:",error);
+						this.log.warn("Step 2 of 7 Unable to login:",error.response.status, error.response.statusText);
+						this.log.warn("Step 2 of 7 error:",error);
 						currentSessionState = sessionState.NOT_CREATED;
 					});
 			})
 			// Step 1 http errors
 			.catch(error => {
-				this.log('Failed to create GB session - check your internet connection.');
-				this.log.warn("Step 1 of 7 Could not get apiAuthorizationUrl:",error.response.status, error.response.statusText);
+				this.log('Failed to create IE session - check your internet connection.');
+				this.log.warn("Step 1 of 7 Could not get session page:",error.response.status, error.response.statusText);
 				this.log.debug("Step 1 of 7 error:",error);
 				currentSessionState = sessionState.NOT_CREATED;
 			});
 
 		currentSessionState = sessionState.NOT_CREATED;
 	}	
+
+
 	// load all available TV channels at regular intervals into an array
 	async loadMasterChannelList(callback) {
 		// called by loadMasterChannelList (state handler), thus runs at polling interval
@@ -2137,8 +2178,8 @@ class stbDevice {
 
 		switch (deviceType[0]) {
 			case '3C36E4':
-				manufacturer = 'ARRIS [' + this.device.platformType + ']';
-				model = 'DCX960 [' + this.device.deviceType + ']';
+				manufacturer = 'ARRIS [' + this.device.platformType || '' + ']';
+				model = 'DCX960 [' + this.device.deviceType || '' + ']'; // NL has no deviceType in their device settings
 				serialnumber = this.device.deviceId; // same as shown on TV
 				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
 				break;

@@ -10,7 +10,7 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 
 ## 1.0.1-beta.0 (2021-03-21)
 ### Changes
-* Cleaned up some logging
+* Cleaned up some left-over debug logging
 * Started session code for IE
 
 
