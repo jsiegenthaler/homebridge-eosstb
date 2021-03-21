@@ -60,6 +60,8 @@ This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Zigg
 * The ARRIS DCX960 should be set to **Standby power consumption** = **Fast start** to ensure it is always online and can respond to switch-on requests from HomeKit.
 
 ## Features
+<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/EosstbControls.png" alt="EosstbControls" height="300" align="right">
+
 * **Full Remote-Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, volume and mute commands.
 
 * **Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports).
@@ -384,7 +386,7 @@ The set-top box state can be read and controlled in the Shortcuts app as follows
 
 ### Reading the Current State of the Set-Top Box
 <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/ShortcutsActions.png" alt="ShortcutsActions" height="300" align="right">
-following supported characteristics:
+Search for **Get the state of HomeName** then select **Get SetTopBoxName Characteristic**, where Characteristic is one of the following supported characteristics:
 * **Active**: Power state, On or Off. See https://developers.homebridge.io/#/characteristic/Active
 * **Active Identifier**: The selected channel, 0 is the first in the list, 1 the next, and so on. See https://developers.homebridge.io/#/characteristic/ActiveIdentifier
 * **Configured Name**: The set-top box name. See https://developers.homebridge.io/#/characteristic/ConfiguredName
