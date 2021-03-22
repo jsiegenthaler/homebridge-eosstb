@@ -237,7 +237,7 @@ class stbPlatform {
 					if (!this.session.customer) {
 						this.log('Failed to find customer data - the backend systems may be down')
 					} else {
-						this.log('Found customer data: %s %s %s', this.session.customer.customerId, this.session.customer.givenName, this.session.customer.familyName || '' );
+						this.log('Found customer data: %s %s %s', this.session.customer.customerId, (this.session.customer.givenName || ''), (this.session.customer.familyName || '') );
 						if (this.config.debugLevel > 2) { this.log.warn('Session data: %s', this.session); }
 						if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
 					}
