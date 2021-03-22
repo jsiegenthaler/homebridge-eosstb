@@ -3,7 +3,7 @@
         {
             "platform": "eosstb",
             "country": "ch",
-            "username": "yourEmail@email.com",
+            "username": "yourUsername",
             "password": "yourPassword"
         }
     ]
