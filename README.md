@@ -56,8 +56,9 @@ This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Zigg
 * [Homebridge](https://homebridge.io/) v1.3.3 (or later). Developed on Homebridge 1.1.116....1.3.3, earlier versions not tested.
 * A TV subscription from one of the supported countries and TV providers.
 * An online account for viewing TV in the web app (often part of your TV package)
-* The ARRIS mediabox DCX960 (provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries)
+* The ARRIS mediabox DCX960 (provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries). 
 * The ARRIS DCX960 should be set to **Standby power consumption** = **Fast start** to ensure it is always online and can respond to switch-on requests from HomeKit.
+* The ARRIS DCX960 must be running the TV360 software, and not the older TiVo software as found in GB. TiVo is not supported by this plugin
 
 ## Features
 <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/EosstbControls.png" alt="EosstbControls" height="300" align="right">
