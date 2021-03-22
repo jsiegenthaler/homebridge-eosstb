@@ -1457,7 +1457,7 @@ class stbPlatform {
 			*/
 
 			// initiate the EOS session by turning on the HGO platform
-			parent.mqttSetHgoOnlineRunning();
+			parent.mqttSetHgoOnlineRunning(mqttUsername);
 
 			
 			parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
@@ -2219,8 +2219,10 @@ class stbDevice {
 		this.televisionService = new Service.Television(this.name, 'televisionService');
 		this.televisionService
 			.setCharacteristic(Characteristic.ConfiguredName, this.name)
-			.setCharacteristic(Characteristic.SleepDiscoveryMode, Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE);
-			
+			.setCharacteristic(Characteristic.SleepDiscoveryMode, Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE)
+			.setCharacteristic(Characteristic.CurrentMediaState, Characteristic.CurrentMediaState.STOP)
+			.setCharacteristic(Characteristic.TargetMediaState, Characteristic.TargetMediaState.STOP);
+				
 		this.televisionService.getCharacteristic(Characteristic.ConfiguredName)
 			.on('get', this.getDeviceName.bind(this))
 			.on('set', (newName, callback) => { this.setDeviceName(newName, callback); });
@@ -2245,10 +2247,6 @@ class stbDevice {
 		this.televisionService.getCharacteristic(Characteristic.TargetMediaState)
 			.on('get', this.getTargetMediaState.bind(this))
 			.on('set', (newMediaState, callback) => { this.setTargetMediaState(newMediaState, callback); });
-
-		// set default media state to STOP
-		this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(Characteristic.CurrentMediaState.STOP);
-		this.televisionService.getCharacteristic(Characteristic.TargetMediaState).updateValue(Characteristic.TargetMediaState.STOP);
 
 		this.accessory.addService(this.televisionService);
 
