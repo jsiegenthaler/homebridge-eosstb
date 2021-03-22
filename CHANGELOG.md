@@ -10,9 +10,11 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 
 ## 1.0.2 (2021-03-22)
 ### Changes
+* Improved handling when no supported devices found
+* Improved logging when getPersonalizationData fails
+* Improved code for the television service
 * Fixed a problem where the start command was not being sent to the backend platform
 * Fixed some small logging display errors
-* Optimised some code for the television service
 
 
 ## 1.0.1 (2021-03-21)

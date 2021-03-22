@@ -235,27 +235,32 @@ class stbPlatform {
 
 					// show feedback for customer data found
 					if (!this.session.customer) {
-						this.log('Failed to find customer data - the backend systems may be down')
+						this.log('Failed to find customer data. The backend systems may be down')
 					} else {
 						this.log('Found customer data: %s %s %s', this.session.customer.customerId, (this.session.customer.givenName || ''), (this.session.customer.familyName || '') );
 						if (this.config.debugLevel > 2) { this.log.warn('Session data: %s', this.session); }
 						if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
 					}
 
-					// Step 2: get the master channel list (no session needed)
+					// Step 2: get the master channel list. Also works for VirginMedia TiVo devices
 					this.loadMasterChannelList(); // async function, processing continues
 		
-					// Step 3: after session is created, get the Personalization Data
-					this.getPersonalizationData('profiles'); // async function
-					this.getPersonalizationData('devices'); // async function
-
+					// Step 3: after session is created, get the Personalization Data, but only if this.session.customer.physicalDeviceId exists
+					if (this.session.customer.physicalDeviceId) {
+						this.getPersonalizationData('profiles'); // async function
+						this.getPersonalizationData('devices'); // async function
+					} else {
+						// show warning if no physicalDeviceId found
+						this.log('Failed to find physicalDeviceId in your customer data. Are you sure you have a compatible set-top box?')
+						if (this.config.country == 'gb') { this.log('You may have an older TiVo box. TiVo boxes are not supported by %s', PLUGIN_NAME); }
+					}
 
 					// wait for personalization data to load then see how many devices were found
 					wait(5*1000).then(() => { 
 
 						// show feedback for devices found
-						if (!this.devices[0].settings) {
-							this.log('Failed to find any devices - the backend systems may be down')
+						if (!this.devices || !this.devices[0].settings) {
+							this.log('Failed to find any devices. The backend systems may be down, or you have no supported devices on your customer account')
 						} else {
 							// at least one device found
 							var logText = "Found %s device";
@@ -1915,7 +1920,7 @@ class stbPlatform {
 				return false;
 			})
 			.catch(error => {
-				//this.log.warn('getPersonalizationData failed: %s %s', error.response.status, error.response.statusText);
+				this.log.warn('getPersonalizationData for %s failed: %s %s', requestType, error.response.status, error.response.statusText);
 				/*
 				switch (error.response.status) {
 					case 403:
@@ -1924,8 +1929,8 @@ class stbPlatform {
 						this.log.warn('getPersonalizationData failed:', error.response.status, error.response.statusText);
 				}
 				*/
-				this.log.error('getPersonalizationData: error:',error);
-				return true, error;
+				this.log.debug('getPersonalizationData for %s: error:', requestType, error);
+				return false, error;
 			});		
 		return false;
 	}
@@ -2978,7 +2983,7 @@ class stbDevice {
 		// fired when the icon is clicked in HomeKit and HomeKit requests a refresh
 		// this.currentChannelId is updated by the polling mechanisn
 		// must return a valid index, and must never return null
-		if (this.config.debugLevel > 2) { this.log.warn('%s: getInput currentChannelId %s',this.name, this.currentChannelId); }
+		if (this.config.debugLevel > 0) { this.log.warn('%s: getInput currentChannelId %s',this.name, this.currentChannelId); }
 
 		// find the this.currentChannelId in the accessory inputs and return the inputindex once found
 		// this allows HomeKit to show the selected current channel
