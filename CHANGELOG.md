@@ -8,6 +8,12 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 
 # Bug Fixes and Improvements
 
+## 1.0.2 (2021-03-22)
+### Changes
+* Fixed a problem where the start command was not being sent to the backend platform
+* Optimised some code for the television service
+
+
 ## 1.0.1 (2021-03-21)
 ### Changes
 * Cleaned up some left-over debug logging
