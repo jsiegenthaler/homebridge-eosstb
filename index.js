@@ -1295,12 +1295,11 @@ class stbPlatform {
 				}
 				this.channelListExpiryDate = new Date(response.data.expires);
 			
-				// load the channelList with all channels
+				// load the channel list with all channels found
 				this.masterChannelList = [];
 				const channels = response.data.channels;
 				for(let i=0; i<channels.length; i++) {
 					const channel = channels[i];
-					//this.log('Loading master channel list one channel', channel);
 					this.masterChannelList.push({
 						channelId: channel.stationSchedules[0].station.serviceId, 
 						channelNumber: channel.channelNumber, 
