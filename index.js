@@ -381,11 +381,8 @@ class stbPlatform {
 	}
 
 	// get session
-	// const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); 
 	async getSession() {
-		// a new version of getSession, not yet active
-		if (this.config.debugLevel > 1) { this.log.warn('getSession'); }
-		this.log('Creating %s session...',PLATFORM_NAME);
+		this.log('Creating %s session...', PLATFORM_NAME);
 		currentSessionState = sessionState.LOADING;
 
 		const axiosConfig = {
@@ -1311,16 +1308,20 @@ class stbPlatform {
 				if (this.config.debugLevel > 0) {
 					this.log.warn('loadMasterChannelList: Master channel list refreshed with %s channels, valid until %s', response.data.totalResults, this.channelListExpiryDate.toLocaleString());
 				}
-
-				if (this.config.debugLevel > 2) {
-					this.log.warn('loadMasterChannelList: loaded inputs:',this.inputServices);
-				}
 				return true;
 
 			})
 			.catch(error => {
-				this.log('Failed to load the master channel list - check your internet connection and your username and password.');
-				this.log.warn(`loadMasterChannelList error:`, error);
+				let errText, errReason;
+				errText = 'Failed to load the master channel list - check your internet connection.'
+				if (error.isAxiosError) { errReason = error.code + ': ' + (error.hostname || ''); }
+				this.log('%s %s', errText, (errReason || ''));
+
+				if (!error.isAxiosError) { 
+					this.log.warn(`loadMasterChannelList error:`, error);	
+				}
+
+				this.log.debug(`loadMasterChannelList error:`, error);
 				return error;
 			});
 	}
@@ -1452,10 +1453,11 @@ class stbPlatform {
 			// https://prod.spark.upctv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
 			parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
 
-			// the next four are not needed
-			/*
+			// experimental support
 			parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus'); // not needed
 			parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction'); // not needed
+			/*
+			// the next 2 are not needed
 			parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService'); // not needed
 			parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService'); // not needed
 			*/
@@ -1467,11 +1469,9 @@ class stbPlatform {
 			parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
 			parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status
 
-			// the next two are not needed
-			/*
+			// experimental support
 			parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings'); // not needed
 			parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings/capacity'); // not needed
-			*/
 
 			// subscribe to all devices after the mqttSetHgoOnlineRunning is sent
 			parent.devices.forEach((device) => {
