@@ -1259,7 +1259,7 @@ class stbPlatform {
 		}
 
 		if (this.config.debugLevel > 0) {
-			this.log.warn('Refreshing master channel list...');
+			this.log.warn('loadMasterChannelList: Refreshing master channel list...');
 		}
 
 		// only continue if a session was created. If the internet conection is down then we have no session
@@ -1291,7 +1291,7 @@ class stbPlatform {
 		axiosWS(axiosConfig)
 			.then(response => {
 				if (this.config.debugLevel > 2) {
-					this.log.warn('Processing %s channels...', response.data.totalResults);
+					this.log.warn('loadMasterChannelList: Processing %s channels...', response.data.totalResults);
 				}
 				this.channelListExpiryDate = new Date(response.data.expires);
 			
@@ -1310,7 +1310,7 @@ class stbPlatform {
 				}
 					
 				if (this.config.debugLevel > 0) {
-					this.log.warn('Master channel list refreshed with %s channels, valid until %s', response.data.totalResults, this.channelListExpiryDate.toLocaleString());
+					this.log.warn('loadMasterChannelList: Master channel list refreshed with %s channels, valid until %s', response.data.totalResults, this.channelListExpiryDate.toLocaleString());
 				}
 
 				if (this.config.debugLevel > 2) {
@@ -1321,7 +1321,7 @@ class stbPlatform {
 			})
 			.catch(error => {
 				this.log('Failed to load the master channel list - check your internet connection and your username and password.');
-				this.log.warn(`loadMasterChannelList error:`,error.Message);
+				this.log.warn(`loadMasterChannelList error:`, error);
 				return error;
 			});
 	}
