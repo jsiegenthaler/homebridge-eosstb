@@ -199,6 +199,8 @@ Example extended configuration as used on the author with his Samsung TV (where 
                 {
                     "deviceId": "3C36E4-EOSSTB-00365657xxxx",
                     "deviceNameAtRestart": "UPC TV",
+                    "syncName": true,
+                    "name": "UPC TV",
                     "profile": "Dad",
                     "accessoryCategory": "settopbox",
                     "playPauseButton": "MediaPlayPause",
@@ -256,11 +258,15 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 #### Optional
 
-* **deviceNameAtRestart**: This is the device name discovered after Homebridge restart, and shown in the config tip in the Homebridge logs. It is purely for informative purposes. You can add it to your config if you wish. Changing it has no effect.
+* **deviceNameAtRestart**: This is the device name discovered after Homebridge restart, and shown in the config tip in the Homebridge logs. It is the initial set-top box name in Homekit, and is purely for informative purposes. You can add it to your config if you wish. Changing it has no effect.
 
-* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the Shared Profile if not found. If using the Shared Profile, the device loads the first 95 channels found. Most cable providers offer many more than 95 channels: my provider has 483, of which I am entitled to 287. To ensure you have a useful channel list on your iOS device, create a profile on your set-top box, and enter the profile name in the config. The channels will then be loaded from the profile. If your profile is changed to the set-top box, the changes will be pushed to HomeKit.
+* **syncName**: You can choose to sync the HomeKit name with the physical set-top box name. If you set syncName to false, you can name the set-top box in HomeKit differently to the physical set-top box. Optional, defaults to true.
 
-* **maxChannels**: The maximum number of channels to load. Optional, defaults to 95 if not found. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
+* **name**: The device name. Set to anything you want. If syncName is true, the name will also be synced to the set-top box. Note that the set-top box name must be between 3 and 14 characters long; shorter names are expanded, longer names are truncated. Optional, defaults to the set-top box name.
+
+* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the Shared Profile. If using the Shared Profile, the device loads the first 95 channels found. Most cable providers offer many more than 95 channels: my provider has 483, of which I am entitled to 287. To ensure you have a useful channel list on your iOS device, create a profile on your set-top box, and enter the profile name in the config. The channels will then be loaded from the profile. If your profile is changed to the set-top box, the changes will be pushed to HomeKit.
+
+* **maxChannels**: The maximum number of channels to load. Optional, defaults to 95. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
 
 * **showChannelNumbers**: Shows or hides the channel numbers in the channel selector in HomeKit. Values: true or false (default). If channel numbers are displayed, there is less room for the channel name. Optional, defaults to false.
 

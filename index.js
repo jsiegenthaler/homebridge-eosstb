@@ -1986,9 +1986,16 @@ class stbDevice {
 		this.accessoryIndex = accessoryIndex;
 
 		this.deviceId = this.device.deviceId
+
+		// set default name on restart
 		this.name = this.device.settings.deviceFriendlyName + PLUGIN_ENV; // append _DEV environment
 
-//		this.masterChannelList = masterChannelList;
+		// allow user override via config
+		if (this.config.devices) {
+			const configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
+			if (configDevice && configDevice.name) { this.name = configDevice.name; }
+		}
+
 
 		// show some user feedback
 		const maxDevices = platform.devices.length;
@@ -2221,6 +2228,7 @@ class stbDevice {
 		if (this.config.debugLevel > 1) {
 			this.log.warn('prepareTelevisionService');
 		}
+
 		this.televisionService = new Service.Television(this.name, 'televisionService');
 		this.televisionService
 			.setCharacteristic(Characteristic.ConfiguredName, this.name)
@@ -2448,7 +2456,13 @@ class stbDevice {
 			//this.log('updateDeviceState this.name %s, this.device.settings.deviceFriendlyName %s', this.name, this.device.settings.deviceFriendlyName );
 			var oldDeviceName = this.name;
 			var currentDeviceName = this.device.settings.deviceFriendlyName + PLUGIN_ENV;;
-			if (oldDeviceName !== currentDeviceName) {
+
+			var syncName = true; // default true		
+			if (this.config.devices) {
+				const configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
+				if (configDevice && configDevice.syncName == false ) { syncName = configDevice.syncName; }
+			}
+			if (syncName == true && oldDeviceName !== currentDeviceName) {
 				this.log('%s: Device name changed from %s to %s', 
 					this.name,
 					oldDeviceName, 
@@ -2870,14 +2884,38 @@ class stbDevice {
 	// set device name (change the accessory visible name)
 	async setDeviceName(deviceName, callback) {
 		// fired by the user changing the accessory name in Home app accessory setup
+		
+		// check if user wants to sync the box name
+		var syncName = true; // default true
+		if (this.config.devices) {
+			const configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
+			if (configDevice && configDevice.syncName == false) { syncName = configDevice.syncName; }
+		}
 
-		// ensure DEV is appended to deviceName to allow DEV and PROD environments to have the same device
-		if (PLUGIN_ENV != '' && !deviceName.endsWith(PLUGIN_ENV)) {
-			this.log.warn('%s: setDeviceName: [blocked in DEV environment] %s', this.name, deviceName);
-		} else {
-			if (this.config.debugLevel > 1) { this.log.warn('%s: setDeviceName: deviceName %s', this.name, deviceName); }
-			const deviceSettings = {"deviceFriendlyName": deviceName};
-			this.platform.setPersonalizationDataForDevice(this.deviceId, deviceSettings);
+		// sync name to physical device if enabled
+		if (syncName && syncName == true) {
+			// Device requires min 3 max 14 char names
+			const MIN_NAME_LENGTH = 3; 
+			const MAX_NAME_LENGTH = 14;
+
+			// check name length and truncate and log if >MAX_NAME_LENGTH
+			if (deviceName.length<MIN_NAME_LENGTH) {
+				deviceName = (deviceName + deviceName + deviceName).slice(0,MIN_NAME_LENGTH);
+				this.log("%s: Device name must be at least %s characters long, expanding to %s", this.name, MIN_NAME_LENGTH, deviceName);
+			}
+			if (deviceName.length>MAX_NAME_LENGTH) {
+				deviceName = deviceName.slice(0,MAX_NAME_LENGTH);
+				this.log("%s: Device name is limited to %s characters, truncating to %s", this.name, MAX_NAME_LENGTH, deviceName);
+			}
+
+			// ensure DEV is appended to deviceName to allow DEV and PROD environments to have the same device
+			if (PLUGIN_ENV != '' && !deviceName.endsWith(PLUGIN_ENV)) {
+				this.log.warn('%s: setDeviceName: [blocked in DEV environment] %s', this.name, deviceName);
+			} else {
+				if (this.config.debugLevel > 1) { this.log.warn('%s: setDeviceName: deviceName %s', this.name, deviceName); }
+				const deviceSettings = {"deviceFriendlyName": deviceName};
+				this.platform.setPersonalizationDataForDevice(this.deviceId, deviceSettings);
+			}
 		}
 
 		callback(null);
