@@ -10,7 +10,7 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 
 ## 1.0.3-beta.8 (2021-03-23)
 ### Changes
-* Added mqtt subscriptions to recording status
+* Added mqtt subscriptions for recording status
 * Added support of device syncName and name, see Readme for details
 * Improved handling of device names when syncing (valid names: 3 to 14 characters)
 * Improved error logging in loadMasterChannellist
