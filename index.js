@@ -1317,11 +1317,9 @@ class stbPlatform {
 				if (error.isAxiosError) { errReason = error.code + ': ' + (error.hostname || ''); }
 				this.log('%s %s', errText, (errReason || ''));
 
-				if (!error.isAxiosError) { 
-					this.log.warn(`loadMasterChannelList error:`, error);	
-				}
+				this.log.warn(`loadMasterChannelList error:`, error);	
 
-				this.log.debug(`loadMasterChannelList error:`, error);
+				//this.log.debug(`loadMasterChannelList error:`, error);
 				return error;
 			});
 	}
