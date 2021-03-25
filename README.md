@@ -91,7 +91,7 @@ This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Zigg
 
 * **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
-* **Future Feature Support**: The plugin also supports current and target media state (closed captions support coming soon), even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 14.x). Hopefully, Apple will add support for these features in the future. You can however use this data in the Shortcuts app.
+* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 14.x). Hopefully, Apple will add support for these features in the future. You can however use this data in the Shortcuts app.
 
 
 
@@ -165,6 +165,9 @@ The eosstb plugin emulates the TV service web app. If the web app is started on 
 ### Media State (Play/Pause) Limitations
 The eosstb plugin can detect the current and target media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 14.4) apart from allow you to read it in the Shortcuts app. Hopefully this will improve in the future.
 
+### Closed Captions Limitations
+The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 14.4) apart from allow you to read it in the Shortcuts app. Hopefully this will improve in the future.
+
 ## Configuration
 _Note that the config changed from 0.1.13 to 1.0.0. If you are updating, please make sure your config matches the examples shown here._
 
@@ -198,9 +201,8 @@ Example extended configuration as used on the author with his Samsung TV (where 
             "devices": [
                 {
                     "deviceId": "3C36E4-EOSSTB-00365657xxxx",
-                    "deviceNameAtRestart": "UPC TV",
-                    "syncName": true,
                     "name": "UPC TV",
+                    "syncName": true,
                     "profile": "Dad",
                     "accessoryCategory": "settopbox",
                     "playPauseButton": "MediaPlayPause",
@@ -258,11 +260,9 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 #### Optional
 
-* **deviceNameAtRestart**: This is the device name discovered after Homebridge restart, and shown in the config tip in the Homebridge logs. It is the initial set-top box name in Homekit, and is purely for informative purposes. You can add it to your config if you wish. Changing it has no effect.
+* **name**: The device name. Set to anything you want. If syncName is true, the name will also be synced to the set-top box. Note that the set-top box name must be between 3 and 14 characters long; shorter names are expanded, longer names are truncated. Optional, defaults to the set-top box name.
 
 * **syncName**: You can choose to sync the HomeKit name with the physical set-top box name. If you set syncName to false, you can name the set-top box in HomeKit differently to the physical set-top box. Optional, defaults to true.
-
-* **name**: The device name. Set to anything you want. If syncName is true, the name will also be synced to the set-top box. Note that the set-top box name must be between 3 and 14 characters long; shorter names are expanded, longer names are truncated. Optional, defaults to the set-top box name.
 
 * **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the Shared Profile. If using the Shared Profile, the device loads the first 95 channels found. Most TV providers offer many more than 95 channels: my provider has 483, of which I am entitled to 287. To ensure you have a useful channel list on your Home app, create a profile on your set-top box, and enter the profile name in the config. The channels will then be loaded from the profile. If your profile is changed to the set-top box, the changes will be pushed to HomeKit.
 

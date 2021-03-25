@@ -126,12 +126,15 @@ const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 120; // channel list refres
 
 
 // state constants
-const sessionState = { NOT_CREATED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CREATED: 6 };
+const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 };
 const mediaStateName = ["PLAY", "PAUSE", "STOP", "UNKNOWN3", "LOADING", "INTERRUPTED"];
 const powerStateName = ["OFF", "ON"];
+const closedCaptionsStateName = ["DISABLED", "ENABLED"];
 Object.freeze(sessionState);
 Object.freeze(mediaStateName);
 Object.freeze(powerStateName);
+Object.freeze(closedCaptionsStateName);
+
 
 
 
@@ -189,25 +192,26 @@ module.exports = (api) => {
 	api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, stbPlatform, isDynamicPlatform);
 };
 
+
 class stbPlatform {
 	// build the platform. Runs once on restart
 	// All platform-specifie code goes in this class
 	constructor(log, config, api) {
-		// only load if configured and mandatory items exist. Homebridge checks for platform itself, and name is not critical
-		if (!config) { log.warn('%s config missing. Initialization aborted.', PLUGIN_NAME); return; }
-		const configWarningText = '%s config incomplete: "{configItemName}" missing. Initialization aborted.';
-		if (!config.country) { log.warn( configWarningText.replace('{configItemName}','country'), PLUGIN_NAME); return; }
-		if (!config.username) { log.warn( configWarningText.replace('{configItemName}','username'), PLUGIN_NAME); return; }
-		if (!config.password) { log.warn( configWarningText.replace('{configItemName}','password'), PLUGIN_NAME); return; }
-
 		this.log = log;
 		this.config = config;
 		this.api = api;
-    	this.accessories = []; // store restored cached accessories in this.accessories
-		this.stbDevices = []; // all the device objects
+    	this.stbDevices = []; // store stbDevice in this.stbDevices
+
+		// only load if configured and mandatory items exist. Homebridge checks for platform itself, and name is not critical
+		if (!this.config) { this.log.warn('%s config missing. Initialization aborted.', PLUGIN_NAME); return; }
+		const configWarningText = '%s config incomplete: "{configItemName}" missing. Initialization aborted.';
+		if (!this.config.country) { this.log.warn( configWarningText.replace('{configItemName}','country'), PLUGIN_NAME); return; }
+		if (!this.config.username) { this.log.warn( configWarningText.replace('{configItemName}','username'), PLUGIN_NAME); return; }
+		if (!this.config.password) { this.log.warn( configWarningText.replace('{configItemName}','password'), PLUGIN_NAME); return; }
+
 
 		// session flags
-		currentSessionState = sessionState.NOT_CREATED;
+		currentSessionState = sessionState.DISCONNECTED;
 
 		
 		/**
@@ -217,129 +221,14 @@ class stbPlatform {
 			if (this.config.debugLevel > 2) { this.log.warn('API event: didFinishLaunching'); }
 			this.log('%s v%s', PLUGIN_NAME, PLUGIN_VERSION);
 
+			// call the session watchdog now to create the session
+			this.sessionWatchdog.bind(this);
 
-			// detect if running on dev device
-			//	customStoragePath: 'C:\\Users\\jochen\\.homebridge'
-			if ( this.api.user.customStoragePath.includes( 'jochen' ) ) { PLUGIN_ENV = '_DEV' }
-			if (PLUGIN_ENV) { this.log.warn('%s running in %s environment with debugLevel %s', PLUGIN_NAME, PLUGIN_ENV, this.config.debugLevel); }
-	
-			// do all common setup here
-
-			// Step 1: create a session, async function, processing continues
-			this.createSession(this.config.country); 
-			// be needs 10 seconds to connect... set to 10s for safety
-			wait(10*1000).then(() => { 
-				if (this.session) {
-					// show feedback for session found and discovery started
-					this.log('Discovery started');
-
-					// show feedback for customer data found
-					if (!this.session.customer) {
-						this.log('Failed to find customer data. The backend systems may be down')
-					} else {
-						this.log('Found customer data: %s %s %s', this.session.customer.customerId, (this.session.customer.givenName || ''), (this.session.customer.familyName || '') );
-						if (this.config.debugLevel > 2) { this.log.warn('Session data: %s', this.session); }
-						if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
-					}
-
-					// Step 2: get the master channel list. Also works for VirginMedia TiVo devices
-					this.loadMasterChannelList(); // async function, processing continues
-		
-					// Step 3: after session is created, get the Personalization Data, but only if this.session.customer.physicalDeviceId exists
-					if (this.session.customer.physicalDeviceId) {
-						this.getPersonalizationData('profiles'); // async function
-						this.getPersonalizationData('devices'); // async function
-					} else {
-						// show warning if no physicalDeviceId found
-						this.log('Failed to find physicalDeviceId in your customer data. Are you sure you have a compatible set-top box?')
-						if (this.config.country == 'gb') { this.log('You may have an older TiVo box. TiVo boxes are not supported by %s', PLUGIN_NAME); }
-					}
-
-					// wait for personalization data to load then see how many devices were found
-					wait(5*1000).then(() => { 
-
-						// show feedback for devices found
-						if (!this.devices || !this.devices[0].settings) {
-							this.log('Failed to find any devices. The backend systems may be down, or you have no supported devices on your customer account')
-						} else {
-							// at least one device found
-							var logText = "Found %s device";
-							if (this.devices.length > 1) { logText = logText + "s"; }
-							this.log(logText, this.devices.length);
-							this.log('Discovery completed');
-
-							// user config tip showing all found devices
-							// as a workaround until I make a config setup json
-							let tipText = '';
-							for (let i = 0; i < this.devices.length; i++) {
-								if (!tipText == '') { tipText = tipText + ',\n'; }
-								tipText = tipText + ' {\n';
-								tipText = tipText + '   "deviceId": "' + this.devices[i].deviceId + '",\n';
-								tipText = tipText + '   "deviceNameAtRestart": "' + this.devices[i].settings.deviceFriendlyName + '"\n';
-								tipText = tipText + ' }';
-							}
-							this.log('Config tip: Add these lines to your Homebridge ' + PLATFORM_NAME + ' config if you wish to customise your device config: \n"devices": [\n' + tipText + '\n]');
-
-							// setup each device in turn, as we can only setup the accessory after the session is created and the physicalDevices are retrieved
-							for (let i = 0; i < this.devices.length; i++) {
-								const deviceName = this.devices[i].settings.deviceFriendlyName;
-								// setup each device (runs once per device)
-								this.log("Device %s: [%s] %s", i+1, deviceName, this.devices[i].deviceId);
-
-								// generate a constant uuid that will never change over the life of the accessory
-								const uuid = api.hap.uuid.generate(this.devices[i].deviceId + PLUGIN_ENV);
-
-								// check the accessory was not restored from cache
-								var accessory = this.accessories.find(accessory => accessory.UUID === uuid)
-								if (!accessory) {
-									this.log("Accessory not found in Homebridge cache, creating new accessory for", this.devices[i].deviceId + PLUGIN_ENV);
-
-									// create a new accessory
-									//const device = this.devices[i];
-									//const accessoryName = device.settings.deviceFriendlyName;
-									//const accessory = new this.api.platformAccessory(accessoryName, uuid);
-
-									// data stored on the context object will persist through restarts
-									//accessory.context.devices = this.devices;
-									//accessory.context.session = this.session;
-
-									// register the accessory
-									//api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-
-									// configure the accessory
-									this.stbDevices[i] = new stbDevice(this.log, this.config, this.api, accessory, this, i, true);
-
-								} else {
-									// The entire Accessory, Service and Characteristic structure is restored, so you don't need to re-create the services and characteristics.
-									// but I think not for External accessories...
-									this.log("Accessory found in cache:", accessory.displayName, this.devices[i].deviceId + PLUGIN_ENV);
-									accessory.context.devices = this.devices;
-									accessory.context.session = this.session;
-									this.stbDevices[i] = new stbDevice(this.log, this.config, this.api, accessory, this, i, false);
-								}	
-
-							}
-
-							// now get the Jwt Token which triggers the mqtt client
-							this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
-
-						}
-					});
-				}
-			});
-
-			// the session watchdog creates a session when none exists, and recreates one if it ever fails
-			// required in case the session ever fails due to no internet or an error
+			// the session watchdog creates a session when none exists, and recreates one if the session ever fails due to internaet failure or anything else
 			this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
 			
-			// the mqtt watchdog attempts a reconnect when the mqtt connection fails
-			// required as the server disconnects the client after a period of inactivity
-			this.checkMqttInterval = setInterval(this.mqttWatchdog.bind(this),MQTT_WATCHDOG_INTERVAL_MS);
-
 			// check for a channel list update every MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S seconds
-			// the next update time is held in 
-			this.checkChannelListInterval = setInterval(this.loadMasterChannelList.bind(this),MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S * 1000);
-
+			this.checkChannelListInterval = setInterval(this.refreshMasterChannelList.bind(this),MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S * 1000);
 			
 		});
 
@@ -365,6 +254,150 @@ class stbPlatform {
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// START session handler (web)
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+	// the awesome watchDog
+	sessionWatchdog() {
+		// the session watchdog creates a session when none exists, and creates stbDevices when none exist
+		// runs every few seconds. 
+		// If session exists: Exit immediately
+		// If no session exists: prepares the session, then prepares the device
+		if (this.config.debugLevel > 0) { 
+			this.log.warn('sessionWatchdog sessionState %s, sessionConnected %s, mqttClientConnected %s', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false); 
+		}
+
+		// as we are called regularly by setInterval, exit immediately if session has any state other than DISCONNECTED
+		if (currentSessionState !== sessionState.DISCONNECTED) { return; }
+
+		// detect if running on development environment
+		//	customStoragePath: 'C:\\Users\\jochen\\.homebridge'
+		if ( this.api.user.customStoragePath.includes( 'jochen' ) ) { PLUGIN_ENV = '_DEV' }
+		if (PLUGIN_ENV) { this.log.warn('%s running in %s environment with debugLevel %s', PLUGIN_NAME, PLUGIN_ENV, this.config.debugLevel); }
+	
+		// Step 1: session does not exist, so create the session, passing the country value
+		this.log('Session does not exist');
+		this.createSession(this.config.country);
+
+
+
+		// async wait a few seconds for the session to load, then continue
+		// should be 10!
+		wait(5*1000).then(() => { 
+
+			// only continue with mqtt if a session was actually created
+			if (currentSessionState !== sessionState.CONNECTED) { return; }
+
+			// discovery devices at every session connection
+			this.log('Discovery started');
+
+			// show feedback for customer data found
+			if (!this.session.customer) {
+				this.log('Failed to find customer data. The backend systems may be down')
+			} else {
+				this.log('Found customer data: %s %s %s', this.session.customer.customerId, (this.session.customer.givenName || ''), (this.session.customer.familyName || '') );
+				if (this.config.debugLevel > 2) { this.log.warn('Session data: %s', this.session); }
+				if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
+			}
+
+			// Step 2: get the master channel list. Also works for VirginMedia TiVo devices
+			this.refreshMasterChannelList(); // async function, processing continues
+	
+			// Step 3: after session is created, get the Personalization Data, but only if this.session.customer.physicalDeviceId exists
+			if (this.session.customer.physicalDeviceId) {
+				this.getPersonalizationData('profiles'); // async function
+				this.getPersonalizationData('devices'); // async function
+			} else {
+				// show warning if no physicalDeviceId found
+				this.log('Failed to find physicalDeviceId in your customer data. Are you sure you have a compatible set-top box?')
+				if (this.config.country == 'gb') { this.log('You may have an older TiVo box. TiVo boxes are not supported by %s', PLUGIN_NAME); }
+			}
+
+			// wait for personalization data to load then see how many devices were found
+			wait(5*1000).then(() => { 
+
+				// show feedback for devices found
+				if (!this.devices || !this.devices[0].settings) {
+					this.log('Failed to find any devices. The backend systems may be down, or you have no supported devices on your customer account')
+				} else {
+					// at least one device found
+					var logText = "Found %s device";
+					if (this.devices.length > 1) { logText = logText + "s"; }
+					this.log(logText, this.devices.length);
+					this.log('Discovery completed');
+
+					// user config tip showing all found devices
+					// as a workaround until I make a config setup json
+					let tipText = '';
+					for (let i = 0; i < this.devices.length; i++) {
+						if (!tipText == '') { tipText = tipText + ',\n'; }
+						tipText = tipText + ' {\n';
+						tipText = tipText + '   "deviceId": "' + this.devices[i].deviceId + '",\n';
+						tipText = tipText + '   "name": "' + this.devices[i].settings.deviceFriendlyName + '"\n';
+						tipText = tipText + ' }';
+					}
+					this.log('Config tip: Add these lines to your Homebridge ' + PLATFORM_NAME + ' config if you wish to customise your device config: \n"devices": [\n' + tipText + '\n]');
+
+					// debug: observe the structure!!
+					//this.log("sessionWatchdog: before searching the cache: this.stbDevices", this.stbDevices);
+
+					// setup/restore each device in turn as an accessory, as we can only setup the accessory after the session is created and the physicalDevices are retrieved
+					this.log("sessionWatchdog: looking in cache for all devices");
+					for (let i = 0; i < this.devices.length; i++) {
+
+						// setup each device (runs once per device)
+						const deviceName = this.devices[i].settings.deviceFriendlyName;
+						this.log("Device %s: %s %s", i+1, deviceName, this.devices[i].deviceId);
+
+						// generate a constant uuid that will never change over the life of the accessory
+						const uuid = this.api.hap.uuid.generate(this.devices[i].deviceId + PLUGIN_ENV);
+
+						// check if the accessory already exists, create if it does not
+						// a stbDevice contains various data: HomeKit accessory, EOS platform, EOS device, EOS profile
+						let foundStbDevice = this.stbDevices.find(stbDevice => stbDevice.accessory.UUID === uuid)
+						if (!foundStbDevice) {
+							this.log("Accessory not found in cache, creating new accessory for %s", this.devices[i].deviceId);
+
+							// create the accessory
+							// constructor(log, config, api, device, profiles, platform, accessoryIndex) {
+							// constructor(log, config, api, device, platform) {
+							this.log("Setting up device %s of %s: %s", i+1, this.devices.length, deviceName);
+							let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this);
+							this.stbDevices.push(newStbDevice);
+
+						} else {
+							this.log("Accessory found in cache: [%s] %s", foundStbDevice.name, foundStbDevice.deviceId);
+						}	
+
+					};
+
+					// debug: observe the structure!!
+					//this.log("sessionWatchdog: after searching the cache: this.stbDevices", this.stbDevices);
+
+					// session and devices are loaded
+					// now get the Jwt Token which triggers the mqtt client
+					this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
+
+				}
+			});
+
+
+			// must refresh Personalization Data before creating mqtt session
+			//this.getPersonalizationData('profiles'); // async function
+			//this.getPersonalizationData('devices'); // async function
+
+			// wait for personalization data to load then see how many devices were found
+			//wait(3*1000).then(() => { 
+				// now get the Jwt Token which triggers the mqtt client
+			//	this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
+			//});
+
+		}).catch((error) => { 
+			this.log.error("sessionWatchdog: Error", error); 
+		});
+
+	}
+
+
 
 	// select the right session to create
 	async createSession(country) {
@@ -398,11 +431,11 @@ class stbPlatform {
 		// robustness: fail if url missing
 		if (!axiosConfig.url) {
 			this.log.warn('getSession: axiosConfig.url empty!');
-			currentSessionState = sessionState.NOT_CREATED;
+			currentSessionState = sessionState.DISCONNECTED;
 			return false;						
 		}
 		
-		this.log('Step 1 of 1 logging in with username %s', this.config.username);
+		this.log('Step 1 of 1: logging in with username %s', this.config.username);
 		this.log.debug('Step 1 of 1: post login to',axiosConfig.url);
 		axiosWS(axiosConfig)
 			.then(response => {	
@@ -410,22 +443,24 @@ class stbPlatform {
 				this.session = response.data;
 				if (this.session.customer) { currentSessionState = sessionState.AUTHENTICATED; }
 				this.log('Session created');
-				currentSessionState = sessionState.CREATED;
+				currentSessionState = sessionState.CONNECTED;
 				return true;
 			})
 			.catch(error => {
-				currentSessionState = sessionState.NOT_CREATED;
-				if (!error.response) {
-					this.log('Failed to create session - check your internet connection.');
-				} else if (error.response.status >= 400 && error.response.status < 500) {
-					this.log('Failed to create session - check your %s username and password: %s %s', PLATFORM_NAME, error.response.status, error.response.statusText);
-				} else if (error.response.status >= 500 && error.response.status < 600) {
-					this.log('Failed to create session - try again later: %s %s', error.response.status, error.response.statusText);
+				let errText, errReason;
+				errText = 'Failed to create session'
+				if (error.response && error.response.status >= 400 && error.response.status < 500) {
+					errReason = '- check your ' + PLATFORM_NAME + ' username and password: ' + error.response.status + ' ' + (error.response.statusText || '');
+				} else if (error.response && error.response.status >= 500 && error.response.status < 600) {
+					errReason = '- try again later: ' + error.response.status + ' ' + (error.response.statusText || '');
+				} else if (error.response && error.response.status) {
+					errReason = '- check your internet connection: ' + error.response.status + ' ' + (error.response.statusText || '');
 				} else {
-					this.log('Failed to create session:', error.response.status, error.response.statusText);
+					errReason = '- check your internet connection: ' + error.code + ' ' + (error.hostname || '');
 				}
+				this.log('%s %s', errText, (errReason || ''));
 				this.log.debug('getSession: error:', error);
-				currentSessionState = sessionState.NOT_CREATED;
+				currentSessionState = sessionState.DISCONNECTED;
 				return false;
 			});	
 		return false;
@@ -520,7 +555,7 @@ class stbPlatform {
 								var url = response.headers.location;
 								if (!url) {		// robustness: fail if url missing
 									this.log.warn('getSessionBE: Step 3: location url empty!');
-									currentSessionState = sessionState.NOT_CREATED;
+									currentSessionState = sessionState.DISCONNECTED;
 									return false;						
 								}
 
@@ -529,11 +564,11 @@ class stbPlatform {
 								//location is https://login.prd.telenet.be/openid/login?error=session_expired if session has expired
 								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
 									this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
-									currentSessionState = sessionState.NOT_CREATED;;	// flag the session as dead
+									currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 								} else if (url.indexOf('error=session_expired') > 0 ) {
 									this.log.warn('Step 3 of 7: Unable to login: session expired');
 									cookieJar.removeAllCookies();	// remove all the locally cached cookies
-									currentSessionState = sessionState.NOT_CREATED;;	// flag the session as dead
+									currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 								} else {
 
 									// Step 4: # follow redirect url
@@ -553,18 +588,18 @@ class stbPlatform {
 											url = response.headers.location;
 											if (!url) {		// robustness: fail if url missing
 												this.log.warn('Step 4 of 7: location url empty!');
-												currentSessionState = sessionState.NOT_CREATED;
+												currentSessionState = sessionState.DISCONNECTED;
 												return false;						
 											}
 
 											// look for login_success?code=
 											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
 												this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
-												currentSessionState = sessionState.NOT_CREATED;;	// flag the session as dead
+												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 											} else if (url.indexOf('error=session_expired') > 0 ) {
 												this.log.warn('Step 4 of 7: Unable to login: session expired');
 												cookieJar.removeAllCookies();	// remove all the locally cached cookies
-												currentSessionState = sessionState.NOT_CREATED;;	// flag the session as dead
+												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 											} else {
 
 												// Step 5: # obtain authorizationCode
@@ -572,7 +607,7 @@ class stbPlatform {
 												url = response.headers.location;
 												if (!url) {		// robustness: fail if url missing
 													this.log.warn('Step 5 of 7: location url empty!');
-													currentSessionState = sessionState.NOT_CREATED;
+													currentSessionState = sessionState.DISCONNECTED;
 													return false;						
 												}
 	
@@ -619,21 +654,21 @@ class stbPlatform {
 																	// get device data from the session
 																	this.session = response.data;
 																	this.log('Session created');
-																	currentSessionState = sessionState.CREATED;
+																	currentSessionState = sessionState.CONNECTED;
 																	return true;
 																})
 																// Step 7 http errors
 																.catch(error => {
 																	this.log.warn("Step 7 of 7: Unable to get OESP token:", error.response.status, error.response.statusText);
 																	this.log.debug("Step 7 of 7: Unable to get OESP token:",error);
-																	currentSessionState = sessionState.NOT_CREATED;
+																	currentSessionState = sessionState.DISCONNECTED;
 																});
 														})
 														// Step 6 http errors
 														.catch(error => {
 															this.log.warn("Step 6 of 7: Unable to authorize with oauth code:", error.response.status, error.response.statusText);
 															this.log.debug("Step 6 of 7: Unable to authorize with oauth code:",error);
-															currentSessionState = sessionState.NOT_CREATED;
+															currentSessionState = sessionState.DISCONNECTED;
 														});	
 													};
 												};
@@ -642,7 +677,7 @@ class stbPlatform {
 										.catch(error => {
 											this.log.warn("Step 4 of 7: Unable to oauth authorize:", error.response.status, error.response.statusText);
 											this.log.debug("Step 4 of 7: Unable to oauth authorize:",error);
-											currentSessionState = sessionState.NOT_CREATED;
+											currentSessionState = sessionState.DISCONNECTED;
 										});
 								};
 							})
@@ -650,14 +685,14 @@ class stbPlatform {
 							.catch(error => {
 								this.log.warn("Step 3 of 7: Unable to login:", error.response.status, error.response.statusText);
 								this.log.debug("Step 3 of 7: Unable to login:",error);
-								currentSessionState = sessionState.NOT_CREATED;
+								currentSessionState = sessionState.DISCONNECTED;
 							});
 					})
 					// Step 2 http errors
 					.catch(error => {
 						this.log.warn("Step 2 of 7: Could not get authorizationUri", error.response.status, error.response.statusText);
 						this.log.debug("Step 2 of 7: Could not get authorizationUri:",error);
-						currentSessionState = sessionState.NOT_CREATED;
+						currentSessionState = sessionState.DISCONNECTED;
 					});
 			})
 			// Step 1 http errors
@@ -665,13 +700,13 @@ class stbPlatform {
 				if (!error.response) {
 					this.log('Step 1 of 7: Failed to create BE session - check your internet connection.');
 				} else {
-					this.log('Step 1 of 7: Failed to create BE session:', error.response.status, error.response.statusText);
+					this.log('Step 1 of 7: Failed to create BE session: %s', error.response.status, error.response.statusText);
 				}
 				this.log.debug('Step 1 of 7: getSessionBE: error:', error);
-				currentSessionState = sessionState.NOT_CREATED;
+				currentSessionState = sessionState.DISCONNECTED;
 			});
 
-		currentSessionState = sessionState.NOT_CREATED;
+		currentSessionState = sessionState.DISCONNECTED;
 	}
 
 
@@ -783,7 +818,7 @@ class stbPlatform {
 								var url = response.headers['x-redirect-location']
 								if (!url) {		// robustness: fail if url missing
 									this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
-									currentSessionState = sessionState.NOT_CREATED;
+									currentSessionState = sessionState.DISCONNECTED;
 									return false;						
 								}								
 								//location is h??=... if success
@@ -794,7 +829,7 @@ class stbPlatform {
 								} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
 									this.log.warn('Step 3 of 7 Unable to login: session expired');
 									cookieJar.removeAllCookies();	// remove all the locally cached cookies
-									currentSessionState = sessionState.NOT_CREATED;	// flag the session as dead
+									currentSessionState = sessionState.DISCONNECTED;	// flag the session as dead
 								} else {
 									this.log.debug('Step 3 of 7 login successful');
 
@@ -815,18 +850,18 @@ class stbPlatform {
 											url = response.headers.location;
 											if (!url) {		// robustness: fail if url missing
 												this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
-												currentSessionState = sessionState.NOT_CREATED;
+												currentSessionState = sessionState.DISCONNECTED;
 												return false;						
 											}								
 			
 											// look for login_success?code=
 											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
 												this.log.warn('Step 4 of 7 Unable to login: wrong credentials');
-												currentSessionState = sessionState.NOT_CREATED;;	// flag the session as dead
+												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 											} else if (url.indexOf('error=session_expired') > 0 ) {
 												this.log.warn('Step 4 of 7 Unable to login: session expired');
 												cookieJar.removeAllCookies();	// remove all the locally cached cookies
-												currentSessionState = sessionState.NOT_CREATED;;	// flag the session as dead
+												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 											} else {
 
 												// Step 5: # obtain authorizationCode
@@ -834,7 +869,7 @@ class stbPlatform {
 												url = response.headers.location;
 												if (!url) {		// robustness: fail if url missing
 													this.log.warn('getSessionGB: Step 5: location url empty!');
-													currentSessionState = sessionState.NOT_CREATED;
+													currentSessionState = sessionState.DISCONNECTED;
 													return false;						
 												}								
 				
@@ -883,7 +918,7 @@ class stbPlatform {
 																	
 																	// get device data from the session
 																	this.session = response.data;
-																	currentSessionState = sessionState.CREATED;
+																	currentSessionState = sessionState.CONNECTED;
 																	this.log('Session created');
 																	return true;
 																})
@@ -891,13 +926,13 @@ class stbPlatform {
 																.catch(error => {
 																	this.log.warn("Step 7 of 7 Unable to get OESP token:",error.response.status, error.response.statusText);
 																	this.log.debug("Step 7 of 7 error:",error);
-																	currentSessionState = sessionState.NOT_CREATED;
+																	currentSessionState = sessionState.DISCONNECTED;
 																});
 														})
 														// Step 6 http errors
 														.catch(error => {
 															this.log.warn("Step 6 of 7 Unable to authorize with oauth code, http error:",error);
-															currentSessionState = sessionState.NOT_CREATED;
+															currentSessionState = sessionState.DISCONNECTED;
 														});	
 												};
 											};
@@ -906,7 +941,7 @@ class stbPlatform {
 										.catch(error => {
 											this.log.warn("Step 4 of 7 Unable to oauth authorize:",error.response.status, error.response.statusText);
 											this.log.debug("Step 4 of 7 error:",error);
-											currentSessionState = sessionState.NOT_CREATED;
+											currentSessionState = sessionState.DISCONNECTED;
 										});
 								};
 							})
@@ -914,25 +949,25 @@ class stbPlatform {
 							.catch(error => {
 								this.log.warn("Step 3 of 7 Unable to login:",error.response.status, error.response.statusText);
 								this.log.debug("Step 3 of 7 error:",error);
-								currentSessionState = sessionState.NOT_CREATED;
+								currentSessionState = sessionState.DISCONNECTED;
 							});
 					})
 					// Step 2 http errors
 					.catch(error => {
 						this.log.warn("Step 2 of 7 Unable to get authorizationUri:",error.response.status, error.response.statusText);
 						this.log.debug("Step 2 of 7 error:",error);
-						currentSessionState = sessionState.NOT_CREATED;
+						currentSessionState = sessionState.DISCONNECTED;
 					});
 			})
 			// Step 1 http errors
 			.catch(error => {
-				this.log('Failed to create GB session - check your internet connection.');
+				this.log('Failed to create GB session - check your internet connection');
 				this.log.warn("Step 1 of 7 Could not get apiAuthorizationUrl:",error.response.status, error.response.statusText);
 				this.log.debug("Step 1 of 7 error:",error);
-				currentSessionState = sessionState.NOT_CREATED;
+				currentSessionState = sessionState.DISCONNECTED;
 			});
 
-		currentSessionState = sessionState.NOT_CREATED;
+		currentSessionState = sessionState.DISCONNECTED;
 	}
 
 
@@ -1081,7 +1116,7 @@ class stbPlatform {
 								var url = response.headers['x-redirect-location']
 								if (!url) {		// robustness: fail if url missing
 									this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
-									currentSessionState = sessionState.NOT_CREATED;
+									currentSessionState = sessionState.DISCONNECTED;
 									return false;						
 								}								
 								//location is h??=... if success
@@ -1092,7 +1127,7 @@ class stbPlatform {
 								} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
 									this.log.warn('Step 3 of 7 Unable to login: session expired');
 									cookieJar.removeAllCookies();	// remove all the locally cached cookies
-									currentSessionState = sessionState.NOT_CREATED;	// flag the session as dead
+									currentSessionState = sessionState.DISCONNECTED;	// flag the session as dead
 								} else {
 									this.log.debug('Step 3 of 7 login successful');
 
@@ -1113,18 +1148,18 @@ class stbPlatform {
 											url = response.headers.location;
 											if (!url) {		// robustness: fail if url missing
 												this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
-												currentSessionState = sessionState.NOT_CREATED;
+												currentSessionState = sessionState.DISCONNECTED;
 												return false;						
 											}								
 			
 											// look for login_success?code=
 											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
 												this.log.warn('Step 4 of 7 Unable to login: wrong credentials');
-												currentSessionState = sessionState.NOT_CREATED;;	// flag the session as dead
+												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 											} else if (url.indexOf('error=session_expired') > 0 ) {
 												this.log.warn('Step 4 of 7 Unable to login: session expired');
 												cookieJar.removeAllCookies();	// remove all the locally cached cookies
-												currentSessionState = sessionState.NOT_CREATED;;	// flag the session as dead
+												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 											} else {
 
 												// Step 5: # obtain authorizationCode
@@ -1132,7 +1167,7 @@ class stbPlatform {
 												url = response.headers.location;
 												if (!url) {		// robustness: fail if url missing
 													this.log.warn('getSessionGB: Step 5: location url empty!');
-													currentSessionState = sessionState.NOT_CREATED;
+													currentSessionState = sessionState.DISCONNECTED;
 													return false;						
 												}								
 				
@@ -1181,7 +1216,7 @@ class stbPlatform {
 																	
 																	// get device data from the session
 																	this.session = response.data;
-																	currentSessionState = sessionState.CREATED;
+																	currentSessionState = sessionState.CONNECTED;
 																	this.log('Session created');
 																	return true;
 																})
@@ -1189,13 +1224,13 @@ class stbPlatform {
 																.catch(error => {
 																	this.log.warn("Step 7 of 7 Unable to get OESP token:",error.response.status, error.response.statusText);
 																	this.log.warn("Step 7 of 7 error:",error);
-																	currentSessionState = sessionState.NOT_CREATED;
+																	currentSessionState = sessionState.DISCONNECTED;
 																});
 														})
 														// Step 6 http errors
 														.catch(error => {
 															this.log.warn("Step 6 of 7 Unable to authorize with oauth code, http error:",error);
-															currentSessionState = sessionState.NOT_CREATED;
+															currentSessionState = sessionState.DISCONNECTED;
 														});	
 												};
 											};
@@ -1204,7 +1239,7 @@ class stbPlatform {
 										.catch(error => {
 											this.log.warn("Step 4 of 7 Unable to oauth authorize:",error.response.status, error.response.statusText);
 											this.log.warn("Step 4 of 7 error:",error);
-											currentSessionState = sessionState.NOT_CREATED;
+											currentSessionState = sessionState.DISCONNECTED;
 										});
 								};
 							})
@@ -1212,7 +1247,7 @@ class stbPlatform {
 							.catch(error => {
 								this.log.warn("Step 3 of 7 Unable to login:",error.response.status, error.response.statusText);
 								this.log.warn("Step 3 of 7 error:",error);
-								currentSessionState = sessionState.NOT_CREATED;
+								currentSessionState = sessionState.DISCONNECTED;
 							});
 
 							*/
@@ -1222,45 +1257,45 @@ class stbPlatform {
 					.catch(error => {
 						this.log.warn("Step 2 of 7 Unable to login:",error.response.status, error.response.statusText);
 						this.log.warn("Step 2 of 7 error:",error);
-						currentSessionState = sessionState.NOT_CREATED;
+						currentSessionState = sessionState.DISCONNECTED;
 					});
 			})
 			// Step 1 http errors
 			.catch(error => {
-				this.log('Failed to create IE session - check your internet connection.');
+				this.log('Failed to create IE session - check your internet connection');
 				this.log.warn("Step 1 of 7 Could not get session page:",error.response.status, error.response.statusText);
 				this.log.debug("Step 1 of 7 error:",error);
-				currentSessionState = sessionState.NOT_CREATED;
+				currentSessionState = sessionState.DISCONNECTED;
 			});
 
-		currentSessionState = sessionState.NOT_CREATED;
+		currentSessionState = sessionState.DISCONNECTED;
 	}	
 
 
 	// load all available TV channels at regular intervals into an array
-	async loadMasterChannelList(callback) {
-		// called by loadMasterChannelList (state handler), thus runs at polling interval
+	async refreshMasterChannelList(callback) {
+		// called by refreshMasterChannelList (state handler), thus runs at polling interval
 
 		// exit immediately if the session was not created due to maybe bad username & password
 		if (!this.session) { 
-			if (this.config.debugLevel > 1) { this.log.warn('loadMasterChannelList: Session does not yet exist, exiting'); }
+			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not yet exist, exiting'); }
 			return;
 		 }
 
 		// exit immediately if channel list has not expired
 		if (this.channelListExpiryDate > Date.now()) {
 			if (this.config.debugLevel > 0) {
-				this.log.warn('loadMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.channelListExpiryDate.toLocaleString());
+				this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.channelListExpiryDate.toLocaleString());
 			}
 			return false;
 		}
 
 		if (this.config.debugLevel > 0) {
-			this.log.warn('loadMasterChannelList: Refreshing master channel list...');
+			this.log.warn('refreshMasterChannelList: Refreshing master channel list...');
 		}
 
 		// only continue if a session was created. If the internet conection is down then we have no session
-		//if (currentSessionState != sessionState.CREATED) { return; }
+		//if (currentSessionState != sessionState.CONNECTED) { return; }
 		
 		// channels can be retrieved for the country without having a mqtt session going  but then the list is not relevant for the user's locationId
 		// so you should add the user's locationId as a parameter, and this needs the oespToken
@@ -1273,7 +1308,7 @@ class stbPlatform {
 		url = url + '&personalised=true' // personalised
 		url = url + '&sort=channelNumber' // sort
 		if (this.config.debugLevel > 2) {
-			this.log.warn('loadMasterChannelList: loading inputs from',url);
+			this.log.warn('refreshMasterChannelList: loading inputs from',url);
 		}
 
 		// call the webservice to get all available channels
@@ -1288,7 +1323,7 @@ class stbPlatform {
 		axiosWS(axiosConfig)
 			.then(response => {
 				if (this.config.debugLevel > 2) {
-					this.log.warn('loadMasterChannelList: Processing %s channels...', response.data.totalResults);
+					this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.totalResults);
 				}
 				this.channelListExpiryDate = new Date(response.data.expires);
 			
@@ -1306,58 +1341,20 @@ class stbPlatform {
 				}
 					
 				if (this.config.debugLevel > 0) {
-					this.log.warn('loadMasterChannelList: Master channel list refreshed with %s channels, valid until %s', response.data.totalResults, this.channelListExpiryDate.toLocaleString());
+					this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', response.data.totalResults, this.channelListExpiryDate.toLocaleString());
 				}
 				return true;
 
 			})
 			.catch(error => {
 				let errText, errReason;
-				errText = 'Failed to load the master channel list - check your internet connection.'
-				if (error.isAxiosError) { errReason = error.code + ': ' + (error.hostname || ''); }
+				errText = 'Failed to refresh the master channel list - check your internet connection'
+				if (error.isAxiosError) { errReason = ': ' + error.code + ': ' + (error.hostname || ''); }
 				this.log('%s %s', errText, (errReason || ''));
+				this.log.debug(`refreshMasterChannelList error:`, error);
 
-				this.log.warn(`loadMasterChannelList error:`, error);	
-
-				//this.log.debug(`loadMasterChannelList error:`, error);
 				return error;
 			});
-	}
-
-	sessionWatchdog() {
-		// the session watchdog creates a session when none exists
-		// runs every few seconds. 
-		// If session exists: Exit immediately
-		// If no session exists: prepares the session, then prepares the device
-		if (this.config.debugLevel > 2) { this.log.warn('sessionWatchdog'); }
-
-
-		// exit immediately if session has any state other than NOT_CREATED
-		if (currentSessionState !== sessionState.NOT_CREATED) { return; }
-
-		// create a session, passing the country value
-		this.createSession(this.config.country);
-
-		// async wait a few seconds for the session to load, then continue
-		wait(10*1000).then(() => { 
-
-			// only continue with mqtt if a session was actually created
-			if (currentSessionState !== sessionState.CREATED) { return; }
-
-			// must refresh Personalization Data before creating mqtt session
-			this.getPersonalizationData('profiles'); // async function
-			this.getPersonalizationData('devices'); // async function
-
-			// wait for personalization data to load then see how many devices were found
-			wait(3*1000).then(() => { 
-				// now get the Jwt Token which triggers the mqtt client
-				this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
-			});
-
-		}).catch((error) => { 
-			this.log.error("sessionWatchdog: Error", error); 
-		});
-
 	}
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1380,7 +1377,7 @@ class stbPlatform {
 		// get a JSON web token from the supplied oespToken and householdId
 		if (this.config.debugLevel > 1) { this.log.warn('getJwtToken'); }
 		// robustness checks
-		if (currentSessionState !== sessionState.CREATED) {
+		if (currentSessionState !== sessionState.CONNECTED) {
 			this.log.warn('Cannot get JWT token: currentSessionState incorrect:', currentSessionState);
 			return false;
 		}
@@ -1419,7 +1416,7 @@ class stbPlatform {
 		if (this.config.debugLevel > 0) { 
 			this.log('Starting mqttClient...'); 
 		}
-		if (currentSessionState !== sessionState.CREATED) {
+		if (currentSessionState !== sessionState.CONNECTED) {
 			this.log.warn('Cannot start mqttClient: currentSessionState incorrect:', currentSessionState);
 			return false;
 		}
@@ -1446,7 +1443,7 @@ class stbPlatform {
 		
 		// mqtt client event: connect
 		mqttClient.on('connect', function () {
-			parent.log("mqttClient: Connected:", mqttClient.connected);
+			parent.log("mqttClient: Connected: %s", mqttClient.connected);
 
 			// https://prod.spark.upctv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
 			parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
@@ -1496,7 +1493,6 @@ class stbPlatform {
 				// store some mqtt diagnostic data
 				parent.lastMqttMessageReceived = Date.now();
 
-				parent.mqttSessionActive = true;
 				let mqttMessage = JSON.parse(payload);
 				if (parent.config.debugLevel > 0) {
 					parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: \r\n%s', topic, mqttMessage);
@@ -1519,12 +1515,13 @@ class stbPlatform {
 				// Message: { action: 'OPS.getProfilesUpdate', source: '3C36E4-EOSSTB-00365657xxxx', ... }
 				// Message: { action: 'OPS.getDeviceUpdate', source: '3C36E4-EOSSTB-00365657xxxx', deviceId: '3C36E4-EOSSTB-00365657xxxx' }
 				if (topic.includes(mqttUsername + '/personalizationService')) {
+					if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s: action', mqttMessage.action); }
 					if (mqttMessage.action == 'OPS.getProfilesUpdate') {
-						if (parent.config.debugLevel > 0) { parent.log('mqttClient: got personalizationService message, calling getPersonalizationData for profiles'); }
+						if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData for profiles', mqttMessage.action); }
 						parent.getPersonalizationData('profiles'); // async function
-						//parent.refreshAccessoryChannelList();
+
 					} else if (mqttMessage.action == 'OPS.getDeviceUpdate') {
-						if (parent.config.debugLevel > 0) { parent.log('mqttClient: got personalizationService message, calling getPersonalizationData for devices'); }
+						if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData for devices', mqttMessage.action); }
 						deviceId = mqttMessage.deviceId;
 						parent.getPersonalizationData('devices/' + deviceId); // async function
 					}
@@ -1653,32 +1650,29 @@ class stbPlatform {
 			// mqtt client event: close
 			// Emitted after a disconnection.
 			mqttClient.on('close', function () {
-				parent.log.warn('mqttClient: Connection closed');
-				parent.log.warn('mqttClient: Connected:', mqttClient.connected);
-				mqttClient.end();
-				parent.mqttSessionActive = false;
+				parent.log('mqttClient: Connection closed');
+				mqttClient.end(); // end the process
+  				parent.log('Session disconnected'); // crude but effective?
+				currentSessionState = sessionState.DISCONNECTED;
 				return false;
 			});
 
 			// mqtt client event: reconnect
 			// Emitted when a reconnect starts.
 			mqttClient.on('reconnect', function () {
-				parent.log.warn('mqttClient: Connected:', mqttClient.connected);
-				parent.log.warn('mqttClient: Reconnecting');
+				parent.log('mqttClient: Reconnecting');
 			});
 			
 			// mqtt client event: disconnect 
 			// Emitted after receiving disconnect packet from broker. MQTT 5.0 feature.
 			mqttClient.on('disconnect', function () {
-				parent.log.warn('mqttClient: Connected:', mqttClient.connected);
-				parent.log.warn('mqttClient: Disconnecting');
+				parent.log('mqttClient: Disconnecting');
 			});
 			
 			// mqtt client event: offline
 			// Emitted when the client goes offline.
 			mqttClient.on('offline', function () {
-				parent.log.warn('mqttClient: Connected:', mqttClient.connected);
-				parent.log.warn('mqttClient: Client is offline');
+				parent.log('mqttClient: Client is offline');
 			});
 
 			// mqtt client event: error
@@ -1694,43 +1688,6 @@ class stbPlatform {
 	} // end of startMqttClient
 
 
-	mqttWatchdog() {
-		// the mqtt watchdog reconnects the mqtt connection if it should ever fail
-		// needed as the server disconnects the session eventually
-		if (this.config.debugLevel > 2) { this.log.debug('mqttWatchdog'); }
-
-		// exit immediately if session has any state other than CREATED
-		if (currentSessionState !== sessionState.CREATED) { 
-			this.log.debug("mqttWatchdog: Session does not exist");
-			return; 
-		}
-
-		// attempt reconnect only if object exists and current connection is reported as not connected
-		if (mqttClient) { 
-			this.log.debug("mqttWatchdog: mqttClient connected:", mqttClient.connected);
-			if (mqttClient.connected == false) { 
-
-				// attempt a reconnect, uses the same options as connect()
-				this.log.debug("mqttWatchdog: Attempting reconnect. mqttClient.connected:", mqttClient.connected);
-				mqttClient.reconnect;
-		
-				// async wait a few seconds for the connection to exist, then log the result
-				wait(2*1000).then(() => { 
-
-					this.log.debug("mqttWatchdog: After reconnect attempt. mqttClient.connected:", mqttClient.connected);
-					if (mqttClient.connected) { return; }
-		
-				}).catch((error) => { 
-					this.log.error("mqttWatchdog: Error", error); 
-				});
-			}
-	
-		} else {
-			this.log.debug("mqttWatchdog: mqttClient object does not exist");
-		}
-	}
-
-
 	// handle the state change of the device, calling the updateDeviceState of the relevant device
 	mqttDeviceStateHandler(deviceId, powerState, mediaState, channelId, sourceType) {
 		if (this.config.debugLevel > 1) { 
@@ -1738,7 +1695,7 @@ class stbPlatform {
 		}
 		if (this.devices) {
 			const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
-			if (deviceIndex > -1) { 
+			if (deviceIndex > -1 && this.stbDevices.length > 0) { 
 				this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, channelId, sourceType); 
 			}
 		}
@@ -1882,9 +1839,22 @@ class stbPlatform {
 		axiosWS.get(url, config)
 			.then(response => {	
 				if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: %s: response: %s %s', requestType, response.status, response.statusText); }
-				if (this.config.debugLevel > 2) { this.log.warn('getPersonalizationData: %s: response: %s', requestType, response.data); }
+				if (this.config.debugLevel > 2) { 
+					this.log.warn('getPersonalizationData: %s: response data:', requestType);
+					this.log.warn(response.data);
+				}
 				if (requestType.includes('profiles')) { 
 					this.profiles = response.data; // set this.profiles to the profile data we just received
+
+					// for every profiles data update, update all devices as closedCaptions may have changed
+					// but only if stbDevices has been created...
+					if (this.stbDevices.length > 0) {
+						this.devices.forEach((device) => {
+							device.profiles = this.profiles; // update the device with the profiles array
+							this.mqttDeviceStateHandler(device.deviceId);
+						});
+					}
+
 				}
 				else if (requestType.includes('devices')) { 
 					// devices can be an array or a single device
@@ -1911,13 +1881,21 @@ class stbPlatform {
 						}
 				
 					}
-					if (this.config.debugLevel > 2) { this.log.warn('getPersonalizationData: %s: response.data.settings: %s', requestType, response.data.settings); }
 
 				}
 				return false;
 			})
 			.catch(error => {
-				this.log.warn('getPersonalizationData for %s failed: %s %s', requestType, error.response.status, error.response.statusText);
+				let errText, errReason;
+				errText = 'getPersonalizationData for %s failed: '
+				if (error.isAxiosError) { 
+					errReason = error.code + ': ' + (error.hostname || ''); 
+				} else {
+					errReason = error.response.status + ' ' + (error.response.statusText || ''); 
+				}
+				this.log('%s %s', requestType, (errReason || ''));
+				this.log.debug(`getPersonalizationData error:`, error);
+
 				/*
 				switch (error.response.status) {
 					case 403:
@@ -1926,7 +1904,6 @@ class stbPlatform {
 						this.log.warn('getPersonalizationData failed:', error.response.status, error.response.statusText);
 				}
 				*/
-				this.log.debug('getPersonalizationData for %s: error:', requestType, error);
 				return false, error;
 			});		
 		return false;
@@ -1971,16 +1948,39 @@ class stbPlatform {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class stbDevice {
-	// build the device. Runs once on restart
-	constructor(log, config, api, accessory, platform, accessoryIndex, createNewAccessory) {
+	// build the device
+	constructor(log, config, api, device, platform) {
 		this.log = log;
 		this.config = config;
 		this.api = api;
-		this.accessory = accessory;
+		this.device = device;
 		this.platform = platform;
-		this.device = platform.devices[accessoryIndex];
-		this.accessoryIndex = accessoryIndex;
 
 		this.deviceId = this.device.deviceId
 
@@ -1993,11 +1993,6 @@ class stbDevice {
 			if (configDevice && configDevice.name) { this.name = configDevice.name; }
 		}
 
-
-		// show some user feedback
-		const maxDevices = platform.devices.length;
-		this.log("Setting up device %s of %s: %s", accessoryIndex + 1, maxDevices, this.name);
-
 		
 		// ++++++++++++++++ plugin setup ++++++++++++++++
 		// setup arrays
@@ -2007,7 +2002,6 @@ class stbDevice {
 		this.configuredInputs = [];		// a list of inputs that have been renamed by the user. EXPERIMENTAL
 
 		//setup variables
-		this.mqttSessionActive = false;		// true when the mqtt session is active
 		this.lastPowerKeySent;				// stores when the power key was sent last to help in de-bounce
 		this.targetMediaState = Characteristic.TargetMediaState.STOP; // default until received by mqtt
 		this.createAccessoryAttempt;
@@ -2018,6 +2012,8 @@ class stbDevice {
 		this.currentPowerState = Characteristic.Active.INACTIVE;
 		this.previousPowerState = Characteristic.Active.INACTIVE;
 		this.currentChannelId = NO_CHANNEL_ID;
+		this.currentClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
+		this.previousClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		this.currentMediaState = Characteristic.CurrentMediaState.STOP;
 		this.targetMediaState = Characteristic.CurrentMediaState.STOP;
 		this.currentSourceType = 'UNKNOWN';
@@ -2031,6 +2027,11 @@ class stbDevice {
 		this.creatingAccessory = false;
 		this.accessoryConfigured = false;
 		this.prepareAccessory();
+
+		// add accessory context
+		// can store data in accessory.context if needed, should do this for the device config
+		//accessory.context.devices = this.devices; 
+		//accessory.context.session = this.session;		this.accessory.context.persData.device = platform.devices[accessoryIndex];
 		this.log('%s: Initialization completed', this.name);
 
 		//this.setupDevice(0); 
@@ -2071,8 +2072,8 @@ class stbDevice {
 			this.log.warn('setupDevice %s: currentSessionState %s this.creatingAccessory %s this.accessoryConfigured %s', this.deviceIndex, currentSessionState, this.creatingAccessory, this.accessoryConfigured);
 		}
 
-		// exit immediately if session has any state other than NOT_CREATED
-		if (currentSessionState !== sessionState.CREATED) { 
+		// exit immediately if session has any state other than DISCONNECTED
+		if (currentSessionState !== sessionState.CONNECTED) { 
 			if (this.config.debugLevel > 2) { this.log.warn('setupDevice %s: session not created yet, exiting', this.deviceIndex); }
 			return; 
 		}
@@ -2231,7 +2232,8 @@ class stbDevice {
 			.setCharacteristic(Characteristic.ConfiguredName, this.name)
 			.setCharacteristic(Characteristic.SleepDiscoveryMode, Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE)
 			.setCharacteristic(Characteristic.CurrentMediaState, Characteristic.CurrentMediaState.STOP)
-			.setCharacteristic(Characteristic.TargetMediaState, Characteristic.TargetMediaState.STOP);
+			.setCharacteristic(Characteristic.TargetMediaState, Characteristic.TargetMediaState.STOP)
+			.setCharacteristic(Characteristic.ClosedCaptions, Characteristic.ClosedCaptions.DISABLED);
 				
 		this.televisionService.getCharacteristic(Characteristic.ConfiguredName)
 			.on('get', this.getDeviceName.bind(this))
@@ -2244,6 +2246,10 @@ class stbDevice {
 		this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier)
 			.on('get', this.getInput.bind(this))
 			.on('set', (newInputIdentifier, callback) => { this.setInput(this.channelListHomeKit[newInputIdentifier], callback); });
+
+		this.televisionService.getCharacteristic(Characteristic.ClosedCaptions)
+			.on('get', this.getClosedCaptions.bind(this))
+			//.on('set', (newClosedCaptionsState, callback) => { this.setClosedCaptions(newClosedCaptionsState, callback); }); // not supported
 
 		this.televisionService.getCharacteristic(Characteristic.RemoteKey)
 			.on('set', this.setRemoteKey.bind(this));
@@ -2425,6 +2431,22 @@ class stbDevice {
 		if (channelId != null) { this.currentChannelId = channelId; }
 		if (sourceType != null) { this.currentSourceType = sourceType; }
 
+		// profile data is stored on the platform
+		// get the currentClosedCaptionsState from the currently active profile
+		var configDevice = {};
+		var activeProfileId = 0; // default SharedProfile
+		// get the deviceId from the config (if any)
+		if (this.config.devices) {
+			configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
+			if (configDevice ) { activeProfileId = this.platform.profiles.findIndex(profile => profile.name === configDevice.profile); }
+		}
+		this.previousClosedCaptionsState = this.currentClosedCaptionsState;
+		if ( this.platform.profiles[activeProfileId].options.showSubtitles ) {
+			this.currentClosedCaptionsState = Characteristic.ClosedCaptions.ENABLED;
+		} else {
+			this.currentClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
+		}
+
 		// debugging, helps a lot to see channelName
 		if (this.config.debugLevel > 0) {
 			let currentChannelName; // let is scopt to the current {} block
@@ -2433,17 +2455,18 @@ class stbDevice {
 				curChannel = this.platform.masterChannelList.find(channel => channel.channelId === channelId); 
 			}
 			if (curChannel) { currentChannelName = curChannel.channelName; }
-			this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentChannelId %s [%s], currentSourceType %s', 
+			this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s]', 
 				this.name, 
 				this.currentPowerState, 
 				this.currentMediaState, mediaStateName[this.currentMediaState], 
 				this.currentChannelId, currentChannelName,
-				this.currentSourceType
+				this.currentSourceType,
+				this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]
 			);
 		}
 
 		// only continue if a session was created. If the internet conection is down then we have no session
-		if (currentSessionState != sessionState.CREATED) { return null; }
+		if (currentSessionState != sessionState.CONNECTED) { return null; }
 
 		// change only if configured, and update only if changed
 		if (this.televisionService) {
@@ -2482,7 +2505,19 @@ class stbDevice {
 					this.currentPowerState, powerStateName[this.currentPowerState]);
 				this.televisionService.getCharacteristic(Characteristic.Active).updateValue(this.currentPowerState);
 			}
-			
+
+			// check for change of closed captions state
+			//this.log("Previous closed captions state: %s %s", this.previousClosedCaptionsState, closedCaptionsStateName[this.previousClosedCaptionsState]);
+			//this.log("Current closed captions state: %s %s", this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).value, closedCaptionsStateName[this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).value]);
+			//this.log("Wanted closed captions state: %s %s", this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]);
+			if (this.previousClosedCaptionsState !== this.currentClosedCaptionsState) {
+				this.log('%s: Closed Captions state changed from %s %s to %s %s', 
+					this.name,
+					this.previousClosedCaptionsState, closedCaptionsStateName[this.previousClosedCaptionsState],
+					this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]);
+				this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).updateValue(this.currentClosedCaptionsState);
+			}
+
 			// check for change of active identifier (channel)
 			const oldActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
 			var currentActiveIdentifier = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + this.currentChannelId );
@@ -2523,10 +2558,10 @@ class stbDevice {
 	// refresh the Accessory channel list that shows in the Home app
 	async refreshAccessoryChannelList(callback) {
 		if (this.config.debugLevel > 1) { this.log.warn('%s: refreshAccessoryChannelList', this.name); }
-		this.log("%s: Refreshing profile channel list...", this.name);
+		this.log("%s: Refreshing accessory channel list...", this.name);
 		
 		// exit if no session exists
-		if (currentSessionState != sessionState.CREATED) { 
+		if (currentSessionState != sessionState.CONNECTED) { 
 			this.log.warn('%s: refreshAccessoryChannelList: Session not yet created, exiting', this.name);
 			return; 
 		}
@@ -2936,7 +2971,7 @@ class stbDevice {
 		if (callback && typeof(callback) === 'function') {  callback(); } // for rapid response
 
 		// mute state is a boolean, either true or false: const NOT_MUTED = 0, MUTED = 1;
-		this.log('Send Mute to %s ', this.name );
+		this.log('Send key Mute to %s ', this.name );
 
 		// Execute command to toggle mute
 		if (this.config.devices) {
@@ -2973,7 +3008,7 @@ class stbDevice {
 		callback(null); // for rapid response
 
 		// volumeSelectorValue: only 2 values possible: INCREMENT: 0, DECREMENT: 1,
-		this.log('Send Volume %s to %s', (volumeSelectorValue === Characteristic.VolumeSelector.DECREMENT) ? 'Down' : 'Up', this.name );
+		this.log('Send key Volume %s to %s', (volumeSelectorValue === Characteristic.VolumeSelector.DECREMENT) ? 'Down' : 'Up', this.name );
 
 		// triple rapid VolDown presses triggers setMute
 		var tripleVolDownPress = 100000; // default high value to prevent a tripleVolDown detection when no triple key pressed
@@ -3111,6 +3146,26 @@ class stbDevice {
 	}
 
 
+	// get closed captions state
+	async getClosedCaptions(callback) {
+		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
+		if (this.config.debugLevel > 0) { 
+			this.log.warn('%s: getClosedCaptions', this.name); 
+			this.log.warn('%s: getClosedCaptions returning %s [%s]', this.name, this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]); 
+		}
+		callback(null, this.currentClosedCaptionsState); // return current state
+	}
+
+	// set closed captions state
+	async setClosedCaptions(targetClosedCaptionsState, callback) {
+		// fired when ??
+		// targetClosedCaptionsState is the wanted state
+		if (this.config.debugLevel > 0) { this.log.warn('%s: setClosedCaptions targetClosedCaptionsState:', this.name, targetClosedCaptionsState, closedCaptionsStateName[targetClosedCaptionsState]); }
+		if(this.currentClosedCaptionsState !== targetClosedCaptionsState){
+			this.log("setClosedCaptions: not Yet implemented");
+		}
+		callback(null);
+	}
 
 
 	// set power mode selection (View TV Settings menu option)
