@@ -8,7 +8,7 @@
 
 # homebridge-eosstb
 
-# Virgin Media Ireland is working... will be released before end or March 2021 
+# Virgin Media Ireland is working... will be released before end of March 2021 
 # This Readme Applies from v1.0.3-beta.0. For prior versions, please see https://www.npmjs.com/package/homebridge-eosstb
 
 [![npm](https://img.shields.io/npm/v/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
