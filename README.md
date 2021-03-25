@@ -36,7 +36,7 @@ As UPC operates in multiple countries under multiple brands, this plugin will wo
 * BE Belgium: [Telenet](https://www2.telenet.be/en/). The Belgium’s call the DCX960 a **[Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/)**. **CONFIRMED WORKING**
 * CH Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **[UPC TV Box](https://www.upc.ch/en/television/learn-about-tv/tv/)**. Also known as the EOSSTB. **CONFIRMED WORKING**
 * GB Great Britain: [Virgin Media](https://www.virginmedia.com/). The DCX960 is called the **[Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360)** box, introduced to in August 2020. **CONFIRMED WORKING** (this plugin is not for the older Virgin Media TiVo boxes)
-* IE Ireland: [Virgin Media](https://www.virginmedia.ie/). The DCX960 is called the **[Virgin TV 360](https://www.virginmedia.ie/virgintv360support/)** box. **TESTERS NEEDED**
+* IE Ireland: [Virgin Media](https://www.virginmedia.ie/). The DCX960 is called the **[360 Box](https://www.virginmedia.ie/virgintv360support/)** box. **CONFIRMED WORKING**
 * NL Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **[Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv)**. 
 **CONFIRMED WORKING**
 
@@ -369,6 +369,6 @@ See the Wiki for [details on how to read and control the set-top box in the Shor
 
 * My helpers in Belgium: [Wesley Liekens](https://www.facebook.com/deliekes) and [Anthony Dekimpe](https://www.facebook.com/anthony.dekimpe) for helping me get the session code working for Telenet
 
-* My helpers in Great Britain (you know who you are) for helping me get the session code working for Virgin Media
+* My helpers in Great Britain and Ireland (you know who you are) for helping me get the session code working for Virgin Media
 
 * UPC for making such a useful TV platform and EOS set-top box
