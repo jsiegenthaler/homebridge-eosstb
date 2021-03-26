@@ -34,22 +34,26 @@ If you like this plugin, consider making a donation or buying me a coffee!<br>
 Due to the adding of features and functions, this Readme applies from v1.0.3. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
 
 # Works in Your Country (If you are with Magenta / Telenet / UPC / Virgin Media / Ziggo)
-As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same UPC TV system with the ARRIS DCX960 set-top box are:
-* AT Austria: [Magenta](https://www.magenta.at/). The DCX960 is called the **[Entertain Box 4K](https://www.magenta.at/entertain-box)**. You need a [Magenta TV](https://www.magentatv.at/de.html) subscription. **TESTERS NEEDED**
-* BE Belgium: [Telenet](https://www2.telenet.be/en/). The Belgium’s call the DCX960 a **[Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/)**. You need a [Telenet TV](https://www.telenettv.be/nl.html) subscription.
-* CH Switzerland: [UPC Switzerland](https://www.upc.ch/en/). The DCX960 is called the **[UPC TV Box](https://www.upc.ch/en/television/learn-about-tv/tv/)**. Also known as the EOSSTB. You need a [UPC TV](https://www.upctv.ch/obo_en.html) subscription.
-* GB Great Britain: [Virgin Media](https://www.virginmedia.com/). The DCX960 is called the **[Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360)** box, introduced to in August 2020. You need a [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html) subscription (this plugin is not for the older Virgin Media TiVo boxes).
-* IE Ireland: [Virgin Media](https://www.virginmedia.ie/). The DCX960 is called the **[360 Box](https://www.virginmedia.ie/virgintv360support/)** box. You need a [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) subscription.
-* NL Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **[Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv)**. You need a [Ziggo Go](https://www.ziggogo.tv/nl.html) subscription.
-* * PL Poland: [UPC PL](https://www.upc.pl/) Here the DCX960 is called the **Hoirizon decoder**. You need a [Horizon Go](https://www.horizon.tv/pl_pl.html) subscription. ** TESTERS NEEDED**
+As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 set-top box are:
 
+| Country | TV Provider | Web App | Box Name | Plugin Status |
+| ------- | ----------- | ------- | -------- | ------------- |
+| AT | [Magenta](https://www.magenta.at/) | [Magenta TV](https://www.magentatv.at/de.html) | [Entertain Box 4K](https://www.magenta.at/entertain-box) | _Testers Wanted_ |
+| BE | [Telenet](https://www2.telenet.be/) | [Telenet TV](https://www.telenettv.be/nl.html) | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/) | Fully Working |
+| CH | [UPC Switzerland](https://www.upc.ch/en/) | [UPC TV](https://www.upctv.ch/obo_en.html) | [UPC TV Box](https://www.upc.ch/en/television/learn-about-tv/tv/)* | Fully Working |
+| DE | ?? | [Horizon Go](https://www.horizon.tv/de_de.html) | ?? |  _Testers Wanted_ |
+| GB | [Virgin Media](https://www.virginmedia.com/) | [Magenta TV](https://www.magentatv.at/de.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) | Fully Working |
+| HU | [Vodafone Hungary](https://www.upc.hu/) | [Horizon Go](https://www.horizon.tv/hu_hu.html) | ?? | _Testers Wanted_ |
+| IE | [Virgin Media](https://www.virginmedia.ie/) | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/) | Fully Working |
+| NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo Go](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | Fully Working |
+| PL | [UPC PL](https://www.upc.pl/) | [Horizon Go](https://www.horizon.tv/pl_pl.html) | Horizon decoder | _Testers Wanted_ |
 
 If you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
 
 May also work with other UPC countries, if you know of any, let me know.
 
 ## Made in Switzerland
-This plugin was written and tested on the author's set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) in Switzerland. It has also been extensively tested on Telenet in Belgium,  Virgin Media in Great Britain and Ziggo in the Netherlands.
+This plugin was written and tested on the author's set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) running on UPC TV in Switzerland. It has also been extensively tested on Telenet in Belgium, Virgin Media in Great Britain and Ireland, and Ziggo in the Netherlands.
 
 ## Why I chose the Name EOSSTB
 I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, uses an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. I stuck with the box identifier that appears in the mqtt messages: EOSSTB.
