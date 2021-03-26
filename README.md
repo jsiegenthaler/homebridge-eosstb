@@ -8,14 +8,15 @@
 
 # homebridge-eosstb
 
-# Virgin Media Ireland is working... will be released before end of March 2021 
-# This Readme Applies from v1.0.3-beta.0. For prior versions, please see https://www.npmjs.com/package/homebridge-eosstb
+# News
+## Virgin Media Ireland is working... will be released before end of March 2021
+## Looking for testers in Austria (Magenta TV) and Poland (UPC PL)
 
 [![npm](https://img.shields.io/npm/v/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![donate](https://badgen.net/badge/donate/paypal/91BE09)](https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468)
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960) running on the Magenta AT / Telenet BE / UPC CH / Virgin Media GB & IE / Ziggo NL TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960) running on the Magenta AT / Telenet BE / UPC CH / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
 <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="left">
 This plugin displays your set-top box as a Set-Top Box accessory with power, channel and remote-control capabilities on your iOS device (iPhone, iPad, iMac, etc.).
@@ -29,7 +30,8 @@ Supports multiple set-top boxes, should you have more than one.
 If you like this plugin, consider making a donation or buying me a coffee!<br>
 <a target="blank" href="https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468"><img src="https://img.shields.io/badge/PayPal-Donate-blue.svg?logo=paypal"/></a>  <a target="blank" href="https://ko-fi.com/jsiegenthaler"><img src="https://img.shields.io/badge/Ko--Fi-Buy%20me%20a%20coffee-29abe0.svg?logo=ko-fi"/></a>
 
-
+## Readme Applicability
+Due to the adding of features and functions, this Readme applies from v1.0.3. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
 
 # Works in Your Country (If you are with Magenta / Telenet / UPC / Virgin Media / Ziggo)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use UPC TV systems. The known countries that use the same UPC TV system with the ARRIS DCX960 set-top box are:
@@ -39,6 +41,7 @@ As UPC operates in multiple countries under multiple brands, this plugin will wo
 * GB Great Britain: [Virgin Media](https://www.virginmedia.com/). The DCX960 is called the **[Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360)** box, introduced to in August 2020. You need a [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html) subscription (this plugin is not for the older Virgin Media TiVo boxes).
 * IE Ireland: [Virgin Media](https://www.virginmedia.ie/). The DCX960 is called the **[360 Box](https://www.virginmedia.ie/virgintv360support/)** box. You need a [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) subscription.
 * NL Netherlands: [Ziggo](https://www.ziggo.nl/). Here the DCX960 is called the **[Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv)**. You need a [Ziggo Go](https://www.ziggogo.tv/nl.html) subscription.
+* * PL Poland: [UPC PL](https://www.upc.pl/) Here the DCX960 is called the **Hoirizon decoder**. You need a [Horizon Go](https://www.horizon.tv/pl_pl.html) subscription. ** TESTERS NEEDED**
 
 
 If you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
@@ -58,7 +61,7 @@ This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Zigg
 * An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1...14.4.1, earlier versions not tested.
 * [Homebridge](https://homebridge.io/) v1.3.4 (or later). Developed on Homebridge 1.1.116....1.3.4, earlier versions not tested.
 * A TV subscription from one of the supported countries and TV providers.
-* An online account for viewing TV in the web app (often part of your TV package), which is one of these: AT: [Magenta TV](https://www.magentatv.at/de.html), BE: [Telenet TV](https://www.telenettv.be/nl.html), CH: [UPC TV](https://www.upctv.ch/obo_en.html), GB: [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html), IE: [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html), NL: [Ziggo Go](https://www.ziggogo.tv/nl.html) 
+* An online account for viewing TV in the web app (often part of your TV package), which is one of these: AT: [Magenta TV](https://www.magentatv.at/de.html), BE: [Telenet TV](https://www.telenettv.be/nl.html), CH: [UPC TV](https://www.upctv.ch/obo_en.html), GB: [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html), IE: [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html), NL: [Ziggo Go](https://www.ziggogo.tv/nl.html), PL: [Horizon Go](https://www.horizon.tv/pl_pl.html)
 * The ARRIS mediabox DCX960, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries. 
 * The ARRIS DCX960 should be set to **Standby power consumption** = **Fast start** to ensure it is always online and can respond to switch-on requests from HomeKit.
 * For GB/IE users: the ARRIS DCX960 must be running the TV360 software, and not the older TiVo software as found in GB and maybe IE. TiVo is not supported by this plugin.
@@ -371,4 +374,4 @@ See the Wiki for [details on how to read and control the set-top box in the Shor
 
 * My helpers in Great Britain and Ireland (you know who you are) for helping me get the session code working for Virgin Media
 
-* UPC for making such a useful TV platform and EOS set-top box
+* [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) for making such a useful Horizon TV platform and lovely set-top boxes
