@@ -12,6 +12,7 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 ### Changes
 * Added Virgin Media IE login (needs cleaning up)
 * Added support of Closed Captions (Log and Shortcuts)
+* Added support of Picture Mode (Log and Shortcuts)
 * Added support of mqtt subscriptions for recording status
 * Added support of device config options "syncName" and "name", see Readme for details
 * Improved handling of device names when syncing (valid names: 3 to 14 characters)
