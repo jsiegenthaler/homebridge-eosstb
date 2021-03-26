@@ -123,10 +123,12 @@ const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATIN
 const mediaStateName = ["PLAY", "PAUSE", "STOP", "UNKNOWN3", "LOADING", "INTERRUPTED"];
 const powerStateName = ["OFF", "ON"];
 const closedCaptionsStateName = ["DISABLED", "ENABLED"];
+const pictureModeName = ["OTHER", "STANDARD", "CALIBRATED", "CALIBRATED_DARK", "VIVID", "GAME", "COMPUTER", "CUSTOM"];
 Object.freeze(sessionState);
 Object.freeze(mediaStateName);
 Object.freeze(powerStateName);
 Object.freeze(closedCaptionsStateName);
+Object.freeze(pictureModeName);
 
 
 
@@ -397,9 +399,9 @@ class stbPlatform {
 				this.getSessionBE(); break;
 			case 'gb':
 				this.getSessionGB(); break;
-			case 'ie':
-				this.getSessionIE(); break;
-			default:
+			//case 'ie':
+			//	this.getSessionIE(); break;
+			default: // ch, nl, ie
 				this.getSession();
 			}
 	}
@@ -1817,6 +1819,7 @@ class stbDevice {
 		this.previousClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		this.currentMediaState = Characteristic.CurrentMediaState.STOP;
 		this.targetMediaState = Characteristic.CurrentMediaState.STOP;
+		this.currentPictureMode = Characteristic.PictureMode.STANDARD;
 		this.currentSourceType = 'UNKNOWN';
 		this.volDownLastKeyPress = [];
 
@@ -2035,7 +2038,8 @@ class stbDevice {
 			.setCharacteristic(Characteristic.SleepDiscoveryMode, Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE)
 			.setCharacteristic(Characteristic.CurrentMediaState, Characteristic.CurrentMediaState.STOP)
 			.setCharacteristic(Characteristic.TargetMediaState, Characteristic.TargetMediaState.STOP)
-			.setCharacteristic(Characteristic.ClosedCaptions, Characteristic.ClosedCaptions.DISABLED);
+			.setCharacteristic(Characteristic.ClosedCaptions, Characteristic.ClosedCaptions.DISABLED)
+			.setCharacteristic(Characteristic.PictureMode, Characteristic.PictureMode.STANDARD);
 				
 		this.televisionService.getCharacteristic(Characteristic.ConfiguredName)
 			.on('get', this.getDeviceName.bind(this))
@@ -2052,6 +2056,10 @@ class stbDevice {
 		this.televisionService.getCharacteristic(Characteristic.ClosedCaptions)
 			.on('get', this.getClosedCaptions.bind(this))
 			//.on('set', (newClosedCaptionsState, callback) => { this.setClosedCaptions(newClosedCaptionsState, callback); }); // not supported
+
+		this.televisionService.getCharacteristic(Characteristic.PictureMode)
+			.on('get', this.getPictureMode.bind(this))
+			//.on('set', (newPictureMode, callback) => { this.setPictureMode(newPictureMode, callback); }); // not supported
 
 		this.televisionService.getCharacteristic(Characteristic.RemoteKey)
 			.on('set', this.setRemoteKey.bind(this));
@@ -2969,6 +2977,30 @@ class stbDevice {
 		callback(null);
 	}
 
+
+	// get picture mode state
+	async getPictureMode(callback) {
+		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
+		if (this.config.debugLevel > 0) { 
+			this.log.warn('%s: getPictureMode', this.name); 
+			this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.currentPictureMode, pictureModeName[this.currentPictureMode]); 
+		}
+		callback(null, this.currentPictureMode); // return current state
+	}
+
+	// set picture mode state
+	async setPictureMode(targetPictureMode, callback) {
+		// fired when ??
+		// targetClosedCaptionsState is the wanted state
+		if (this.config.debugLevel > 0) { this.log.warn('%s: setPictureMode targetPictureMode:', this.name, targetPictureMode, pictureModeName[targetPictureMode]); }
+		if(this.currentPictureMode !== targetPictureMode){
+			this.log("setPictureMode: not Yet implemented");
+		}
+		callback(null);
+	}
+
+
+	
 
 	// set power mode selection (View TV Settings menu option)
 	async setPowerModeSelection(state, callback) {
