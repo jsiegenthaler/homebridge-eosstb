@@ -144,6 +144,7 @@ To access the **Apple TV Remote**, open your **Control Center** by swiping down 
 Make sure you select the correct device from the drop-doown list at the top of the Apple TV Remote:
 
 The following keys are supported by in the **Apple TV Remote** in the Control Center:
+
 <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="300" align="right">
 <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/SelectingDeviceForRemoteControl.png" alt="SelectingDeviceForRemoteControl" height="300" align="right">
 
