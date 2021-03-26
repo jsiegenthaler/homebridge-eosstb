@@ -44,37 +44,29 @@ const cookieJar = new tough.CookieJar();
 // config start
 // ++++++++++++++++++++++++++++++++++++++++++++
 
-// different settop box names per country
-const settopBoxName = {
-    'at':     'Entertain Box 4K',
-    'be-fr':  'Telenet TV-Box',
-    'be-nl':  'Telenet TV-Box',
-    'ch':     'UPC TV Box',
-    'gb':     'Virgin Media 360',
-    'ie':     'Virgin Media 360',
-    'nl':     'Mediabox Next (4K)'
-};
 
 // base url varies by country
 const countryBaseUrlArray = {
     'at': 		'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web', // v3 and v4 works
     'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/fr/web',
     'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/nld/web',
-    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v3 and v4 works
+    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v3 and v4 works, also https://web-api-pepper.horizon.tv/oesp/v4/CH/deu/web/channels
     'gb':       'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web',
-    'ie':       'https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web',
-    'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web'
+	'ie':       'https://prod.oesp.virginmediatv.ie/oesp/v4/IE/eng/web/',
+    'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web',
+	'pl':		'https://web-api-pepper.horizon.tv/oesp/v2/PL/pol/web'
 };
 
 // mqtt endpoints varies by country
 const mqttUrlArray = {
-    'at':		'wss://obomsg.prod.at.horizon.tv:443/mqtt',
+    'at':		'wss://obomsg.prod.at.horizon.tv/mqtt',
     'be-fr':  	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
     'be-nl': 	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
-    'ch': 		'wss://obomsg.prod.ch.horizon.tv:443/mqtt',
-    'gb':       'wss://obomsg.prod.gb.horizon.tv/mqtt', // gb only works without a port number!
-    'ie':       'wss://obomsg.prod.ie.horizon.tv/mqtt', // ie only works without a port number!
-    'nl': 		'wss://obomsg.prod.nl.horizon.tv:443/mqtt'
+    'ch': 		'wss://obomsg.prod.ch.horizon.tv/mqtt',
+    'gb':       'wss://obomsg.prod.gb.horizon.tv/mqtt',
+    'ie':       'wss://obomsg.prod.ie.horizon.tv/mqtt',
+    'nl': 		'wss://obomsg.prod.nl.horizon.tv:443/mqtt',
+    'pl': 		'wss://obomsg.prod.pl.horizon.tv:/mqtt' // to be confirmed
 		
 };
 
@@ -87,8 +79,9 @@ const personalizationServiceUrlArray = {
     'be-nl': 	'https://prod.spark.telenettv.be/nld/web/personalization-service/v1/customer/{householdId}',
     'ch': 		'https://prod.spark.upctv.ch/eng/web/personalization-service/v1/customer/{householdId}',
     'gb':       'https://prod.spark.virginmedia.com/eng/web/personalization-service/v1/customer/{householdId}',
-    'ie':       'https://prod.spark.virginmedia.ie/eng/web/personalization-service/v1/customer/{householdId}',
-    'nl': 		'https://prod.spark.ziggogo.tv/nld/web/personalization-service/v1/customer/{householdId}'
+    'ie':       'https://prod.spark.virginmediatv.ie/eng/web/personalization-service/v1/customer/{householdId}',
+    'nl': 		'https://prod.spark.ziggogo.tv/nld/web/personalization-service/v1/customer/{householdId}',
+    'pl': 		'https://prod.spark.upctv.pl/nld/web/personalization-service/v1/customer/{householdId}' // to be confirmed
 };
 
 
@@ -229,7 +222,6 @@ class stbPlatform {
 			
 			// check for a channel list update every MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S seconds
 			this.checkChannelListInterval = setInterval(this.refreshMasterChannelList.bind(this),MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S * 1000);
-			
 		});
 
 	}
@@ -309,7 +301,7 @@ class stbPlatform {
 			} else {
 				// show warning if no physicalDeviceId found
 				this.log('Failed to find physicalDeviceId in your customer data. Are you sure you have a compatible set-top box?')
-				if (this.config.country == 'gb') { this.log('You may have an older TiVo box. TiVo boxes are not supported by %s', PLUGIN_NAME); }
+				if (this.config.country.toLowerCase() == 'gb') { this.log('You may have an older TiVo box. TiVo boxes are not supported by %s', PLUGIN_NAME); }
 			}
 
 			// wait for personalization data to load then see how many devices were found
@@ -358,7 +350,6 @@ class stbPlatform {
 							this.log("Accessory not found in cache, creating new accessory for %s", this.devices[i].deviceId);
 
 							// create the accessory
-							// constructor(log, config, api, device, profiles, platform, accessoryIndex) {
 							// constructor(log, config, api, device, platform) {
 							this.log("Setting up device %s of %s: %s", i+1, this.devices.length, deviceName);
 							let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this);
@@ -420,11 +411,11 @@ class stbPlatform {
 
 		const axiosConfig = {
 			method: 'POST',
-			url: countryBaseUrlArray[this.config.country] + '/session',
+			url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/session',
 			jar: cookieJar,
 			data: {
-				'username':this.config.username,
-				'password':this.config.password
+				username: this.config.username,
+				password: this.config.password
 			}
 		};
 
@@ -505,7 +496,7 @@ class stbPlatform {
 		axiosWS.defaults.headers.post = {};
 
 		// Step 1: # get authentication details
-		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country] + '/authorization';
+		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/authorization';
 		this.log('Step 1 of 7: get authentication details');
 		this.log.debug('Step 1 of 7: get authentication details from',apiAuthorizationUrl);
 		axiosWS.get(apiAuthorizationUrl)
@@ -641,7 +632,7 @@ class stbPlatform {
 															this.log('Step 7 of 7: post refreshToken request');
 															this.log.debug('Step 7 of 7: post refreshToken request to',apiAuthorizationUrl);
 															payload = {'refreshToken':auth.refreshToken,'username':auth.username};
-															var sessionUrl = countryBaseUrlArray[this.config.country] + '/session';
+															var sessionUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/session';
 															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
 																.then(response => {	
 																	this.log('Step 7 of 7: response:',response.status, response.statusText);
@@ -746,7 +737,7 @@ class stbPlatform {
 
 		// Step 1: # get authentication details
 		// https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
-		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country] + '/authorization';
+		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/authorization';
 		this.log('Step 1 of 7: get authentication details');
 		this.log.debug('Step 1 of 7: get authentication details from',apiAuthorizationUrl);
 		axiosWS.get(apiAuthorizationUrl)
@@ -903,7 +894,7 @@ class stbPlatform {
 															this.log('Step 7 of 7 post refreshToken request');
 															this.log.debug('Step 7 of 7 post refreshToken request to',apiAuthorizationUrl);
 															payload = {'refreshToken':auth.refreshToken,'username':auth.username};
-															var sessionUrl = countryBaseUrlArray[this.config.country] + '/session';
+															var sessionUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/session';
 															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
 																.then(response => {	
 																	this.log('Step 7 of 7 response:',response.status, response.statusText);
@@ -983,6 +974,7 @@ class stbPlatform {
 		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		// axios interceptors to log request and response for debugging
 		// works on all following requests in this sub
+		/*
 		axiosWS.interceptors.request.use(req => {
 			this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
 			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
@@ -1001,6 +993,7 @@ class stbPlatform {
 			this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
 			return res; // must return response
 		});
+		*/
 		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -1010,10 +1003,11 @@ class stbPlatform {
 
 		// first step posts here:
 		// https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session?token=true
-		//let apiAuthorizationUrl = countryBaseUrlArray[this.config.country] + '/authorization';
+		//let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/authorization';
 		// Step 1: # get session page (might not be needed)
-		this.log('Step 1 of 7 getting session page');
-		axiosWS('https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session',{
+		
+		this.log('Step 1 of 2 getting session page');
+		axiosWS('https://web-api-pepper.horizon.tv/oesp/v4/IE/eng/web/session',{
 			jar: cookieJar,
 			ignoreCookieErrors: true,
 			method: "GET",
@@ -1031,240 +1025,46 @@ class stbPlatform {
 			maxRedirects: 0, // do not follow redirects
 			})		
 			.then(response => {	
-				this.log('Step 1 of 7 response:',response.status, response.statusText);
-				this.log.warn('Step 1 of 7 response.data',response.data);
-				this.log.warn('Step 1 of 7 response.headers',response.headers);
-				
-				// get the data we need for further steps
-				let auth, authState, authAuthorizationUri, authValidtyToken;
-				/*
-				let auth = response.data;
-				let authState = auth.session.state;
-				let authAuthorizationUri = auth.session.authorizationUri;
-				let authValidtyToken = auth.session.validityToken;
-				//this.log.debug('Step 1 of 7 results: authState',authState);
-				//this.log.debug('Step 1 of 7 results: authAuthorizationUri',authAuthorizationUri);
-				//this.log.debug('Step 1 of 7 results: authValidtyToken',authValidtyToken);
-				*/
+				this.log('Step 1 of 2 response:',response.status, response.statusText);
+				this.log.debug('Step 1 of 2 response.data',response.data);
+				this.log.debug('Step 1 of 2 response.headers',response.headers);
 
 				// Step 3: # login, POST to
-				// https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session?token=true
+				// https://prod.oesp.virginmediatv.ie/oesp/v4/IE/eng/web/session
 				currentSessionState = sessionState.LOGGING_IN;
-				const IE_LOGIN_URL = 'https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session?token=true';
-				this.log('Step 2 of 7 logging in with username %s', this.config.username);
+				const IE_LOGIN_URL = 'https://prod.oesp.virginmediatv.ie/oesp/v4/IE/eng/web/session';
+				this.log('Step 2 of 2 logging in with username %s', this.config.username);
 				axiosWS(IE_LOGIN_URL,{
-					//jar: cookieJar,
-					//ignoreCookieErrors: true,
-					//{username: "sadadasd", password: "asdasdadads"}
-					//data: { username: this.config.username + '","password":"' + this.config.password + '"}',
-					data: { username: this.config.username , password: this.config.password },
+					jar: cookieJar,
+					data: { username: this.config.username, password: this.config.password },
 					method: "POST",
 					headers: {
-						"accept": "application/json",
-						"content-type": "application/json",
-						"Connection": "keep-alive",
-						"Origin": "https://www.virginmediatv.ie",
-						"Referer": "https://www.virginmediatv.ie/",
-						"sec-ch-ua": "\"Google Chrome\";v=\"89\", \"Chromium\";v=\"89\", \";Not A Brand\";v=\"99\"",
-						"sec-ch-ua-mobile": "?0",
-						"sec-fetch-dest": "empty",
-						"sec-fetch-mode": "cors",
-						"sec-fetch-site": "cross-site",
-						"x-client-id": "1.4.30.5||Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36"
+						"Accept": "application/json",
 					},
-					//maxRedirects: 0, // do not follow redirects
 					})
 					.then(response => {	
-						this.log('Step 2 of 7 response:',response.status, response.statusText);
-						this.log.warn('Step 2 of 7 response.headers',response.headers);
-						this.log.warn('Step 2 of 7 response.data',response.data);
+						this.log('Step 2 of 2 response:',response.status, response.statusText);
+						this.log.debug('Step 2 of 2 response.headers',response.headers);
+						this.log.debug('Step 2 of 2 response.data',response.data);
 		
-						// Step 3: # login
-						this.log('Step 3 of 7 some next step...');
-						//this.log('Cookies for the auth url:',cookieJar.getCookies(GB_AUTH_URL));
-
-
-						/*
-						// we just want to POST to 
-						// 'https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session/session?token=true';
-						const IE_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
-						//this.log.debug('Step 3 of 7 POST request will contain this data: {"username":"' + this.config.username + '","password":"' + this.config.password + '"}');
-						axiosWS(IE_AUTH_URL,{
-							jar: cookieJar,
-							ignoreCookieErrors: true,
-							data: '{"username":"' + this.config.username + '","password":"' + this.config.password + '"}',
-							method: "POST",
-						*/
-							// minimum headers are "accept": "*/*",
-						
-						//	headers: {
-						//		"accept": "application/json; charset=UTF-8, */*",
-								
-						//	},
-						/*
-							maxRedirects: 0, // do not follow redirects
-							validateStatus: function (status) {
-								return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK. GB returns 200
-							},
-							})
-							.then(response => {	
-								this.log('Step 3 of 7 response:',response.status, response.statusText);
-								this.log.debug('Step 3 of 7 response.headers:',response.headers); 
-								this.log.debug('Step 3 of 7 response.data:',response.data);
-
-								//this.log('Step 3 of 7 response.headers:',response.headers);
-								var url = response.headers['x-redirect-location']
-								if (!url) {		// robustness: fail if url missing
-									this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
-									currentSessionState = sessionState.DISCONNECTED;
-									return false;						
-								}								
-								//location is h??=... if success
-								//location is https?? if not authorised
-								//location is https:... error=session_expired if session has expired
-								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
-									this.log.warn('Step 3 of 7 Unable to login: wrong credentials');
-								} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
-									this.log.warn('Step 3 of 7 Unable to login: session expired');
-									cookieJar.removeAllCookies();	// remove all the locally cached cookies
-									currentSessionState = sessionState.DISCONNECTED;	// flag the session as dead
-								} else {
-									this.log.debug('Step 3 of 7 login successful');
-
-									// Step 4: # follow redirect url
-									this.log('Step 4 of 7 follow redirect url');
-									axiosWS.get(url,{
-										jar: cookieJar,
-										maxRedirects: 0, // do not follow redirects
-										validateStatus: function (status) {
-											return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
-											},
-										})
-										.then(response => {	
-											this.log('Step 4 of 7 response:',response.status, response.statusText);
-											this.log.debug('Step 4 of 7 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
-											this.log.debug('Step 4 of 7 response.data:',response.data);
-											//this.log('Step 4 response.headers:',response.headers);
-											url = response.headers.location;
-											if (!url) {		// robustness: fail if url missing
-												this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
-												currentSessionState = sessionState.DISCONNECTED;
-												return false;						
-											}								
-			
-											// look for login_success?code=
-											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
-												this.log.warn('Step 4 of 7 Unable to login: wrong credentials');
-												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-											} else if (url.indexOf('error=session_expired') > 0 ) {
-												this.log.warn('Step 4 of 7 Unable to login: session expired');
-												cookieJar.removeAllCookies();	// remove all the locally cached cookies
-												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-											} else {
-
-												// Step 5: # obtain authorizationCode
-												this.log('Step 5 of 7 extract authorizationCode');
-												url = response.headers.location;
-												if (!url) {		// robustness: fail if url missing
-													this.log.warn('getSessionGB: Step 5: location url empty!');
-													currentSessionState = sessionState.DISCONNECTED;
-													return false;						
-												}								
-				
-												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
-												var authorizationCode = codeMatches[1];
-												if (codeMatches.length !== 2 ) { // length must be 2 if code found
-													this.log.warn('Step 5 of 7 Unable to extract authorizationCode');
-												} else {
-													this.log('Step 5 of 7 authorizationCode OK');
-													this.log.debug('Step 5 of 7 authorizationCode:',authorizationCode);
-
-													// Step 6: # authorize again
-													this.log('Step 6 of 7 post auth data with valid code');
-													this.log.debug('Step 6 of 7 post auth data with valid code to',apiAuthorizationUrl);
-													currentSessionState = sessionState.AUTHENTICATING;
-													var payload = {'authorizationGrant':{
-														'authorizationCode':authorizationCode,
-														'validityToken':authValidtyToken,
-														'state':authState
-													}};
-													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
-														.then(response => {	
-															this.log('Step 6 of 7 response:',response.status, response.statusText);
-															this.log.debug('Step 6 of 7 response.data:',response.data);
-															
-															auth = response.data;
-															//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
-															this.log.debug('Step 6 of 7 refreshToken:',auth.refreshToken);
-
-															// Step 7: # get OESP code
-															this.log('Step 7 of 7 post refreshToken request');
-															this.log.debug('Step 7 of 7 post refreshToken request to',apiAuthorizationUrl);
-															payload = {'refreshToken':auth.refreshToken,'username':auth.username};
-															var sessionUrl = countryBaseUrlArray[this.config.country] + '/session';
-															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
-																.then(response => {	
-																	this.log('Step 7 of 7 response:',response.status, response.statusText);
-																	currentSessionState = sessionState.VERIFYING;
-																	
-																	this.log.debug('Step 7 of 7 response.headers:',response.headers); 
-																	this.log.debug('Step 7 of 7 response.data:',response.data); 
-																	this.log.debug('Cookies for the session:',cookieJar.getCookies(sessionUrl));
-
-																	// get device data from the session
-																	this.session = response.data;
-																	
-																	// get device data from the session
-																	this.session = response.data;
-																	currentSessionState = sessionState.CONNECTED;
-																	this.log('Session created');
-																	return true;
-																})
-																// Step 7 http errors
-																.catch(error => {
-																	this.log.warn("Step 7 of 7 Unable to get OESP token:",error.response.status, error.response.statusText);
-																	this.log.warn("Step 7 of 7 error:",error);
-																	currentSessionState = sessionState.DISCONNECTED;
-																});
-														})
-														// Step 6 http errors
-														.catch(error => {
-															this.log.warn("Step 6 of 7 Unable to authorize with oauth code, http error:",error);
-															currentSessionState = sessionState.DISCONNECTED;
-														});	
-												};
-											};
-										})
-										// Step 4 http errors
-										.catch(error => {
-											this.log.warn("Step 4 of 7 Unable to oauth authorize:",error.response.status, error.response.statusText);
-											this.log.warn("Step 4 of 7 error:",error);
-											currentSessionState = sessionState.DISCONNECTED;
-										});
-								};
-							})
-							// Step 3 http errors
-							.catch(error => {
-								this.log.warn("Step 3 of 7 Unable to login:",error.response.status, error.response.statusText);
-								this.log.warn("Step 3 of 7 error:",error);
-								currentSessionState = sessionState.DISCONNECTED;
-							});
-
-							*/
+						// get device data from the session
+						this.session = response.data;
+						currentSessionState = sessionState.CONNECTED;
+						this.log('Session created');
 
 					})
 					// Step 2 http errors
 					.catch(error => {
-						this.log.warn("Step 2 of 7 Unable to login:",error.response.status, error.response.statusText);
-						this.log.warn("Step 2 of 7 error:",error);
+						this.log("Step 2 of 2 Unable to login:",error.response.status, error.response.statusText);
+						this.log.debug("Step 2 of 2 error:",error);
 						currentSessionState = sessionState.DISCONNECTED;
 					});
 			})
 			// Step 1 http errors
 			.catch(error => {
 				this.log('Failed to create IE session - check your internet connection');
-				this.log.warn("Step 1 of 7 Could not get session page:",error.response.status, error.response.statusText);
-				this.log.debug("Step 1 of 7 error:",error);
+				this.log.warn("Step 1 of 2 Could not get session page:",error.response.status, error.response.statusText);
+				this.log.debug("Step 1 of 2 error:",error);
 				currentSessionState = sessionState.DISCONNECTED;
 			});
 
@@ -1301,7 +1101,7 @@ class stbPlatform {
 		// so you should add the user's locationId as a parameter, and this needs the oespToken
 		// syntax:
 		// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/channels?byLocationId=41043&includeInvisible=true&includeNotEntitled=true&personalised=true&sort=channelNumber
-		let url = countryBaseUrlArray[this.config.country] + '/channels';
+		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/channels';
 		url = url + '?byLocationId=' + this.session.locationId // locationId needed to get user-specific list
 		url = url + '&includeInvisible=true' // includeInvisible
 		url = url + '&includeNotEntitled=true' // includeNotEntitled
@@ -1388,7 +1188,7 @@ class stbPlatform {
 
 		const jwtAxiosConfig = {
 			method: 'GET',
-			url: countryBaseUrlArray[this.config.country] + '/tokens/jwt',
+			url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/tokens/jwt',
 			headers: {
 				'X-OESP-Token': oespToken,
 				'X-OESP-Username': oespUsername, 
@@ -1423,7 +1223,7 @@ class stbPlatform {
 
 
 		// create mqtt client instance and connect to the mqttUrl
-		const mqttUrl = mqttUrlArray[this.config.country];
+		const mqttUrl = mqttUrlArray[this.config.country.toLowerCase()];
 		if (this.config.debugLevel > 2) { 
 			this.log.warn('startMqttClient: mqttUrl:', mqttUrl ); 
 		}
@@ -1832,7 +1632,8 @@ class stbPlatform {
 	// get the Personalization Data via web request GET
 	async getPersonalizationData(requestType, callback) {
 		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData requestType:', requestType); }
-		const url = personalizationServiceUrlArray[this.config.country].replace("{householdId}", this.session.customer.householdId) + '/' + requestType;
+
+		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.customer.householdId) + '/' + requestType;
 		const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
 		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: GET %s', url); }
 		// this.log('getPersonalizationData: GET %s', url);
@@ -1912,7 +1713,7 @@ class stbPlatform {
 	// set the Personalization Data for the current device via web request PUT
 	async setPersonalizationDataForDevice(deviceId, deviceSettings, callback) {
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: deviceSettings:', deviceSettings); }
-		const url = personalizationServiceUrlArray[this.config.country].replace("{householdId}", this.session.customer.householdId) + '/devices/' + deviceId;
+		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.customer.householdId) + '/devices/' + deviceId;
 		const data = {"settings": deviceSettings};
 		const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: PUT %s', url); }
@@ -2187,7 +1988,8 @@ class stbDevice {
 		const deviceType = this.device.deviceId.split("-");
 
 		switch (deviceType[0]) {
-			case '3C36E4':
+			// 000378-EOSSTB-003893xxxxxx Ireland
+			case '3C36E4': case '000378':
 				manufacturer = 'ARRIS [' + (this.device.platformType || '') + ']';
 				model = 'DCX960 [' + (this.device.deviceType || '') + ']'; // NL has no deviceType in their device settings
 				serialnumber = this.device.deviceId; // same as shown on TV
