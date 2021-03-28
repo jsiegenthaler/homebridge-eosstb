@@ -123,11 +123,13 @@ const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATIN
 const mediaStateName = ["PLAY", "PAUSE", "STOP", "UNKNOWN3", "LOADING", "INTERRUPTED"];
 const powerStateName = ["OFF", "ON"];
 const closedCaptionsStateName = ["DISABLED", "ENABLED"];
+const visibilityStateName = ["SHOWN", "HIDDEN"];
 const pictureModeName = ["OTHER", "STANDARD", "CALIBRATED", "CALIBRATED_DARK", "VIVID", "GAME", "COMPUTER", "CUSTOM"];
 Object.freeze(sessionState);
 Object.freeze(mediaStateName);
 Object.freeze(powerStateName);
 Object.freeze(closedCaptionsStateName);
+Object.freeze(visibilityStateName);
 Object.freeze(pictureModeName);
 
 
@@ -160,7 +162,52 @@ function makeId(length) {
 	return result;
 };
 
+// clean a name so it is acceptable for HomeKit
+function cleanNameForHomeKit(name) {
+	// HomeKit does not allow non-alphanumeric characters apart from [ .,-]
+	// Use only alphanumeric, space, and apostrophe characters.
+	// Start and end with an alphabetic or numeric character. 
+	// Don't include emojis.
+	// https://developer.apple.com/design/human-interface-guidelines/homekit/overview/setup/
+	// [^A-Za-zÀ-ÖØ-öø-ÿ0-9 .,-] allows all accented characters
+	// https://stackoverflow.com/questions/6664582/regex-accent-insensitive
 
+	// HomeKit however displays all these characters, so allow them
+	let result = name;
+
+	// replace + with plus, for 3+ HD in CH
+	//result.replace('+', 'plus');
+	//console.log("cleanNameForHomeKit after replacing + [%s]", result);
+
+	// replace unwanted characters with whitespace
+	//result = result.replace(/[^0-9A-Za-zÀ-ÖØ-öø-ÿ .,-]/gi, ' ');
+
+	// for now just replace forward slash with whitespace
+	result = result.replace('/', ' ');
+	//console.log("cleanNameForHomeKit after replace [%s]", result);
+
+	// replace any double whitespace with single whitespace
+	//while(result.indexOf('  ')!=-1) { result.replace('  ',' '); }
+	//console.log("cleanNameForHomeKit after replacing double whitespace [%s]", result);
+
+	// trim to remove resultant leading and trailing whitespace
+	result = result.trim();
+
+	//ensure ends with a non-alphanumric character
+	// testing shows 
+	// OK     ending with . 
+	// Not OK ending with ,-
+	// append . if not ending in a alpha-numeric character
+	/*
+	if (RegExp(/[^0-9A-Za-zÀ-ÖØ-öø-ÿ.]\z/gi).test(result)) {
+		console.log("cleanNameForHomeKit last char not allowed, appending .");
+		result = result + '.'; // append a .
+	}
+	*/
+	//console.log("cleanNameForHomeKit result [%s]", result);
+	return result;
+
+}
 
 // wait function
 const wait=ms=>new Promise(resolve => setTimeout(resolve, ms)); 
@@ -208,6 +255,11 @@ class stbPlatform {
 		// session flags
 		currentSessionState = sessionState.DISCONNECTED;
 
+		/*
+		this.inputsFile = this.storagePath + '/' + 'inputs_' + this.host.split('.').join('');
+		this.customInputsFile = this.storagePath + '/' + 'customInputs_' + this.host.split('.').join('');
+		this.devInfoFile = this.storagePath + '/' + 'devInfo_' + this.host.split('.').join('');
+		*/
 		
 		/**
     	* Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
@@ -245,6 +297,29 @@ class stbPlatform {
 	}
 
 
+	// persist config to disc
+	persistConfig(deviceId, jsonData) {
+		// we want to save channelNames and visibilityState
+
+		// storage path, constant
+		const filename = path.join(this.api.user.storagePath(), 'persist', 'AccessoryInfo.' + PLATFORM_NAME + '.' + deviceId + '.json');
+		this.log("filename", filename)
+
+		//this.log("jsonData", jsonData)
+		var jsonString = JSON.stringify(jsonData);
+		this.log("jsonString", jsonString)
+
+
+		// write to file
+		fs.writeFile(filename, jsonString, function(err) {
+			if (err) {
+				this.log('persistConfig', err);
+			}
+		});
+	}
+
+	
+
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// START session handler (web)
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -270,7 +345,7 @@ class stbPlatform {
 	
 		// Step 1: session does not exist, so create the session, passing the country value
 		this.log('Session does not exist');
-		this.createSession(this.config.country);
+		this.createSession(this.config.country.toLowerCase());
 
 
 
@@ -282,22 +357,24 @@ class stbPlatform {
 			if (currentSessionState !== sessionState.CONNECTED) { return; }
 
 			// discovery devices at every session connection
-			this.log('Discovery started');
+			this.log('Discovering platform and devices...');
 
 			// show feedback for customer data found
 			if (!this.session.customer) {
 				this.log('Failed to find customer data. The backend systems may be down')
 			} else {
 				this.log('Found customer data: %s %s %s', this.session.customer.customerId, (this.session.customer.givenName || ''), (this.session.customer.familyName || '') );
-				if (this.config.debugLevel > 2) { this.log.warn('Session data: %s', this.session); }
+				if (this.config.debugLevel > 2) { 
+					this.log.warn('Session data: %s', this.session); 
+					this.log.warn('Session data profileSettings: %s', this.session.profileSettings); 
+				}
 				if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
 			}
 
-			// Step 2: get the master channel list. Also works for VirginMedia TiVo devices
-			this.refreshMasterChannelList(); // async function, processing continues
-	
-			// Step 3: after session is created, get the Personalization Data, but only if this.session.customer.physicalDeviceId exists
+			// Step 3: after session is created, get the masterChannelList get the Personalization Data, but only if this.session.customer.physicalDeviceId exists
 			if (this.session.customer.physicalDeviceId) {
+				this.log('Loading master channel list and personalization data')
+				this.refreshMasterChannelList(); // async function, processing continues
 				this.getPersonalizationData('profiles'); // async function
 				this.getPersonalizationData('devices'); // async function
 			} else {
@@ -306,7 +383,7 @@ class stbPlatform {
 				if (this.config.country.toLowerCase() == 'gb') { this.log('You may have an older TiVo box. TiVo boxes are not supported by %s', PLUGIN_NAME); }
 			}
 
-			// wait for personalization data to load then see how many devices were found
+			// wait for master channel list and personalization data to load then see how many devices were found
 			wait(5*1000).then(() => { 
 
 				// show feedback for devices found
@@ -335,7 +412,7 @@ class stbPlatform {
 					//this.log("sessionWatchdog: before searching the cache: this.stbDevices", this.stbDevices);
 
 					// setup/restore each device in turn as an accessory, as we can only setup the accessory after the session is created and the physicalDevices are retrieved
-					this.log("sessionWatchdog: looking in cache for all devices");
+					this.log("Finding devices in cache...");
 					for (let i = 0; i < this.devices.length; i++) {
 
 						// setup each device (runs once per device)
@@ -349,7 +426,7 @@ class stbPlatform {
 						// a stbDevice contains various data: HomeKit accessory, EOS platform, EOS device, EOS profile
 						let foundStbDevice = this.stbDevices.find(stbDevice => stbDevice.accessory.UUID === uuid)
 						if (!foundStbDevice) {
-							this.log("Accessory not found in cache, creating new accessory for %s", this.devices[i].deviceId);
+							this.log("Device not found in cache, creating new accessory for %s", this.devices[i].deviceId);
 
 							// create the accessory
 							// constructor(log, config, api, device, platform) {
@@ -358,7 +435,7 @@ class stbPlatform {
 							this.stbDevices.push(newStbDevice);
 
 						} else {
-							this.log("Accessory found in cache: [%s] %s", foundStbDevice.name, foundStbDevice.deviceId);
+							this.log("Device found in cache: [%s] %s", foundStbDevice.name, foundStbDevice.deviceId);
 						}	
 
 					};
@@ -366,23 +443,14 @@ class stbPlatform {
 					// debug: observe the structure!!
 					//this.log("sessionWatchdog: after searching the cache: this.stbDevices", this.stbDevices);
 
-					// session and devices are loaded
+					// wait 3sec for session and devices to be loaded loaded
 					// now get the Jwt Token which triggers the mqtt client
-					this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
+					wait(3*1000).then(() => { 
+						this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
+					})
 
 				}
 			});
-
-
-			// must refresh Personalization Data before creating mqtt session
-			//this.getPersonalizationData('profiles'); // async function
-			//this.getPersonalizationData('devices'); // async function
-
-			// wait for personalization data to load then see how many devices were found
-			//wait(3*1000).then(() => { 
-				// now get the Jwt Token which triggers the mqtt client
-			//	this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
-			//});
 
 		}).catch((error) => { 
 			this.log.error("sessionWatchdog: Error", error); 
@@ -394,19 +462,17 @@ class stbPlatform {
 
 	// select the right session to create
 	async createSession(country) {
-		switch(country.toLowerCase()) {
+		switch(country) {
 			case 'be-nl': case 'be-fr':
 				this.getSessionBE(); break;
 			case 'gb':
 				this.getSessionGB(); break;
-			//case 'ie':
-			//	this.getSessionIE(); break;
-			default: // ch, nl, ie
+			default: // ch, nl, ie, at
 				this.getSession();
 			}
 	}
 
-	// get session
+	// get session ch, nl, ie, at
 	async getSession() {
 		this.log('Creating %s session...', PLATFORM_NAME);
 		currentSessionState = sessionState.LOADING;
@@ -785,17 +851,6 @@ class stbPlatform {
 							// minimum headers are "accept": "*/*",
 							headers: {
 								"accept": "application/json; charset=UTF-8, */*",
-							//	"accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
-							//	"authorization": 'Atmosphere atmosphere_app_id="AEM_UK"',
-							//	"content-type": "application/json; charset=UTF-8",
-							//	"sec-ch-ua": '"Google Chrome";v="89", "Chromium";v="89", ";Not A Brand";v="99"',
-							//	"sec-ch-ua-mobile": "?0",
-							//	"sec-fetch-dest": "empty",
-							//	"sec-fetch-mode": "cors",
-							//	"sec-fetch-site": "same-origin",	
-							//	"referrer": "https://id.virginmedia.com/sign-in/?protocol=oidc",
-							//	"referrerPolicy": "strict-origin-when-cross-origin",
-							//	"mode": "cors",											
 							},
 							maxRedirects: 0, // do not follow redirects
 							validateStatus: function (status) {
@@ -964,130 +1019,20 @@ class stbPlatform {
 	}
 
 
-
-	// get session for IE only (special logon sequence)
-	getSessionIE() {
-		// this code is a copy of the gb session code, adapted for ie
-		this.log('Creating %s IE session...',PLATFORM_NAME);
-		currentSessionState = sessionState.LOADING;
-
-		//var cookieJarGB = new cookieJar();
-
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		// axios interceptors to log request and response for debugging
-		// works on all following requests in this sub
-		/*
-		axiosWS.interceptors.request.use(req => {
-			this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
-			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
-			'\nMethod:',req.method, '\nURL:', req.url, 
-			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers, '\nWithCredentials:', req.withCredentials, 
-			//'\nParams:', req.params, '\nData:', req.data
-			);
-			return req; // must return request
-		});
-		axiosWS.interceptors.response.use(res => {
-			this.log('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
-			'\nHeaders:', res.headers, 
-			//'\nData:', res.data, 
-			//'\nLast Request:', res.request
-			);
-			this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
-			return res; // must return response
-		});
-		*/
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-		// Step 1: # get authentication details
-		// normal /authorization does not work for IE:
-		// [{"type":"state","code":"authorizationNotSupported","reason":"invalid"}]
-
-		// first step posts here:
-		// https://web-api-pepper.horizon.tv/oesp/v3/IE/eng/web/session?token=true
-		//let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/authorization';
-		// Step 1: # get session page (might not be needed)
-		
-		this.log('Step 1 of 2 getting session page');
-		axiosWS('https://web-api-pepper.horizon.tv/oesp/v4/IE/eng/web/session',{
-			jar: cookieJar,
-			ignoreCookieErrors: true,
-			method: "GET",
-			headers: {
-				"accept": "application/json",
-				"content-type": "application/json",
-				"sec-ch-ua": "\"Google Chrome\";v=\"89\", \"Chromium\";v=\"89\", \";Not A Brand\";v=\"99\"",
-				"sec-ch-ua-mobile": "?0",
-				"x-client-id": "1.4.30.5||Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36"
-			},
-			referrer: "https://www.virginmediatv.ie/",
-			referrerPolicy: "strict-origin-when-cross-origin",
-			mode: "cors",
-			credentials: "omit",
-			maxRedirects: 0, // do not follow redirects
-			})		
-			.then(response => {	
-				this.log('Step 1 of 2 response:',response.status, response.statusText);
-				this.log.debug('Step 1 of 2 response.data',response.data);
-				this.log.debug('Step 1 of 2 response.headers',response.headers);
-
-				// Step 3: # login, POST to
-				// https://prod.oesp.virginmediatv.ie/oesp/v4/IE/eng/web/session
-				currentSessionState = sessionState.LOGGING_IN;
-				const IE_LOGIN_URL = 'https://prod.oesp.virginmediatv.ie/oesp/v4/IE/eng/web/session';
-				this.log('Step 2 of 2 logging in with username %s', this.config.username);
-				axiosWS(IE_LOGIN_URL,{
-					jar: cookieJar,
-					data: { username: this.config.username, password: this.config.password },
-					method: "POST",
-					headers: {
-						"Accept": "application/json",
-					},
-					})
-					.then(response => {	
-						this.log('Step 2 of 2 response:',response.status, response.statusText);
-						this.log.debug('Step 2 of 2 response.headers',response.headers);
-						this.log.debug('Step 2 of 2 response.data',response.data);
-		
-						// get device data from the session
-						this.session = response.data;
-						currentSessionState = sessionState.CONNECTED;
-						this.log('Session created');
-
-					})
-					// Step 2 http errors
-					.catch(error => {
-						this.log("Step 2 of 2 Unable to login:",error.response.status, error.response.statusText);
-						this.log.debug("Step 2 of 2 error:",error);
-						currentSessionState = sessionState.DISCONNECTED;
-					});
-			})
-			// Step 1 http errors
-			.catch(error => {
-				this.log('Failed to create IE session - check your internet connection');
-				this.log.warn("Step 1 of 2 Could not get session page:",error.response.status, error.response.statusText);
-				this.log.debug("Step 1 of 2 error:",error);
-				currentSessionState = sessionState.DISCONNECTED;
-			});
-
-		currentSessionState = sessionState.DISCONNECTED;
-	}	
-
-
 	// load all available TV channels at regular intervals into an array
 	async refreshMasterChannelList(callback) {
 		// called by refreshMasterChannelList (state handler), thus runs at polling interval
 
-		// exit immediately if the session was not created due to maybe bad username & password
-		if (!this.session) { 
-			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not yet exist, exiting'); }
+		// exit immediately if the session does not exist
+		if (currentSessionState != sessionState.CONNECTED) { 
+			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not exist, exiting'); }
 			return;
 		 }
 
 		// exit immediately if channel list has not expired
-		if (this.channelListExpiryDate > Date.now()) {
+		if (this.masterChannelListExpiryDate > Date.now()) {
 			if (this.config.debugLevel > 0) {
-				this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.channelListExpiryDate.toLocaleString());
+				this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString());
 			}
 			return false;
 		}
@@ -1127,7 +1072,7 @@ class stbPlatform {
 				if (this.config.debugLevel > 2) {
 					this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.totalResults);
 				}
-				this.channelListExpiryDate = new Date(response.data.expires);
+				this.masterChannelListExpiryDate = new Date(response.data.expires);
 			
 				// load the channel list with all channels found
 				this.masterChannelList = [];
@@ -1137,13 +1082,13 @@ class stbPlatform {
 					this.masterChannelList.push({
 						channelId: channel.stationSchedules[0].station.serviceId, 
 						channelNumber: channel.channelNumber, 
-						channelName: channel.title, 
-						channelListIndex: i
+						channelName: cleanNameForHomeKit(channel.title)
+						//channelListIndex: i
 					});
 				}
 					
 				if (this.config.debugLevel > 0) {
-					this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', response.data.totalResults, this.channelListExpiryDate.toLocaleString());
+					this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', response.data.totalResults, this.masterChannelListExpiryDate.toLocaleString());
 				}
 				return true;
 
@@ -1419,8 +1364,8 @@ class stbPlatform {
 								parent.masterChannelList.push({
 									channelId: currChannelId, 
 									channelNumber: 'app' + (10000 + parent.masterChannelList.length), 
-									channelName: cpeUiStatus.appsState.appName, 
-									channelListIndex: parent.masterChannelList.length
+									channelName: cleanNameForHomeKit(cpeUiStatus.appsState.appName)
+									//channelListIndex: parent.masterChannelList.length
 								});
 								
 							}
@@ -1491,14 +1436,14 @@ class stbPlatform {
 
 
 	// handle the state change of the device, calling the updateDeviceState of the relevant device
-	mqttDeviceStateHandler(deviceId, powerState, mediaState, channelId, sourceType) {
+	mqttDeviceStateHandler(deviceId, powerState, mediaState, channelId, sourceType, profileDataChanged) {
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('deviceStateHandler: deviceId %s, powerState %s, mediaState %s, channelId %s, sourceType %s', deviceId, powerState, mediaState, channelId, sourceType); 
+			this.log.warn('deviceStateHandler: deviceId %s, powerState %s, mediaState %s, channelId %s, sourceType %s, profileDataChanged %s', deviceId, powerState, mediaState, channelId, sourceType, profileDataChanged); 
 		}
 		if (this.devices) {
 			const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
 			if (deviceIndex > -1 && this.stbDevices.length > 0) { 
-				this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, channelId, sourceType); 
+				this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, channelId, sourceType, profileDataChanged); 
 			}
 		}
 	}
@@ -1633,6 +1578,7 @@ class stbPlatform {
 
 	// get the Personalization Data via web request GET
 	async getPersonalizationData(requestType, callback) {
+		this.log("Refreshing personalization data for %s", requestType);
 		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData requestType:', requestType); }
 
 		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.customer.householdId) + '/' + requestType;
@@ -1654,7 +1600,7 @@ class stbPlatform {
 					if (this.stbDevices.length > 0) {
 						this.devices.forEach((device) => {
 							device.profiles = this.profiles; // update the device with the profiles array
-							this.mqttDeviceStateHandler(device.deviceId);
+							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, true);
 						});
 					}
 
@@ -1670,6 +1616,7 @@ class stbPlatform {
 							const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
 							if (deviceIndex > -1 && this.stbDevices[deviceIndex]) { 
 								this.stbDevices[deviceIndex].device = device;
+								this.long("calling mqttDeviceStateHandler");
 								this.mqttDeviceStateHandler(deviceId); // update one device
 							}
 						});
@@ -1786,11 +1733,12 @@ class stbDevice {
 		this.platform = platform;
 
 		this.deviceId = this.device.deviceId
+		this.profileId = -1; // default -1
 
 		// set default name on restart
 		this.name = this.device.settings.deviceFriendlyName + PLUGIN_ENV; // append _DEV environment
 
-		// allow user override via config
+		// allow user override of device name via config
 		if (this.config.devices) {
 			const configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
 			if (configDevice && configDevice.name) { this.name = configDevice.name; }
@@ -1800,15 +1748,13 @@ class stbDevice {
 		// ++++++++++++++++ plugin setup ++++++++++++++++
 		// setup arrays
 		this.debugLevel = this.config.debugLevel || 0; // debugLevel defaults to 0 (minimum)
-		this.channelListHomeKit = [];	// loaded channels, as shown in the Home app. Limited to 96
+		this.channelList = [];	// loaded channels, as shown in the Home app. Limited to 96
 		this.inputServices = [];		// loaded input services, used by the accessory, as shown in the Home app. Limited to 96
 		this.configuredInputs = [];		// a list of inputs that have been renamed by the user. EXPERIMENTAL
 
 		//setup variables
 		this.lastPowerKeySent;				// stores when the power key was sent last to help in de-bounce
 		this.targetMediaState = Characteristic.TargetMediaState.STOP; // default until received by mqtt
-		this.createAccessoryAttempt;
-		this.creatingAccessory; 		// true during device setup
 		this.accessoryConfigured;		// true when the accessory is configured
 
 		// initial states. Will be updated by mqtt messages
@@ -1820,93 +1766,24 @@ class stbDevice {
 		this.currentMediaState = Characteristic.CurrentMediaState.STOP;
 		this.targetMediaState = Characteristic.CurrentMediaState.STOP;
 		this.currentPictureMode = Characteristic.PictureMode.STANDARD;
+		this.previousPictureMode = Characteristic.PictureMode.STANDARD;
 		this.currentSourceType = 'UNKNOWN';
 		this.volDownLastKeyPress = [];
 
-		// do an initial profile channel update, required to configure the accessory
-		this.refreshAccessoryChannelList(this.deviceId)
+		// do an initial accessory channel update, required to configure the accessory
+		this.refreshChannelList(this.deviceId); // async function
 
+		// plugin setup done, session and channels loaded, can load 
 
-		// ++++++++++++++++ plugin setup done ++++++++++++++++
-		this.creatingAccessory = false;
-		this.accessoryConfigured = false;
-		this.prepareAccessory();
-
-		// add accessory context
-		// can store data in accessory.context if needed, should do this for the device config
-		//accessory.context.devices = this.devices; 
-		//accessory.context.session = this.session;		this.accessory.context.persData.device = platform.devices[accessoryIndex];
-		this.log('%s: Initialization completed', this.name);
-
-		//this.setupDevice(0); 
-
-		//		for (let i = 0; i < 10; i++) {
-			//setTimeout(this.setupDevice.bind(this, i),i * 1000); // attempt every 1 second
-//		};
-
-
-		
-		//check if prefs directory ends with a /, if not then add it
-		//this.prefDir = path.join(api.user.storagePath(), 'eos'); // not in use yet
-		//not used yet
-		/*
-		if (this.prefDir.endsWith('/') === false) {
-			this.prefDir = this.prefDir + '/';
-		}
-
-		//check if the directory exists, if not then create it
-		if (fs.existsSync(this.prefDir) === false) {
-			fs.mkdir(this.prefDir, { recursive: false }, (error) => {
-				if (error) {
-					this.log.error('Device: %s %s, create directory: %s, error: %s', this.name, this.prefDir, error);
-				} else {
-					this.log.debug('Device: %s %s, create directory successful: %s', this.name, this.prefDir);
-				}
-			});
-		}
-		*/
-
-	}
-
-
-	setupDevice() {
-		// setup the accessory device (may be more than one)
-		// call this after the session has been loaded and the list of devices has been retrieved
-		if (this.config.debugLevel > 2) {
-			this.log.warn('setupDevice %s: currentSessionState %s this.creatingAccessory %s this.accessoryConfigured %s', this.deviceIndex, currentSessionState, this.creatingAccessory, this.accessoryConfigured);
-		}
-
-		// exit immediately if session has any state other than DISCONNECTED
-		if (currentSessionState !== sessionState.CONNECTED) { 
-			if (this.config.debugLevel > 2) { this.log.warn('setupDevice %s: session not created yet, exiting', this.deviceIndex); }
-			return; 
-		}
-
-		/*
-		// exit immediately if device setup is still running
-		if (this.creatingAccessory) { 
-			if (this.config.debugLevel > 2) { this.log.warn('setupDevice %s: attempt %s: device setup not yet completed, exiting', this.deviceIndex, attemptIndex, this.creatingAccessory); }
-			return; 
-		}
-
-		// exit immediately if accessory has already been created
-		if (this.accessoryConfigured) { 
-			if (this.config.debugLevel > 2) { this.log.warn('setupDevice %s: attempt %s: accessory already configured %s, exiting', this.deviceIndex, attemptIndex, this.accessoryConfigured); }
-			return; 
-		}
-		*/
-
-		this.creatingAccessory = true;
+		// wait 5s for the accessory channel list to load then continue
 		wait(3*1000).then(() => { 
-			if (!this.accessoryConfigured) { 
-				this.prepareAccessory();
-				this.log('%s: Initialization completed', this.name);
-
-			}
-		});
+			this.accessoryConfigured = false;
+			this.prepareAccessory();
+			this.log('%s: Initialization completed', this.name);
+		})
 
 	}
-	
+
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// START of preparing accessory and services
@@ -1967,7 +1844,6 @@ class stbDevice {
 
 		// set default to no input
 		this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(NO_INPUT_ID)
-		this.creatingAccessory = false;
 		this.accessoryConfigured = true;
 	}
 
@@ -1993,7 +1869,7 @@ class stbDevice {
 		switch (deviceType[0]) {
 			// 000378-EOSSTB-003893xxxxxx Ireland
 			case '3C36E4': case '000378':
-				manufacturer = 'ARRIS [' + (this.device.platformType || '') + ']';
+				manufacturer = 'ARRIS [' + (this.device.platformType || '') + ']'; // NL uses EOS as platformType
 				model = 'DCX960 [' + (this.device.deviceType || '') + ']'; // NL has no deviceType in their device settings
 				serialnumber = this.device.deviceId; // same as shown on TV
 				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
@@ -2041,39 +1917,55 @@ class stbDevice {
 			.setCharacteristic(Characteristic.ClosedCaptions, Characteristic.ClosedCaptions.DISABLED)
 			.setCharacteristic(Characteristic.PictureMode, Characteristic.PictureMode.STANDARD);
 				
+		// characteristics actively controlled in the current Apple Home app 
+		
+		// power
+		this.televisionService.getCharacteristic(Characteristic.Active)
+			.on('get', this.getPower.bind(this))
+			.on('set', this.setPower.bind(this));
+		
+		// accessory name
 		this.televisionService.getCharacteristic(Characteristic.ConfiguredName)
 			.on('get', this.getDeviceName.bind(this))
 			.on('set', (newName, callback) => { this.setDeviceName(newName, callback); });
 
-		this.televisionService.getCharacteristic(Characteristic.Active)
-			.on('get', this.getPower.bind(this))
-			.on('set', this.setPower.bind(this));
-
+		// active channel
 		this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier)
 			.on('get', this.getInput.bind(this))
-			.on('set', (newInputIdentifier, callback) => { this.setInput(this.channelListHomeKit[newInputIdentifier], callback); });
+			.on('set', (newInputIdentifier, callback) => { this.setInput(this.channelList[newInputIdentifier], callback); });
 
+		// the View TV Settings menu item
+		this.televisionService.getCharacteristic(Characteristic.PowerModeSelection)
+			.on('set', this.setPowerModeSelection.bind(this));
+
+		// characteristics that cannot be controlled in the current Apple Home app 
+		
+		// closed captions / subtitles
 		this.televisionService.getCharacteristic(Characteristic.ClosedCaptions)
 			.on('get', this.getClosedCaptions.bind(this))
 			//.on('set', (newClosedCaptionsState, callback) => { this.setClosedCaptions(newClosedCaptionsState, callback); }); // not supported
 
+		// picture mode, controls the screen display
 		this.televisionService.getCharacteristic(Characteristic.PictureMode)
 			.on('get', this.getPictureMode.bind(this))
 			//.on('set', (newPictureMode, callback) => { this.setPictureMode(newPictureMode, callback); }); // not supported
 
-		this.televisionService.getCharacteristic(Characteristic.RemoteKey)
-			.on('set', this.setRemoteKey.bind(this));
-
-		this.televisionService.getCharacteristic(Characteristic.PowerModeSelection)
-			.on('set', this.setPowerModeSelection.bind(this));
-
+		// current media state (play, pause etc)
 		this.televisionService.getCharacteristic(Characteristic.CurrentMediaState)
 			.on('get', this.getCurrentMediaState.bind(this));
 
+		// wanted media state (play, pause etc)
 		this.televisionService.getCharacteristic(Characteristic.TargetMediaState)
 			.on('get', this.getTargetMediaState.bind(this))
 			.on('set', (newMediaState, callback) => { this.setTargetMediaState(newMediaState, callback); });
 
+
+		// actively controled charateristics in the current Apple TV Remote app
+		this.televisionService.getCharacteristic(Characteristic.RemoteKey)
+			.on('set', this.setRemoteKey.bind(this));
+
+
+		// add to the accessory
 		this.accessory.addService(this.televisionService);
 
 	}
@@ -2107,19 +1999,18 @@ class stbDevice {
 			this.log.warn('prepareInputSourceServices');
 		}
 
-		// limit the amount of max channels to load. Hard limit 96.
+		// limit the amount of max channels to load
 		// Total services = absolute max 99 services (all types)
-		// robustness: hard limit to 96 (channels 0...94) in case user does a stupid config
-		var maxSources = Math.min(MAX_INPUT_SOURCES, 95);
-
-		// get a custom configDevice if one exists, used for adding channelNumber
+		// robustness: hard limit to 95 (channels 0...94) in case user does a stupid config
+		var maxSources = MAX_INPUT_SOURCES;
 		let configDevice;
 		if (this.config.devices) {
+			// get a custom configDevice if one exists, used for adding channelNumber
 			configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
 			 // update maxSources only if found
 			if (configDevice) { 
 				this.log.debug("prepareInputSourceServices: config found for configDevice.maxChannels:", configDevice.maxChannels);
-				// get any custom maxChannels, set per device. Caution: maxChannels max not exist!
+				// get any custom maxChannels, set per device. Caution: maxChannels may not exist!
 				maxSources = Math.min(configDevice.maxChannels || maxSources, maxSources);
 			}
 		}
@@ -2127,35 +2018,33 @@ class stbDevice {
 		// loop MAX_INPUT_SOURCES times to get the first MAX_INPUT_SOURCES channels
 		// must create all input sources before accessory is published (no way to dynamically add later)
 		this.log.debug("prepareInputSourceServices: maxSources", maxSources);
-
-		this.log.debug("prepareInputSourceServices: loading channels from this.channelListHomeKit, length:", this.channelListHomeKit.length);
+		this.log.debug("prepareInputSourceServices: loading channels from this.channelList, length:", this.channelList.length);
 		for (let i = 0; i < maxSources; i++) {
 			if (this.config.debugLevel > 2) {
 				this.log.warn('prepareInputSourceServices Adding service',i);
 			}
 
-			// default values to hide the input if nothing exists in this.channelListHomeKit
+			// default values to hide the input if nothing exists in this.channelList
+			var chFixedName = `Input ${i < 9 ? `0${i + 1}` : i + 1}`; // fixed if not profile 0
 			var chName = 'HIDDEN';
 			var chId = 'HIDDEN_' + i;
 			var visState = Characteristic.CurrentVisibilityState.HIDDEN;
 			var configState = Characteristic.IsConfigured.NOT_CONFIGURED;
 
 			// get names and channel id from the array
-			if (i < this.channelListHomeKit.length) {
-				chName = this.channelListHomeKit[i].channelName;
-				chId = this.channelListHomeKit[i].channelId;
-				visState = Characteristic.CurrentVisibilityState.SHOWN;
+			//this.log("this.channelList.length", this.channelList.length);
+			//this.log(this.channelList);
+			if (i < this.channelList.length && this.channelList[i]) {
+				chName = this.channelList[i].channelName;
+				chId = this.channelList[i].channelId;
+				visState = this.channelList[i].channelVisibilityState;
 				configState = Characteristic.IsConfigured.CONFIGURED;
-				  
 
 				// show channel number if user chose to do so
 				if (configDevice && configDevice.showChannelNumber) {
 					chName = ('0' + (i + 1)).slice(-2) + " " + chName;
 				}
 			}
-
-			
-			
 
 			// some channels are deliberately hidden, so assign a fictional channelId and disable them
 			if (chName == 'HIDDEN') {
@@ -2164,37 +2053,45 @@ class stbDevice {
 				configState = Characteristic.IsConfigured.NOT_CONFIGURED;
 			}
 
+			// Fixed Name can only be set to channel name for SharedProfile where the channel order can never be changed
+			// for custom profies, Name has to be generic as channel list order can be changed any time
+			// and HomeKit doesn't keep Name up to date
+			if (this.profileId == 0) { chFixedName = chName; }
+
 			//this.log.warn('prepareInputSourceServices Adding service %s chId %s chName %s visState %s configState %s',i, chId, chName, visState, configState);
 
 			//const inputService = new Service.InputSource(i, 'inputSource_' + 1 + '_' + chId);
 			// Service.InputSource(Identifier, subType, name);
-			this.log.debug("prepareInputSourceServices: Adding input %s with chId %s, chName %s", i, chId, chName);
+			//this.log.warn("prepareInputSourceServices: Adding input %s with chId %s, chName %s", i, chId, chName);
 			const inputService = new Service.InputSource(i, 'input_' + chId, chId);
 			inputService
 				.setCharacteristic(Characteristic.Identifier, i)
+				.setCharacteristic(Characteristic.Name, chFixedName)
 				.setCharacteristic(Characteristic.ConfiguredName, chName || `Input ${i < 9 ? `0${i + 1}` : i + 1}`)
 				.setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.APPLICATION)
 				.setCharacteristic(Characteristic.InputDeviceType, Characteristic.InputDeviceType.TV)
 				.setCharacteristic(Characteristic.IsConfigured, configState)
 				.setCharacteristic(Characteristic.CurrentVisibilityState, visState)
-				//.setCharacteristic(Characteristic.TargetVisibilityState, visState);
+				.setCharacteristic(Characteristic.TargetVisibilityState, visState);
 
 			inputService.getCharacteristic(Characteristic.ConfiguredName)
 				.on('get', (callback) => { this.getInputName(i, callback); })
 				.on('set', (value, callback) => { this.setInputName(i, value, callback); });
 
-			/*
-			// on hold for now
+			inputService.getCharacteristic(Characteristic.CurrentVisibilityState)
+				.on('get', (callback) => { this.getInputVisibilityState(i, callback) });
+
 			inputService.getCharacteristic(Characteristic.TargetVisibilityState)
 				.on('get', (callback) => { this.getInputVisibilityState(i, callback) })
 				.on('set', (value, callback) => { this.setInputVisibilityState(i, value, callback); });
-			*/
 
 			this.inputServices.push(inputService);
 			this.accessory.addService(inputService);
 			this.televisionService.addLinkedService(inputService);
 
 		} // end of for loop getting the inputSource
+
+		// write the date to file
 	}
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// END of preparing accessory and services
@@ -2220,17 +2117,18 @@ class stbDevice {
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// update the device state changed to async
-	async updateDeviceState(powerState, mediaState, channelId, sourceType, callback) {
+	async updateDeviceState(powerState, mediaState, channelId, sourceType, profileDataChanged, callback) {
 		// runs at the very start, and then every few seconds, so don't log it unless debugging
 		// doesn't get the data direct from the settop box, but rather: gets it from the this.currentPowerState and this.currentChannelId variables
 		// which are received by the mqtt messages, which occurs very often
 		if (this.config.debugLevel > 0) {
-			this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], channelId %s, sourceType %s', 
+			this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], channelId %s, sourceType %s, profileDataChanged %s', 
 				this.name, 
 				powerState, 
 				mediaState, mediaStateName[mediaState], 
 				channelId,
-				sourceType
+				sourceType,
+				profileDataChanged
 			);
 		}
 
@@ -2240,38 +2138,36 @@ class stbDevice {
 		if (mediaState != null) { this.currentMediaState = mediaState; }
 		if (channelId != null) { this.currentChannelId = channelId; }
 		if (sourceType != null) { this.currentSourceType = sourceType; }
+		this.profileDataChanged = profileDataChanged || false;
 
 		// profile data is stored on the platform
-		// get the currentClosedCaptionsState from the currently active profile
-		var configDevice = {};
-		var activeProfileId = 0; // default SharedProfile
-		// get the deviceId from the config (if any)
-		if (this.config.devices) {
-			configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
-			if (configDevice ) { activeProfileId = this.platform.profiles.findIndex(profile => profile.name === configDevice.profile); }
-		}
+		// get the currentClosedCaptionsState from the currently selected profile (stored in this.profileid)
+		//var configDevice = {};
 		this.previousClosedCaptionsState = this.currentClosedCaptionsState;
-		if ( this.platform.profiles[activeProfileId].options.showSubtitles ) {
+		if ( this.platform.profiles[this.profileId] && this.platform.profiles[this.profileId].options.showSubtitles ) {
 			this.currentClosedCaptionsState = Characteristic.ClosedCaptions.ENABLED;
 		} else {
 			this.currentClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		}
+		// store the last PictureMode
+		this.previousPictureMode = this.currentPictureMode; // future support
 
 		// debugging, helps a lot to see channelName
 		if (this.config.debugLevel > 0) {
-			let currentChannelName; // let is scopt to the current {} block
-			let curChannel;
+			let curChannel, currentChannelName;
 			if (this.platform.masterChannelList) {
-				curChannel = this.platform.masterChannelList.find(channel => channel.channelId === channelId); 
+				curChannel = this.platform.masterChannelList.find(channel => channel.channelId === this.currentChannelId ); 
+				if (curChannel) { currentChannelName = curChannel.channelName; }
 			}
-			if (curChannel) { currentChannelName = curChannel.channelName; }
-			this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s]', 
+			this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s]. currentPictureMode %s [%s], profileDataChanged %s', 
 				this.name, 
 				this.currentPowerState, 
 				this.currentMediaState, mediaStateName[this.currentMediaState], 
 				this.currentChannelId, currentChannelName,
 				this.currentSourceType,
-				this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]
+				this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState],
+				this.currentPictureMode, pictureModeName[this.currentPictureMode],
+				this.profileDataChanged
 			);
 		}
 
@@ -2313,8 +2209,8 @@ class stbDevice {
 					this.name,
 					this.previousPowerState, powerStateName[this.previousPowerState],
 					this.currentPowerState, powerStateName[this.currentPowerState]);
-				this.televisionService.getCharacteristic(Characteristic.Active).updateValue(this.currentPowerState);
 			}
+			this.televisionService.getCharacteristic(Characteristic.Active).updateValue(this.currentPowerState);
 
 			// check for change of closed captions state
 			//this.log("Previous closed captions state: %s %s", this.previousClosedCaptionsState, closedCaptionsStateName[this.previousClosedCaptionsState]);
@@ -2325,8 +2221,17 @@ class stbDevice {
 					this.name,
 					this.previousClosedCaptionsState, closedCaptionsStateName[this.previousClosedCaptionsState],
 					this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]);
-				this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).updateValue(this.currentClosedCaptionsState);
 			}
+			this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).updateValue(this.currentClosedCaptionsState);
+
+			// check for change of picture mode
+			if (this.previousPictureMode !== this.currentPictureMode) {
+				this.log('%s: Picture Mode changed from %s %s to %s %s', 
+					this.name,
+					this.previousPictureMode, pictureModeName[this.previousPictureMode],
+					this.currentPictureMode, pictureModeName[this.currentPictureMode]);
+			}
+			this.televisionService.getCharacteristic(Characteristic.PictureMode).updateValue(this.currentPictureMode);
 
 			// check for change of active identifier (channel)
 			const oldActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
@@ -2337,11 +2242,11 @@ class stbDevice {
 				// get names from loaded channel list. Using Ch Up/Ch Down buttons on the remote rolls around the profile channel list
 				// what happens if the TV is change to another profile?
 				var oldName = NO_CHANNEL_NAME, newName = oldName; // default to UNKNOWN
-				if (oldActiveIdentifier != NO_INPUT_ID && this.channelListHomeKit[oldActiveIdentifier]) {
-					oldName = this.channelListHomeKit[oldActiveIdentifier].channelName
+				if (oldActiveIdentifier != NO_INPUT_ID && this.channelList[oldActiveIdentifier]) {
+					oldName = this.channelList[oldActiveIdentifier].channelName
 				}
 				if (currentActiveIdentifier != NO_INPUT_ID) {
-					newName = this.channelListHomeKit[currentActiveIdentifier].channelName
+					newName = this.channelList[currentActiveIdentifier].channelName
 				}
 				this.log('%s: Channel changed from %s %s to %s %s', 
 					this.name,
@@ -2360,32 +2265,40 @@ class stbDevice {
 			}
 			this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.currentMediaState);
 
+			// check for change of profile
+			if (this.profileDataChanged) {
+				this.log('%s: Profile data changed', this.name);
+				this.refreshChannelList();
+				
+			}
+
+
 		}
 		return null;
 	}
 
 
-	// refresh the Accessory channel list that shows in the Home app
-	async refreshAccessoryChannelList(callback) {
-		if (this.config.debugLevel > 1) { this.log.warn('%s: refreshAccessoryChannelList', this.name); }
-		this.log("%s: Refreshing accessory channel list...", this.name);
+	// refresh the channel list that shows in the Home app
+	async refreshChannelList(callback) {
+		if (this.config.debugLevel > 1) { this.log.warn('%s: refreshChannelList', this.name); }
+		this.log("%s: Refreshing channel list...", this.name);
 		
 		// exit if no session exists
 		if (currentSessionState != sessionState.CONNECTED) { 
-			this.log.warn('%s: refreshAccessoryChannelList: Session not yet created, exiting', this.name);
+			this.log.warn('%s: refreshChannelList: Session not yet created, exiting', this.name);
 			return; 
 		}
 
 		// exit if no master channel list loaded yet (on platform level)
-		if (!this.platform.channelListExpiryDate) { 
-			this.log.warn('%s: refreshAccessoryChannelList: master channel list not yet loaded, exiting', this.name);
+		if (!this.platform.masterChannelListExpiryDate) { 
+			this.log.warn('%s: refreshChannelList: master channel list not yet loaded, exiting', this.name);
 			return; 
 		}
 
-		// limit the amount of max channels to load. Hard limit 96.
-		var maxSources = Math.min(MAX_INPUT_SOURCES, 95);
+		// limit the amount of max channels to load.
+		var maxSources = MAX_INPUT_SOURCES;
 
-		//this.loadedProfileId = this.platform.profiles.findIndex(profile => profile.name === this.config.profile);
+		//this.profileId = this.platform.profiles.findIndex(profile => profile.name === this.config.profile);
 		/*
 		this.log("%s: Loading profile: %s", this.name, this.config.profile);
 		this.log("%s: config: %s", this.name, this.config);
@@ -2393,30 +2306,29 @@ class stbDevice {
 		this.log("%s: looking for: %s", this.name, this.device.deviceId);
 		*/
 
-		if (this.config.debugLevel > 1) { this.log.warn("%s: Starting automatic channel list selection", this.name); }
+		if (this.config.debugLevel > 1) { this.log.warn("%s: Getting profile data from config", this.name); }
 		var chIds = [];
-		var selectedProfileId = -1;
 		var configDevice = {};
 		if (this.config.devices) {
 			configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
 			if (configDevice) {
-				// config for this device was found, get the profile name if it exists in the published profiles
-				selectedProfileId = this.platform.profiles.findIndex(profile => profile.name === configDevice.profile);
-				if (selectedProfileId > -1) {
+				// homebridge config for this device was found, get the profile item (=profile name) if it exists in the published profiles
+				var foundProfileId = this.platform.profiles.findIndex(profile => profile.name === configDevice.profile);
+				if (foundProfileId > -1) {
 					if (this.config.debugLevel > 1) { this.log.warn("%s: Valid profile found in config: '%s'", this.name, configDevice.profile); }
+					this.profileId = foundProfileId;
 				}
-
-				// get any custom maxChannels, set per device. Caution: maxChannels max not exist!
+				// get any custom maxChannels, set per device. Caution: maxChannels may not exist!
 				maxSources = Math.min(configDevice.maxChannels || maxSources, maxSources);
 			}
 		}
-		
 
-		// if no configured profile found (does not exist or wrong name), use some smart logic to pick the best profile
-		// first built a clean, sorted, subscribed channel list
+		// if no configured profile found (config item does not exist or name not found)
+		// or the selected profile has zero channels added to the "Profile channels list" 
+		// then build a clean, sorted, subscribed channel list
 		var subscribedChList = [];
-		if (selectedProfileId == -1) {
-			if (this.config.debugLevel > 1) { this.log.warn("%s: No profile found in config. Building a clean subscribed channel list", this.name); }
+		if (this.profileId >= 0 || this.platform.profiles[this.profileId].favoriteChannels.length == 0 ) {
+			if (this.config.debugLevel > 1) { this.log.warn("%s: Building subscribed channel list", this.name); }
 			// get a clean list of entitled channels (will not be in correct order)
 			// some entitlements are not in the masterchannelList, these must be ignored
 			if (this.config.debugLevel > 1) { this.log.warn("%s: Checking %s entitlements within %s channels in the master channel list", this.name, this.platform.session.entitlements.length, this.platform.masterChannelList.length); }
@@ -2436,70 +2348,88 @@ class stbDevice {
 			});
 		}
 
+
 		// smart default channel list selection
-		// if the subscribed channel list fits, use it
+		// a profile can contain zero channels, this is OK
+		// load from profile channels list if one exists, otherwise from the subscribed channel list
+		// if the subscribed channel list fits  (>0 and <=maxSources), use it
 		// otherwise, use the first found profile channel list that fits
-		// otherwise, use the subscribed channel list, even if it doesn't fit
-		if (selectedProfileId == -1) {
-			if (this.config.debugLevel > 1) { this.log.warn("%s: Selecting best fit channel list", this.name); }
-			if (subscribedChList.length <= maxSources) {
-				// if the subscribed channel list fits, use it
+		// always default to the subscribedChList if nothing else fits
+		if (this.profileId == -1) {
+			this.log("%s: No valid profile found in config. Selecting best-fitting profile", this.name);
+			if (subscribedChList.length > 0 && subscribedChList.length <= maxSources) {
+				// the subscribed channel list fits, use it
 				if (this.config.debugLevel > 1) { this.log.warn("%s: Selecting full subscribed channel list", this.name); }
-				selectedProfileId = 0; // default channel list
+				this.profileId = 0; // default channel list
 			} else {
 				// otherwise, use the first found profile channel list theat fits
 				// check all available profiles and choose the first found with <90 channels
 				if (this.config.debugLevel > 1) { this.log.warn("%s: Looking for best fit profile channel list within %s user profiles", this.name, this.platform.profiles.length-1); }
 				for(let i=1; i<this.platform.profiles.length; i++) {
 					if (this.config.debugLevel > 1) { this.log.warn("%s: Checking profile %s '%s' containing %s channels", this.name, i, this.platform.profiles[i].name, this.platform.profiles[i].favoriteChannels.length); }
-					if (this.platform.profiles[i].favoriteChannels.length <= maxSources) {
+					if (this.platform.profiles[i].favoriteChannels.length > 0 && this.platform.profiles[i].favoriteChannels.length <= maxSources) {
 						// found a profile that can be used
 						if (this.config.debugLevel > 1) { this.log.warn("%s: Selecting profile '%s' with %s channels", this.name, this.platform.profiles[i].name, this.platform.profiles[i].favoriteChannels.length); }
-						selectedProfileId = i;
+						this.profileId = i;
 						break;
 					}
 				}
 			}
-
 		}
-		// default: if nothing can be found, use SharedProfile 0
-		if (selectedProfileId == -1) {
-			 selectedProfileId = 0;  // fallback to SharedProfile
-			if (this.config.debugLevel > 1) { this.log.warn("%s: Defaulting to first %s channels from profile '%s'", this.name, maxSources, this.platform.profiles[selectedProfileId].name); }
-		}
-		// and now assign and display the selected profile id
-		this.loadedProfileId = selectedProfileId;
-		this.log("%s: Automatic channel list selector chose profile %s '%s'", this.name, this.loadedProfileId, this.platform.profiles[this.loadedProfileId].name);
 
 
-		// determine what channels we need to load: user profile or shared Profile (master list)
-		if (this.loadedProfileId > 0) {
-			chIds = this.platform.profiles[this.loadedProfileId].favoriteChannels;
+		// if no profile can be found, default to SharedProfile 0
+		// ensures choice is 0, or >0, but never -1
+		this.profileId = Math.max(this.profileId,0); 
+		this.log("%s: Using profile %s '%s'", this.name, this.profileId, this.platform.profiles[this.profileId].name);
+
+
+		// determine what channel list we need to load: "Profiles channels list" or master list
+		// profile can have zero channels in it, this is OK, but if so load the master channel list
+		var channelsLoadedFromProfileName;
+		if (this.profileId == 0) {
+			chIds = subscribedChList;
+			channelsLoadedFromProfileName = this.platform.profiles[this.profileId].name;
+			this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
+		} else if ( this.platform.profiles[this.profileId].favoriteChannels.length > 0 ) {
+			chIds = this.platform.profiles[this.profileId].favoriteChannels;
+			channelsLoadedFromProfileName = this.platform.profiles[this.profileId].name;
+			this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
 		} else {	
 			// Default subscribed channels in Shared Profile, alread loaded to chIds
+			chIds = subscribedChList;
+			channelsLoadedFromProfileName = this.platform.profiles[0].name;
+			this.log("%s: Profile '%s' contains 0 channels. Channel list will be loaded from profile '%s'", this.name, this.platform.profiles[this.profileId].name, channelsLoadedFromProfileName);
 		}
-		this.log("%s: Profile '%s' contains %s channels", this.name, this.platform.profiles[this.loadedProfileId].name, chIds.length);
-
 
 		// recently viewed apps
 		if (this.config.debugLevel > 1) { 
-			this.log.warn("%s: refreshAccessoryChannelList: recentlyUsedApps", this.name, this.platform.profiles[this.loadedProfileId].recentlyUsedApps);
+			this.log.warn("%s: refreshChannelList: recentlyUsedApps", this.name, this.platform.profiles[this.profileId].recentlyUsedApps);
 		}
 
-		// get any renamed channels
-		const renamedChannels = this.config.channelNames;
 
-		// grab the current ActiveIdentifier, it might change during the channel refresh
-		var currentActiveIdentifier = NO_INPUT_ID, currentChannelName = NO_CHANNEL_NAME;
+		// grab the current ActiveIdentifier, and currentChannel, it might change during the channel refresh
+		/*
+		var currentActiveIdentifier = NO_INPUT_ID, currentChannel, currentChannelName = NO_CHANNEL_NAME;
 		if (this.accessoryConfigured) { 
 			currentActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
 		}
 		if (currentActiveIdentifier != NO_INPUT_ID) {
+			currentChannel = this.inputServices[currentActiveIdentifier];
 			currentChannelName = this.inputServices[currentActiveIdentifier].getCharacteristic(Characteristic.ConfiguredName).value;
 		}
-		if (this.config.debugLevel > 1) { 
-			this.log.warn("%s: refreshAccessoryChannelList: before channel refresh: this.currentChannelId %s currentActiveIdentifier %s currentChannelName %s", this.name, this.currentChannelId, currentActiveIdentifier, currentChannelName);
+		if (this.config.debugLevel > 0) { 
+			this.log.warn("%s: refreshChannelList: before channel refresh: this.currentChannelId %s currentActiveIdentifier %s currentChannelName %s", this.name, this.currentChannelId, currentActiveIdentifier, currentChannelName);
 		}
+		*/
+
+
+		//const currentInpIndex = this.inputServices.findIndex(channel => channel.subtype == 'input_' + this.currentChannelId);
+		//this.log("Found before channel load: this.currentChannelId %s found at currentInpIndex %s", this.currentChannelId, currentInpIndex);
+
+
+		// clear the array
+		this.channelList = [];
 
 		// limit the amount to load
 		const chs = Math.min(chIds.length, maxSources);
@@ -2508,107 +2438,113 @@ class stbDevice {
 			this.log("%s: Hiding     channels %s to %s", this.name, chs + 1, maxSources);
 		}
 
-		// loop and load all channels from the chIds
+
+		// loop and load all channels from the chIds in the order defined by the array
 		chIds.forEach((chId, i) => {
-			// for ShareProfile, the i (loop index) is already the foundIndex, and chId is the entire channel record
-			var chName;
-			var foundIndex = -1; 
-			
 			// normalise the chId
-			// can be "crid:~~2F~~2Fupcch.tv~~2FSV09170" or just "SVO9170"
-			// split at ~~2F
+			// can be "crid:~~2F~~2Fupcch.tv~~2FSV09170" or just "SVO9170" so split at ~~2F
 			const oldChId = chId;
-			const chIdParts = oldChId.split("~~2F");
+			const chIdParts = chId.split("~~2F");
 			chId = chIdParts[chIdParts.length-1];
 			if (oldChId.includes("~~2F")) { this.log("chId %s modified to chId %s", oldChId, chId); }
 
 			// find the channel to load.
 			var channel = {};
-			var customChannel = [];
+			var customChannel = {};
 			
 			// first look in the config channelNames list for any user-defined custom channel name
 			if (configDevice && configDevice.channelNames) {
-					customChannel = configDevice.channelNames.find(channel => channel.channelId === chId);
-					if (!customChannel) { customChannel = []; }
-			}
-			if (customChannel.length > 0) {
-				this.log("%s: Found %s in config channel list, setting name to %s", this.name, chId, customChannel.channelName);
-			} else if (this.loadedProfileId > 0) {
-				// user profile: look in the master channel list for the favorite channel
-				this.log.debug("%s: Index %s: User profile: chId was taken from user profile list", this.name, i);
-				//foundIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === chId); 
-			} else {
-				// shared profile: the channel is in the masterChannelList at index i
-				this.log.debug("%s: Index %s: Shared profile: chId will be taken from master channel list", this.name, i);
-				//channel = this.platform.masterChannelList[i]; 
+				customChannel = configDevice.channelNames.find(channel => channel.channelId === chId);
+				customChannel.channelName = cleanNameForHomeKit(customChannel.channelName)
+				if (customChannel && customChannel.channelName) { 
+					this.log("%s: Found %s in config channelNames, setting name to %s", this.name, chId, customChannel.channelName);
+				} else {					
+ 					customChannel = {}; 
+				}
 			}
 
 			// check if the chId exists in the master channel list, if not, push it, using the user-defined name if one exists, and channelNumber >10000
 			this.log.debug("%s: Index %s: Finding chId %s in master channel list", this.name, i, chId);
-			channel =this.platform.masterChannelList.find(channel => channel.channelId === chId); 
-			//foundIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === chId); 
+			channel = this.platform.masterChannelList.find(channel => channel.channelId === chId); 
 			if (!channel) {
 				const newChName = customChannel.channelName || "Channel " + chId; 
 				this.log("%s: Unknown channel %s [%s] discovered. Adding to the master channel list", this.name, chId, newChName);
 				this.platform.masterChannelList.push({
 					channelId: chId, 
 					channelNumber: 10000 + this.platform.masterChannelList.length, 
-					channelName: newChName, 
-					channelListIndex: this.platform.masterChannelList.length
+					channelName: newChName
+					//channelListIndex: this.platform.masterChannelList.length
 				});
 				// refresh channel as the not found channel will now be in the masterChannelList
 				channel =this.platform.masterChannelList.find(channel => channel.channelId === chId); 
-				//foundIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === chId);  // update the index
 			} else {
 				// show some useful debug data
 				this.log.debug("%s: Index %s: Found %s in master channel list", this.name, i, chId);
 			}
 
-			
-
 			// load this channel as an input
 			if (i < maxSources) {
 				// get the channel
-				//var channel = this.platform.masterChannelList[foundIndex];
 
 				//this.log("channel to load (must be a single channel)", channel);
 
 				// add the user-defined name if one exists
 				if (customChannel && customChannel.channelName) { channel.channelName = customChannel.channelName; }
 
-				// show debug and add to array
-				this.log.debug("%s: Index %s: Refreshing channel %s: [%s] %s", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
-				this.channelListHomeKit[i] = channel;
-
 				// show channel number if user chose to do so
-				 if (configDevice && configDevice.showChannelNumber) {
+				if (configDevice && configDevice.showChannelNumber) {
 					channel.channelName = ('0' + (i + 1)).slice(-2) + " " + channel.channelName;
 				}
 
+				// add channel visibility and configured name, these don't exist on the master channel list
+				// these should be read from file...
+				channel.channelVisibilityState = Characteristic.CurrentVisibilityState.SHOWN;
+				channel.channelConfiguredName = channel.channelName;
+
+				// show debug and add to array
+				this.log.debug("%s: Index %s: Refreshing channel %s: [%s] %s", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
+				this.channelList[i] = channel;
+
 				// update accesory only when configured
 				if (this.accessoryConfigured) { 
-					const inputService = this.inputServices[i];
 					// update existing services
-					inputService.updateCharacteristic(Characteristic.ConfiguredName, channel.channelName);
-					inputService.updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
-					inputService.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.SHOWN);
-					inputService.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
-					// check if the currentChannelName is still in the same place, if not, update the ActiveIdentifier
-					if (channel.channelName == currentChannelName && currentActiveIdentifier != i) {
-						this.log.warn("Updating ActiveIdentifier from %s to %s", currentActiveIdentifier, i);
-						this.televisionService.updateCharacteristic(Characteristic.ActiveIdentifier, i);
+					this.inputServices[i].name = channel.channelConfiguredName;
+					this.inputServices[i].subtype = 'input_' + channel.channelId;
+
+					// Name can only be set for SharedProfile where order can never be changed
+					if (this.profileid == 0) {
+						this.inputServices[i].updateCharacteristic(Characteristic.Name, channel.channelName); // stays unchanged at Input 01 etc
 					}
+					this.inputServices[i].updateCharacteristic(Characteristic.ConfiguredName, channel.channelConfiguredName);
+					this.inputServices[i].updateCharacteristic(Characteristic.CurrentVisibilityState, channel.channelVisibilityState);
+					this.inputServices[i].updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
+					//inputService.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
 				}
 			}
 		});
 
+		// after loading all the channels, reset the ActiveIdentifier (uint32) to the right Identifier (uint32), as it may have moved slots
+		const currentInput = this.inputServices.find(channel => channel.subtype == 'input_' + this.currentChannelId);
+		if (currentInput) { 
+			this.televisionService.updateCharacteristic(Characteristic.ActiveIdentifier, currentInput.getCharacteristic(Characteristic.Identifier).value);
+		} else {
+			// not found, set to NO_INPUT_ID
+			if (this.televisionService) {
+				this.televisionService.updateCharacteristic(Characteristic.ActiveIdentifier, NO_INPUT_ID);
+			}
+		}
+
+
+		// save to disk
+		// not yet active
+		// this.platform.persistConfig(this.deviceId, this.channelList);
 
 
 				// add the recently used apps, if we are loading from a user profile
 				/*
-				if (this.loadedProfileId > 0) {
+				if (this.profileId > 0) {
 					// apps have a channel number starting with "app"
-					var appsToload = this.platform.profiles[this.loadedProfileId].recentlyUsedApps;
+					var appsToload = this.platform.profiles[this.profileId].recentlyUsedApps;
 					appsToload.forEach( (appId, i) => {
 						this.log("loading app", i, appId);
 						if (i < maxSources) {
@@ -2637,17 +2573,22 @@ class stbDevice {
 
 				
 		// for any remaining inputs that may have been previously visible, set to not configured and hidden
-		//this.log("channelListHomeKit pre filter:", this.channelListHomeKit);
+		//this.log("channelList pre filter:", this.channelList);
 		//var loadedChs = Math.min(chs, MAX_INPUT_SOURCES);
-		//this.log("channelListHomeKit, filtering to first %s items", loadedChs);
-		//this.channelListHomeKit = this.channelListHomeKit.filter((channel, index) => index < loadedChs)
-		//this.log("channelListHomeKit post filter:", this.channelListHomeKit);
+		//this.log("channelList, filtering to first %s items", loadedChs);
+		//this.channelList = this.channelList.filter((channel, index) => index < loadedChs)
+		//this.log("channelList post filter:", this.channelList);
 		for(let i=chs; i<maxSources; i++) {
 			this.log.debug("Hiding channel", ('0' + (i + 1)).slice(-2));
 			// array must stay same size and have elements that can be queried, but channelId and channelListIndex must never match valid entries
-			// channelid mjust be unique
-			this.channelListHomeKit[i] = {channelId: 'chId_' + i, channelNumber: 'none', channelName: 'HIDDEN', channelListIndex: 10000 + i}
-			// this.channelListHomeKit.splice(i, 1); // remove array content at index i, results in empty items!
+			this.channelList[i] = {
+				channelId: 'chId_' + i,  // channelid mjust be unique
+				channelNumber: 'none', 
+				channelName: 'HIDDEN', 
+				//channelListIndex: 10000 + i,
+				channelVisibilityState: Characteristic.CurrentVisibilityState.HIDDEN,
+				channelConfiguredName: 'HIDDEN'
+			}
 			
 			// get service and hide it if it exists
 			const inputService = this.inputServices[i];
@@ -2659,7 +2600,7 @@ class stbDevice {
 
 		}
 
-		this.log("%s: HomeKit channel list refreshed from profile '%s' with %s channels", this.name, this.platform.profiles[this.loadedProfileId].name, Math.min(chIds.length, maxSources));
+		this.log("%s: Channel list refreshed from profile '%s' with %s channels", this.name, channelsLoadedFromProfileName, Math.min(chIds.length, maxSources));
 		return false;
 
 	}
@@ -2904,11 +2845,11 @@ class stbDevice {
 
 		// need to read from stored cache, currently not implemented, TO-DO
 		var chName = NO_CHANNEL_NAME; // must have a value
-		if (this.channelListHomeKit[inputId]) {
-			chName = this.channelListHomeKit[inputId].channelName;
+		if (this.channelList[inputId]) {
+			chName = this.channelList[inputId].channelName;
 		}
 		if (this.config.debugLevel > 2) { 
-			this.log.warn('%s: getInputName returning %s [%s]', this.name, chName, inputId);
+			this.log.warn("%s: getInputName for input %s returning '%s'", this.name, inputId, chName);
 		}
 		callback(null, chName);
 	};
@@ -2922,8 +2863,14 @@ class stbDevice {
 		// channel 3 renamed from BBC Four/Cbeebies HD to BBC Four Cbeebies HD (valid only for HomeKit)
 
 		if (this.config.debugLevel > 2) { this.log.warn('%s: setInputName inputId %s inputName %s', this.name, inputId, newInputName); }
-		const oldInputName = this.channelListHomeKit[inputId].channelName;
-		this.log('%s: Renamed channel %s from %s to %s (valid only for HomeKit) (NOT YET IMPLEMENTED)', this.name, inputId+1, oldInputName, newInputName);
+
+		// store in channelList array and write to disk at every change
+		this.channelList[inputId].channelConfiguredName = newInputName;
+		//not yet active
+		//this.platform.persistConfig(this.deviceId, this.channelList);
+
+		const oldInputName = this.channelList[inputId].channelName;
+		this.log('%s: Renamed channel %s from %s to %s (valid only for HomeKit)', this.name, inputId+1, oldInputName, newInputName);
 		callback(null);
 	};
 
@@ -2931,27 +2878,30 @@ class stbDevice {
 
 	// get input visibility state (of the TV channel in HomeKit)
 	async getInputVisibilityState(inputId, callback) {
-		if (this.config.debugLevel > 2) { this.log.warn('%s: getInputVisibilityState inputId %s', this.name, inputId); }
-		var visState = Characteristic.CurrentVisibilityState.SHOWN;
-		var visStateName = 'SHOWN';
-		if (this.channelListHomeKit[inputId].channelName == 'HIDDEN') {
-			visState = Characteristic.CurrentVisibilityState.HIDDEN;
-			visStateName = 'HIDDEN';
-		}
-		// 0=SHOWN, 1=HIDDEN
-		//this.log.warn('%s: getInputVisibilityState inputId %s returning %s %s', this.name, inputId, visState, visStateName);
+		if (this.config.debugLevel > 1) { this.log.warn('%s: getInputVisibilityState inputId %s', this.name, inputId); }
+		//var visibilityState = Characteristic.CurrentVisibilityState.SHOWN;
+		//if (this.channelList[inputId].channelName == 'HIDDEN') {
+		//	visibilityState = Characteristic.CurrentVisibilityState.HIDDEN;
+		// }
+		const visibilityState = this.inputServices[inputId].getCharacteristic(Characteristic.CurrentVisibilityState).value;
 		if (this.config.debugLevel > 2) {
-			this.log.warn('%s: getInputVisibilityState returning %s [%s]', this.name, visState, visStateName);
+			this.log.warn('%s: getInputVisibilityState for inputId %s returning %s [%s]', this.name, inputId, visibilityState, visibilityStateName[visibilityState]);
 		}
-		callback(null, visState);
+		callback(null, visibilityState);
 	}
 
 	// set input visibility state (show or hide the TV channel)
-	async setInputVisibilityState(inputId, inputVisState, callback) {
-		if (this.config.debugLevel > 2) { this.log.warn('%s: setInputVisibilityState inputId %s inputVisState %s:', this.name, inputId, inputVisState); }
-		//var foundIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === this.currentChannelId);
-		//if (foundIndex > -1) { currentChannelName = this.platform.masterChannelList[foundIndex].channelName; }
-		//this.log('Change channel from %s %s to %s %s', this.currentChannelId, currentChannelName, input.channelId, input.channelName);
+	async setInputVisibilityState(inputId, visibilityState, callback) {
+		if (this.config.debugLevel > 2) { 
+			this.log.warn('%s: setInputVisibilityState inputId %s inputVisibilityState %s [%s]', this.name, inputId, visibilityState, visibilityStateName[visibilityState]); 
+		}
+		this.inputServices[inputId].getCharacteristic(Characteristic.CurrentVisibilityState).updateValue(visibilityState);
+
+		// store in channelList array and write to disk at every change
+		this.channelList[inputId].channelVisibilityState = visibilityState;
+		//not yet active
+		//this.platform.persistConfig(this.deviceId, this.channelList);
+
 		callback(null); // for rapid response
 	}
 
@@ -2959,7 +2909,7 @@ class stbDevice {
 	// get closed captions state
 	async getClosedCaptions(callback) {
 		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
-		if (this.config.debugLevel > 0) { 
+		if (this.config.debugLevel > 1) { 
 			this.log.warn('%s: getClosedCaptions', this.name); 
 			this.log.warn('%s: getClosedCaptions returning %s [%s]', this.name, this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]); 
 		}
@@ -2970,7 +2920,7 @@ class stbDevice {
 	async setClosedCaptions(targetClosedCaptionsState, callback) {
 		// fired when ??
 		// targetClosedCaptionsState is the wanted state
-		if (this.config.debugLevel > 0) { this.log.warn('%s: setClosedCaptions targetClosedCaptionsState:', this.name, targetClosedCaptionsState, closedCaptionsStateName[targetClosedCaptionsState]); }
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setClosedCaptions targetClosedCaptionsState:', this.name, targetClosedCaptionsState, closedCaptionsStateName[targetClosedCaptionsState]); }
 		if(this.currentClosedCaptionsState !== targetClosedCaptionsState){
 			this.log("setClosedCaptions: not Yet implemented");
 		}
@@ -2981,7 +2931,7 @@ class stbDevice {
 	// get picture mode state
 	async getPictureMode(callback) {
 		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
-		if (this.config.debugLevel > 0) { 
+		if (this.config.debugLevel > 1) { 
 			this.log.warn('%s: getPictureMode', this.name); 
 			this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.currentPictureMode, pictureModeName[this.currentPictureMode]); 
 		}
@@ -2992,7 +2942,7 @@ class stbDevice {
 	async setPictureMode(targetPictureMode, callback) {
 		// fired when ??
 		// targetClosedCaptionsState is the wanted state
-		if (this.config.debugLevel > 0) { this.log.warn('%s: setPictureMode targetPictureMode:', this.name, targetPictureMode, pictureModeName[targetPictureMode]); }
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setPictureMode targetPictureMode:', this.name, targetPictureMode, pictureModeName[targetPictureMode]); }
 		if(this.currentPictureMode !== targetPictureMode){
 			this.log("setPictureMode: not Yet implemented");
 		}

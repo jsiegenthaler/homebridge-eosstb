@@ -8,19 +8,21 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 
 # Bug Fixes and Improvements
 
-## 1.0.3-beta.22 (2021-03-26)
+## 1.1.0 (2021-03-28)
 ### Changes
-* Added Virgin Media IE login (needs cleaning up)
+* Added Virgin Media IE login support
+* Added support of Input Current Visibility State
 * Added support of Closed Captions (Log and Shortcuts)
 * Added support of Picture Mode (Log and Shortcuts)
 * Added support of mqtt subscriptions for recording status
 * Added support of device config options "syncName" and "name", see Readme for details
 * Improved handling of device names when syncing (valid names: 3 to 14 characters)
 * Improved session robustness and automatic reconnects
-* Improved robustness of config, country is now case insensitive
+* Improved handling of profiles with no favourite channels
+* Improved handling of profiles when channel order changes
+* Improved robustness of config: country is now case insensitive
 * Improved error logging in loadMasterChannelList
 * Improved some logging
-* Started on PL support (testers Needed)
 * Bumped dependencies
 
 
