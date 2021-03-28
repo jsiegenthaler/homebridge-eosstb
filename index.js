@@ -2327,25 +2327,27 @@ class stbDevice {
 		// or the selected profile has zero channels added to the "Profile channels list" 
 		// then build a clean, sorted, subscribed channel list
 		var subscribedChList = [];
-		if (this.profileId >= 0 || this.platform.profiles[this.profileId].favoriteChannels.length == 0 ) {
-			if (this.config.debugLevel > 1) { this.log.warn("%s: Building subscribed channel list", this.name); }
-			// get a clean list of entitled channels (will not be in correct order)
-			// some entitlements are not in the masterchannelList, these must be ignored
-			if (this.config.debugLevel > 1) { this.log.warn("%s: Checking %s entitlements within %s channels in the master channel list", this.name, this.platform.session.entitlements.length, this.platform.masterChannelList.length); }
-			this.platform.session.entitlements.forEach((chId) => {
-				//this.log("Looking to load this chId %s", chId);
-				// chId can be crid:~~2F~~2Fupcch.tv~~2FSV09170, so split at ~~2F to get SV09170
-				const chIdParts = chId.split("~~2F");
-				chId = chIdParts[chIdParts.length-1];
-				// see if we can find this in the masterChannelList, if so add it
-				var foundIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === chId);
-				if ( foundIndex > -1 ) { subscribedChList.push( chId ); }
-			});
-			// the channels are not in the right sort order, so sort correctly
-			this.platform.masterChannelList.forEach((channel) => {
-				var foundIndex = subscribedChList.findIndex(chId => chId === channel.channelId);
-				if ( foundIndex > -1 ) { chIds.push( channel.channelId ); }
-			});
+		if (this.profileId >= 0) {
+		 	if (this.platform.profiles[this.profileId].favoriteChannels.length == 0 ) {
+				if (this.config.debugLevel > 1) { this.log.warn("%s: Building subscribed channel list", this.name); }
+				// get a clean list of entitled channels (will not be in correct order)
+				// some entitlements are not in the masterchannelList, these must be ignored
+				if (this.config.debugLevel > 1) { this.log.warn("%s: Checking %s entitlements within %s channels in the master channel list", this.name, this.platform.session.entitlements.length, this.platform.masterChannelList.length); }
+				this.platform.session.entitlements.forEach((chId) => {
+					//this.log("Looking to load this chId %s", chId);
+					// chId can be crid:~~2F~~2Fupcch.tv~~2FSV09170, so split at ~~2F to get SV09170
+					const chIdParts = chId.split("~~2F");
+					chId = chIdParts[chIdParts.length-1];
+					// see if we can find this in the masterChannelList, if so add it
+					var foundIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === chId);
+					if ( foundIndex > -1 ) { subscribedChList.push( chId ); }
+				});
+				// the channels are not in the right sort order, so sort correctly
+				this.platform.masterChannelList.forEach((channel) => {
+					var foundIndex = subscribedChList.findIndex(chId => chId === channel.channelId);
+					if ( foundIndex > -1 ) { chIds.push( channel.channelId ); }
+				});
+			}
 		}
 
 

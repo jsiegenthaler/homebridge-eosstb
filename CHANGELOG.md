@@ -8,6 +8,11 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 
 # Bug Fixes and Improvements
 
+## 1.1.1 (2021-03-28)
+* Fixed issue when channelNames exist: Cannot read property 'channelName' of undefined on line 2458
+* Fixed issue when profiles do not exist: Cannot read property 'favoriteChannels' of undefined on line 2330
+
+
 ## 1.1.0 (2021-03-28)
 ### Changes
 * Added Virgin Media IE login support
