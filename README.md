@@ -63,8 +63,8 @@ This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Zigg
 * An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1...14.4.2, earlier versions not tested.
 * [Homebridge](https://homebridge.io/) v1.3.4 (or later). Developed on Homebridge 1.1.116....1.3.4, earlier versions not tested.
 * A TV subscription from one of the supported countries and TV providers.
-* An online account for viewing TV in the web app (often part of your TV package), which is one of these: AT: [Magenta TV](https://www.magentatv.at/de.html), BE: [Telenet TV](https://www.telenettv.be/nl.html), CH: [UPC TV](https://www.upctv.ch/obo_en.html), GB: [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html), IE: [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html), NL: [Ziggo Go](https://www.ziggogo.tv/nl.html), PL: [Horizon Go](https://www.horizon.tv/pl_pl.html)
-* The ARRIS mediabox DCX960, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries. 
+* An online account for viewing TV in the web app (often part of your TV package), see the table above.
+* The ARRIS DCX960 mediabox, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries. 
 * The ARRIS DCX960 should be set to **Standby power consumption** = **Fast start** to ensure it is always online and can respond to switch-on requests from HomeKit.
 * For GB/IE users: the ARRIS DCX960 must be running the TV360 software, and not the older TiVo software as found in GB and maybe IE. TiVo is not supported by this plugin.
 
