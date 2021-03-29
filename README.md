@@ -66,7 +66,7 @@ This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Zigg
 * An online account for viewing TV in the web app (often part of your TV package), see the table above.
 * The ARRIS DCX960 mediabox, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries. 
 * The ARRIS DCX960 should be set to **Standby power consumption** = **Fast start** to ensure it is always online and can respond to switch-on requests from HomeKit.
-* For GB/IE users: the ARRIS DCX960 must be running the TV360 software, and not the older TiVo software as found in GB and maybe IE. TiVo is not supported by this plugin.
+* For GB and IE users: the ARRIS DCX960 must be running the TV 360 software, and not the older TiVo V6 software as found in GB and IE. TiVo V6 is not supported by this plugin, but GB users can [upgrade to TV 360 by contacting Virgin Media](https://www.virginmedia.com/shop/customer/virgin-tv-360-upgrade).
 
 ## Features
 <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/EosstbControls.png" alt="EosstbControls" height="300" align="right">
