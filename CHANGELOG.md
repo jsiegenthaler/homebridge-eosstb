@@ -8,13 +8,23 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 
 # Bug Fixes and Improvements
 
+
+## 1.1.2 (2021-04-02)
+* Improved sessionWatchdog to detect session up but mqttClient down, and try to reconnect
+* Improved logging of volume command warnings
+* Improved display of device config tip
+* Fixed issue where channel list was not sorted properly
+* Fixed issue where only the first device of multiple devices would load
+* Fixed issue where a scenario with no profiles resulted in no channels being loaded
+* Fixed issue where duplicates in the masterChannelList caused channel loading problems
+
+
 ## 1.1.1 (2021-03-28)
 * Fixed issue when channelNames exist: Cannot read property 'channelName' of undefined on line 2458
 * Fixed issue when profiles do not exist: Cannot read property 'favoriteChannels' of undefined on line 2330
 
 
 ## 1.1.0 (2021-03-28)
-### Changes
 * Added Virgin Media IE login support
 * Added support of Input Current Visibility State
 * Added support of Closed Captions (Log and Shortcuts)
@@ -32,7 +42,6 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 
 
 ## 1.0.2 (2021-03-22)
-### Changes
 * Improved handling when no supported devices found
 * Improved logging when getPersonalizationData fails
 * Improved code for the television service
@@ -41,7 +50,6 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 
 
 ## 1.0.1 (2021-03-21)
-### Changes
 * Cleaned up some left-over debug logging
 * Started session code for IE (unfinished)
 

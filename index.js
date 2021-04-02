@@ -335,8 +335,11 @@ class stbPlatform {
 			this.log.warn('sessionWatchdog sessionState %s, sessionConnected %s, mqttClientConnected %s', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false); 
 		}
 
-		// as we are called regularly by setInterval, exit immediately if session has any state other than DISCONNECTED
-		if (currentSessionState !== sessionState.DISCONNECTED) { return; }
+		// as we are called regularly by setInterval, exit immediately if session is still connected and mqtt is still connected
+		if (currentSessionState == sessionState.CONNECTED && mqttClient.connected ) { return; }
+
+		// the session might be in a state between disconnected and connected, so exit if not disconnected
+		if (currentSessionState !== sessionState.DISCONNECTED ) { return; }
 
 		// detect if running on development environment
 		//	customStoragePath: 'C:\\Users\\jochen\\.homebridge'
@@ -344,10 +347,12 @@ class stbPlatform {
 		if (PLUGIN_ENV) { this.log.warn('%s running in %s environment with debugLevel %s', PLUGIN_NAME, PLUGIN_ENV, this.config.debugLevel); }
 	
 		// Step 1: session does not exist, so create the session, passing the country value
-		this.log('Session does not exist');
-		this.createSession(this.config.country.toLowerCase());
-
-
+		if (currentSessionState == sessionState.DISCONNECTED ) { 
+			this.log('Session is not connected, starting session reconnect...');
+			this.createSession(this.config.country.toLowerCase());
+		} else if (currentSessionState == sessionState.CONNECTED && !mqttClient.connected) { 
+			this.log('Session is still connected, but mqttCLient is disconnected, refreshing session and restarting mqttClient...');
+		}
 
 		// async wait a few seconds for the session to load, then continue
 		// should be 10!
@@ -396,17 +401,30 @@ class stbPlatform {
 					this.log(logText, this.devices.length);
 					this.log('Discovery completed');
 
+
 					// user config tip showing all found devices
-					// as a workaround until I make a config setup json
-					let tipText = '';
+					// display only when no config.devices not found
+					let tipText = '', deviceFoundInConfig = true;
 					for (let i = 0; i < this.devices.length; i++) {
 						if (!tipText == '') { tipText = tipText + ',\n'; }
 						tipText = tipText + ' {\n';
 						tipText = tipText + '   "deviceId": "' + this.devices[i].deviceId + '",\n';
 						tipText = tipText + '   "name": "' + this.devices[i].settings.deviceFriendlyName + '"\n';
 						tipText = tipText + ' }';
+						if (this.config.devices) {
+							let configDeviceIndex = this.config.devices.findIndex(devConfig => devConfig.deviceId == this.devices[i].deviceId);
+							if (configDeviceIndex == -1) {
+								this.log("Device not found in config: %s", this.devices[i].deviceId);
+								deviceFoundInConfig = false;
+							}
+						} else {
+							deviceFoundInConfig = false;
+						}
 					}
-					this.log('Config tip: Add these lines to your Homebridge ' + PLATFORM_NAME + ' config if you wish to customise your device config: \n"devices": [\n' + tipText + '\n]');
+					if (!deviceFoundInConfig) {
+						this.log('Config tip: Add these lines to your Homebridge ' + PLATFORM_NAME + ' config if you wish to customise your device config: \n"devices": [\n' + tipText + '\n]');
+					}
+
 
 					// debug: observe the structure!!
 					//this.log("sessionWatchdog: before searching the cache: this.stbDevices", this.stbDevices);
@@ -424,7 +442,7 @@ class stbPlatform {
 
 						// check if the accessory already exists, create if it does not
 						// a stbDevice contains various data: HomeKit accessory, EOS platform, EOS device, EOS profile
-						let foundStbDevice = this.stbDevices.find(stbDevice => stbDevice.accessory.UUID === uuid)
+						let foundStbDevice = this.stbDevices.find(stbDevice => (stbDevice.accessory || {}).UUID === uuid)
 						if (!foundStbDevice) {
 							this.log("Device not found in cache, creating new accessory for %s", this.devices[i].deviceId);
 
@@ -591,7 +609,7 @@ class stbPlatform {
 						this.log('Step 2 of 7: response:',response.status, response.statusText);
 		
 						// Step 3: # login
-						this.log('Step 3 of 7 logging in with username %s', this.config.username);
+						this.log('Step 3 of 7: logging in with username %s', this.config.username);
 						this.log.debug('Step 3 of 7: post login to',BE_AUTH_URL);
 						currentSessionState = sessionState.LOGGING_IN;
 						//this.log('Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
@@ -818,30 +836,30 @@ class stbPlatform {
 				let authState = auth.session.state;
 				let authAuthorizationUri = auth.session.authorizationUri;
 				let authValidtyToken = auth.session.validityToken;
-				this.log.debug('Step 1 of 7 results: authState',authState);
-				this.log.debug('Step 1 of 7 results: authAuthorizationUri',authAuthorizationUri);
-				this.log.debug('Step 1 of 7 results: authValidtyToken',authValidtyToken);
+				this.log.debug('Step 1 of 7: results: authState',authState);
+				this.log.debug('Step 1 of 7: results: authAuthorizationUri',authAuthorizationUri);
+				this.log.debug('Step 1 of 7: results: authValidtyToken',authValidtyToken);
 
 				// Step 2: # follow authorizationUri to get AUTH cookie (ULM-JSESSIONID)
-				this.log('Step 2 of 7 get AUTH cookie');
-				this.log.debug('Step 2 of 7 get AUTH cookie from',authAuthorizationUri);
+				this.log('Step 2 of 7: get AUTH cookie');
+				this.log.debug('Step 2 of 7: get AUTH cookie from',authAuthorizationUri);
 				axiosWS.get(authAuthorizationUri, {
 						jar: cookieJar,
 						ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie
 					})
 					.then(response => {	
-						this.log('Step 2 of 7 response:',response.status, response.statusText);
+						this.log('Step 2 of 7: response:',response.status, response.statusText);
 						//this.log.warn('Step 2 of 7 response.data',response.data); // an html logon page
 		
 						// Step 3: # login
-						this.log('Step 3 of 7 logging in with username %s', this.config.username);
+						this.log('Step 3 of 7: logging in with username %s', this.config.username);
 						//this.log('Cookies for the auth url:',cookieJar.getCookies(GB_AUTH_URL));
 						currentSessionState = sessionState.LOGGING_IN;
 
 						// we just want to POST to 
 						// 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
 						const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
-						this.log.debug('Step 3 of 7 POST request will contain this data: {"username":"' + this.config.username + '","credential":"' + this.config.password + '"}');
+						this.log.debug('Step 3 of 7: POST request will contain this data: {"username":"' + this.config.username + '","credential":"' + this.config.password + '"}');
 						axiosWS(GB_AUTH_URL,{
 						//axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
 							jar: cookieJar,
@@ -858,9 +876,9 @@ class stbPlatform {
 							},
 							})
 							.then(response => {	
-								this.log('Step 3 of 7 response:',response.status, response.statusText);
-								this.log.debug('Step 3 of 7 response.headers:',response.headers); 
-								this.log.debug('Step 3 of 7 response.data:',response.data);
+								this.log('Step 3 of 7: response:',response.status, response.statusText);
+								this.log.debug('Step 3 of 7: response.headers:',response.headers); 
+								this.log.debug('Step 3 of 7: response.data:',response.data);
 
 								//this.log('Step 3 of 7 response.headers:',response.headers);
 								var url = response.headers['x-redirect-location']
@@ -873,16 +891,16 @@ class stbPlatform {
 								//location is https?? if not authorised
 								//location is https:... error=session_expired if session has expired
 								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
-									this.log.warn('Step 3 of 7 Unable to login: wrong credentials');
+									this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
 								} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
-									this.log.warn('Step 3 of 7 Unable to login: session expired');
+									this.log.warn('Step 3 of 7: Unable to login: session expired');
 									cookieJar.removeAllCookies();	// remove all the locally cached cookies
 									currentSessionState = sessionState.DISCONNECTED;	// flag the session as dead
 								} else {
-									this.log.debug('Step 3 of 7 login successful');
+									this.log.debug('Step 3 of 7: login successful');
 
 									// Step 4: # follow redirect url
-									this.log('Step 4 of 7 follow redirect url');
+									this.log('Step 4 of 7: follow redirect url');
 									axiosWS.get(url,{
 										jar: cookieJar,
 										maxRedirects: 0, // do not follow redirects
@@ -892,8 +910,8 @@ class stbPlatform {
 										})
 										.then(response => {	
 											this.log('Step 4 of 7 response:',response.status, response.statusText);
-											this.log.debug('Step 4 of 7 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
-											this.log.debug('Step 4 of 7 response.data:',response.data);
+											this.log.debug('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
+											this.log.debug('Step 4 of 7: response.data:',response.data);
 											//this.log('Step 4 response.headers:',response.headers);
 											url = response.headers.location;
 											if (!url) {		// robustness: fail if url missing
@@ -904,16 +922,16 @@ class stbPlatform {
 			
 											// look for login_success?code=
 											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
-												this.log.warn('Step 4 of 7 Unable to login: wrong credentials');
+												this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
 												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 											} else if (url.indexOf('error=session_expired') > 0 ) {
-												this.log.warn('Step 4 of 7 Unable to login: session expired');
+												this.log.warn('Step 4 of 7: Unable to login: session expired');
 												cookieJar.removeAllCookies();	// remove all the locally cached cookies
 												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 											} else {
 
 												// Step 5: # obtain authorizationCode
-												this.log('Step 5 of 7 extract authorizationCode');
+												this.log('Step 5 of 7: extract authorizationCode');
 												url = response.headers.location;
 												if (!url) {		// robustness: fail if url missing
 													this.log.warn('getSessionGB: Step 5: location url empty!');
@@ -924,14 +942,14 @@ class stbPlatform {
 												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
 												var authorizationCode = codeMatches[1];
 												if (codeMatches.length !== 2 ) { // length must be 2 if code found
-													this.log.warn('Step 5 of 7 Unable to extract authorizationCode');
+													this.log.warn('Step 5 of 7: Unable to extract authorizationCode');
 												} else {
-													this.log('Step 5 of 7 authorizationCode OK');
-													this.log.debug('Step 5 of 7 authorizationCode:',authorizationCode);
+													this.log('Step 5 of 7: authorizationCode OK');
+													this.log.debug('Step 5 of 7: authorizationCode:',authorizationCode);
 
 													// Step 6: # authorize again
-													this.log('Step 6 of 7 post auth data with valid code');
-													this.log.debug('Step 6 of 7 post auth data with valid code to',apiAuthorizationUrl);
+													this.log('Step 6 of 7: post auth data with valid code');
+													this.log.debug('Step 6 of 7: post auth data with valid code to',apiAuthorizationUrl);
 													currentSessionState = sessionState.AUTHENTICATING;
 													var payload = {'authorizationGrant':{
 														'authorizationCode':authorizationCode,
@@ -940,25 +958,25 @@ class stbPlatform {
 													}};
 													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
 														.then(response => {	
-															this.log('Step 6 of 7 response:',response.status, response.statusText);
-															this.log.debug('Step 6 of 7 response.data:',response.data);
+															this.log('Step 6 of 7: response:',response.status, response.statusText);
+															this.log.debug('Step 6 of 7: response.data:',response.data);
 															
 															auth = response.data;
 															//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
-															this.log.debug('Step 6 of 7 refreshToken:',auth.refreshToken);
+															this.log.debug('Step 6 of 7: refreshToken:',auth.refreshToken);
 
 															// Step 7: # get OESP code
-															this.log('Step 7 of 7 post refreshToken request');
-															this.log.debug('Step 7 of 7 post refreshToken request to',apiAuthorizationUrl);
+															this.log('Step 7 of 7: post refreshToken request');
+															this.log.debug('Step 7 of 7: post refreshToken request to',apiAuthorizationUrl);
 															payload = {'refreshToken':auth.refreshToken,'username':auth.username};
 															var sessionUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/session';
 															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
 																.then(response => {	
-																	this.log('Step 7 of 7 response:',response.status, response.statusText);
+																	this.log('Step 7 of 7: response:',response.status, response.statusText);
 																	currentSessionState = sessionState.VERIFYING;
 																	
-																	this.log.debug('Step 7 of 7 response.headers:',response.headers); 
-																	this.log.debug('Step 7 of 7 response.data:',response.data); 
+																	this.log.debug('Step 7 of 7: response.headers:',response.headers); 
+																	this.log.debug('Step 7 of 7: response.data:',response.data); 
 																	this.log.debug('Cookies for the session:',cookieJar.getCookies(sessionUrl));
 
 																	// get device data from the session
@@ -972,14 +990,14 @@ class stbPlatform {
 																})
 																// Step 7 http errors
 																.catch(error => {
-																	this.log.warn("Step 7 of 7 Unable to get OESP token:",error.response.status, error.response.statusText);
-																	this.log.debug("Step 7 of 7 error:",error);
+																	this.log.warn("Step 7 of 7: Unable to get OESP token:",error.response.status, error.response.statusText);
+																	this.log.debug("Step 7 of 7: error:",error);
 																	currentSessionState = sessionState.DISCONNECTED;
 																});
 														})
 														// Step 6 http errors
 														.catch(error => {
-															this.log.warn("Step 6 of 7 Unable to authorize with oauth code, http error:",error);
+															this.log.warn("Step 6 of 7: Unable to authorize with oauth code, http error:",error);
 															currentSessionState = sessionState.DISCONNECTED;
 														});	
 												};
@@ -987,31 +1005,31 @@ class stbPlatform {
 										})
 										// Step 4 http errors
 										.catch(error => {
-											this.log.warn("Step 4 of 7 Unable to oauth authorize:",error.response.status, error.response.statusText);
-											this.log.debug("Step 4 of 7 error:",error);
+											this.log.warn("Step 4 of 7: Unable to oauth authorize:",error.response.status, error.response.statusText);
+											this.log.debug("Step 4 of 7: error:",error);
 											currentSessionState = sessionState.DISCONNECTED;
 										});
 								};
 							})
 							// Step 3 http errors
 							.catch(error => {
-								this.log.warn("Step 3 of 7 Unable to login:",error.response.status, error.response.statusText);
-								this.log.debug("Step 3 of 7 error:",error);
+								this.log.warn("Step 3 of 7: Unable to login:",error.response.status, error.response.statusText);
+								this.log.debug("Step 3 of 7: error:",error);
 								currentSessionState = sessionState.DISCONNECTED;
 							});
 					})
 					// Step 2 http errors
 					.catch(error => {
-						this.log.warn("Step 2 of 7 Unable to get authorizationUri:",error.response.status, error.response.statusText);
-						this.log.debug("Step 2 of 7 error:",error);
+						this.log.warn("Step 2 of 7: Unable to get authorizationUri:",error.response.status, error.response.statusText);
+						this.log.debug("Step 2 of 7: error:",error);
 						currentSessionState = sessionState.DISCONNECTED;
 					});
 			})
 			// Step 1 http errors
 			.catch(error => {
 				this.log('Failed to create GB session - check your internet connection');
-				this.log.warn("Step 1 of 7 Could not get apiAuthorizationUrl:",error.response.status, error.response.statusText);
-				this.log.debug("Step 1 of 7 error:",error);
+				this.log.warn("Step 1 of 7: Could not get apiAuthorizationUrl:",error.response.status, error.response.statusText);
+				this.log.debug("Step 1 of 7: error:",error);
 				currentSessionState = sessionState.DISCONNECTED;
 			});
 
@@ -1616,7 +1634,6 @@ class stbPlatform {
 							const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
 							if (deviceIndex > -1 && this.stbDevices[deviceIndex]) { 
 								this.stbDevices[deviceIndex].device = device;
-								this.long("calling mqttDeviceStateHandler");
 								this.mqttDeviceStateHandler(deviceId); // update one device
 							}
 						});
@@ -1640,8 +1657,10 @@ class stbPlatform {
 				errText = 'getPersonalizationData for %s failed: '
 				if (error.isAxiosError) { 
 					errReason = error.code + ': ' + (error.hostname || ''); 
+				} else if (error.response) {
+					errReason = (error.response || {}).status + ' ' + ((error.response || {}).statusText || ''); 
 				} else {
-					errReason = error.response.status + ' ' + (error.response.statusText || ''); 
+					errReason = error; 
 				}
 				this.log('%s %s', requestType, (errReason || ''));
 				this.log.debug(`getPersonalizationData error:`, error);
@@ -1805,6 +1824,7 @@ class stbDevice {
 		// must be different between debug (development) instance and release instance
 		const uuidSeed = this.device.deviceId + PLUGIN_ENV;
 		const accessoryUUID = UUID.generate(uuidSeed); 
+		//this.UUID = accessoryUUID; // fix bug in v1.1.x where it wouldn't find box 2
 
 		// set one of the three suitable accessory categories, see https://developers.homebridge.io/#/categories
 		// get a custom configDevice if one exists
@@ -2019,9 +2039,10 @@ class stbDevice {
 		// must create all input sources before accessory is published (no way to dynamically add later)
 		this.log.debug("prepareInputSourceServices: maxSources", maxSources);
 		this.log.debug("prepareInputSourceServices: loading channels from this.channelList, length:", this.channelList.length);
+
 		for (let i = 0; i < maxSources; i++) {
 			if (this.config.debugLevel > 2) {
-				this.log.warn('prepareInputSourceServices Adding service',i);
+				this.log.warn('prepareInputSourceServices Adding service',i, this.channelList[i].channelName);
 			}
 
 			// default values to hide the input if nothing exists in this.channelList
@@ -2323,32 +2344,57 @@ class stbDevice {
 			}
 		}
 
+
+
 		// if no configured profile found (config item does not exist or name not found)
 		// or the selected profile has zero channels added to the "Profile channels list" 
 		// then build a clean, sorted, subscribed channel list
 		var subscribedChList = [];
-		if (this.profileId >= 0) {
-		 	if (this.platform.profiles[this.profileId].favoriteChannels.length == 0 ) {
-				if (this.config.debugLevel > 1) { this.log.warn("%s: Building subscribed channel list", this.name); }
-				// get a clean list of entitled channels (will not be in correct order)
-				// some entitlements are not in the masterchannelList, these must be ignored
-				if (this.config.debugLevel > 1) { this.log.warn("%s: Checking %s entitlements within %s channels in the master channel list", this.name, this.platform.session.entitlements.length, this.platform.masterChannelList.length); }
-				this.platform.session.entitlements.forEach((chId) => {
-					//this.log("Looking to load this chId %s", chId);
-					// chId can be crid:~~2F~~2Fupcch.tv~~2FSV09170, so split at ~~2F to get SV09170
-					const chIdParts = chId.split("~~2F");
-					chId = chIdParts[chIdParts.length-1];
-					// see if we can find this in the masterChannelList, if so add it
-					var foundIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === chId);
-					if ( foundIndex > -1 ) { subscribedChList.push( chId ); }
-				});
-				// the channels are not in the right sort order, so sort correctly
-				this.platform.masterChannelList.forEach((channel) => {
-					var foundIndex = subscribedChList.findIndex(chId => chId === channel.channelId);
-					if ( foundIndex > -1 ) { chIds.push( channel.channelId ); }
-				});
+		if (this.config.debugLevel > 1) { this.log.warn("%s: Using profileId %s", this.name, this.profileId); }
+		if (this.config.debugLevel > 1) { this.log.warn("%s: Checking if subscribed channel list is needed", this.name); }
+		if (this.profileId <= 0 || this.platform.profiles[this.profileId].favoriteChannels.length == 0 ) {
+			if (this.config.debugLevel > 1) { this.log.warn("%s: Building subscribed channel list", this.name); }
+			// get a clean list of entitled channels (will not be in correct order)
+			// some entitlements are not in the masterchannelList, these must be ignored
+			if (this.config.debugLevel > 1) { this.log.warn("%s: Checking %s entitlements within %s channels in the master channel list", this.name, this.platform.session.entitlements.length, this.platform.masterChannelList.length); }
+			
+			this.platform.session.entitlements.forEach((chId) => {
+				// chId can be crid:~~2F~~2Fupcch.tv~~2FSV09170, so split at ~~2F to get SV09170
+				// channels can exist multiple times in the entitlements
+				const chIdParts = chId.split("~~2F");
+				chId = chIdParts[chIdParts.length-1];
+				if (this.config.debugLevel > 2) { 
+					this.log.warn("%s: Checking entitlements ", this.name, chId); 
+				}
+				// see if we can find this in the masterChannelList, but not in the subscribedChList
+				// if exists in masterChannelList, and not in subscribedChList, add to subscribedChList
+				var masterChListIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === chId);
+				var subsChListIndex = subscribedChList.findIndex(subsChId => subsChId === chId);
+				if ( masterChListIndex > -1 && subsChListIndex == -1 ) { 
+					if (this.config.debugLevel > 2) { 
+						this.log.warn("%s: entitlement channelId does not exist in unsorted subscribedChList, adding %s at index %s", this.name, chId, subscribedChList.length); 
+					}
+					subscribedChList.push( chId ); 
+				}
+			});
+
+			// the channels are not in the right sort order, so sort correctly in same order as masterChannelList
+			this.platform.masterChannelList.forEach((channel) => {
+				var foundIndex = subscribedChList.findIndex(chId => chId === channel.channelId);
+				if ( foundIndex > -1 ) { 
+					if (this.config.debugLevel > 2) { 
+						this.log.warn("%s: channelId does not exist in sorted chIds, adding %s %s at index %s", this.name, channel.channelId, channel.channelName, chIds.length); 
+					}
+					chIds.push( channel.channelId ); 
+				} 
+			});
+			if (this.config.debugLevel > 2) { 
+				this.log.warn("%s: Sorted chids created with %s entries", this.name, chIds.length); 
 			}
+
+
 		}
+
 
 
 		// smart default channel list selection
@@ -2385,12 +2431,14 @@ class stbDevice {
 		this.profileId = Math.max(this.profileId,0); 
 		this.log("%s: Using profile %s '%s'", this.name, this.profileId, this.platform.profiles[this.profileId].name);
 
+	
+
 
 		// determine what channel list we need to load: "Profiles channels list" or master list
 		// profile can have zero channels in it, this is OK, but if so load the master channel list
 		var channelsLoadedFromProfileName;
 		if (this.profileId == 0) {
-			chIds = subscribedChList;
+			// subscribed channels in Shared Profile, already loaded to chIds
 			channelsLoadedFromProfileName = this.platform.profiles[this.profileId].name;
 			this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
 		} else if ( this.platform.profiles[this.profileId].favoriteChannels.length > 0 ) {
@@ -2398,8 +2446,7 @@ class stbDevice {
 			channelsLoadedFromProfileName = this.platform.profiles[this.profileId].name;
 			this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
 		} else {	
-			// Default subscribed channels in Shared Profile, alread loaded to chIds
-			chIds = subscribedChList;
+			// Default subscribed channels in Shared Profile, already loaded to chIds
 			channelsLoadedFromProfileName = this.platform.profiles[0].name;
 			this.log("%s: Profile '%s' contains 0 channels. Channel list will be loaded from profile '%s'", this.name, this.platform.profiles[this.profileId].name, channelsLoadedFromProfileName);
 		}
@@ -2443,6 +2490,7 @@ class stbDevice {
 
 		// loop and load all channels from the chIds in the order defined by the array
 		chIds.forEach((chId, i) => {
+			//this.log("In for-each loop, processing index %s %s", i, chId)
 			// normalise the chId
 			// can be "crid:~~2F~~2Fupcch.tv~~2FSV09170" or just "SVO9170" so split at ~~2F
 			const oldChId = chId;
@@ -2457,8 +2505,8 @@ class stbDevice {
 			// first look in the config channelNames list for any user-defined custom channel name
 			if (configDevice && configDevice.channelNames) {
 				customChannel = configDevice.channelNames.find(channel => channel.channelId === chId);
-				customChannel.channelName = cleanNameForHomeKit(customChannel.channelName)
-				if (customChannel && customChannel.channelName) { 
+				if ((customChannel || {}).channelName) { 
+					customChannel.channelName = cleanNameForHomeKit(customChannel.channelName)
 					this.log("%s: Found %s in config channelNames, setting name to %s", this.name, chId, customChannel.channelName);
 				} else {					
  					customChannel = {}; 
@@ -2486,9 +2534,6 @@ class stbDevice {
 
 			// load this channel as an input
 			if (i < maxSources) {
-				// get the channel
-
-				//this.log("channel to load (must be a single channel)", channel);
 
 				// add the user-defined name if one exists
 				if (customChannel && customChannel.channelName) { channel.channelName = customChannel.channelName; }
@@ -2510,6 +2555,7 @@ class stbDevice {
 				// update accesory only when configured
 				if (this.accessoryConfigured) { 
 					// update existing services
+					this.log.debug("Adding %s %s to input index %s",channel.channelId, channel.channelName, i);
 					this.inputServices[i].name = channel.channelConfiguredName;
 					this.inputServices[i].subtype = 'input_' + channel.channelId;
 
@@ -2737,8 +2783,10 @@ class stbDevice {
 					if (error) { self.log.warn('setMute Error:',stderr.trim()); }
 				});
 			} else {
-				this.log('Mute command not configured');
+				this.log('%s: Mute command not configured', this.name);
 			}
+		} else {
+			this.log('%s: Mute command not configured', this.name);
 		}
 	}
 
@@ -2792,8 +2840,10 @@ class stbDevice {
 						if (error) { self.log.warn('%s: setVolume Error: %s', self.name, stderr.trim()); }
 					});
 				} else {
-					this.log('%s: Set volume: Volume commands not configured', this.name);
+					this.log('%s: Volume commands not configured', this.name);
 				}
+			} else {
+				this.log('%s: Volume commands not configured', this.name);
 			}
 		}
 	}
@@ -2872,7 +2922,10 @@ class stbDevice {
 		//this.platform.persistConfig(this.deviceId, this.channelList);
 
 		const oldInputName = this.channelList[inputId].channelName;
-		this.log('%s: Renamed channel %s from %s to %s (valid only for HomeKit)', this.name, inputId+1, oldInputName, newInputName);
+		// maybe suppress 
+		if (this.config.debugLevel > 2) {
+			this.log('%s: Renamed channel %s from %s to %s (valid only for HomeKit)', this.name, inputId+1, oldInputName, newInputName);
+		}
 		callback(null);
 	};
 
