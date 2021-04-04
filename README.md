@@ -30,7 +30,7 @@ If you like this plugin, consider making a donation or buying me a coffee!<br>
 ## Readme Applicability
 Due to the adding of features and functions, this Readme applies from v1.1.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
 
-# Works in Your Country (If you are with Magenta / Telenet / UPC / Virgin Media / Ziggo)
+# Works in Your Country (If you are with Magenta / Telenet / UPC / Virgin Media / Vodafone / Ziggo)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 set-top box are:
 
 | Country | TV Provider | Web App | Box Name | Plugin Status |
@@ -42,9 +42,13 @@ As UPC operates in multiple countries under multiple brands, this plugin will wo
 | NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo Go](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | Fully Working |
 | ------- | ----------- | ------- | -------- | ------------- |
 | AT | [Magenta](https://www.magenta.at/) | [Magenta TV](https://www.magentatv.at/de.html) | [Entertain Box 4K](https://www.magenta.at/entertain-box) | _Testers Wanted_ |
+| CZ | [Vodafone CZ](https://www.vodafone.cz/) | [Horizon Go](https://www.horizon.tv/cs_cz.html) | Vodafone TV | _Testers Wanted_ |
 | DE | [Vodafone DE](https://zuhauseplus.vodafone.de/digital-fernsehen/) | [Horizon Go](https://www.horizon.tv/de_de.html) | [Unsure](https://zuhauseplus.vodafone.de/digital-fernsehen/tv-endgeraete/) | _Testers Wanted_ |
 | HU | [Vodafone Hungary](https://www.upc.hu/) | [Horizon Go](https://www.horizon.tv/hu_hu.html) | ?? | _Testers Wanted_ |
 | PL | [UPC PL](https://www.upc.pl/) | [Horizon Go](https://www.horizon.tv/pl_pl.html) | Horizon decoder | _Testers Wanted_ |
+| RO | [Vodafone Romania](https://www.vodafone.ro/) | [Horizon Go](https://www.horizon.tv/ro_ro.html) | Vodafone TV | _Testers Wanted_ |
+| SK | [UPC Broadband Slovakia](https://www.upc.sk/) | [Horizon Go](https://www.horizon.tv/sk_sk.html) | Horizon TV | _Testers Wanted_ |
+
 
 If you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
 
