@@ -11,7 +11,7 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 
 ## 1.1.3 (2021-04-06)
 * Added urls for cz, de, hu, sk, ro (testers needed)
-* Added ignorning of BBC special apps com.bbc.app.launcher and com.bbc.app.crb so that channel name stays displayed
+* Added ignoring of BBC special apps com.bbc.app.launcher and com.bbc.app.crb so that channel name stays displayed
 
 
 ## 1.1.2 (2021-04-02)
