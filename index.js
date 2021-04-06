@@ -50,24 +50,33 @@ const countryBaseUrlArray = {
     'at': 		'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web', // v3 and v4 works
     'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/fr/web',
     'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/nld/web',
-    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v3 and v4 works, also https://web-api-pepper.horizon.tv/oesp/v4/CH/deu/web/channels
+    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v2, v3 and v4 work
+	'cz':		'https://web-api-pepper.horizon.tv/oesp/v4/CZ/ces/web/', // v2, v3 and v4 work
+	'de':		'https://web-api-pepper.horizon.tv/oesp/v4/DE/deu/web', // v2, v3 and v4 work
     'gb':       'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web',
+	'hu':		'https://web-api-pepper.horizon.tv/oesp/v4/HU/hun/web',  // v2, v3 and v4 work
 	'ie':       'https://prod.oesp.virginmediatv.ie/oesp/v4/IE/eng/web/',
     'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web',
-	'pl':		'https://web-api-pepper.horizon.tv/oesp/v2/PL/pol/web'
+	'pl':		'https://web-api-pepper.horizon.tv/oesp/v4/PL/pol/web', // v2, v3 and v4 work
+	'sk':		'https://web-api-pepper.horizon.tv/oesp/v4/SK/slk/web', // v2, v3 and v4 work
+	'ro':		'https://web-api-pepper.horizon.tv/oesp/v4/RO/ron/web' // v2, v3 and v4 work
 };
 
 // mqtt endpoints varies by country
 const mqttUrlArray = {
     'at':		'wss://obomsg.prod.at.horizon.tv/mqtt',
-    'be-fr':  	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
-    'be-nl': 	'wss://obomsg.prod.be.horizon.tv:443/mqtt',
+    'be-fr':  	'wss://obomsg.prod.be.horizon.tv/mqtt',
+    'be-nl': 	'wss://obomsg.prod.be.horizon.tv/mqtt',
     'ch': 		'wss://obomsg.prod.ch.horizon.tv/mqtt',
+	'cz':		'wss://obomsg.prod.cz.horizon.tv/mqtt',
+	'de':		'wss://obomsg.prod.de.horizon.tv/mqtt',
     'gb':       'wss://obomsg.prod.gb.horizon.tv/mqtt',
+	'hu':		'wss://obomsg.prod.hu.horizon.tv/mqtt',
     'ie':       'wss://obomsg.prod.ie.horizon.tv/mqtt',
-    'nl': 		'wss://obomsg.prod.nl.horizon.tv:443/mqtt',
-    'pl': 		'wss://obomsg.prod.pl.horizon.tv:/mqtt' // to be confirmed
-		
+    'nl': 		'wss://obomsg.prod.nl.horizon.tv/mqtt',
+    'pl': 		'wss://obomsg.prod.pl.horizon.tv/mqtt',
+	'sk':		'wss://obomsg.prod.sk.horizon.tv/mqtt',
+	'ro':		'wss://obomsg.prod.ro.horizon.tv/mqtt'
 };
 
 // profile url endpoints varies by country
@@ -78,11 +87,17 @@ const personalizationServiceUrlArray = {
     'be-fr':  	'https://prod.spark.telenettv.be/fr/web/personalization-service/v1/customer/{householdId}',
     'be-nl': 	'https://prod.spark.telenettv.be/nld/web/personalization-service/v1/customer/{householdId}',
     'ch': 		'https://prod.spark.upctv.ch/eng/web/personalization-service/v1/customer/{householdId}',
+	'cz':		'',
+	'de':		'',
     'gb':       'https://prod.spark.virginmedia.com/eng/web/personalization-service/v1/customer/{householdId}',
+	'hu':		'',
     'ie':       'https://prod.spark.virginmediatv.ie/eng/web/personalization-service/v1/customer/{householdId}',
     'nl': 		'https://prod.spark.ziggogo.tv/nld/web/personalization-service/v1/customer/{householdId}',
-    'pl': 		'https://prod.spark.upctv.pl/nld/web/personalization-service/v1/customer/{householdId}' // to be confirmed
+    'pl': 		'https://prod.spark.upctv.pl/pol/web/personalization-service/v1/customer/{householdId}',
+	'sk':		'',
+	'ro':		''
 };
+
 
 
 // special channel names
@@ -1373,20 +1388,31 @@ class stbPlatform {
 							//parent.log("mqttClient: apps: Detected mqtt app appName %s", cpeUiStatus.appsState.appName);
 							// we get id and appName here, load to the channel list...
 							// useful for YouTube and Netflix
-							// check if the channel exists in the master channel list, if not, push it, using the user-defined name if one exists
-							currChannelId = cpeUiStatus.appsState.id;
-							var foundIndex = parent.masterChannelList.findIndex(channel => channel.channelId === currChannelId); 
-							if (foundIndex == -1) {
-								parent.log("App %s discovered. Adding to the master channel list at index %s with channelId %s", cpeUiStatus.appsState.appName, parent.masterChannelList.length, currChannelId);
-								// for easy identification, make the channelNumber app10000 + the index number
-								parent.masterChannelList.push({
-									channelId: currChannelId, 
-									channelNumber: 'app' + (10000 + parent.masterChannelList.length), 
-									channelName: cleanNameForHomeKit(cpeUiStatus.appsState.appName)
-									//channelListIndex: parent.masterChannelList.length
-								});
-								
+							switch (cpeUiStatus.appsState.id) {
+		
+								case 'com.bbc.app.launcher': case 'com.bbc.app.crb':
+									// ignore the following apps to ensure shannel name is not overridden:
+									// com.bbc.app.launcher 	button launcher app??
+									// com.bbc.app.crb 			Connected Red Button app, this is the Red Button special control on the remote
+									currChannelId = null; 
+									parent.log("App %s [%s] detected. Ignoring", cpeUiStatus.appsState.id, cpeUiStatus.appsState.appName);
+									break;
+
+								default:
+									// check if the app channel exists in the master channel list, if not, push it, using the user-defined name if one exists
+									currChannelId = cpeUiStatus.appsState.id;
+									var foundIndex = parent.masterChannelList.findIndex(channel => channel.channelId === currChannelId); 
+									if (foundIndex == -1 ) {
+										parent.log("App %s detected. Adding to the master channel list at index %s with channelId %s", cpeUiStatus.appsState.appName, parent.masterChannelList.length, currChannelId);
+										// for easy identification, make the channelNumber app10000 + the index number
+										parent.masterChannelList.push({
+											channelId: currChannelId, 
+											channelNumber: 'app' + (10000 + parent.masterChannelList.length), 
+											channelName: cleanNameForHomeKit(cpeUiStatus.appsState.appName)
+										});
+									}
 							}
+
 						default:
 
 					}
