@@ -4,7 +4,7 @@ See the [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/ma
 Please restart Homebridge after every plugin update.
 
 # CONFIG CHANGES REQUIRED
-You must updated your config when updating from 0.1.13 to 1.0.0 (or later versions). See the [configuration section in the Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration).
+If you used custom channels, you must updated your config when updating from 1.1.3 to 1.1.4 (or later versions). See the [configuration section in the Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration).
 
 # Bug Fixes and Improvements
 
@@ -13,7 +13,7 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.1.4-beta.2 (2021-04-11)
+## 1.1.4 (2021-04-11)
 * Added config.schema.json
 * Added recordingState, added detection of nDVR / localDVR / LDVR, improved device detection
 
