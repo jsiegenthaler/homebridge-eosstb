@@ -257,11 +257,11 @@ Mandatory config items must always exist. These are used to establish the sessio
 
 #### Optional
 
-* **name**: The platform name that appears in the Homebridge logs. In Switzerland, the platform is called EOS. In Belgium and Great Britain the platform is called Horizon. Optional, defaults to "eosstb".
+* **name**: The platform name that appears in the Homebridge logs. In Switzerland, the platform is called EOS. In Belgium and Great Britain the platform is called Horizon. Optional, defaults to "EOSSTB".
 
 * **triplePressTime**: The amount of time in ms to detect triple-press of a button. Used for triple-press features, such as triple-press of Volume Down generates Mute. Optional, defaults to 800ms.
 
-* **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Debug messages are shown in the Homebridge log in the warning colour, normally yellow. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
+* **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Extra debug messages above level 0 are shown in the Homebridge log in the warning colour, normally yellow. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
 
 
 
@@ -277,7 +277,7 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 ##### Name and Icon
 
-* **name**: The device name. Set to anything you want. If syncName is true, the name will also be synced to the set-top box. Note that the set-top box name must be between 3 and 14 characters long; shorter names are expanded, longer names are truncated. Optional, defaults to the set-top box name.
+* **name**: The device name. Set to anything you want. If syncName is true, the name will also be synced to the set-top box. Note that the set-top box name must be between 3 and 14 characters long; shorter names are expanded, longer names are truncated. Optional, defaults to the current set-top box name.
 
 * **syncName**: You can choose to sync the HomeKit name with the physical set-top box name. If you set syncName to false, you can name the set-top box in HomeKit differently to the physical set-top box. Optional, defaults to true.
 
