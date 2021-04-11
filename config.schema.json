@@ -133,7 +133,7 @@
                         "title": "Serial Number",
                         "type": "string",
                         "description": "The serial number to display in the Home app. Default: auto-detected.",
-                        "placeholder": "3C36E4-EOSSTB-000123456789",
+                        "placeholder": "Current Serial Number",
                         "maxLength": 64
                     },
                     "firmwareRevision": {

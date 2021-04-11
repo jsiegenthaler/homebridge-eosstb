@@ -1632,7 +1632,6 @@ class stbPlatform {
 		const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?plannedOnly=false&range=1-20'; // works
 		const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
 		if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: GET %s', url); }
-		this.log('getRecordingState: GET %s', url);
 		axiosWS.get(url, config)
 			.then(response => {	
 				if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: response: %s %s', response.status, response.statusText); }
@@ -1655,11 +1654,12 @@ class stbPlatform {
 					// mostRelevantEpisode.recordingState: 'ongoing',
 					// mostRelevantEpisode.recordingType: 'nDVR',
 					// logging
-					response.data.recordings.forEach((recording) => {
-						this.log('Recording showTitle "%s", cpeId %s, type %s, recordingState %s, recordingType %s, mostRelevantEpisode:',  recording.showTitle, recording.cpeId, recording.type, recording.recordingState, recording.recordingType, )
-						this.log(recording.mostRelevantEpisode )
-					});
-
+					if (this.config.debugLevel > 0) { 
+						response.data.recordings.forEach((recording) => {
+							this.log.warn('Recording showTitle "%s", cpeId %s, type %s, recordingState %s, recordingType %s, mostRelevantEpisode:',  recording.showTitle, recording.cpeId, recording.type, recording.recordingState, recording.recordingType, )
+							this.log.warn(recording.mostRelevantEpisode )
+						});
+					}
 
 					// get each device. Fifor every recordingState update, update all devices
 					// only the main device can have a HDD and thus should receive the ONGOING_LOCALDVR state
@@ -1667,29 +1667,29 @@ class stbPlatform {
 					this.devices.forEach((device) => {
 						var recType, recState;
 
-						this.log("getRecordingState: Checking device %s...", device.deviceId)
+						if (this.config.debugLevel > 0) { this.log("getRecordingState: Checking device %s...", device.deviceId); }
 						if (device.capabilities.hasHDD) {
 							// device has HDD, look for local recordings
-							this.log("getRecordingState:Checking device %s. Device has a HDD:", device.deviceId)
+							if (this.config.debugLevel > 0) { this.log.warn("getRecordingState:Checking device %s. Device has a HDD:", device.deviceId); }
 
-							this.log("getRecordingState:Checking device %s with HDD. Searching for ongoing local show recordings for this device...", device.deviceId)
+							if (this.config.debugLevel > 0) { this.log.warn("getRecordingState:Checking device %s with HDD. Searching for ongoing local show recordings for this device...", device.deviceId); }
 							let recordingLocal = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.recordingState == 'ongoing');
 							if (recordingLocal) {
 								// found ongoing local show recording
 								recType = recordingLocal.recordingType;
-								this.log("getRecordingState: ongoing local show recording found for device %s with status %s %s", recordingLocal.cpeId, recordingLocal.recordingState, recordingLocal.recordingType)
+								if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: ongoing local show recording found for device %s with status %s %s", recordingLocal.cpeId, recordingLocal.recordingState, recordingLocal.recordingType); }
 							
 							} else {
 								// if none found then look for season recordings:
-								this.log("getRecordingState: Checking device %s with HDD. Searching for ongoing local season recordings for this device...", device.deviceId)
+								if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: Checking device %s with HDD. Searching for ongoing local season recordings for this device...", device.deviceId); }
 								let recordingLocalSeason = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
 								if (recordingLocalSeason) {
 									// found local ongoing season recording
 									recType = recordingLocalSeason.mostRelevantEpisode.recordingType;
-									this.log("getRecordingState: ongoing local season recording found with status %s %s", recordingLocalSeason.mostRelevantEpisode.recordingState, recordingLocalSeason.mostRelevantEpisode.recordingType)
+									if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: ongoing local season recording found with status %s %s", recordingLocalSeason.mostRelevantEpisode.recordingState, recordingLocalSeason.mostRelevantEpisode.recordingType); }
 
 								} else {
-									this.log("getRecordingState: No ongoing local recordings found")
+									if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: No ongoing local recordings found"); }
 									recType = 'idle';
 								}
 
@@ -1700,30 +1700,30 @@ class stbPlatform {
 						// check network recordings
 						if (!recType || recType == 'idle') {
 							// device has no HDD, check network recordings
-							this.log("getRecordingState: Checking device %s. Searching for ongoing network recordings for this device...", device.deviceId)
+							if (this.config.debugLevel > 0) { this.log("getRecordingState: Checking device %s. Searching for ongoing network recordings for this device...", device.deviceId); }
 							// first look for non-season recordings:
 							let recordingNetwork = response.data.recordings.find(recording => !recording.cpeId && recording.recordingState == 'ongoing');
 							if (recordingNetwork) {
 								// found ongoing network show recording
 								recType = recordingNetwork.recordingType;
-								this.log("getRecordingState: ongoing recording found with status %s %s", recordingNetwork.recordingState, recordingNetwork.recordingType)
+								if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: ongoing recording found with status %s %s", recordingNetwork.recordingState, recordingNetwork.recordingType); }
 
 							} else {
 								// if none found then look for season recordings:
-								this.log("getRecordingState: Checking device %s. Searching for ongoing season network recordings for this device...", device.deviceId)
+								if (this.config.debugLevel > 0) { this.log("getRecordingState: Checking device %s. Searching for ongoing season network recordings for this device...", device.deviceId); }
 								let recordingNetworkSeason = response.data.recordings.find(recording => recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
 								if (recordingNetworkSeason) {
 									recType = recordingNetworkSeason.mostRelevantEpisode.recordingType;
-									this.log("getRecordingState: ongoing season network recording found with status %s %s", recordingNetworkSeason.mostRelevantEpisode.recordingState, recordingNetworkSeason.mostRelevantEpisode.recordingType)
+									if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: ongoing season network recording found with status %s %s", recordingNetworkSeason.mostRelevantEpisode.recordingState, recordingNetworkSeason.mostRelevantEpisode.recordingType); }
 								} else {
-									this.log("getRecordingState: No network ongoing recordings found")
+									if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: No network ongoing recordings found"); }
 									recType = 'idle';
 								}
 							}
 						}
 
 						// local has prio over network
-						this.log("getRecordingState: Setting recState for %s according to recType %s", device.deviceId, recType)
+						if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: Setting recState for %s according to recType %s", device.deviceId, recType); }
 						if (recType == 'localDVR' || recType == 'LDVR') { 
 							recState = recordingState.ONGOING_LOCALDVR;
 						} else if (recType == 'nDVR') { 
@@ -1733,7 +1733,7 @@ class stbPlatform {
 						}
 
 						// update the device state
-						this.log("getRecordingState: Updating device state for %s to recState %s %s", device.deviceId, recState, recType)
+						if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: Updating device state for %s to recState %s %s", device.deviceId, recState, recType); }
 						this.mqttDeviceStateHandler(device.deviceId, null, null, recState, null, null, null);
 					});
 
@@ -2415,30 +2415,30 @@ class stbDevice {
 			// check for change of picture mode or recordingState (both stored in picture mode)
 			if ((configDevice || {}).pictureMode == 'recordingState') {
 				// PictureMode is used for recordingState function, this is a custom characteristic, not supported by HomeKit. we can use values 0...7
-				this.log("previousRecordingState", this.previousRecordingState);
-				this.log("currentRecordingState", this.currentRecordingState);
+				//this.log("previousRecordingState", this.previousRecordingState);
+				//this.log("currentRecordingState", this.currentRecordingState);
 				if (this.previousRecordingState !== this.currentRecordingState) {
 					this.log('%s: Recording State changed from %s %s to %s %s', 
 						this.name,
 						this.previousRecordingState, recordingStateName[this.previousRecordingState],
 						this.currentRecordingState, recordingStateName[this.currentRecordingState]);
 				}
-				this.log("configDevice.pictureMode found %s, setting PictureMode to %s", (configDevice || {}).pictureMode, this.currentRecordingState);
+				//this.log("configDevice.pictureMode found %s, setting PictureMode to %s", (configDevice || {}).pictureMode, this.currentRecordingState);
 				this.customPictureMode = this.currentRecordingState;
 			} else {
 				// PictureMode is used for default function: pictureMode
-				this.log("previousPictureMode", this.previousPictureMode);
-				this.log("currentPictureMode", this.currentPictureMode);
+				//this.log("previousPictureMode", this.previousPictureMode);
+				//this.log("currentPictureMode", this.currentPictureMode);
 				if (this.previousPictureMode !== this.currentPictureMode) {
 					this.log('%s: Picture Mode changed from %s %s to %s %s', 
 						this.name,
 						this.previousPictureMode, pictureModeName[this.previousPictureMode],
 						this.currentPictureMode, pictureModeName[this.currentPictureMode]);
 				}
-				this.log("configDevice.pictureMode not found %s, setting PictureMode to %s", (configDevice || {}).pictureMode, this.currentPictureMode);
+				//this.log("configDevice.pictureMode not found %s, setting PictureMode to %s", (configDevice || {}).pictureMode, this.currentPictureMode);
 				this.customPictureMode = this.currentPictureMode;
 			}
-			this.log("setting PictureMode to %s", this.customPictureMode);
+			//this.log("setting PictureMode to %s", this.customPictureMode);
 			this.televisionService.getCharacteristic(Characteristic.PictureMode).updateValue(this.customPictureMode);
 
 
