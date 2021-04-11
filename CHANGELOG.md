@@ -8,6 +8,15 @@ You must updated your config when updating from 0.1.13 to 1.0.0 (or later versio
 
 # Bug Fixes and Improvements
 
+## Current In-Work List (Future Releases)
+* In work: testing of Input Current Visibility State
+* In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
+
+
+## 1.1.4-beta.1 (2021-04-11)
+* Added config.schema.json
+* Added recordingState, added detection of nDVR / localDVR / LDVR, improved device detection
+
 
 ## 1.1.3 (2021-04-06)
 * Added urls for cz, de, hu, sk, ro (testers needed)

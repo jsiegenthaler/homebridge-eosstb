@@ -100,19 +100,6 @@ const personalizationServiceUrlArray = {
 
 
 
-// special channel names
-// These names are not broadcast in the master channel list as they are normally apps
-const specialChannelNames = {
-    'at':		'',
-    'be-fr':  	'',
-    'be-nl': 	'',
-    'ch': 		[ { channelId: 'SV09690', channelName: 'Netflix' } ],
-    'gb':       '',
-    'ie':       '',
-    'nl': 		''
-};
-
-
 // openid logon url used in Telenet.be Belgium for be-nl and be-fr sessions
 const BE_AUTH_URL = 'https://login.prd.telenet.be/openid/login.do';
 
@@ -131,7 +118,7 @@ const MAX_INPUT_SOURCES = 95; // max input services. Default = 95. Cannot be mor
 const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in millisec. Default = 15000 (15s)
 const MQTT_WATCHDOG_INTERVAL_MS = 10000; // mqtt watchdog interval in millisec. Default = 10000 (10s)
 const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 120; // channel list refresh check interval, in seconds. Default = 120
-
+const RECORDING_STATE_ONGOING = 1; // Custom characteristic
 
 // state constants
 const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 };
@@ -140,12 +127,15 @@ const powerStateName = ["OFF", "ON"];
 const closedCaptionsStateName = ["DISABLED", "ENABLED"];
 const visibilityStateName = ["SHOWN", "HIDDEN"];
 const pictureModeName = ["OTHER", "STANDARD", "CALIBRATED", "CALIBRATED_DARK", "VIVID", "GAME", "COMPUTER", "CUSTOM"];
+const recordingState = { IDLE: 0, ONGOING_LOCALDVR: 1, ONGOING_NDVR: 2 };
+const recordingStateName = ["IDLE", "ONGOING_LOCALDVR", "ONGOING_NDVR"];
 Object.freeze(sessionState);
 Object.freeze(mediaStateName);
 Object.freeze(powerStateName);
 Object.freeze(closedCaptionsStateName);
 Object.freeze(visibilityStateName);
 Object.freeze(pictureModeName);
+Object.freeze(recordingStateName);
 
 
 
@@ -154,6 +144,7 @@ Object.freeze(pictureModeName);
 var exec = require("child_process").exec;
 const { waitForDebugger } = require('inspector');
 const { ENGINE_METHOD_CIPHERS } = require('constants');
+const { LOADIPHLPAPI } = require('dns');
 var PLUGIN_ENV = ''; // controls the development environment, appended to UUID to make unique device when developing
 
 // variables for session and all devices
@@ -314,7 +305,7 @@ class stbPlatform {
 
 	// persist config to disc
 	persistConfig(deviceId, jsonData) {
-		// we want to save channelNames and visibilityState
+		// we want to save channel names and visibilityState
 
 		// storage path, constant
 		const filename = path.join(this.api.user.storagePath(), 'persist', 'AccessoryInfo.' + PLATFORM_NAME + '.' + deviceId + '.json');
@@ -341,7 +332,7 @@ class stbPlatform {
 
 
 	// the awesome watchDog
-	sessionWatchdog() {
+	async sessionWatchdog() {
 		// the session watchdog creates a session when none exists, and creates stbDevices when none exist
 		// runs every few seconds. 
 		// If session exists: Exit immediately
@@ -1128,8 +1119,8 @@ class stbPlatform {
 			})
 			.catch(error => {
 				let errText, errReason;
-				errText = 'Failed to refresh the master channel list - check your internet connection'
-				if (error.isAxiosError) { errReason = ': ' + error.code + ': ' + (error.hostname || ''); }
+				errText = 'Failed to refresh the master channel list - check your internet connection:'
+				if (error.isAxiosError) { errReason = error.code + ': ' + (error.hostname || ''); }
 				this.log('%s %s', errText, (errReason || ''));
 				this.log.debug(`refreshMasterChannelList error:`, error);
 
@@ -1264,6 +1255,9 @@ class stbPlatform {
 				parent.getUiStatus(device.deviceId);
 			});
 
+			// and request current recordingState
+			parent.getRecordingState();  // async function
+
 			// ++++++++++++++++++++ mqttConnected +++++++++++++++++++++
 			
 
@@ -1279,7 +1273,7 @@ class stbPlatform {
 				}
 
 				// variables for just in this function
-				var deviceId, currPowerState, currMediaState, currChannelId, currSourceType;
+				var deviceId, currPowerState, currMediaState, currChannelId, currSourceType, currRecordingState;
 
 				// and request the UI status for each device
 				// 14.03.2021 does not respond, disabling for now...
@@ -1307,7 +1301,14 @@ class stbPlatform {
 					}
 				}
 
-				
+				// handle recordingState messages
+				// Topic: Topic: 107xxxx_ch/recordingStatus
+				// Message: {"id":"crid:~~2F~~2Fgn.tv~~2F2004781~~2FEP019440730003,imi:2d369682b865679f2e5182ea52a93410171cfdc8","event":"scheduleEvent","transactionId":"/CH/eng/web/networkdvrrecordings - 013f12fc-23ef-4b77-a244-eeeea0c6901c"}
+				if (topic.includes(mqttUsername + '/recordingStatus')) {
+					if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: event: %s', mqttMessage.event); }
+					parent.getRecordingState(); // async function
+				}
+
 				// handle status messages for the STB
 				// Topic: 107xxxx_ch/3C36E4-EOSSTB-00365657xxxx/status
 				// Message: {"deviceType":"STB","source":"3C36E4-EOSSTB-00365657xxxx","state":"ONLINE_RUNNING","mac":"F8:F5:32:45:DE:52","ipAddress":"192.168.0.33/255.255.255.0"}
@@ -1431,8 +1432,10 @@ class stbPlatform {
 					}
 				}
 
+
 				// update the device on every message
-				parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currChannelId, currSourceType);
+				//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged) 
+				parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currSourceType);
 				
 			}); // end of mqtt client event: message received
 
@@ -1480,14 +1483,14 @@ class stbPlatform {
 
 
 	// handle the state change of the device, calling the updateDeviceState of the relevant device
-	mqttDeviceStateHandler(deviceId, powerState, mediaState, channelId, sourceType, profileDataChanged) {
+	mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged) {
 		if (this.config.debugLevel > 1) { 
 			this.log.warn('deviceStateHandler: deviceId %s, powerState %s, mediaState %s, channelId %s, sourceType %s, profileDataChanged %s', deviceId, powerState, mediaState, channelId, sourceType, profileDataChanged); 
 		}
 		if (this.devices) {
 			const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
 			if (deviceIndex > -1 && this.stbDevices.length > 0) { 
-				this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, channelId, sourceType, profileDataChanged); 
+				this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged); 
 			}
 		}
 	}
@@ -1619,6 +1622,144 @@ class stbPlatform {
 	}
 
 
+	// get the recording state via web request GET
+	async getRecordingState(callback) {
+		this.log("Refreshing recording state");
+		if (this.config.debugLevel > 0) { this.log.warn('getRecordingState'); }
+
+		// https://obo-prod.oesp.upctv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20
+		//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
+		const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?plannedOnly=false&range=1-20'; // works
+		const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
+		if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: GET %s', url); }
+		this.log('getRecordingState: GET %s', url);
+		axiosWS.get(url, config)
+			.then(response => {	
+				if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: response: %s %s', response.status, response.statusText); }
+				if (this.config.debugLevel > 0) { 
+					this.log.warn('getRecordingState: response data:');
+					this.log.warn(response.data);
+				}
+
+				// find if any recordings are ongoing, and if local or network
+				// loop all cpes, find and local recordings per cpe first.
+				// if none found, find network recordings second
+				if (response.data.recordings) { 
+					// a recording carries these properties:
+					// for type='single'
+					// recordingState: 'ongoing', 'recorded' or ??, for all types
+					// recordingType: 'nDVR', 'localDVR', 'LDVR', 
+					// cpeId: '3C36E4-EOSSTB-003597101009', only for local DVRs
+
+					// for type='season':
+					// mostRelevantEpisode.recordingState: 'ongoing',
+					// mostRelevantEpisode.recordingType: 'nDVR',
+					// logging
+					response.data.recordings.forEach((recording) => {
+						this.log('Recording showTitle "%s", cpeId %s, type %s, recordingState %s, recordingType %s, mostRelevantEpisode:',  recording.showTitle, recording.cpeId, recording.type, recording.recordingState, recording.recordingType, )
+						this.log(recording.mostRelevantEpisode )
+					});
+
+
+					// get each device. Fifor every recordingState update, update all devices
+					// only the main device can have a HDD and thus should receive the ONGOING_LOCALDVR state
+					// loop through all devices, handling devices with HDDs and devices without HDDs
+					this.devices.forEach((device) => {
+						var recType, recState;
+
+						this.log("getRecordingState: Checking device %s...", device.deviceId)
+						if (device.capabilities.hasHDD) {
+							// device has HDD, look for local recordings
+							this.log("getRecordingState:Checking device %s. Device has a HDD:", device.deviceId)
+
+							this.log("getRecordingState:Checking device %s with HDD. Searching for ongoing local show recordings for this device...", device.deviceId)
+							let recordingLocal = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.recordingState == 'ongoing');
+							if (recordingLocal) {
+								// found ongoing local show recording
+								recType = recordingLocal.recordingType;
+								this.log("getRecordingState: ongoing local show recording found for device %s with status %s %s", recordingLocal.cpeId, recordingLocal.recordingState, recordingLocal.recordingType)
+							
+							} else {
+								// if none found then look for season recordings:
+								this.log("getRecordingState: Checking device %s with HDD. Searching for ongoing local season recordings for this device...", device.deviceId)
+								let recordingLocalSeason = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
+								if (recordingLocalSeason) {
+									// found local ongoing season recording
+									recType = recordingLocalSeason.mostRelevantEpisode.recordingType;
+									this.log("getRecordingState: ongoing local season recording found with status %s %s", recordingLocalSeason.mostRelevantEpisode.recordingState, recordingLocalSeason.mostRelevantEpisode.recordingType)
+
+								} else {
+									this.log("getRecordingState: No ongoing local recordings found")
+									recType = 'idle';
+								}
+
+							}
+
+						}
+
+						// check network recordings
+						if (!recType || recType == 'idle') {
+							// device has no HDD, check network recordings
+							this.log("getRecordingState: Checking device %s. Searching for ongoing network recordings for this device...", device.deviceId)
+							// first look for non-season recordings:
+							let recordingNetwork = response.data.recordings.find(recording => !recording.cpeId && recording.recordingState == 'ongoing');
+							if (recordingNetwork) {
+								// found ongoing network show recording
+								recType = recordingNetwork.recordingType;
+								this.log("getRecordingState: ongoing recording found with status %s %s", recordingNetwork.recordingState, recordingNetwork.recordingType)
+
+							} else {
+								// if none found then look for season recordings:
+								this.log("getRecordingState: Checking device %s. Searching for ongoing season network recordings for this device...", device.deviceId)
+								let recordingNetworkSeason = response.data.recordings.find(recording => recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
+								if (recordingNetworkSeason) {
+									recType = recordingNetworkSeason.mostRelevantEpisode.recordingType;
+									this.log("getRecordingState: ongoing season network recording found with status %s %s", recordingNetworkSeason.mostRelevantEpisode.recordingState, recordingNetworkSeason.mostRelevantEpisode.recordingType)
+								} else {
+									this.log("getRecordingState: No network ongoing recordings found")
+									recType = 'idle';
+								}
+							}
+						}
+
+						// local has prio over network
+						this.log("getRecordingState: Setting recState for %s according to recType %s", device.deviceId, recType)
+						if (recType == 'localDVR' || recType == 'LDVR') { 
+							recState = recordingState.ONGOING_LOCALDVR;
+						} else if (recType == 'nDVR') { 
+							recState = recordingState.ONGOING_NDVR;
+						} else {
+							recState = recordingState.IDLE;
+						}
+
+						// update the device state
+						this.log("getRecordingState: Updating device state for %s to recState %s %s", device.deviceId, recState, recType)
+						this.mqttDeviceStateHandler(device.deviceId, null, null, recState, null, null, null);
+					});
+
+				}
+
+
+				return false;
+			})
+			.catch(error => {
+				let errText, errReason;
+				errText = 'getRecordingState for %s failed: '
+				if (error.isAxiosError) { 
+					errReason = error.code + ': ' + (error.hostname || ''); 
+				} else if (error.response) {
+					errReason = (error.response || {}).status + ' ' + ((error.response || {}).statusText || ''); 
+				} else {
+					errReason = error; 
+				}
+				this.log('%s', (errReason || ''));
+				this.log.debug(`getRecordingState error:`, error);
+
+				return false, error;
+			});		
+		return false;
+	}
+
 
 	// get the Personalization Data via web request GET
 	async getPersonalizationData(requestType, callback) {
@@ -1644,7 +1785,8 @@ class stbPlatform {
 					if (this.stbDevices.length > 0) {
 						this.devices.forEach((device) => {
 							device.profiles = this.profiles; // update the device with the profiles array
-							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, true);
+							// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged) {
+							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true);
 						});
 					}
 
@@ -1680,25 +1822,11 @@ class stbPlatform {
 			})
 			.catch(error => {
 				let errText, errReason;
-				errText = 'getPersonalizationData for %s failed: '
-				if (error.isAxiosError) { 
-					errReason = error.code + ': ' + (error.hostname || ''); 
-				} else if (error.response) {
-					errReason = (error.response || {}).status + ' ' + ((error.response || {}).statusText || ''); 
-				} else {
-					errReason = error; 
-				}
-				this.log('%s %s', requestType, (errReason || ''));
-				this.log.debug(`getPersonalizationData error:`, error);
+				errText = 'Failed to refresh personalization data for ' + requestType + ' - check your internet connection:'
+				if (error.isAxiosError) { errReason = error.code + ': ' + (error.hostname || ''); }
+				this.log('%s %s', errText, (errReason || ''));
+				this.log.debug(`refreshMasterChannelList error:`, error);
 
-				/*
-				switch (error.response.status) {
-					case 403:
-						this.log.warn('getPersonalizationData failed with %s %s. The device may have relinquished the connection to another controller.',error.response.status, error.response.statusText);
-					default:
-						this.log.warn('getPersonalizationData failed:', error.response.status, error.response.statusText);
-				}
-				*/
 				return false, error;
 			});		
 		return false;
@@ -1811,7 +1939,10 @@ class stbDevice {
 		this.currentMediaState = Characteristic.CurrentMediaState.STOP;
 		this.targetMediaState = Characteristic.CurrentMediaState.STOP;
 		this.currentPictureMode = Characteristic.PictureMode.STANDARD;
-		this.previousPictureMode = Characteristic.PictureMode.STANDARD;
+		this.previousPictureMode = null;
+		this.currentRecordingState = recordingState.IDLE;
+		this.previousRecordingState = null;
+		this.customPictureMode = 0; // default 0
 		this.currentSourceType = 'UNKNOWN';
 		this.volDownLastKeyPress = [];
 
@@ -2164,40 +2295,50 @@ class stbDevice {
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// update the device state changed to async
-	async updateDeviceState(powerState, mediaState, channelId, sourceType, profileDataChanged, callback) {
+	async updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, callback) {
 		// runs at the very start, and then every few seconds, so don't log it unless debugging
 		// doesn't get the data direct from the settop box, but rather: gets it from the this.currentPowerState and this.currentChannelId variables
 		// which are received by the mqtt messages, which occurs very often
 		if (this.config.debugLevel > 0) {
-			this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], channelId %s, sourceType %s, profileDataChanged %s', 
+			this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], , recordingState %s [%s], channelId %s, sourceType %s, profileDataChanged %s', 
 				this.name, 
 				powerState, 
 				mediaState, mediaStateName[mediaState], 
+				recordingState, recordingStateName[recordingState], 
 				channelId,
 				sourceType,
 				profileDataChanged
 			);
 		}
 
-		// grab the input variables
+		// get the config for the device, needed for a few status checks
+		var configDevice;
+		if (this.config.devices) {
+			configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
+		}
+
+		// grab the current states and place in previous state
 		this.previousPowerState = this.currentPowerState;
+		this.previousRecordingState = this.currentRecordingState;
+		this.previousPictureMode = this.currentPictureMode;
+		this.previousClosedCaptionsState = this.currentClosedCaptionsState;
+
+		// grab the input variables
 		if (powerState != null) { this.currentPowerState = powerState; }
 		if (mediaState != null) { this.currentMediaState = mediaState; }
 		if (channelId != null) { this.currentChannelId = channelId; }
 		if (sourceType != null) { this.currentSourceType = sourceType; }
+		if (recordingState != null) { this.currentRecordingState = recordingState; }
 		this.profileDataChanged = profileDataChanged || false;
 
 		// profile data is stored on the platform
 		// get the currentClosedCaptionsState from the currently selected profile (stored in this.profileid)
 		//var configDevice = {};
-		this.previousClosedCaptionsState = this.currentClosedCaptionsState;
 		if ( this.platform.profiles[this.profileId] && this.platform.profiles[this.profileId].options.showSubtitles ) {
 			this.currentClosedCaptionsState = Characteristic.ClosedCaptions.ENABLED;
 		} else {
 			this.currentClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		}
-		// store the last PictureMode
-		this.previousPictureMode = this.currentPictureMode; // future support
 
 		// debugging, helps a lot to see channelName
 		if (this.config.debugLevel > 0) {
@@ -2206,10 +2347,11 @@ class stbDevice {
 				curChannel = this.platform.masterChannelList.find(channel => channel.channelId === this.currentChannelId ); 
 				if (curChannel) { currentChannelName = curChannel.channelName; }
 			}
-			this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s]. currentPictureMode %s [%s], profileDataChanged %s', 
+			this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentRecordingState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s], currentPictureMode %s [%s], profileDataChanged %s', 
 				this.name, 
 				this.currentPowerState, 
 				this.currentMediaState, mediaStateName[this.currentMediaState], 
+				this.currentRecordingState, recordingStateName[this.currentRecordingState],
 				this.currentChannelId, currentChannelName,
 				this.currentSourceType,
 				this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState],
@@ -2221,6 +2363,7 @@ class stbDevice {
 		// only continue if a session was created. If the internet conection is down then we have no session
 		if (currentSessionState != sessionState.CONNECTED) { return null; }
 
+
 		// change only if configured, and update only if changed
 		if (this.televisionService) {
 
@@ -2231,10 +2374,7 @@ class stbDevice {
 			var currentDeviceName = this.device.settings.deviceFriendlyName + PLUGIN_ENV;;
 
 			var syncName = true; // default true		
-			if (this.config.devices) {
-				const configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
-				if (configDevice && configDevice.syncName == false ) { syncName = configDevice.syncName; }
-			}
+			if (configDevice && configDevice.syncName == false ) { syncName = configDevice.syncName; }
 			if (syncName == true && oldDeviceName !== currentDeviceName) {
 				this.log('%s: Device name changed from %s to %s', 
 					this.name,
@@ -2271,14 +2411,38 @@ class stbDevice {
 			}
 			this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).updateValue(this.currentClosedCaptionsState);
 
-			// check for change of picture mode
-			if (this.previousPictureMode !== this.currentPictureMode) {
-				this.log('%s: Picture Mode changed from %s %s to %s %s', 
-					this.name,
-					this.previousPictureMode, pictureModeName[this.previousPictureMode],
-					this.currentPictureMode, pictureModeName[this.currentPictureMode]);
+
+			// check for change of picture mode or recordingState (both stored in picture mode)
+			if ((configDevice || {}).pictureMode == 'recordingState') {
+				// PictureMode is used for recordingState function, this is a custom characteristic, not supported by HomeKit. we can use values 0...7
+				this.log("previousRecordingState", this.previousRecordingState);
+				this.log("currentRecordingState", this.currentRecordingState);
+				if (this.previousRecordingState !== this.currentRecordingState) {
+					this.log('%s: Recording State changed from %s %s to %s %s', 
+						this.name,
+						this.previousRecordingState, recordingStateName[this.previousRecordingState],
+						this.currentRecordingState, recordingStateName[this.currentRecordingState]);
+				}
+				this.log("configDevice.pictureMode found %s, setting PictureMode to %s", (configDevice || {}).pictureMode, this.currentRecordingState);
+				this.customPictureMode = this.currentRecordingState;
+			} else {
+				// PictureMode is used for default function: pictureMode
+				this.log("previousPictureMode", this.previousPictureMode);
+				this.log("currentPictureMode", this.currentPictureMode);
+				if (this.previousPictureMode !== this.currentPictureMode) {
+					this.log('%s: Picture Mode changed from %s %s to %s %s', 
+						this.name,
+						this.previousPictureMode, pictureModeName[this.previousPictureMode],
+						this.currentPictureMode, pictureModeName[this.currentPictureMode]);
+				}
+				this.log("configDevice.pictureMode not found %s, setting PictureMode to %s", (configDevice || {}).pictureMode, this.currentPictureMode);
+				this.customPictureMode = this.currentPictureMode;
 			}
-			this.televisionService.getCharacteristic(Characteristic.PictureMode).updateValue(this.currentPictureMode);
+			this.log("setting PictureMode to %s", this.customPictureMode);
+			this.televisionService.getCharacteristic(Characteristic.PictureMode).updateValue(this.customPictureMode);
+
+
+
 
 			// check for change of active identifier (channel)
 			const oldActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
@@ -2528,12 +2692,12 @@ class stbDevice {
 			var channel = {};
 			var customChannel = {};
 			
-			// first look in the config channelNames list for any user-defined custom channel name
-			if (configDevice && configDevice.channelNames) {
-				customChannel = configDevice.channelNames.find(channel => channel.channelId === chId);
+			// first look in the config channels list for any user-defined custom channel name
+			if (this.config.channels) {
+				customChannel = this.config.channels.find(channel => channel.channelId === chId);
 				if ((customChannel || {}).channelName) { 
 					customChannel.channelName = cleanNameForHomeKit(customChannel.channelName)
-					this.log("%s: Found %s in config channelNames, setting name to %s", this.name, chId, customChannel.channelName);
+					this.log("%s: Found %s in config channels, setting name to %s", this.name, chId, customChannel.channelName);
 				} else {					
  					customChannel = {}; 
 				}
@@ -3014,9 +3178,18 @@ class stbDevice {
 		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
 		if (this.config.debugLevel > 1) { 
 			this.log.warn('%s: getPictureMode', this.name); 
-			this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.currentPictureMode, pictureModeName[this.currentPictureMode]); 
+			// get the config for the device, needed for a few status checks
+			var configDevice;
+			if (this.config.devices) {
+				configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
+			}
+			if ((configDevice || {}).pictureMode == 'recordingState') {
+				this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.customPictureMode, recordingStateName[this.customPictureMode]); 
+			} else {
+				this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.customPictureMode, pictureModeName[this.customPictureMode]); 
+			}
 		}
-		callback(null, this.currentPictureMode); // return current state
+		callback(null, this.customPictureMode); // return current state
 	}
 
 	// set picture mode state
@@ -3024,7 +3197,7 @@ class stbDevice {
 		// fired when ??
 		// targetClosedCaptionsState is the wanted state
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setPictureMode targetPictureMode:', this.name, targetPictureMode, pictureModeName[targetPictureMode]); }
-		if(this.currentPictureMode !== targetPictureMode){
+		if(this.customPictureMode !== targetPictureMode){
 			this.log("setPictureMode: not Yet implemented");
 		}
 		callback(null);

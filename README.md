@@ -191,10 +191,10 @@ Example minimum (mandatory) configuration:
 ```js
     "platforms": [
         {
-            "platform": "eosstb",
             "country": "ch",
             "username": "yourTvProviderUsername",
-            "password": "yourTvProviderPassword"
+            "password": "yourTvProviderPassword",
+            "platform": "eosstb"
         }
     ]
 ```
@@ -227,14 +227,14 @@ Example extended configuration as used on the author with his Samsung TV (where 
                     "manufacturer": "ARRIS",
                     "modelName": "DCX960",
                     "serialNumber": "123456",
-                    "firmwareRevision": "4.29",
+                    "firmwareRevision": "4.31",
                     "showChannelNumbers": false,
-                    "maxChannels": 50,
-                    "channelNames": [
-                        {
-                            "channelId": "SV09690",
-                            "channelName": "Netflix"
-                        }
+                    "maxChannels": 50
+                },
+            "channels": [
+                {
+                    "channelId": "SV09690",
+                    "channelName": "Netflix"
                 }
             ]
         }
@@ -263,6 +263,8 @@ Mandatory config items must always exist. These are used to establish the sessio
 
 * **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Debug messages are shown in the Homebridge log in the warning colour, normally yellow. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
 
+
+
 ### Device Config Items
 Most people will be happy with the default device config. If you do not need to change anything, you can omit the device config section.
 If you want to configure your devices differently, do so here. Multiple devices are supported, each device can be configured separately. The devices are identified by their physical deviceId. You will see that there is no option to set the name in the config, as the name of the set-top box displayed in the Home app is always synchronised to the physical set-top box. You can change the set-top box name in the Home app.
@@ -273,19 +275,35 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 #### Optional
 
+##### Name and Icon
+
 * **name**: The device name. Set to anything you want. If syncName is true, the name will also be synced to the set-top box. Note that the set-top box name must be between 3 and 14 characters long; shorter names are expanded, longer names are truncated. Optional, defaults to the set-top box name.
 
 * **syncName**: You can choose to sync the HomeKit name with the physical set-top box name. If you set syncName to false, you can name the set-top box in HomeKit differently to the physical set-top box. Optional, defaults to true.
 
-* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the Shared Profile. If using the Shared Profile, the device loads the first 95 channels found. Most TV providers offer many more than 95 channels: my provider has 483, of which I am entitled to 287. To ensure you have a useful channel list on your Home app, create a profile on your set-top box, and enter the profile name in the config. The channels will then be loaded from the profile. If your profile is changed to the set-top box, the changes will be pushed to HomeKit.
+* **accessoryCategory**: The accessory category. This changes the image on the tile in the Home app. Allows you to use a TV or an Audio Receiver or a Set-Top Box (default). Available values are:  Set-Top-Box = any of "settopbox", "stb". TV = any of "television", "tv".  Audio Receiver = any of "receiver", "audio-receiver", "avr".  Not case sensitive. Optional, defaults to Set-Top Box if the value is not recognised.
 
-* **maxChannels**: The maximum number of channels to load. Optional, defaults to 95. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
+
+##### Accessory information
+
+* **manufacturer**: You can add a manufacturer name if you wish. Defaults to the detected device and platform type, otherwise to the eosstb platform name. Optional.
+
+* **serialNumber**: You can add a serial number if you wish. Defaults to the set-top box serial number id, otherwise to the physical deviceId. Optional.
+
+* **modelName**: You can add a model name if you wish. Defaults to the detected device model and device type, otherwise to the eosstb plugin name. Optional.
+
+* **firmwareRevision**: You can add a firmware revision if you wish. Must be numeric (non-numeric values are not displayed in the Home app). Defaults to the eosstb plugin version. Optional.
+
+##### Channel Display
+
+* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the Shared Profile. If using the Shared Profile, the device loads the first 95 channels found. Most TV providers offer many more than 95 channels: my provider has 483, of which I am entitled to 287. To ensure you have a useful channel list on your Home app, create a profile on your set-top box, and enter the profile name in the config. The channels will then be loaded from the profile. If your profile is changed to the set-top box, the changes will be pushed to HomeKit.
 
 * **showChannelNumbers**: Shows or hides the channel numbers in the channel selector in HomeKit. Values: true or false (default). If channel numbers are displayed, there is less room for the channel name. Optional, defaults to false.
 
-* **channelNames**: Allows you to add unknown channel names, or to rename any channel as you wish. Required as some channels (e.g., Netflix) are not published on the master channel list. If a channel displays in the Home app like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
+* **maxChannels**: The maximum number of channels to load. Optional, defaults to 95. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
 
-* **accessoryCategory**: The accessory category. This changes the image on the tile in the Home app. Allows you to use a TV or an Audio Receiver or a Set-Top Box (default). Available values are:  Set-Top-Box = any of "settopbox", "stb". TV = any of "television", "tv".  Audio Receiver = any of "receiver", "audio-receiver", "avr".  Not case sensitive. Optional, defaults to Set-Top Box if the value is not recognised.
+
+##### Remote Control Button Mapping
 
 * **playPauseButton**: The command issued to the set-top box when the Play/Pause button (**> ||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
 
@@ -293,27 +311,36 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 * **infoButton**: The command issued to the set-top box when the Info button (**i**) in the iOS remote is tapped. As the iOS remote has no Menu button, the Info button should be used to access the menu. This is why the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
 
+
+
+
+##### Remote Control Volume Commands
+
 * **volUpCommand**: The bash command to increase the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Up button on your device. Optional.
 
 * **volDownCommand**: The bash command to decrease the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Down button on your device. Optional.
 
 * **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple iOS remote, I have integrated it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
 
-* **manufacturer**: You can add a manufacturer name if you wish. Defaults to the detected device and platform type, otherwise to the eosstb platform name. Optional.
 
-* **modelName**: You can add a model name if you wish. Defaults to the detected device model and device type, otherwise to the eosstb plugin name. Optional.
+##### Extra Functions
 
-* **serialNumber**: You can add a serial number if you wish. Defaults to the set-top box serial number id, otherwise to the physical deviceId. Optional.
-
-* **firmwareRevision**: You can add a firmware revision if you wish. Must be numeric (non-numeric values are not displayed in the Home app). Defaults to the eosstb plugin version. Optional.
+* **customPictureMode**: Allows the customisation of Picture Mode. Optional, defaults to normal Picture Mode if not found. Possible values are:
+recordingState: The Picture Mode reflects the recording state of the set-top box. Values are: 0 = Idle (not recording), 1 = Ongoing nDVR (network digital video recording), 2 = Ongoing localDVR (local hard-drive based digital video recording). It can be useful to know if the set-top box is currently recording to the hard drive for users want to control the power to the set-top box, so that they do not switch it off when a local recording is in progress.
 
 
-## Special App Channels (Netflix) ##
-Some channels such as Netflix are actually apps on the set-top box, and not normal linear TV channels. They appear in the channel list on the TV, and can be added to favourites. However, they are not broadcast as a normal linear TV channel in the master channel list. Therefore, the name cannot be determined from the profile favourite channel list, and the name appears as "Channel xxxxxx" where xxxxxx is the channelId. To overcome this, add the channelId and the channelName to the channelNames section in the config as per the examples below:
+
+### Channel Config Items
+Some channels such as Netflix are actually apps on the set-top box, and not normal linear TV channels. They appear in the channel list on the TV, and can be added to favourites. However, they are not broadcast as a normal linear TV channel in the master channel list. Therefore, the name cannot be determined from the profile favourite channel list, and the name appears as "Channel xxxxxx" where xxxxxx is the channelId. To overcome this, add the channelId and the channelName to the channels section in the config as per the examples below.
+
+* **channelId**: The channelId, as defined by the Tv provider. unknown channelIds will appear in the Homebridge log.
+
+* **channelNames**: Allows you to add unknown channel names, or to rename any channel as you wish. Required as some channels (e.g., Netflix) are not published on the master channel list. If a channel displays in the Home app like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
+
 
 * Telenet BE: 
 ```js
-    "channelNames": [
+    "channels": [
         {
             "channelId": "netflix",
             "channelName": "Netflix"
@@ -322,7 +349,7 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
  
 * Virgin Media GB:
  ```js
-    "channelNames": [
+    "channels": [
         {
             "channelId": "1755",
             "channelName": "Netflix"
@@ -336,7 +363,7 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
 
 * UPC CH: 
 ```js
-    "channelNames": [
+    "channels": [
         {
             "channelId": "SVO9690",
             "channelName": "Netflix"
