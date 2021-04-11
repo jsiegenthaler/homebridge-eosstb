@@ -370,6 +370,18 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
     ]
 ```
 
+* Ziggo NL: 
+```js
+    "channels": [
+        {
+            "channelId": "NL_000073_019506",
+            "channelName": "Netflix"
+    ]
+```
+
+
+
+
 
 ## Set-Top Box KeyEvent Commands
 See the Wiki for [a collection of known key event commands that control the set-top box](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents). 
