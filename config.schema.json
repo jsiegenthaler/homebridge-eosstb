@@ -92,6 +92,7 @@
                         "type": "string",
                         "description": "The device name. Default: the current device name",
                         "pattern": "^[0-9A-Za-zÀ-ÖØ-öø-ÿ](?:[0-9A-Za-zÀ-ÖØ-öø-ÿ '’,.-]+)*[0-9A-Za-zÀ-ÖØ-öø-ÿ.]$",
+                        "placeholder": "Current Name",
                         "minLength": 3,
                         "maxLength": 14
                     },
@@ -132,6 +133,7 @@
                         "title": "Serial Number",
                         "type": "string",
                         "description": "The serial number to display in the Home app. Default: auto-detected.",
+                        "placeholder": "3C36E4-EOSSTB-000123456789",
                         "maxLength": 64
                     },
                     "firmwareRevision": {
