@@ -13,7 +13,7 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.1.6-beta.1 (2021-04-14)
+## 1.1.6 (2021-04-14)
 * Fixed issue where showChannelNumbers was not working
 * Fixed issue in config.schema where channelNames was shown in the wrong config location
 
