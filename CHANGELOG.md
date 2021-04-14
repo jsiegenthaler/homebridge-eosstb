@@ -13,6 +13,16 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.1.6-beta.1 (2021-04-14)
+* Fixed issue where showChannelNumbers was not working
+* Fixed issue in config.schema where channelNames was shown in the wrong config location
+
+
+## 1.1.5 (2021-04-12)
+* Fixed issue where recordingState was not properly reported
+* Cleaned up some logging
+
+
 ## 1.1.4 (2021-04-11)
 * Added config.schema.json
 * Added recordingState, added detection of nDVR / localDVR / LDVR, improved device detection
