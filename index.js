@@ -127,7 +127,7 @@ const powerStateName = ["OFF", "ON"];
 const closedCaptionsStateName = ["DISABLED", "ENABLED"];
 const visibilityStateName = ["SHOWN", "HIDDEN"];
 const pictureModeName = ["OTHER", "STANDARD", "CALIBRATED", "CALIBRATED_DARK", "VIVID", "GAME", "COMPUTER", "CUSTOM"];
-const recordingState = { IDLE: 0, ONGOING_LOCALDVR: 1, ONGOING_NDVR: 2 };
+const recordingState = { IDLE: 0, ONGOING_NDVR: 1, ONGOING_LOCALDVR: 2 };
 const recordingStateName = ["IDLE", "ONGOING_LOCALDVR", "ONGOING_NDVR"];
 Object.freeze(sessionState);
 Object.freeze(mediaStateName);
@@ -1634,8 +1634,8 @@ class stbPlatform {
 		if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: GET %s', url); }
 		axiosWS.get(url, config)
 			.then(response => {	
-				if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: response: %s %s', response.status, response.statusText); }
-				if (this.config.debugLevel > 0) { 
+				if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: response: %s %s', response.status, response.statusText); }
+				if (this.config.debugLevel > 2) { 
 					this.log.warn('getRecordingState: response data:');
 					this.log.warn(response.data);
 				}
@@ -1667,29 +1667,30 @@ class stbPlatform {
 					this.devices.forEach((device) => {
 						var recType, recState;
 
-						if (this.config.debugLevel > 0) { this.log("getRecordingState: Checking device %s...", device.deviceId); }
+						if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s...", device.deviceId); }
 						if (device.capabilities.hasHDD) {
 							// device has HDD, look for local recordings
-							if (this.config.debugLevel > 0) { this.log.warn("getRecordingState:Checking device %s. Device has a HDD:", device.deviceId); }
+							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Device has a HDD:", device.deviceId); }
 
-							if (this.config.debugLevel > 0) { this.log.warn("getRecordingState:Checking device %s with HDD. Searching for ongoing local show recordings for this device...", device.deviceId); }
+							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s with HDD. Searching for ongoing local recordings for this device...", device.deviceId); }
+							// first look for non-season recordings: (type = "single" or "show")
 							let recordingLocal = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.recordingState == 'ongoing');
 							if (recordingLocal) {
-								// found ongoing local show recording
+								// found ongoing local non-season recording
 								recType = recordingLocal.recordingType;
-								if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: ongoing local show recording found for device %s with status %s %s", recordingLocal.cpeId, recordingLocal.recordingState, recordingLocal.recordingType); }
+								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing local non-season recording found for device %s with status %s %s", recordingLocal.cpeId, recordingLocal.recordingState, recordingLocal.recordingType); }
 							
 							} else {
 								// if none found then look for season recordings:
-								if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: Checking device %s with HDD. Searching for ongoing local season recordings for this device...", device.deviceId); }
+								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s with HDD. Searching for ongoing local season recordings for this device...", device.deviceId); }
 								let recordingLocalSeason = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
 								if (recordingLocalSeason) {
 									// found local ongoing season recording
 									recType = recordingLocalSeason.mostRelevantEpisode.recordingType;
-									if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: ongoing local season recording found with status %s %s", recordingLocalSeason.mostRelevantEpisode.recordingState, recordingLocalSeason.mostRelevantEpisode.recordingType); }
+									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing local season recording found with status %s %s", recordingLocalSeason.mostRelevantEpisode.recordingState, recordingLocalSeason.mostRelevantEpisode.recordingType); }
 
 								} else {
-									if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: No ongoing local recordings found"); }
+									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: No ongoing local recordings found"); }
 									recType = 'idle';
 								}
 
@@ -1700,30 +1701,30 @@ class stbPlatform {
 						// check network recordings
 						if (!recType || recType == 'idle') {
 							// device has no HDD, check network recordings
-							if (this.config.debugLevel > 0) { this.log("getRecordingState: Checking device %s. Searching for ongoing network recordings for this device...", device.deviceId); }
-							// first look for non-season recordings:
+							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Searching for ongoing network recordings for this device...", device.deviceId); }
+							// first look for non-season recordings: (type = "single" or "show")
 							let recordingNetwork = response.data.recordings.find(recording => !recording.cpeId && recording.recordingState == 'ongoing');
 							if (recordingNetwork) {
-								// found ongoing network show recording
+								// found ongoing network non-season recording
 								recType = recordingNetwork.recordingType;
-								if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: ongoing recording found with status %s %s", recordingNetwork.recordingState, recordingNetwork.recordingType); }
+								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing network non-season recording found with status %s %s", recordingNetwork.recordingState, recordingNetwork.recordingType); }
 
 							} else {
-								// if none found then look for season recordings:
-								if (this.config.debugLevel > 0) { this.log("getRecordingState: Checking device %s. Searching for ongoing season network recordings for this device...", device.deviceId); }
+								// if none found then look for season recordings: (type = "season")
+								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Searching for ongoing network season recordings for this device...", device.deviceId); }
 								let recordingNetworkSeason = response.data.recordings.find(recording => recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
 								if (recordingNetworkSeason) {
 									recType = recordingNetworkSeason.mostRelevantEpisode.recordingType;
-									if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: ongoing season network recording found with status %s %s", recordingNetworkSeason.mostRelevantEpisode.recordingState, recordingNetworkSeason.mostRelevantEpisode.recordingType); }
+									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing network season recording found with status %s %s", recordingNetworkSeason.mostRelevantEpisode.recordingState, recordingNetworkSeason.mostRelevantEpisode.recordingType); }
 								} else {
-									if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: No network ongoing recordings found"); }
+									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: No ongoing network recordings found"); }
 									recType = 'idle';
 								}
 							}
 						}
 
 						// local has prio over network
-						if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: Setting recState for %s according to recType %s", device.deviceId, recType); }
+						if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Setting recState for %s according to recType %s", device.deviceId, recType); }
 						if (recType == 'localDVR' || recType == 'LDVR') { 
 							recState = recordingState.ONGOING_LOCALDVR;
 						} else if (recType == 'nDVR') { 
@@ -1733,7 +1734,7 @@ class stbPlatform {
 						}
 
 						// update the device state
-						if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: Updating device state for %s to recState %s %s", device.deviceId, recState, recType); }
+						if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Updating device state for %s to recState %s %s", device.deviceId, recState, recType); }
 						this.mqttDeviceStateHandler(device.deviceId, null, null, recState, null, null, null);
 					});
 
@@ -2219,13 +2220,13 @@ class stbDevice {
 				configState = Characteristic.IsConfigured.CONFIGURED;
 
 				// show channel number if user chose to do so
-				if (configDevice && configDevice.showChannelNumber) {
+				if (configDevice && configDevice.showChannelNumbers) {
 					chName = ('0' + (i + 1)).slice(-2) + " " + chName;
 				}
 			}
 
 			// some channels are deliberately hidden, so assign a fictional channelId and disable them
-			if (chName == 'HIDDEN') {
+			if (chName == 'HIDDEN' || chName == ('0' + (i + 1)).slice(-2) + " HIDDEN") {
 				chId = 'HIDDEN_' + i;
 				visState = Characteristic.CurrentVisibilityState.HIDDEN;
 				configState = Characteristic.IsConfigured.NOT_CONFIGURED;
@@ -2413,7 +2414,7 @@ class stbDevice {
 
 
 			// check for change of picture mode or recordingState (both stored in picture mode)
-			if ((configDevice || {}).pictureMode == 'recordingState') {
+			if ((configDevice || {}).customPictureMode == 'recordingState') {
 				// PictureMode is used for recordingState function, this is a custom characteristic, not supported by HomeKit. we can use values 0...7
 				//this.log("previousRecordingState", this.previousRecordingState);
 				//this.log("currentRecordingState", this.currentRecordingState);
@@ -2423,7 +2424,7 @@ class stbDevice {
 						this.previousRecordingState, recordingStateName[this.previousRecordingState],
 						this.currentRecordingState, recordingStateName[this.currentRecordingState]);
 				}
-				//this.log("configDevice.pictureMode found %s, setting PictureMode to %s", (configDevice || {}).pictureMode, this.currentRecordingState);
+				//this.log("configDevice.customPictureMode found %s, setting PictureMode to %s", (configDevice || {}).customPictureMode, this.currentRecordingState);
 				this.customPictureMode = this.currentRecordingState;
 			} else {
 				// PictureMode is used for default function: pictureMode
@@ -2435,7 +2436,7 @@ class stbDevice {
 						this.previousPictureMode, pictureModeName[this.previousPictureMode],
 						this.currentPictureMode, pictureModeName[this.currentPictureMode]);
 				}
-				//this.log("configDevice.pictureMode not found %s, setting PictureMode to %s", (configDevice || {}).pictureMode, this.currentPictureMode);
+				//this.log("configDevice.customPictureMode not found %s, setting PictureMode to %s", (configDevice || {}).customPictureMode, this.currentPictureMode);
 				this.customPictureMode = this.currentPictureMode;
 			}
 			//this.log("setting PictureMode to %s", this.customPictureMode);
@@ -2716,7 +2717,7 @@ class stbDevice {
 					//channelListIndex: this.platform.masterChannelList.length
 				});
 				// refresh channel as the not found channel will now be in the masterChannelList
-				channel =this.platform.masterChannelList.find(channel => channel.channelId === chId); 
+				channel = this.platform.masterChannelList.find(channel => channel.channelId === chId); 
 			} else {
 				// show some useful debug data
 				this.log.debug("%s: Index %s: Found %s in master channel list", this.name, i, chId);
@@ -2729,7 +2730,7 @@ class stbDevice {
 				if (customChannel && customChannel.channelName) { channel.channelName = customChannel.channelName; }
 
 				// show channel number if user chose to do so
-				if (configDevice && configDevice.showChannelNumber) {
+				if (configDevice && configDevice.showChannelNumbers) {
 					channel.channelName = ('0' + (i + 1)).slice(-2) + " " + channel.channelName;
 				}
 
@@ -3181,9 +3182,9 @@ class stbDevice {
 			// get the config for the device, needed for a few status checks
 			var configDevice;
 			if (this.config.devices) {
-				configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
+				configDevice = this.config.devices.find(device => device.deviceId == this.deviceId);
 			}
-			if ((configDevice || {}).pictureMode == 'recordingState') {
+			if ((configDevice || {}).customPictureMode == 'recordingState') {
 				this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.customPictureMode, recordingStateName[this.customPictureMode]); 
 			} else {
 				this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.customPictureMode, pictureModeName[this.customPictureMode]); 
