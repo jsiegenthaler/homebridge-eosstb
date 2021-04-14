@@ -3,16 +3,16 @@
   "displayName": "Homebridge EOSSTB",
   "description": "homebridge-plugin - Add your set-top box to Homekit (for Magenta AT, Telenet BE, UPC CH, Virgin Media GB & IE, Ziggo NL)",
   "author": "Jochen Siegenthaler (https://github.com/jsiegenthaler/)",
-  "version": "1.1.6-beta.1",
+  "version": "1.1.6",
   "platformname": "eosstb",
   "dependencies": {
     "@types/tough-cookie": "^4.0.0",
     "axios": "^0.21.1",
     "axios-cookiejar-support": "^1.0.1",
     "mqtt": "^4.2.6",
-    "qs": "^6.9.6",
+    "qs": "^6.10.1",
     "tough-cookie": "^4.0.0",
-    "underscore": "^1.12.0"
+    "underscore": "^1.13.0"
   },
   "deprecated": false,
   "engines": {
