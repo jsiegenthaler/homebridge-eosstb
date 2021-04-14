@@ -82,7 +82,7 @@
                     "deviceId": {
                         "title": "Device ID",
                         "type": "string",
-                        "description": "Unique deviceId used to identify the device. Find your deviceId in the Homebridge log.",
+                        "description": "Unique deviceId used to identify the device. The deviceId is visible in the Homebridge log shortly after a Homebridge restart.",
                         "placeholder": "3C36E4-EOSSTB-000123456789",
                         "minLength": 25,
                         "required": true
@@ -398,8 +398,7 @@
                             "items": [
                                 "devices[].profile",
                                 "devices[].showChannelNumbers",
-                                "devices[].maxChannels",
-                                "devices[].channelNames"
+                                "devices[].maxChannels"
                             ]
                         },
                         {
