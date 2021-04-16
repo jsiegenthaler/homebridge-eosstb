@@ -111,9 +111,9 @@ const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=
 
 
 // general constants
-const NO_INPUT_ID = 999; // an input id that does not exist. Must be > 0 as a uint32 is expected
+const NO_INPUT_ID = 99; // an input id that does not exist. Must be > 0 as a uint32 is expected
 const NO_CHANNEL_ID = 'NO_ID'; // id for a channel not in the channel list
-const NO_CHANNEL_NAME = 'NO_NAME'; // name for a channel not in the channel list
+const NO_CHANNEL_NAME = 'UNKNOWN'; // name for a channel not in the channel list
 const MAX_INPUT_SOURCES = 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
 const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in millisec. Default = 15000 (15s)
 const MQTT_WATCHDOG_INTERVAL_MS = 10000; // mqtt watchdog interval in millisec. Default = 10000 (10s)
@@ -128,7 +128,7 @@ const closedCaptionsStateName = ["DISABLED", "ENABLED"];
 const visibilityStateName = ["SHOWN", "HIDDEN"];
 const pictureModeName = ["OTHER", "STANDARD", "CALIBRATED", "CALIBRATED_DARK", "VIVID", "GAME", "COMPUTER", "CUSTOM"];
 const recordingState = { IDLE: 0, ONGOING_NDVR: 1, ONGOING_LOCALDVR: 2 };
-const recordingStateName = ["IDLE", "ONGOING_LOCALDVR", "ONGOING_NDVR"];
+const recordingStateName = ["IDLE", "ONGOING_NDVR", "ONGOING_LOCALDVR"];
 Object.freeze(sessionState);
 Object.freeze(mediaStateName);
 Object.freeze(powerStateName);
@@ -1654,7 +1654,7 @@ class stbPlatform {
 					// mostRelevantEpisode.recordingState: 'ongoing',
 					// mostRelevantEpisode.recordingType: 'nDVR',
 					// logging
-					if (this.config.debugLevel > 0) { 
+					if (this.config.debugLevel > 2) { 
 						response.data.recordings.forEach((recording) => {
 							this.log.warn('Recording showTitle "%s", cpeId %s, type %s, recordingState %s, recordingType %s, mostRelevantEpisode:',  recording.showTitle, recording.cpeId, recording.type, recording.recordingState, recording.recordingType, )
 							this.log.warn(recording.mostRelevantEpisode )
@@ -2019,6 +2019,9 @@ class stbDevice {
 		this.prepareInputSourceServices();				// service 4...100 of 100
 		this.api.publishExternalAccessories(PLUGIN_NAME, [this.accessory]);
 
+		// set displayOrder
+		this.televisionService.getCharacteristic(Characteristic.DisplayOrder).value = Buffer.from(this.displayOrder).toString('base64');
+
 
 		// set default to no input
 		this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(NO_INPUT_ID)
@@ -2110,11 +2113,18 @@ class stbDevice {
 		// active channel
 		this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier)
 			.on('get', this.getInput.bind(this))
-			.on('set', (newInputIdentifier, callback) => { this.setInput(this.channelList[newInputIdentifier], callback); });
+			.on('set', (inputIdentifier, callback) => { this.setInput(this.channelList[inputIdentifier-1], callback); });
 
 		// the View TV Settings menu item
 		this.televisionService.getCharacteristic(Characteristic.PowerModeSelection)
 			.on('set', this.setPowerModeSelection.bind(this));
+
+		// display order of the channels
+		this.televisionService.getCharacteristic(Characteristic.DisplayOrder)
+			.on('get', this.getDisplayOrder.bind(this))
+			.on('set', (newDisplayOrder, callback) => { this.setDisplayOrder(newDisplayOrder, callback); });
+
+
 
 		// characteristics that cannot be controlled in the current Apple Home app 
 		
@@ -2197,14 +2207,16 @@ class stbDevice {
 		// must create all input sources before accessory is published (no way to dynamically add later)
 		this.log.debug("prepareInputSourceServices: maxSources", maxSources);
 		this.log.debug("prepareInputSourceServices: loading channels from this.channelList, length:", this.channelList.length);
+		this.displayOrder = [];
 
-		for (let i = 0; i < maxSources; i++) {
+		// index 0 is identifier 1, etc, needed for displayOrder
+		for (let i = 1; i <= maxSources; i++) {
 			if (this.config.debugLevel > 2) {
 				this.log.warn('prepareInputSourceServices Adding service',i, this.channelList[i].channelName);
 			}
 
 			// default values to hide the input if nothing exists in this.channelList
-			var chFixedName = `Input ${i < 9 ? `0${i + 1}` : i + 1}`; // fixed if not profile 0
+			var chFixedName = `Input ${i < 10 ? `0${i}` : i}`; // fixed if not profile 0
 			var chName = 'HIDDEN';
 			var chId = 'HIDDEN_' + i;
 			var visState = Characteristic.CurrentVisibilityState.HIDDEN;
@@ -2213,20 +2225,16 @@ class stbDevice {
 			// get names and channel id from the array
 			//this.log("this.channelList.length", this.channelList.length);
 			//this.log(this.channelList);
-			if (i < this.channelList.length && this.channelList[i]) {
-				chName = this.channelList[i].channelName;
-				chId = this.channelList[i].channelId;
-				visState = this.channelList[i].channelVisibilityState;
+			// index 0 = channel 1
+			if (i <= this.channelList.length && this.channelList[i-1]) {
+				chName = this.channelList[i-1].channelName;
+				chId = this.channelList[i-1].channelId;
+				visState = this.channelList[i-1].channelVisibilityState;
 				configState = Characteristic.IsConfigured.CONFIGURED;
-
-				// show channel number if user chose to do so
-				if (configDevice && configDevice.showChannelNumbers) {
-					chName = ('0' + (i + 1)).slice(-2) + " " + chName;
-				}
 			}
 
 			// some channels are deliberately hidden, so assign a fictional channelId and disable them
-			if (chName == 'HIDDEN' || chName == ('0' + (i + 1)).slice(-2) + " HIDDEN") {
+			if (chName == 'HIDDEN' || chName == ('0' + i).slice(-2) + " HIDDEN") {
 				chId = 'HIDDEN_' + i;
 				visState = Characteristic.CurrentVisibilityState.HIDDEN;
 				configState = Characteristic.IsConfigured.NOT_CONFIGURED;
@@ -2237,16 +2245,14 @@ class stbDevice {
 			// and HomeKit doesn't keep Name up to date
 			if (this.profileId == 0) { chFixedName = chName; }
 
-			//this.log.warn('prepareInputSourceServices Adding service %s chId %s chName %s visState %s configState %s',i, chId, chName, visState, configState);
-
 			//const inputService = new Service.InputSource(i, 'inputSource_' + 1 + '_' + chId);
 			// Service.InputSource(Identifier, subType, name);
-			//this.log.warn("prepareInputSourceServices: Adding input %s with chId %s, chName %s", i, chId, chName);
+			this.log.debug("prepareInputSourceServices: Adding input %s with chId %s, chName [%s], configState %s, visState %s", i, chId, chName, configState, visState);
 			const inputService = new Service.InputSource(i, 'input_' + chId, chId);
 			inputService
 				.setCharacteristic(Characteristic.Identifier, i)
 				.setCharacteristic(Characteristic.Name, chFixedName)
-				.setCharacteristic(Characteristic.ConfiguredName, chName || `Input ${i < 9 ? `0${i + 1}` : i + 1}`)
+				.setCharacteristic(Characteristic.ConfiguredName, chName || `Input ${i < 9 ? `0${i}` : i}`)
 				.setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.APPLICATION)
 				.setCharacteristic(Characteristic.InputDeviceType, Characteristic.InputDeviceType.TV)
 				.setCharacteristic(Characteristic.IsConfigured, configState)
@@ -2265,12 +2271,28 @@ class stbDevice {
 				.on('set', (value, callback) => { this.setInputVisibilityState(i, value, callback); });
 
 			this.inputServices.push(inputService);
+
+			// add DisplayOrder, see :
+			// https://github.com/homebridge/HAP-NodeJS/issues/644
+			// https://github.com/ebaauw/homebridge-zp/blob/master/lib/ZpService.js  line 916: this.displayOrder.push(0x01, 0x04, identifier & 0xff, 0x00, 0x00, 0x00)
+			//this.displayOrder.push(0x01, 0x04, i & 0xff, 0x00, 0x00, 0x00);
+			//                       type  len   inputId  empty empty empty
+			//this.displayOrder.push(0x01, 0x04,       i, 0x00, 0x00, 0x00);
+			// inputId is the inputIdentifier (not the index), starting index 0 = identifier 1
+			// types:
+			// 0x01 display order sort
+			this.displayOrder.push(0x01, 0x01, i & 0xff);
+
 			this.accessory.addService(inputService);
 			this.televisionService.addLinkedService(inputService);
 
 		} // end of for loop getting the inputSource
 
-		// write the date to file
+		this.displayOrder.push(0x00, 0x00); // close off the displayorder array with 2x 00
+		//this.log("this.displayOrder")
+		//this.log(this.displayOrder)
+
+		// write the date to file... to do
 	}
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// END of preparing accessory and services
@@ -2377,7 +2399,7 @@ class stbDevice {
 			var syncName = true; // default true		
 			if (configDevice && configDevice.syncName == false ) { syncName = configDevice.syncName; }
 			if (syncName == true && oldDeviceName !== currentDeviceName) {
-				this.log('%s: Device name changed from %s to %s', 
+				this.log("%s: Device name changed from '%s' to '%s'", 
 					this.name,
 					oldDeviceName, 
 					currentDeviceName);
@@ -2393,7 +2415,7 @@ class stbDevice {
 			//this.log("Wanted device power state: %s %s", this.currentPowerState, powerStateName[this.currentPowerState]);
 			//var oldPowerState = this.televisionService.getCharacteristic(Characteristic.Active).value;
 			if (this.previousPowerState !== this.currentPowerState) {
-				this.log('%s: Power changed from %s %s to %s %s', 
+				this.log('%s: Power changed from %s [%s] to %s [%s]', 
 					this.name,
 					this.previousPowerState, powerStateName[this.previousPowerState],
 					this.currentPowerState, powerStateName[this.currentPowerState]);
@@ -2405,7 +2427,7 @@ class stbDevice {
 			//this.log("Current closed captions state: %s %s", this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).value, closedCaptionsStateName[this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).value]);
 			//this.log("Wanted closed captions state: %s %s", this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]);
 			if (this.previousClosedCaptionsState !== this.currentClosedCaptionsState) {
-				this.log('%s: Closed Captions state changed from %s %s to %s %s', 
+				this.log('%s: Closed Captions state changed from %s [%s] to %s [%s]', 
 					this.name,
 					this.previousClosedCaptionsState, closedCaptionsStateName[this.previousClosedCaptionsState],
 					this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]);
@@ -2419,7 +2441,7 @@ class stbDevice {
 				//this.log("previousRecordingState", this.previousRecordingState);
 				//this.log("currentRecordingState", this.currentRecordingState);
 				if (this.previousRecordingState !== this.currentRecordingState) {
-					this.log('%s: Recording State changed from %s %s to %s %s', 
+					this.log('%s: Recording State changed from %s [%s] to %s [%s]', 
 						this.name,
 						this.previousRecordingState, recordingStateName[this.previousRecordingState],
 						this.currentRecordingState, recordingStateName[this.currentRecordingState]);
@@ -2431,7 +2453,7 @@ class stbDevice {
 				//this.log("previousPictureMode", this.previousPictureMode);
 				//this.log("currentPictureMode", this.currentPictureMode);
 				if (this.previousPictureMode !== this.currentPictureMode) {
-					this.log('%s: Picture Mode changed from %s %s to %s %s', 
+					this.log('%s: Picture Mode changed from %s [%s] to %s [%s]', 
 						this.name,
 						this.previousPictureMode, pictureModeName[this.previousPictureMode],
 						this.currentPictureMode, pictureModeName[this.currentPictureMode]);
@@ -2447,30 +2469,31 @@ class stbDevice {
 
 			// check for change of active identifier (channel)
 			const oldActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
-			var currentActiveIdentifier = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + this.currentChannelId );
+			// index 0 = input 1
+			var currentActiveIdentifier = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + this.currentChannelId ) + 1;
 			this.log.debug("updateDeviceState: oldActiveIdentifier %s, currentActiveIdentifier %s, this.currentChannelId %s", oldActiveIdentifier, currentActiveIdentifier, this.currentChannelId)
-			if (currentActiveIdentifier == -1) { currentActiveIdentifier = NO_INPUT_ID; } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
+			if (currentActiveIdentifier <= 0) { currentActiveIdentifier = NO_INPUT_ID; } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
 			if (oldActiveIdentifier !== currentActiveIdentifier) {
 				// get names from loaded channel list. Using Ch Up/Ch Down buttons on the remote rolls around the profile channel list
 				// what happens if the TV is change to another profile?
 				var oldName = NO_CHANNEL_NAME, newName = oldName; // default to UNKNOWN
-				if (oldActiveIdentifier != NO_INPUT_ID && this.channelList[oldActiveIdentifier]) {
-					oldName = this.channelList[oldActiveIdentifier].channelName
+				if (oldActiveIdentifier != NO_INPUT_ID && this.channelList[oldActiveIdentifier-1]) {
+					oldName = this.channelList[oldActiveIdentifier-1].channelName
 				}
 				if (currentActiveIdentifier != NO_INPUT_ID) {
-					newName = this.channelList[currentActiveIdentifier].channelName
+					newName = this.channelList[currentActiveIdentifier-1].channelName
 				}
-				this.log('%s: Channel changed from %s %s to %s %s', 
+				this.log('%s: Channel changed from %s [%s] to %s [%s]', 
 					this.name,
-					oldActiveIdentifier + 1, oldName,
-					currentActiveIdentifier + 1, newName);
+					oldActiveIdentifier, oldName,
+					currentActiveIdentifier, newName);
 				this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(currentActiveIdentifier);
 			}
 
 			// check for change of current media state
 			var oldMediaState = this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).value;
 			if (oldMediaState !== this.currentMediaState) {
-				this.log('%s: Media state changed from %s %s to %s %s', 
+				this.log('%s: Media state changed from %s [%s] to %s [%s]', 
 					this.name,
 					oldMediaState, mediaStateName[oldMediaState],
 					this.currentMediaState, mediaStateName[this.currentMediaState]);
@@ -2724,29 +2747,39 @@ class stbDevice {
 			}
 
 			// load this channel as an input
+			//this.log("loading input %s of %s", i + 1, maxSources)
 			if (i < maxSources) {
 
 				// add the user-defined name if one exists
 				if (customChannel && customChannel.channelName) { channel.channelName = customChannel.channelName; }
 
 				// show channel number if user chose to do so
-				if (configDevice && configDevice.showChannelNumbers) {
-					channel.channelName = ('0' + (i + 1)).slice(-2) + " " + channel.channelName;
+				// must only happen once!
+				if ((configDevice || {}).showChannelNumbers) {
+					// a config exists. Add channel number prefix only if the prefix does not exist
+					const chPrefix = ('0' + (i + 1)).slice(-2) + " ";
+					if (!channel.channelConfiguredName || channel.channelConfiguredName.slice(0, 3) != chPrefix) {
+						//this.log("Adding prefix to configured name", chPrefix)
+						channel.channelConfiguredName = chPrefix + channel.channelName;
+					}
+				} else {
+					channel.channelConfiguredName = channel.channelName;
 				}
 
 				// add channel visibility and configured name, these don't exist on the master channel list
 				// these should be read from file...
 				channel.channelVisibilityState = Characteristic.CurrentVisibilityState.SHOWN;
-				channel.channelConfiguredName = channel.channelName;
 
 				// show debug and add to array
-				this.log.debug("%s: Index %s: Refreshing channel %s: [%s] %s", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
+				//this.log.debug("%s: Index %s: Refreshing channel %s: [%s] %s", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
+				this.log.debug("%s: Index %s: Refreshing channel %s: %s [%s]", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
 				this.channelList[i] = channel;
 
 				// update accesory only when configured
 				if (this.accessoryConfigured) { 
 					// update existing services
-					this.log.debug("Adding %s %s to input index %s",channel.channelId, channel.channelName, i);
+					//this.log.debug("Adding %s %s to input index %s",channel.channelId, channel.channelName, i);
+					this.log.debug("Adding %s %s to input %s at index %s",channel.channelId, channel.channelName, i+1, i);
 					this.inputServices[i].name = channel.channelConfiguredName;
 					this.inputServices[i].subtype = 'input_' + channel.channelId;
 
@@ -2786,7 +2819,7 @@ class stbDevice {
 					var appsToload = this.platform.profiles[this.profileId].recentlyUsedApps;
 					appsToload.forEach( (appId, i) => {
 						this.log("loading app", i, appId);
-						if (i < maxSources) {
+						if (i <= maxSources) {
 							// get the channel
 							var foundIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === appId);
 							//this.log("foundIndex", foundIndex);
@@ -2818,7 +2851,8 @@ class stbDevice {
 		//this.channelList = this.channelList.filter((channel, index) => index < loadedChs)
 		//this.log("channelList post filter:", this.channelList);
 		for(let i=chs; i<maxSources; i++) {
-			this.log.debug("Hiding channel", ('0' + (i + 1)).slice(-2));
+			//this.log.debug("Hiding channel", ('0' + (i + 1)).slice(-2));
+			this.log.debug("Hiding channel", ('0' + (i+1)).slice(-2));
 			// array must stay same size and have elements that can be queried, but channelId and channelListIndex must never match valid entries
 			this.channelList[i] = {
 				channelId: 'chId_' + i,  // channelid mjust be unique
@@ -2870,7 +2904,6 @@ class stbDevice {
 		// this.currentPowerState is updated by the polling mechanisn
 		//this.log('getPowerState current power state:', this.currentPowerState);
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getPower', this.name); 
 			this.log.warn('%s: getPower returning %s [%s]', this.name, this.currentPowerState, powerStateName[this.currentPowerState]); 
 		}
 		callback(null, this.currentPowerState); // return current state: 0=off, 1=on
@@ -2897,8 +2930,7 @@ class stbDevice {
 		// fired by the user changing a the accessory name in Home app accessory setup
 		// a user can rename any box at any time
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getDeviceName', this.name); 
-			this.log.warn('%s: getDeviceName returning %s', this.name, this.name);
+			this.log.warn("%s: getDeviceName returning '%s'", this.name, this.name);
 		}
 		callback(null, this.name);
 	};
@@ -3041,26 +3073,29 @@ class stbDevice {
 
 
 
+
+
 	// get input (TV channel)
 	async getInput(callback) {
 		// fired when the user clicks away from the iOS Device TV Remote Control, regardless of which TV was selected
 		// fired when the icon is clicked in HomeKit and HomeKit requests a refresh
 		// this.currentChannelId is updated by the polling mechanisn
 		// must return a valid index, and must never return null
-		if (this.config.debugLevel > 0) { this.log.warn('%s: getInput currentChannelId %s',this.name, this.currentChannelId); }
+		//if (this.config.debugLevel > 1) { this.log.warn('%s: getInput currentChannelId %s',this.name, this.currentChannelId); }
 
 		// find the this.currentChannelId in the accessory inputs and return the inputindex once found
 		// this allows HomeKit to show the selected current channel
 		// as we cannot guarrantee the list order due to personalizationServices changing it at any time
 		// we must search by input_channelId within the current accessory InputSource.subtype
 		var currentChannelName = NO_CHANNEL_NAME;
-		var currentActiveInput = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + this.currentChannelId );
-		if (currentActiveInput == -1) { currentActiveInput = NO_INPUT_ID } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
-		if ((currentActiveInput > -1) && (currentActiveInput != NO_INPUT_ID)) { 
-			currentChannelName = this.inputServices[currentActiveInput].getCharacteristic(Characteristic.ConfiguredName).value; 
+		var currentInputIndex = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + this.currentChannelId );
+		if (currentInputIndex == -1) { currentInputIndex = NO_INPUT_ID-1 } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
+		if ((currentInputIndex > -1) && (currentInputIndex != NO_INPUT_ID-1)) { 
+			currentChannelName = this.inputServices[currentInputIndex].getCharacteristic(Characteristic.ConfiguredName).value; 
 		}
-		if (this.config.debugLevel > 2) { 
-			this.log.warn('%s: getInput returning input %s [%s %s]', this.name, currentActiveInput, this.currentChannelId, currentChannelName);
+		const currentActiveInput = currentInputIndex + 1;
+		if (this.config.debugLevel > 1) { 
+			this.log.warn('%s: getInput returning input %s %s [%s]', this.name, currentActiveInput, this.currentChannelId, currentChannelName);
 		}
 
 		callback(null, currentActiveInput);
@@ -3068,12 +3103,12 @@ class stbDevice {
 
 	// set input (change the TV channel)
 	async setInput(input, callback) {
-		if (this.config.debugLevel > 2) { this.log.warn('%s: setInput input %s %s',this.name, input.channelId, input.channelName); }
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setInput input %s %s',this.name, input.channelId, input.channelName); }
 		callback(null); // for rapid response
 		var currentChannelName = NO_CHANNEL_NAME;
 		const channel = this.platform.masterChannelList.find(channel => channel.channelId === this.currentChannelId);
 		if (channel) { currentChannelName = channel.channelName; }
-		this.log('%s: Change channel from %s %s to %s %s', this.name, this.currentChannelId, currentChannelName, input.channelId, input.channelName);
+		this.log('%s: Change channel from %s [%s] to %s [%s]', this.name, this.currentChannelId, currentChannelName, input.channelId, input.channelName);
 		this.platform.switchChannel(this.deviceId, this.name, input.channelId, input.channelName);
 	}
 
@@ -3082,16 +3117,14 @@ class stbDevice {
 	// get input name (the TV channel name)
 	async getInputName(inputId, callback) {
 		// fired by the user changing a channel name in Home app accessory setup
-		// we cannot handle this as we don't know which channel got renamed
-		// as user could name multiple channels to xxx
-		if (this.config.debugLevel > 2) { this.log.warn('%s: getInputName inputId %s', this.name, inputId); }
+		//if (this.config.debugLevel > 1) { this.log.warn('%s: getInputName inputId %s', this.name, inputId); }
 
 		// need to read from stored cache, currently not implemented, TO-DO
 		var chName = NO_CHANNEL_NAME; // must have a value
-		if (this.channelList[inputId]) {
-			chName = this.channelList[inputId].channelName;
+		if (this.channelList[inputId-1]) {
+			chName = this.channelList[inputId-1].channelConfiguredName;
 		}
-		if (this.config.debugLevel > 2) { 
+		if (this.config.debugLevel > 1) { 
 			this.log.warn("%s: getInputName for input %s returning '%s'", this.name, inputId, chName);
 		}
 		callback(null, chName);
@@ -3105,14 +3138,14 @@ class stbDevice {
 		// iOS does not like / or ! in the channel name:
 		// channel 3 renamed from BBC Four/Cbeebies HD to BBC Four Cbeebies HD (valid only for HomeKit)
 
-		if (this.config.debugLevel > 2) { this.log.warn('%s: setInputName inputId %s inputName %s', this.name, inputId, newInputName); }
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setInputName for input %s to inputName %s', this.name, inputId, newInputName); }
 
 		// store in channelList array and write to disk at every change
-		this.channelList[inputId].channelConfiguredName = newInputName;
+		this.channelList[inputId-1].channelConfiguredName = newInputName;
 		//not yet active
 		//this.platform.persistConfig(this.deviceId, this.channelList);
 
-		const oldInputName = this.channelList[inputId].channelName;
+		const oldInputName = this.channelList[inputId-1].channelName;
 		// maybe suppress 
 		if (this.config.debugLevel > 2) {
 			this.log('%s: Renamed channel %s from %s to %s (valid only for HomeKit)', this.name, inputId+1, oldInputName, newInputName);
@@ -3124,27 +3157,28 @@ class stbDevice {
 
 	// get input visibility state (of the TV channel in HomeKit)
 	async getInputVisibilityState(inputId, callback) {
-		if (this.config.debugLevel > 1) { this.log.warn('%s: getInputVisibilityState inputId %s', this.name, inputId); }
+		//if (this.config.debugLevel > 1) { this.log.warn('%s: getInputVisibilityState inputId %s', this.name, inputId); }
 		//var visibilityState = Characteristic.CurrentVisibilityState.SHOWN;
-		//if (this.channelList[inputId].channelName == 'HIDDEN') {
+		//if (this.channelList[inputId-1].channelName == 'HIDDEN') {
 		//	visibilityState = Characteristic.CurrentVisibilityState.HIDDEN;
 		// }
-		const visibilityState = this.inputServices[inputId].getCharacteristic(Characteristic.CurrentVisibilityState).value;
+		// from v1.1.7, index 0 is input 1 and so on
+		const visibilityState = this.inputServices[inputId-1].getCharacteristic(Characteristic.CurrentVisibilityState).value;
 		if (this.config.debugLevel > 2) {
-			this.log.warn('%s: getInputVisibilityState for inputId %s returning %s [%s]', this.name, inputId, visibilityState, visibilityStateName[visibilityState]);
+			this.log.warn('%s: getInputVisibilityState for input %s returning %s [%s]', this.name, inputId, visibilityState, visibilityStateName[visibilityState]);
 		}
 		callback(null, visibilityState);
 	}
 
 	// set input visibility state (show or hide the TV channel)
 	async setInputVisibilityState(inputId, visibilityState, callback) {
-		if (this.config.debugLevel > 2) { 
-			this.log.warn('%s: setInputVisibilityState inputId %s inputVisibilityState %s [%s]', this.name, inputId, visibilityState, visibilityStateName[visibilityState]); 
+		if (this.config.debugLevel > 1) { 
+			this.log.warn('%s: setInputVisibilityState for input %s inputVisibilityState %s [%s]', this.name, inputId, visibilityState, visibilityStateName[visibilityState]); 
 		}
-		this.inputServices[inputId].getCharacteristic(Characteristic.CurrentVisibilityState).updateValue(visibilityState);
+		this.inputServices[inputId-1].getCharacteristic(Characteristic.CurrentVisibilityState).updateValue(visibilityState);
 
 		// store in channelList array and write to disk at every change
-		this.channelList[inputId].channelVisibilityState = visibilityState;
+		this.channelList[inputId-1].channelVisibilityState = visibilityState;
 		//not yet active
 		//this.platform.persistConfig(this.deviceId, this.channelList);
 
@@ -3156,7 +3190,6 @@ class stbDevice {
 	async getClosedCaptions(callback) {
 		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getClosedCaptions', this.name); 
 			this.log.warn('%s: getClosedCaptions returning %s [%s]', this.name, this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]); 
 		}
 		callback(null, this.currentClosedCaptionsState); // return current state
@@ -3178,7 +3211,7 @@ class stbDevice {
 	async getPictureMode(callback) {
 		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getPictureMode', this.name); 
+			//this.log.warn('%s: getPictureMode', this.name); 
 			// get the config for the device, needed for a few status checks
 			var configDevice;
 			if (this.config.devices) {
@@ -3227,7 +3260,6 @@ class stbDevice {
 		// fired by ??
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getCurrentMediaState', this.name); 
 			this.log.warn('%s: getCurrentMediaState returning %s [%s]', this.name, this.currentMediaState, mediaStateName[this.currentMediaState]);
 		}
 		callback(null, this.currentMediaState);
@@ -3238,8 +3270,7 @@ class stbDevice {
 		// fired by ??
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		// must never return null, so send STOP as default value
-		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getTargetMediaState', this.name); 
+		if (this.config.debugLevel > 1) {
 			this.log.warn('%s: getTargetMediaState returning %s [%s]', this.name, this.targetMediaState, mediaStateName[this.targetMediaState]);
 		}
 		callback(null, this.currentMediaState);
@@ -3266,6 +3297,30 @@ class stbDevice {
 				break;
 			}
 	}
+
+
+	// get display order
+	async getDisplayOrder(callback) {
+		// fired when the user clicks away from the iOS Device TV Remote Control, regardless of which TV was selected
+		// fired when the icon is clicked in HomeKit and HomeKit requests a refresh
+
+		// log the display order
+		let dispOrder = this.televisionService.getCharacteristic(Characteristic.DisplayOrder).value;
+		if (this.config.debugLevel > 1) { this.log.warn("%s: getDisplayOrder returning '%s'", this.name, dispOrder); }
+
+		callback(null, dispOrder);
+	}
+
+	// set display order
+	async setDisplayOrder(displayOrder, callback) {
+		// fired when the user clicks away from the iOS Device TV Remote Control, regardless of which TV was selected
+		// fired when the icon is clicked in HomeKit and HomeKit requests a refresh
+		// this.currentChannelId is updated by the polling mechanisn
+		// must return a valid index, and must never return null
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setDisplayOrder displayOrder',this.name, displayOrder); }
+		callback(null);
+	}
+
 
 	// set remote key
 	async setRemoteKey(remoteKey, callback) {
