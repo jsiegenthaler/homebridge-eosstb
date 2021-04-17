@@ -12,7 +12,7 @@
     "mqtt": "^4.2.6",
     "qs": "^6.10.1",
     "tough-cookie": "^4.0.0",
-    "underscore": "^1.13.0"
+    "underscore": "^1.13.1"
   },
   "deprecated": false,
   "engines": {
