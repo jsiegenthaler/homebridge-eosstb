@@ -2468,18 +2468,47 @@ class stbDevice {
 
 
 			// check for change of active identifier (channel)
+			var searchChannelId = this.currentChannelId;
+			this.log("looking for channelId", searchChannelId)
+			var currentActiveIdentifier  = 0;
+			// if the current channel id is an app, search by channel name name, and not by channel id
+			if (this.currentChannelId.includes('.app.')) {
+				// the current channel is an app, eg Netflix
+				this.log("this channel is an app, looking for this app in the masterChannelList", searchChannelId)
+				// get the name from the master channel list
+				var masterChannelApp = this.platform.masterChannelList.find(channel => channel.channelId === searchChannelId ); 
+				this.log("found masterChannelApp", masterChannelApp)
+				// now look again in the master channel list to find this channel with the same name but not an app id
+				if (masterChannelApp) {
+					this.log("looking for channel with same name but different channelId in the masterChannelList: looking for %s where channelId is not %s", masterChannelApp.channelName, masterChannelApp.channelId)
+					var masterChannel = this.platform.masterChannelList.find(channel => channel.channelName == masterChannelApp.channelName && channel.channelId != masterChannelApp.channelId ); 
+					if (masterChannel) {
+						this.log("found masterChannel", masterChannel)
+						searchChannelId = masterChannel.channelId;
+					} else {
+						this.log("masterChannel not found in masterChannelList")
+					}
+				} else {
+					this.log("masterChannelApp not found in masterChannelList")
+				}
+			}
+
+			// search by subtype in the inputServices array, index 0 = input 1
 			const oldActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
-			// index 0 = input 1
-			var currentActiveIdentifier = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + this.currentChannelId ) + 1;
-			this.log.debug("updateDeviceState: oldActiveIdentifier %s, currentActiveIdentifier %s, this.currentChannelId %s", oldActiveIdentifier, currentActiveIdentifier, this.currentChannelId)
+			this.log("updateDeviceState: oldActiveIdentifier %s, currentActiveIdentifier %s, searchChannelId %s", oldActiveIdentifier, currentActiveIdentifier, searchChannelId)
+			currentActiveIdentifier = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + searchChannelId ) + 1;
+			this.log("found searchChannelId at currentActiveIdentifier ", currentActiveIdentifier)
+
+
 			if (currentActiveIdentifier <= 0) { currentActiveIdentifier = NO_INPUT_ID; } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
 			if (oldActiveIdentifier !== currentActiveIdentifier) {
 				// get names from loaded channel list. Using Ch Up/Ch Down buttons on the remote rolls around the profile channel list
-				// what happens if the TV is change to another profile?
+				// what happens if the TV is changed to another profile?
 				var oldName = NO_CHANNEL_NAME, newName = oldName; // default to UNKNOWN
 				if (oldActiveIdentifier != NO_INPUT_ID && this.channelList[oldActiveIdentifier-1]) {
 					oldName = this.channelList[oldActiveIdentifier-1].channelName
 				}
+
 				if (currentActiveIdentifier != NO_INPUT_ID) {
 					newName = this.channelList[currentActiveIdentifier-1].channelName
 				}
@@ -2728,7 +2757,7 @@ class stbDevice {
 			}
 
 			// check if the chId exists in the master channel list, if not, push it, using the user-defined name if one exists, and channelNumber >10000
-			this.log.debug("%s: Index %s: Finding chId %s in master channel list", this.name, i, chId);
+			this.log("%s: Index %s: Finding chId %s in master channel list", this.name, i, chId);
 			channel = this.platform.masterChannelList.find(channel => channel.channelId === chId); 
 			if (!channel) {
 				const newChName = customChannel.channelName || "Channel " + chId; 
@@ -2743,7 +2772,7 @@ class stbDevice {
 				channel = this.platform.masterChannelList.find(channel => channel.channelId === chId); 
 			} else {
 				// show some useful debug data
-				this.log.debug("%s: Index %s: Found %s in master channel list", this.name, i, chId);
+				this.log("%s: Index %s: Found %s in master channel list", this.name, i, chId);
 			}
 
 			// load this channel as an input

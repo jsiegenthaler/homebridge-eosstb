@@ -13,7 +13,8 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.1.7-beta.1 (2021-04-16)
+## 1.1.7-beta.2 (2021-04-17)
+* Fixed issue where names of app channels would not appear as current channel
 * Fixed issue where channel numbers would appear multiple times
 * Fixed issue where user-configured channel names would be discarded
 * Fixed issue where display of recordingState in logs was incorrect
