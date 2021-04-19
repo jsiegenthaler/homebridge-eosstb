@@ -349,7 +349,7 @@ class stbPlatform {
 
 		// detect if running on development environment
 		//	customStoragePath: 'C:\\Users\\jochen\\.homebridge'
-		if ( this.api.user.customStoragePath.includes( 'jochen' ) ) { PLUGIN_ENV = '_DEV' }
+		if ( this.api.user.customStoragePath.includes( 'jochen' ) ) { PLUGIN_ENV = ' DEV' }
 		if (PLUGIN_ENV) { this.log.warn('%s running in %s environment with debugLevel %s', PLUGIN_NAME, PLUGIN_ENV, this.config.debugLevel); }
 	
 		// Step 1: session does not exist, so create the session, passing the country value
@@ -1910,7 +1910,7 @@ class stbDevice {
 		this.profileId = -1; // default -1
 
 		// set default name on restart
-		this.name = this.device.settings.deviceFriendlyName + PLUGIN_ENV; // append _DEV environment
+		this.name = this.device.settings.deviceFriendlyName + PLUGIN_ENV; // append DEV environment
 
 		// allow user override of device name via config
 		if (this.config.devices) {
@@ -2020,8 +2020,8 @@ class stbDevice {
 		this.api.publishExternalAccessories(PLUGIN_NAME, [this.accessory]);
 
 		// set displayOrder
-		this.televisionService.getCharacteristic(Characteristic.DisplayOrder).value = Buffer.from(this.displayOrder).toString('base64');
-
+		this.televisionService.getCharacteristic(Characteristic.DisplayOrder)
+			.value = Buffer.from(this.displayOrder).toString('base64');
 
 		// set default to no input
 		this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(NO_INPUT_ID)
@@ -2108,7 +2108,10 @@ class stbDevice {
 		// accessory name
 		this.televisionService.getCharacteristic(Characteristic.ConfiguredName)
 			.on('get', this.getDeviceName.bind(this))
-			.on('set', (newName, callback) => { this.setDeviceName(newName, callback); });
+			.on('set', (newName, callback) => { this.setDeviceName(newName, callback); })
+			.setProps({ 
+				maxLen: 14 // generates a "Could not edit accessory" "Please enter a shorter name" error in Home app for the accessory name
+			});
 
 		// active channel
 		this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier)
@@ -2469,35 +2472,38 @@ class stbDevice {
 
 			// check for change of active identifier (channel)
 			var searchChannelId = this.currentChannelId;
-			this.log("looking for channelId", searchChannelId)
+			//this.log("looking for channelId", searchChannelId)
 			var currentActiveIdentifier  = 0;
 			// if the current channel id is an app, search by channel name name, and not by channel id
 			if (this.currentChannelId.includes('.app.')) {
 				// the current channel is an app, eg Netflix
-				this.log("this channel is an app, looking for this app in the masterChannelList", searchChannelId)
+				//this.log("this channel is an app, looking for this app in the masterChannelList", searchChannelId)
 				// get the name from the master channel list
 				var masterChannelApp = this.platform.masterChannelList.find(channel => channel.channelId === searchChannelId ); 
-				this.log("found masterChannelApp", masterChannelApp)
+				//this.log("found masterChannelApp", masterChannelApp)
 				// now look again in the master channel list to find this channel with the same name but not an app id
 				if (masterChannelApp) {
-					this.log("looking for channel with same name but different channelId in the masterChannelList: looking for %s where channelId is not %s", masterChannelApp.channelName, masterChannelApp.channelId)
+					//this.log("looking for channel with same name in the masterChannelList: looking for %s", masterChannelApp.channelName)
+					//var masterChannelByName = this.platform.masterChannelList.find(channel => channel.channelName == masterChannelApp.channelName ); 
+					//this.log("found masterChannel", masterChannelByName)
+					//this.log("looking for channel with same name but different channelId in the masterChannelList: looking for %s where channelId is not %s", masterChannelApp.channelName, masterChannelApp.channelId)
 					var masterChannel = this.platform.masterChannelList.find(channel => channel.channelName == masterChannelApp.channelName && channel.channelId != masterChannelApp.channelId ); 
 					if (masterChannel) {
-						this.log("found masterChannel", masterChannel)
+						//this.log("found masterChannel", masterChannel)
 						searchChannelId = masterChannel.channelId;
 					} else {
-						this.log("masterChannel not found in masterChannelList")
+						//this.log("masterChannel not found in masterChannelList")
 					}
 				} else {
-					this.log("masterChannelApp not found in masterChannelList")
+					//this.log("masterChannelApp not found in masterChannelList")
 				}
 			}
 
 			// search by subtype in the inputServices array, index 0 = input 1
 			const oldActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
-			this.log("updateDeviceState: oldActiveIdentifier %s, currentActiveIdentifier %s, searchChannelId %s", oldActiveIdentifier, currentActiveIdentifier, searchChannelId)
+			//this.log("updateDeviceState: oldActiveIdentifier %s, currentActiveIdentifier %s, searchChannelId %s", oldActiveIdentifier, currentActiveIdentifier, searchChannelId)
 			currentActiveIdentifier = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + searchChannelId ) + 1;
-			this.log("found searchChannelId at currentActiveIdentifier ", currentActiveIdentifier)
+			//this.log("found searchChannelId at currentActiveIdentifier ", currentActiveIdentifier)
 
 
 			if (currentActiveIdentifier <= 0) { currentActiveIdentifier = NO_INPUT_ID; } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
@@ -2757,7 +2763,7 @@ class stbDevice {
 			}
 
 			// check if the chId exists in the master channel list, if not, push it, using the user-defined name if one exists, and channelNumber >10000
-			this.log("%s: Index %s: Finding chId %s in master channel list", this.name, i, chId);
+			this.log.debug("%s: Index %s: Finding chId %s in master channel list", this.name, i, chId);
 			channel = this.platform.masterChannelList.find(channel => channel.channelId === chId); 
 			if (!channel) {
 				const newChName = customChannel.channelName || "Channel " + chId; 
@@ -2772,7 +2778,7 @@ class stbDevice {
 				channel = this.platform.masterChannelList.find(channel => channel.channelId === chId); 
 			} else {
 				// show some useful debug data
-				this.log("%s: Index %s: Found %s in master channel list", this.name, i, chId);
+				this.log.debug("%s: Index %s: Found %s in master channel list", this.name, i, chId);
 			}
 
 			// load this channel as an input
