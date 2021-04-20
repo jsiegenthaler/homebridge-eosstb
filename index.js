@@ -119,6 +119,8 @@ const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in mill
 const MQTT_WATCHDOG_INTERVAL_MS = 10000; // mqtt watchdog interval in millisec. Default = 10000 (10s)
 const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 120; // channel list refresh check interval, in seconds. Default = 120
 const RECORDING_STATE_ONGOING = 1; // Custom characteristic
+const SETTOPBOX_NAME_MINLEN = 3; // min len of the set-top box name
+const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
 
 // state constants
 const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 };
@@ -2089,6 +2091,15 @@ class stbDevice {
 			this.log.warn('prepareTelevisionService');
 		}
 
+
+		// check syncName, default to true if not found
+		var syncName = true;
+		if (this.config.devices) {
+			const configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
+			syncName = (configDevice || {}).syncName;
+			if (syncName == null) { syncName = true }
+		}
+
 		this.televisionService = new Service.Television(this.name, 'televisionService');
 		this.televisionService
 			.setCharacteristic(Characteristic.ConfiguredName, this.name)
@@ -2108,10 +2119,15 @@ class stbDevice {
 		// accessory name
 		this.televisionService.getCharacteristic(Characteristic.ConfiguredName)
 			.on('get', this.getDeviceName.bind(this))
-			.on('set', (newName, callback) => { this.setDeviceName(newName, callback); })
-			.setProps({ 
-				maxLen: 14 // generates a "Could not edit accessory" "Please enter a shorter name" error in Home app for the accessory name
-			});
+			.on('set', (newName, callback) => { this.setDeviceName(newName, callback); });
+
+		// limit name length only if syncing name is enabled
+		if (syncName == true) {
+			this.televisionService.getCharacteristic(Characteristic.ConfiguredName)
+				.setProps({ 
+					maxLen: SETTOPBOX_NAME_MAXLEN // generates a "Could not edit accessory" "Please enter a shorter name" error in Home app for the accessory name
+				});
+		}
 
 		// active channel
 		this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier)
@@ -2983,18 +2999,15 @@ class stbDevice {
 
 		// sync name to physical device if enabled
 		if (syncName && syncName == true) {
-			// Device requires min 3 max 14 char names
-			const MIN_NAME_LENGTH = 3; 
-			const MAX_NAME_LENGTH = 14;
 
 			// check name length and truncate and log if >MAX_NAME_LENGTH
-			if (deviceName.length<MIN_NAME_LENGTH) {
-				deviceName = (deviceName + deviceName + deviceName).slice(0,MIN_NAME_LENGTH);
-				this.log("%s: Device name must be at least %s characters long, expanding to %s", this.name, MIN_NAME_LENGTH, deviceName);
+			if (deviceName.length<SETTOPBOX_NAME_MINLEN) {
+				deviceName = (deviceName + deviceName + deviceName).slice(0, SETTOPBOX_NAME_MINLEN);
+				this.log("%s: Device name must be at least %s characters long, expanding to %s", this.name, SETTOPBOX_NAME_MINLEN, deviceName);
 			}
-			if (deviceName.length>MAX_NAME_LENGTH) {
-				deviceName = deviceName.slice(0,MAX_NAME_LENGTH);
-				this.log("%s: Device name is limited to %s characters, truncating to %s", this.name, MAX_NAME_LENGTH, deviceName);
+			if (deviceName.length > SETTOPBOX_NAME_MAXLEN) {
+				deviceName = deviceName.slice(0, SETTOPBOX_NAME_MAXLEN);
+				this.log("%s: Device name is limited to %s characters, truncating to %s", this.name, SETTOPBOX_NAME_MAXLEN, deviceName);
 			}
 
 			// ensure DEV is appended to deviceName to allow DEV and PROD environments to have the same device
