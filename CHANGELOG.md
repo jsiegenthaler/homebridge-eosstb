@@ -4,7 +4,7 @@ See the [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/ma
 Please restart Homebridge after every plugin update.
 
 # CONFIG CHANGES REQUIRED
-If you used custom channels, you must updated your config when updating from 1.1.3 to 1.1.4 (or later versions). See the [configuration section in the Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration).
+If you used custom channels, you must updated your config when updating from 1.1.3 to later versions. See the [configuration section in the Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration).
 
 # Bug Fixes and Improvements
 
@@ -13,7 +13,7 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.1.7-beta.6 (2021-04-20)
+## 1.1.7 (2021-04-21)
 * Added limit of TV accessory name to 14 characters as per set-top box rules but only when syncName=true
 * Added support of DisplayOrder for proper channel sorting
 * Fixed issue where names of special app channels would not appear as current channel (Netflix)
