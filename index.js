@@ -2491,7 +2491,7 @@ class stbDevice {
 			//this.log("looking for channelId", searchChannelId)
 			var currentActiveIdentifier  = 0;
 			// if the current channel id is an app, search by channel name name, and not by channel id
-			if (this.currentChannelId.includes('.app.')) {
+			if ((this.currentChannelId || {}).includes('.app.')) {
 				// the current channel is an app, eg Netflix
 				//this.log("this channel is an app, looking for this app in the masterChannelList", searchChannelId)
 				// get the name from the master channel list
