@@ -13,6 +13,10 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.1.9 (2021-04-24)
+* Fixed issue where GB mqtt session would not start (timing issue)
+
+
 ## 1.1.8 (2021-04-22)
 * Fixed issue "TypeError: this.currentChannelId.includes is not a function" on line 2494
 
