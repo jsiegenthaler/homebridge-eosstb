@@ -279,6 +279,8 @@ class stbPlatform {
 			// call the session watchdog now to create the session
 			this.sessionWatchdog.bind(this);
 
+			//this.runMe();
+
 			// the session watchdog creates a session when none exists, and recreates one if the session ever fails due to internaet failure or anything else
 			this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
 			
@@ -331,6 +333,34 @@ class stbPlatform {
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// START session handler (web)
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	// demo of a async function with proper  try/catch/finally error handling
+	async runMe() {
+		try {
+			// do something here, errors are caught cleanly
+			this.log("This command worked");
+			
+			// generate an error
+			var text;
+			if (text.includes("abc")) {
+				this.log("should never log")
+			}
+
+			// It almost reads as synchronous code.  Just
+			//  make sure never to forget await when calling an async function (or a function that returns a promise).  
+			// I even created an async timeout(), so I can simply  await timeout(1000) to delay execution for 1 second.  And I make use of await events.once() a lot, to wait for a particular event.
+			//await thisThrows();
+
+		} catch (err) {
+			// some error occured, handle it nicely
+			this.log.error("runMe threw an error!")
+			this.log.error(err);
+
+		} finally {
+			// do any final cleanup here
+			this.log.warn('We do cleanup here. This is executed after the catch.');
+		}
+	}
 
 
 	// the awesome watchDog
@@ -2488,10 +2518,10 @@ class stbDevice {
 
 			// check for change of active identifier (channel)
 			var searchChannelId = this.currentChannelId;
-			//this.log("looking for channelId", searchChannelId)
+			//this.log("DEBUG: checking searchChannelId", searchChannelId);
 			var currentActiveIdentifier  = 0;
 			// if the current channel id is an app, search by channel name name, and not by channel id
-			if ((this.currentChannelId || {}).includes('.app.')) {
+			if (searchChannelId && searchChannelId.includes('.app.')) {
 				// the current channel is an app, eg Netflix
 				//this.log("this channel is an app, looking for this app in the masterChannelList", searchChannelId)
 				// get the name from the master channel list
