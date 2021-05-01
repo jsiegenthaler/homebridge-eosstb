@@ -13,10 +13,11 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.1.10-beta.1 (2021-04-30)
+## 1.1.10-beta.2 (2021-05-01)
+* Added proper error trapping and handling in the updateDeviceState procedure
 * Another fix for "includes is not a function" on line 2494
 * Added Funding options
-* Updated Readme to reflect that the plugin is now homebridge verified
+* EOSSTB is now homebridge verified! Restart your OS running Homebridge to see the Donate and Verified tags in Homebridge. All donations appreciated :)
 
 ## 1.1.9 (2021-04-24)
 * Fixed issue where GB mqtt session would not start (timing issue)

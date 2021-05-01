@@ -1208,7 +1208,7 @@ class stbPlatform {
 				
 			})
 			.catch(error => {
-				this.log.warn('getJwtToken error:', error);
+				this.log.error('getJwtToken error:', error);
 				return false;
 			});			
 	}
@@ -1246,269 +1246,310 @@ class stbPlatform {
 		
 		// mqtt client event: connect
 		mqttClient.on('connect', function () {
-			parent.log("mqttClient: Connected: %s", mqttClient.connected);
+			try {
+				parent.log("mqttClient: Connected: %s", mqttClient.connected);
 
-			// https://prod.spark.upctv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
-			parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
+				// https://prod.spark.upctv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
+				parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
 
-			// experimental support
-			parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus'); // not needed
-			parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction'); // not needed
-			/*
-			// the next 2 are not needed
-			parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService'); // not needed
-			parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService'); // not needed
-			*/
+				// experimental support
+				parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus'); // not needed
+				parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction'); // not needed
+				/*
+				// the next 2 are not needed
+				parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService'); // not needed
+				parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService'); // not needed
+				*/
 
-			// initiate the EOS session by turning on the HGO platform
-			parent.mqttSetHgoOnlineRunning(mqttUsername);
+				// initiate the EOS session by turning on the HGO platform
+				parent.mqttSetHgoOnlineRunning(mqttUsername);
 
-			
-			parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
-			parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status
+				
+				parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
+				parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status
 
-			// experimental support
-			parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings'); // not needed
-			parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings/capacity'); // not needed
+				// experimental support
+				parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings'); // not needed
+				parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings/capacity'); // not needed
 
-			// subscribe to all devices after the mqttSetHgoOnlineRunning is sent
-			parent.devices.forEach((device) => {
-				// subscribe to our own generated unique householdId/mqttClientId and everything for our box
-				parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId);
-				// subscribe to our householdId/deviceId
-				parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId);
-				// subscribe to our householdId/deviceId/status
-				parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/status');
-			});
-
-			// and request the UI status for each device
-			parent.devices.forEach((device) => {
-				// send a getuiStatus request
-				parent.getUiStatus(device.deviceId);
-			});
-
-			// and request current recordingState
-			parent.getRecordingState();  // async function
-
-			// ++++++++++++++++++++ mqttConnected +++++++++++++++++++++
-			
-
-
-			// mqtt client event: message received
-			mqttClient.on('message', function (topic, payload) {
-				// store some mqtt diagnostic data
-				parent.lastMqttMessageReceived = Date.now();
-
-				let mqttMessage = JSON.parse(payload);
-				if (parent.config.debugLevel > 0) {
-					parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: \r\n%s', topic, mqttMessage);
-				}
-
-				// variables for just in this function
-				var deviceId, currPowerState, currMediaState, currChannelId, currSourceType, currRecordingState;
+				// subscribe to all devices after the mqttSetHgoOnlineRunning is sent
+				parent.devices.forEach((device) => {
+					// subscribe to our own generated unique householdId/mqttClientId and everything for our box
+					parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId);
+					// subscribe to our householdId/deviceId
+					parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId);
+					// subscribe to our householdId/deviceId/status
+					parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/status');
+				});
 
 				// and request the UI status for each device
-				// 14.03.2021 does not respond, disabling for now...
-				/*
 				parent.devices.forEach((device) => {
 					// send a getuiStatus request
 					parent.getUiStatus(device.deviceId);
 				});
-				*/
 
-				// handle personalizationService messages
-				// Topic: Topic: 107xxxx_ch/personalizationService
-				// Message: { action: 'OPS.getProfilesUpdate', source: '3C36E4-EOSSTB-00365657xxxx', ... }
-				// Message: { action: 'OPS.getDeviceUpdate', source: '3C36E4-EOSSTB-00365657xxxx', deviceId: '3C36E4-EOSSTB-00365657xxxx' }
-				if (topic.includes(mqttUsername + '/personalizationService')) {
-					if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s: action', mqttMessage.action); }
-					if (mqttMessage.action == 'OPS.getProfilesUpdate') {
-						if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData for profiles', mqttMessage.action); }
-						parent.getPersonalizationData('profiles'); // async function
+				// and request current recordingState
+				parent.getRecordingState();  // async function
 
-					} else if (mqttMessage.action == 'OPS.getDeviceUpdate') {
-						if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData for devices', mqttMessage.action); }
-						deviceId = mqttMessage.deviceId;
-						parent.getPersonalizationData('devices/' + deviceId); // async function
-					}
-				}
+				// ++++++++++++++++++++ mqttConnected +++++++++++++++++++++
+			
+		  
+				// mqtt client event: message received
+				mqttClient.on('message', function (topic, payload) {
+					try {
 
-				// handle recordingState messages
-				// Topic: Topic: 107xxxx_ch/recordingStatus
-				// Message: {"id":"crid:~~2F~~2Fgn.tv~~2F2004781~~2FEP019440730003,imi:2d369682b865679f2e5182ea52a93410171cfdc8","event":"scheduleEvent","transactionId":"/CH/eng/web/networkdvrrecordings - 013f12fc-23ef-4b77-a244-eeeea0c6901c"}
-				if (topic.includes(mqttUsername + '/recordingStatus')) {
-					if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: event: %s', mqttMessage.event); }
-					parent.getRecordingState(); // async function
-				}
+						// store some mqtt diagnostic data
+						parent.lastMqttMessageReceived = Date.now();
 
-				// handle status messages for the STB
-				// Topic: 107xxxx_ch/3C36E4-EOSSTB-00365657xxxx/status
-				// Message: {"deviceType":"STB","source":"3C36E4-EOSSTB-00365657xxxx","state":"ONLINE_RUNNING","mac":"F8:F5:32:45:DE:52","ipAddress":"192.168.0.33/255.255.255.0"}
-				if (topic.includes('/status')) {
-					if (mqttMessage.deviceType == 'STB') {
-						if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: STB status: Detecting Power State: Received Message of deviceType %s for %s', mqttMessage.deviceType, mqttMessage.source); }
-						// sometimes a rogue empty message appears without a mac or ipAddress, so ensure a mac is always present
-						if (mqttMessage.mac.length > 0) {
-							deviceId = mqttMessage.source;
-							// mac address is present, we have a valid message
-							if (mqttMessage.state == 'ONLINE_RUNNING') { 				// ONLINE_RUNNING: power is on
-								currPowerState = Characteristic.Active.ACTIVE; 
-							} else { 													// default off for ONLINE_STANDBY or OFFLINE_NETWORK_STANDBY or OFFLINE
-								currPowerState = Characteristic.Active.INACTIVE;
-								currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
+						let mqttMessage = JSON.parse(payload);
+						if (parent.config.debugLevel > 0) {
+							parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: \r\n%s', topic, mqttMessage);
+						}
+
+						// variables for just in this function
+						var deviceId, currPowerState, currMediaState, currChannelId, currSourceType, currRecordingState;
+
+						// and request the UI status for each device
+						// 14.03.2021 does not respond, disabling for now...
+						/*
+						parent.devices.forEach((device) => {
+							// send a getuiStatus request
+							parent.getUiStatus(device.deviceId);
+						});
+						*/
+
+						// handle personalizationService messages
+						// Topic: Topic: 107xxxx_ch/personalizationService
+						// Message: { action: 'OPS.getProfilesUpdate', source: '3C36E4-EOSSTB-00365657xxxx', ... }
+						// Message: { action: 'OPS.getDeviceUpdate', source: '3C36E4-EOSSTB-00365657xxxx', deviceId: '3C36E4-EOSSTB-00365657xxxx' }
+						if (topic.includes(mqttUsername + '/personalizationService')) {
+							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s: action', mqttMessage.action); }
+							if (mqttMessage.action == 'OPS.getProfilesUpdate') {
+								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData for profiles', mqttMessage.action); }
+								parent.getPersonalizationData('profiles'); // async function
+
+							} else if (mqttMessage.action == 'OPS.getDeviceUpdate') {
+								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData for devices', mqttMessage.action); }
+								deviceId = mqttMessage.deviceId;
+								parent.getPersonalizationData('devices/' + deviceId); // async function
 							}
 						}
-					}
-				}
 
-				
-				// handle CPE UI status messages for the STB
-				// topic can be many, so look for mqttMessage.type
-				// Topic: 107xxxx_ch/vy9hvvxo8n6r1t3f4e05tgg590p8s0
-				// Message: {"version":"1.3.10","type":"CPE.uiStatus","source":"3C36E4-EOSSTB-00365657xxxx","messageTimeStamp":1607205483257,"status":{"uiStatus":"mainUI","playerState":{"sourceType":"linear","speed":1,"lastSpeedChangeTime":1607203130936,"source":{"channelId":"SV09259","eventId":"crid:~~2F~~2Fbds.tv~~2F394850976,imi:3ef107f9a95f37e5fde84ee780c834b502be1226"}},"uiState":{}},"id":"fms4mjb9uf"}
-				if (mqttMessage.type == 'CPE.uiStatus') {
-					if (parent.config.debugLevel > 0) { 
-						parent.log.warn('mqttClient: CPE.uiStatus: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
-					}
-					if (parent.config.debugLevel > 0) {
-						parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
-						parent.log.warn('mqttClient: mqttMessage.status.uiStatus:', mqttMessage.status.uiStatus);
-					}
-					parent.lastMqttUiStatusMessageReceived = Date.now();
-					deviceId = mqttMessage.source;
-					const cpeUiStatus = mqttMessage.status;
-					// normal TV: 	cpeUiStatus = mainUI
-					// app: 		cpeUiStatus = apps (YouTube, Netflix, etc)
-					if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus:', cpeUiStatus); }
-					if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus.uiStatus:', cpeUiStatus.uiStatus); }
-					switch (cpeUiStatus.uiStatus) {
-						case 'mainUI':
-							// grab the status part of the mqttMessage object as we cannot go any deeper with json
-							const playerState = cpeUiStatus.playerState;
-							currSourceType = playerState.sourceType;
-							if (parent.config.debugLevel > 1) { parent.log.warn('mqttClient: mainUI: Detected mqtt playerState.speed:', playerState.speed); }
+						// handle recordingState messages
+						// Topic: Topic: 107xxxx_ch/recordingStatus
+						// Message: {"id":"crid:~~2F~~2Fgn.tv~~2F2004781~~2FEP019440730003,imi:2d369682b865679f2e5182ea52a93410171cfdc8","event":"scheduleEvent","transactionId":"/CH/eng/web/networkdvrrecordings - 013f12fc-23ef-4b77-a244-eeeea0c6901c"}
+						if (topic.includes(mqttUsername + '/recordingStatus')) {
+							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: event: %s', mqttMessage.event); }
+							parent.getRecordingState(); // async function
+						}
 
-							// get playerState.speed (shows if playing or paused)
-							// speed can be one of: -64 -30 -6 -2 0 2 6 30 64. 0=Paused, 1=Play, >1=FastForward, <0=Rewind
-							if (playerState.speed == 0) { 			// speed 0 is PAUSE
-								currMediaState = Characteristic.CurrentMediaState.PAUSE;
-							} else if (playerState.speed == 1) { 	// speed 1 is PLAY
-								currMediaState = Characteristic.CurrentMediaState.PLAY;
-							} else {								// default for all speeds (-64 -30 -6 2 6 30 64) is LOADING
-								currMediaState = Characteristic.CurrentMediaState.LOADING;
-							}
-
-							// get channelId (current playing channel) from linear TV
-							// playerState.sourceType
-							// linear = normal TV
-							// reviewbuffer = delayed buffered TV playback
-							// replay = replay TV
-							// nDVR = playback from saved program (Digital Video Recorder)
-							// Careful: source is not always present in the data
-							if (playerState.source) {
-								currChannelId = playerState.source.channelId || NO_INPUT_ID;
-								if (parent.config.debugLevel > 0) {
-									let currentChannelName; // let is scopt to the current {} block
-									let curChannel = parent.masterChannelList.find(channel => channel.channelId === currChannelId); 
-									if (curChannel) { currentChannelName = curChannel.channelName; }
-									parent.log.warn('mqttClient: Detected mqtt channelId: %s [%s]', currChannelId, currentChannelName);
+						// handle status messages for the STB
+						// Topic: 107xxxx_ch/3C36E4-EOSSTB-00365657xxxx/status
+						// Message: {"deviceType":"STB","source":"3C36E4-EOSSTB-00365657xxxx","state":"ONLINE_RUNNING","mac":"F8:F5:32:45:DE:52","ipAddress":"192.168.0.33/255.255.255.0"}
+						if (topic.includes('/status')) {
+							if (mqttMessage.deviceType == 'STB') {
+								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: STB status: Detecting Power State: Received Message of deviceType %s for %s', mqttMessage.deviceType, mqttMessage.source); }
+								// sometimes a rogue empty message appears without a mac or ipAddress, so ensure a mac is always present
+								if (mqttMessage.mac.length > 0) {
+									deviceId = mqttMessage.source;
+									// mac address is present, we have a valid message
+									if (mqttMessage.state == 'ONLINE_RUNNING') { 				// ONLINE_RUNNING: power is on
+										currPowerState = Characteristic.Active.ACTIVE; 
+									} else { 													// default off for ONLINE_STANDBY or OFFLINE_NETWORK_STANDBY or OFFLINE
+										currPowerState = Characteristic.Active.INACTIVE;
+										currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
+									}
 								}
 							}
-							break;
+						}
 
-						case 'apps':
-							//parent.log('mqttClient: apps: Detected mqtt app channelId: %s', cpeUiStatus.appsState.id);
-							//parent.log("mqttClient: apps: Detected mqtt app appName %s", cpeUiStatus.appsState.appName);
-							// we get id and appName here, load to the channel list...
-							// useful for YouTube and Netflix
-							switch (cpeUiStatus.appsState.id) {
-		
-								case 'com.bbc.app.launcher': case 'com.bbc.app.crb':
-									// ignore the following apps to ensure shannel name is not overridden:
-									// com.bbc.app.launcher 	button launcher app??
-									// com.bbc.app.crb 			Connected Red Button app, this is the Red Button special control on the remote
-									currChannelId = null; 
-									parent.log("App %s [%s] detected. Ignoring", cpeUiStatus.appsState.id, cpeUiStatus.appsState.appName);
+						
+						// handle CPE UI status messages for the STB
+						// topic can be many, so look for mqttMessage.type
+						// Topic: 107xxxx_ch/vy9hvvxo8n6r1t3f4e05tgg590p8s0
+						// Message: {"version":"1.3.10","type":"CPE.uiStatus","source":"3C36E4-EOSSTB-00365657xxxx","messageTimeStamp":1607205483257,"status":{"uiStatus":"mainUI","playerState":{"sourceType":"linear","speed":1,"lastSpeedChangeTime":1607203130936,"source":{"channelId":"SV09259","eventId":"crid:~~2F~~2Fbds.tv~~2F394850976,imi:3ef107f9a95f37e5fde84ee780c834b502be1226"}},"uiState":{}},"id":"fms4mjb9uf"}
+						if (mqttMessage.type == 'CPE.uiStatus') {
+							if (parent.config.debugLevel > 0) { 
+								parent.log.warn('mqttClient: CPE.uiStatus: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
+							}
+							if (parent.config.debugLevel > 0) {
+								parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
+								parent.log.warn('mqttClient: mqttMessage.status.uiStatus:', mqttMessage.status.uiStatus);
+							}
+							parent.lastMqttUiStatusMessageReceived = Date.now();
+							deviceId = mqttMessage.source;
+							const cpeUiStatus = mqttMessage.status;
+							// normal TV: 	cpeUiStatus = mainUI
+							// app: 		cpeUiStatus = apps (YouTube, Netflix, etc)
+							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus:', cpeUiStatus); }
+							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus.uiStatus:', cpeUiStatus.uiStatus); }
+							switch (cpeUiStatus.uiStatus) {
+								case 'mainUI':
+									// grab the status part of the mqttMessage object as we cannot go any deeper with json
+									const playerState = cpeUiStatus.playerState;
+									currSourceType = playerState.sourceType;
+									if (parent.config.debugLevel > 1) { parent.log.warn('mqttClient: mainUI: Detected mqtt playerState.speed:', playerState.speed); }
+
+									// get playerState.speed (shows if playing or paused)
+									// speed can be one of: -64 -30 -6 -2 0 2 6 30 64. 0=Paused, 1=Play, >1=FastForward, <0=Rewind
+									if (playerState.speed == 0) { 			// speed 0 is PAUSE
+										currMediaState = Characteristic.CurrentMediaState.PAUSE;
+									} else if (playerState.speed == 1) { 	// speed 1 is PLAY
+										currMediaState = Characteristic.CurrentMediaState.PLAY;
+									} else {								// default for all speeds (-64 -30 -6 2 6 30 64) is LOADING
+										currMediaState = Characteristic.CurrentMediaState.LOADING;
+									}
+
+									// get channelId (current playing channel) from linear TV
+									// playerState.sourceType
+									// linear = normal TV
+									// reviewbuffer = delayed buffered TV playback
+									// replay = replay TV
+									// nDVR = playback from saved program (Digital Video Recorder)
+									// Careful: source is not always present in the data
+									if (playerState.source) {
+										currChannelId = playerState.source.channelId || NO_INPUT_ID;
+										if (parent.config.debugLevel > 0) {
+											let currentChannelName; // let is scopt to the current {} block
+											let curChannel = parent.masterChannelList.find(channel => channel.channelId === currChannelId); 
+											if (curChannel) { currentChannelName = curChannel.channelName; }
+											parent.log.warn('mqttClient: Detected mqtt channelId: %s [%s]', currChannelId, currentChannelName);
+										}
+									}
 									break;
 
-								default:
-									// check if the app channel exists in the master channel list, if not, push it, using the user-defined name if one exists
-									currChannelId = cpeUiStatus.appsState.id;
-									var foundIndex = parent.masterChannelList.findIndex(channel => channel.channelId === currChannelId); 
-									if (foundIndex == -1 ) {
-										parent.log("App %s detected. Adding to the master channel list at index %s with channelId %s", cpeUiStatus.appsState.appName, parent.masterChannelList.length, currChannelId);
-										// for easy identification, make the channelNumber app10000 + the index number
-										parent.masterChannelList.push({
-											channelId: currChannelId, 
-											channelNumber: 'app' + (10000 + parent.masterChannelList.length), 
-											channelName: cleanNameForHomeKit(cpeUiStatus.appsState.appName)
-										});
-									}
-							}
-
-						default:
-
-					}
-				}
-
-				// handle CPE pushToTV messages for the STB
-				// seen on VirginMedia connections in GB
-				// Topic: 10950xxxx_gb/qc76wses7wfqhox2uqqteoedbyqgtt
-				// Message: {	type: 'CPE.pushToTV.rsp',	source: '3C36E4-EOSSTB-003597101009',	id: 'TrgPON8eV8',	version: '1.3.12',	status: [Object]  }: 
-				if (mqttMessage.type == 'CPE.pushToTV.rsp') {
-					if (parent.config.debugLevel > 0) { 
-						parent.log.warn('mqttClient: CPE.pushToTV.rsp: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
-					}
-					if (parent.config.debugLevel > 0) {
-						parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
-					}
-				}
-
-
-				// update the device on every message
-				//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged) 
-				parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currSourceType);
+								case 'apps':
+									//parent.log('mqttClient: apps: Detected mqtt app channelId: %s', cpeUiStatus.appsState.id);
+									//parent.log("mqttClient: apps: Detected mqtt app appName %s", cpeUiStatus.appsState.appName);
+									// we get id and appName here, load to the channel list...
+									// useful for YouTube and Netflix
+									switch (cpeUiStatus.appsState.id) {
 				
-			}); // end of mqtt client event: message received
+										case 'com.bbc.app.launcher': case 'com.bbc.app.crb':
+											// ignore the following apps to ensure shannel name is not overridden:
+											// com.bbc.app.launcher 	button launcher app??
+											// com.bbc.app.crb 			Connected Red Button app, this is the Red Button special control on the remote
+											currChannelId = null; 
+											parent.log("App %s [%s] detected. Ignoring", cpeUiStatus.appsState.id, cpeUiStatus.appsState.appName);
+											break;
+	
+										default:
+											// check if the app channel exists in the master channel list, if not, push it, using the user-defined name if one exists
+											currChannelId = cpeUiStatus.appsState.id;
+											var foundIndex = parent.masterChannelList.findIndex(channel => channel.channelId === currChannelId); 
+											if (foundIndex == -1 ) {
+												parent.log("App %s detected. Adding to the master channel list at index %s with channelId %s", cpeUiStatus.appsState.appName, parent.masterChannelList.length, currChannelId);
+												// for easy identification, make the channelNumber app10000 + the index number
+												parent.masterChannelList.push({
+													channelId: currChannelId, 
+													channelNumber: 'app' + (10000 + parent.masterChannelList.length), 
+													channelName: cleanNameForHomeKit(cpeUiStatus.appsState.appName)
+												});
+											}
+									}
+
+								default:
+
+							}
+						}
+
+						// handle CPE pushToTV messages for the STB
+						// seen on VirginMedia connections in GB
+						// Topic: 10950xxxx_gb/qc76wses7wfqhox2uqqteoedbyqgtt
+						// Message: {	type: 'CPE.pushToTV.rsp',	source: '3C36E4-EOSSTB-003597101009',	id: 'TrgPON8eV8',	version: '1.3.12',	status: [Object]  }: 
+						if (mqttMessage.type == 'CPE.pushToTV.rsp') {
+							if (parent.config.debugLevel > 0) { 
+								parent.log.warn('mqttClient: CPE.pushToTV.rsp: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
+							}
+							if (parent.config.debugLevel > 0) {
+								parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
+							}
+						}
+
+
+						// update the device on every message
+						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged) 
+						parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currSourceType);
+				
+						//end of try
+					} catch (err) {
+						// catch all mqtt errors
+						parent.log.error("Error trapped in mqttClient message event:", err.message);
+						parent.log.error(err);
+						parent.log.error("mqttmessage:");
+						parent.log.error(mqttMessage);
+					}
+				
+				}); // end of mqtt client event: message received
 
 
 
-			// mqtt client event: close
-			// Emitted after a disconnection.
-			mqttClient.on('close', function () {
-				parent.log('mqttClient: Connection closed');
-				mqttClient.end(); // end the process
-  				parent.log('Session disconnected'); // crude but effective?
-				currentSessionState = sessionState.DISCONNECTED;
-				return false;
-			});
+				// mqtt client event: close
+				// Emitted after a disconnection.
+				mqttClient.on('close', function () {
+					try {
+						parent.log('mqttClient: Connection closed');
+						mqttClient.end(); // end the process
+						parent.log('Session disconnected'); // crude but effective?
+						currentSessionState = sessionState.DISCONNECTED;
+						return false;
+					} catch (err) {
+						parent.log.error("Error trapped in mqttClient close event:", err.message);
+						parent.log.error(err);
+					}
+				});
 
-			// mqtt client event: reconnect
-			// Emitted when a reconnect starts.
-			mqttClient.on('reconnect', function () {
-				parent.log('mqttClient: Reconnecting');
-			});
-			
-			// mqtt client event: disconnect 
-			// Emitted after receiving disconnect packet from broker. MQTT 5.0 feature.
-			mqttClient.on('disconnect', function () {
-				parent.log('mqttClient: Disconnecting');
-			});
-			
-			// mqtt client event: offline
-			// Emitted when the client goes offline.
-			mqttClient.on('offline', function () {
-				parent.log('mqttClient: Client is offline');
-			});
+				// mqtt client event: reconnect
+				// Emitted when a reconnect starts.
+				mqttClient.on('reconnect', function () {
+					try {
+						parent.log('mqttClient: Reconnecting');
+					} catch (err) {
+						parent.log.error("Error trapped in mqttClient reconnect event:", err.message);
+						parent.log.error(err);
+					}
+				});
+				
+				// mqtt client event: disconnect 
+				// Emitted after receiving disconnect packet from broker. MQTT 5.0 feature.
+				mqttClient.on('disconnect', function () {
+					try {
+						parent.log('mqttClient: Disconnecting');
+					} catch (err) {
+						parent.log.error("Error trapped in mqttClient disconnect event:", err.message);
+						parent.log.error(err);
+					}
+				});
+				
+				// mqtt client event: offline
+				// Emitted when the client goes offline.
+				mqttClient.on('offline', function () {
+					try {
+						parent.log('mqttClient: Client is offline');
+					} catch (err) {
+						parent.log.error("Error trapped in mqttClient offline event:", err.message);
+						parent.log.error(err);
+					}
+				});
 
-			// mqtt client event: error
-			// Emitted when the client cannot connect (i.e. connack rc != 0) or when a parsing error occurs.
-			mqttClient.on('error', function(err) {
-				parent.log.warn('mqttClient: Error:', err);
-				mqttClient.end();
-				return false;
-			});
+				// mqtt client event: error
+				// Emitted when the client cannot connect (i.e. connack rc != 0) or when a parsing error occurs.
+				mqttClient.on('error', function(err) {
+					try {
+						parent.log.warn('mqttClient: Error:', err);
+						mqttClient.end();
+						return false;
+					} catch (err) {
+						parent.log.error("Error trapped in mqttClient error event:", err.message);
+						parent.log.error(err);
+					}
+				});
 
+
+			} catch (err) {
+				parent.log.error("Error trapped in mqttClient connect event:", err.message);
+				parent.log.error(err);
+			}
 		}); // end of mqttClient.on('connect'... event
 
 	} // end of startMqttClient
@@ -1516,60 +1557,85 @@ class stbPlatform {
 
 	// handle the state change of the device, calling the updateDeviceState of the relevant device
 	mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged) {
-		if (this.config.debugLevel > 1) { 
-			this.log.warn('deviceStateHandler: deviceId %s, powerState %s, mediaState %s, channelId %s, sourceType %s, profileDataChanged %s', deviceId, powerState, mediaState, channelId, sourceType, profileDataChanged); 
-		}
-		if (this.devices) {
-			const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
-			if (deviceIndex > -1 && this.stbDevices.length > 0) { 
-				this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged); 
+		try {
+			if (this.config.debugLevel > 1) { 
+				this.log.warn('deviceStateHandler: deviceId %s, powerState %s, mediaState %s, channelId %s, sourceType %s, profileDataChanged %s', deviceId, powerState, mediaState, channelId, sourceType, profileDataChanged); 
 			}
+			if (this.devices) {
+				const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
+				if (deviceIndex > -1 && this.stbDevices.length > 0) { 
+					this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged); 
+				}
+			}
+		} catch (err) {
+			this.log.error("Error trapped in mqttDeviceStateHandler:", err.message);
+			this.log.error(err);
 		}
 	}
 
 
 	// publish an mqtt message, with logging, to help in debugging
 	mqttPublishMessage(Topic, Message, Options) {
-		// Syntax: {'test1': {qos: 0}, 'test2': {qos: 1}}
-		if (this.config.debugLevel > 0) { this.log.warn('mqttPublishMessage: Publish Message:\r\nTopic: %s\r\nMessage: %s\r\nOptions: %s', Topic, Message, Options); }
-		mqttClient.publish(Topic, Message, Options)
+		try {
+			// Syntax: {'test1': {qos: 0}, 'test2': {qos: 1}}
+			if (this.config.debugLevel > 0) { this.log.warn('mqttPublishMessage: Publish Message:\r\nTopic: %s\r\nMessage: %s\r\nOptions: %s', Topic, Message, Options); }
+			mqttClient.publish(Topic, Message, Options)
+		} catch (err) {
+			this.log.error("Error trapped in mqttPublishMessage:", err.message);
+			this.log.error(err);
+		}
 	}
 
 	// subscribe to an mqtt message, with logging, to help in debugging
 	mqttSubscribeToTopic(Topic, Qos) {
-		if (this.config.debugLevel > 0) { this.log.warn('mqttSubscribeToTopic: Subscribe to topic:', Topic); }
-		mqttClient.subscribe(Topic, function (err) {
-			if(err){
-				this.log('mqttClient connect: subscribe to %s Error %s:', Topic, err);
-				return true;
-			}
-		});
+		try {
+			if (this.config.debugLevel > 0) { this.log.warn('mqttSubscribeToTopic: Subscribe to topic:', Topic); }
+			mqttClient.subscribe(Topic, function (err) {
+				if(err){
+					this.log('mqttClient connect: subscribe to %s Error %s:', Topic, err);
+					return true;
+				}
+			});
+		} catch (err) {
+			this.log.error("Error trapped in mqttSubscribeToTopic:", err.message);
+			this.log.error(err);
+		}
 	}
 
 	// start the HGO session
 	mqttSetHgoOnlineRunning(mqttUsername) {
-		if (this.config.debugLevel > 0) { this.log.warn('mqttSetHgoOnlineRunning'); }
-		if (mqttUsername) {
-			this.mqttPublishMessage(
-				mqttUsername + '/' + mqttClientId + '/status', 
-				'{"source":"' +  mqttClientId + '","state":"ONLINE_RUNNING","deviceType":"HGO"}',
-				'{"qos":1,"retain":"true"}'
-			);
+		try {
+			if (this.config.debugLevel > 0) { this.log.warn('mqttSetHgoOnlineRunning'); }
+			if (mqttUsername) {
+				this.mqttPublishMessage(
+					mqttUsername + '/' + mqttClientId + '/status', 
+					'{"source":"' +  mqttClientId + '","state":"ONLINE_RUNNING","deviceType":"HGO"}',
+					'{"qos":1,"retain":"true"}'
+				);
+			}
+		} catch (err) {
+			this.log.error("Error trapped in mqttSetHgoOnlineRunning:", err.message);
+			this.log.error(err);
 		}
 	}
 
 	// send a channel change request to the settopbox via mqtt
 	switchChannel(deviceId, deviceName, channelId, channelName) {
-		if (this.config.debugLevel > 0) { this.log.warn('switchChannel: channelId %s %s on %s %s', channelId, channelName, deviceId, deviceName); }
-		this.log('Change channel to %s [%s] on %s %s', channelId, channelName, deviceName, deviceId);
-		if (mqttUsername) {
-			this.mqttPublishMessage(
-				mqttUsername + '/' + deviceId, 
-				'{"id":"' + makeId(10) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
-				+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
-				+ channelId + '"},"relativePosition":0,"speed":1}}',
-				'{"qos":0}'
-			);
+		try {
+			if (this.config.debugLevel > 0) { this.log.warn('switchChannel: channelId %s %s on %s %s', channelId, channelName, deviceId, deviceName); }
+			this.log('Change channel to %s [%s] on %s %s', channelId, channelName, deviceName, deviceId);
+			if (mqttUsername) {
+				this.mqttPublishMessage(
+					mqttUsername + '/' + deviceId, 
+					'{"id":"' + makeId(10) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
+					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
+					+ channelId + '"},"relativePosition":0,"speed":1}}',
+					'{"qos":0}'
+				);
+			}
+		} catch (err) {
+			this.log.error("Error trapped in switchChannel:", err.message);
+			this.log.error(err);
 		}
 	}
 
@@ -1577,15 +1643,20 @@ class stbPlatform {
 	// controlled by speed
 	// speed can be one of: -64 -30 -6 -2 0 2 6 30 64. 0=Paused, 1=Play, >1=FastForward, <0=Rewind
 	setMediaState(deviceId, deviceName, channelId, speed) {
-		if (this.config.debugLevel > 0) { this.log.warn('setMediaState: set state to %s for channelId %s on %s %s', speed, channelId, deviceId, deviceName); }
-		if (mqttUsername) {
-			this.mqttPublishMessage(
-				mqttUsername + '/' + this.device.deviceId, 
-				'{"id":"' + makeId(10) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
-				+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
-				+ channelId + '"},"relativePosition":0,"speed":' + speed + '}}',
-				'{"qos":0}'
-			);
+		try {
+			if (this.config.debugLevel > 0) { this.log.warn('setMediaState: set state to %s for channelId %s on %s %s', speed, channelId, deviceId, deviceName); }
+			if (mqttUsername) {
+				this.mqttPublishMessage(
+					mqttUsername + '/' + this.device.deviceId, 
+					'{"id":"' + makeId(10) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
+					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
+					+ channelId + '"},"relativePosition":0,"speed":' + speed + '}}',
+					'{"qos":0}'
+				);
+			}
+		} catch (err) {
+			this.log.error("Error trapped in setMediaState:", err.message);
+			this.log.error(err);
 		}
 	}
 
@@ -1595,202 +1666,227 @@ class stbPlatform {
 	// Message: {"id":"8b8g26joaa","type":"CPE.setPlayerPosition","source":"qcanbxjfg4cq3n99i2lmi94f9nl47v","status":{"relativePosition":410985}}
 	// Retain: false, QOS: 0
 	setPlayerPosition(deviceId, deviceName, relativePosition) {
-		if (this.config.debugLevel > 0) { this.log.warn('setPlayerPosition: deviceId:', deviceId); }
-		if (mqttUsername) {
-			this.mqttPublishMessage(
-			mqttUsername + '/' + deviceId, 
-			'{"id":"' + makeId(10) + '","type":"CPE.setPlayerPosition","source":{"clientId":"' + mqttClientId 
-			+ '","status":{"relativePosition":' + relativePosition + '}}"' ,
-			'{"qos":0}'
-			);
+		try {
+			if (this.config.debugLevel > 0) { this.log.warn('setPlayerPosition: deviceId:', deviceId); }
+			if (mqttUsername) {
+				this.mqttPublishMessage(
+				mqttUsername + '/' + deviceId, 
+				'{"id":"' + makeId(10) + '","type":"CPE.setPlayerPosition","source":{"clientId":"' + mqttClientId 
+				+ '","status":{"relativePosition":' + relativePosition + '}}"' ,
+				'{"qos":0}'
+				);
+			}
+		} catch (err) {
+			this.log.error("Error trapped in setPlayerPosition:", err.message);
+			this.log.error(err);
 		}
 	}
 
 
 	// return to live TV
 	returnToLiveTv(deviceId, deviceName) {
-		if (this.config.debugLevel > 0) { this.log.warn('returnToLiveTv'); }
-		if (mqttUsername) {
-			this.mqttPublishMessage(
-			mqttUsername + '/' + deviceId, 
-			'{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + mqttClientId 
-			+ '","status":{"w3cKey":"TV","eventType":"keyDownUp"}}',
-			'{"qos":0}'
-			);
+		try {
+			if (this.config.debugLevel > 0) { this.log.warn('returnToLiveTv'); }
+			if (mqttUsername) {
+				this.mqttPublishMessage(
+				mqttUsername + '/' + deviceId, 
+				'{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + mqttClientId 
+				+ '","status":{"w3cKey":"TV","eventType":"keyDownUp"}}',
+				'{"qos":0}'
+				);
+			}
+		} catch (err) {
+			this.log.error("Error trapped in returnToLiveTv:", err.message);
+			this.log.error(err);
 		}
 	}
 
 	// send a remote control keypress to the settopbox via mqtt
 	sendKey(deviceId, deviceName, keyName) {
-		if (this.config.debugLevel > 0) { this.log.warn('sendKey keyName %s, deviceName %s, deviceId %s', keyName, deviceName, deviceId); }
-		if (mqttUsername) {
-			this.log('Send key %s to %s', keyName, deviceName);
-			this.log.debug('Send key %s to %s %s', keyName, deviceName, deviceId);
-			this.mqttPublishMessage(
-				mqttUsername + '/' + deviceId, 
-				'{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}',
-				'{"qos":0}'
-			);
+		try {
+			if (this.config.debugLevel > 0) { this.log.warn('sendKey keyName %s, deviceName %s, deviceId %s', keyName, deviceName, deviceId); }
+			if (mqttUsername) {
+				this.log('Send key %s to %s', keyName, deviceName);
+				this.log.debug('Send key %s to %s %s', keyName, deviceName, deviceId);
+				this.mqttPublishMessage(
+					mqttUsername + '/' + deviceId, 
+					'{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}',
+					'{"qos":0}'
+				);
+			}
+		} catch (err) {
+			this.log.error("Error trapped in sendKey:", err.message);
+			this.log.error(err);
 		}
-		
 	}
 
 
 	// get the settopbox UI status from the settopbox via mqtt
 	getUiStatus(deviceId) {
-		if (this.config.debugLevel > 0) {
-			this.log.warn('getUiStatus');
-			this.log.warn('getUiStatus deviceId %s', deviceId);
-		}
-		if (mqttUsername) {
-			var mqttTopic = mqttUsername + '/' + deviceId;
-			var mqttMessage =  '{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + mqttClientId + '"}';
-			this.mqttPublishMessage(
-				mqttUsername + '/' + deviceId,
-				'{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + mqttClientId + '"}',
-				'{"qos":1,"retain":"true"}'
-			);
+		try {
+			if (this.config.debugLevel > 0) {
+				this.log.warn('getUiStatus');
+				this.log.warn('getUiStatus deviceId %s', deviceId);
+			}
+			if (mqttUsername) {
+				var mqttTopic = mqttUsername + '/' + deviceId;
+				var mqttMessage =  '{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + mqttClientId + '"}';
+				this.mqttPublishMessage(
+					mqttUsername + '/' + deviceId,
+					'{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + mqttClientId + '"}',
+					'{"qos":1,"retain":"true"}'
+				);
+			}
+		} catch (err) {
+			this.log.error("Error trapped in getUiStatus:", err.message);
+			this.log.error(err);
 		}
 	}
 
 
 	// get the recording state via web request GET
 	async getRecordingState(callback) {
-		this.log("Refreshing recording state");
-		if (this.config.debugLevel > 0) { this.log.warn('getRecordingState'); }
+		try {
+			this.log("Refreshing recording state");
+			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState'); }
 
-		// https://obo-prod.oesp.upctv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20
-		//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
-		const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?plannedOnly=false&range=1-20'; // works
-		const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
-		if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: GET %s', url); }
-		axiosWS.get(url, config)
-			.then(response => {	
-				if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: response: %s %s', response.status, response.statusText); }
-				if (this.config.debugLevel > 2) { 
-					this.log.warn('getRecordingState: response data:');
-					this.log.warn(response.data);
-				}
-
-				// find if any recordings are ongoing, and if local or network
-				// loop all cpes, find and local recordings per cpe first.
-				// if none found, find network recordings second
-				if (response.data.recordings) { 
-					// a recording carries these properties:
-					// for type='single'
-					// recordingState: 'ongoing', 'recorded' or ??, for all types
-					// recordingType: 'nDVR', 'localDVR', 'LDVR', 
-					// cpeId: '3C36E4-EOSSTB-003597101009', only for local DVRs
-
-					// for type='season':
-					// mostRelevantEpisode.recordingState: 'ongoing',
-					// mostRelevantEpisode.recordingType: 'nDVR',
-					// logging
+			// https://obo-prod.oesp.upctv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20
+			//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
+			const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?plannedOnly=false&range=1-20'; // works
+			const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
+			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: GET %s', url); }
+			axiosWS.get(url, config)
+				.then(response => {	
+					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: response: %s %s', response.status, response.statusText); }
 					if (this.config.debugLevel > 2) { 
-						response.data.recordings.forEach((recording) => {
-							this.log.warn('Recording showTitle "%s", cpeId %s, type %s, recordingState %s, recordingType %s, mostRelevantEpisode:',  recording.showTitle, recording.cpeId, recording.type, recording.recordingState, recording.recordingType, )
-							this.log.warn(recording.mostRelevantEpisode )
-						});
+						this.log.warn('getRecordingState: response data:');
+						this.log.warn(response.data);
 					}
 
-					// get each device. Fifor every recordingState update, update all devices
-					// only the main device can have a HDD and thus should receive the ONGOING_LOCALDVR state
-					// loop through all devices, handling devices with HDDs and devices without HDDs
-					this.devices.forEach((device) => {
-						var recType, recState;
+					// find if any recordings are ongoing, and if local or network
+					// loop all cpes, find and local recordings per cpe first.
+					// if none found, find network recordings second
+					if (response.data.recordings) { 
+						// a recording carries these properties:
+						// for type='single'
+						// recordingState: 'ongoing', 'recorded' or ??, for all types
+						// recordingType: 'nDVR', 'localDVR', 'LDVR', 
+						// cpeId: '3C36E4-EOSSTB-003597101009', only for local DVRs
 
-						if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s...", device.deviceId); }
-						if (device.capabilities.hasHDD) {
-							// device has HDD, look for local recordings
-							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Device has a HDD:", device.deviceId); }
+						// for type='season':
+						// mostRelevantEpisode.recordingState: 'ongoing',
+						// mostRelevantEpisode.recordingType: 'nDVR',
+						// logging
+						if (this.config.debugLevel > 2) { 
+							response.data.recordings.forEach((recording) => {
+								this.log.warn('Recording showTitle "%s", cpeId %s, type %s, recordingState %s, recordingType %s, mostRelevantEpisode:',  recording.showTitle, recording.cpeId, recording.type, recording.recordingState, recording.recordingType, )
+								this.log.warn(recording.mostRelevantEpisode )
+							});
+						}
 
-							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s with HDD. Searching for ongoing local recordings for this device...", device.deviceId); }
-							// first look for non-season recordings: (type = "single" or "show")
-							let recordingLocal = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.recordingState == 'ongoing');
-							if (recordingLocal) {
-								// found ongoing local non-season recording
-								recType = recordingLocal.recordingType;
-								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing local non-season recording found for device %s with status %s %s", recordingLocal.cpeId, recordingLocal.recordingState, recordingLocal.recordingType); }
-							
-							} else {
-								// if none found then look for season recordings:
-								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s with HDD. Searching for ongoing local season recordings for this device...", device.deviceId); }
-								let recordingLocalSeason = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
-								if (recordingLocalSeason) {
-									// found local ongoing season recording
-									recType = recordingLocalSeason.mostRelevantEpisode.recordingType;
-									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing local season recording found with status %s %s", recordingLocalSeason.mostRelevantEpisode.recordingState, recordingLocalSeason.mostRelevantEpisode.recordingType); }
+						// get each device. Fifor every recordingState update, update all devices
+						// only the main device can have a HDD and thus should receive the ONGOING_LOCALDVR state
+						// loop through all devices, handling devices with HDDs and devices without HDDs
+						this.devices.forEach((device) => {
+							var recType, recState;
 
+							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s...", device.deviceId); }
+							if (device.capabilities.hasHDD) {
+								// device has HDD, look for local recordings
+								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Device has a HDD:", device.deviceId); }
+
+								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s with HDD. Searching for ongoing local recordings for this device...", device.deviceId); }
+								// first look for non-season recordings: (type = "single" or "show")
+								let recordingLocal = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.recordingState == 'ongoing');
+								if (recordingLocal) {
+									// found ongoing local non-season recording
+									recType = recordingLocal.recordingType;
+									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing local non-season recording found for device %s with status %s %s", recordingLocal.cpeId, recordingLocal.recordingState, recordingLocal.recordingType); }
+								
 								} else {
-									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: No ongoing local recordings found"); }
-									recType = 'idle';
+									// if none found then look for season recordings:
+									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s with HDD. Searching for ongoing local season recordings for this device...", device.deviceId); }
+									let recordingLocalSeason = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
+									if (recordingLocalSeason) {
+										// found local ongoing season recording
+										recType = recordingLocalSeason.mostRelevantEpisode.recordingType;
+										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing local season recording found with status %s %s", recordingLocalSeason.mostRelevantEpisode.recordingState, recordingLocalSeason.mostRelevantEpisode.recordingType); }
+
+									} else {
+										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: No ongoing local recordings found"); }
+										recType = 'idle';
+									}
+
 								}
 
 							}
 
-						}
+							// check network recordings
+							if (!recType || recType == 'idle') {
+								// device has no HDD, check network recordings
+								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Searching for ongoing network recordings for this device...", device.deviceId); }
+								// first look for non-season recordings: (type = "single" or "show")
+								let recordingNetwork = response.data.recordings.find(recording => !recording.cpeId && recording.recordingState == 'ongoing');
+								if (recordingNetwork) {
+									// found ongoing network non-season recording
+									recType = recordingNetwork.recordingType;
+									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing network non-season recording found with status %s %s", recordingNetwork.recordingState, recordingNetwork.recordingType); }
 
-						// check network recordings
-						if (!recType || recType == 'idle') {
-							// device has no HDD, check network recordings
-							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Searching for ongoing network recordings for this device...", device.deviceId); }
-							// first look for non-season recordings: (type = "single" or "show")
-							let recordingNetwork = response.data.recordings.find(recording => !recording.cpeId && recording.recordingState == 'ongoing');
-							if (recordingNetwork) {
-								// found ongoing network non-season recording
-								recType = recordingNetwork.recordingType;
-								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing network non-season recording found with status %s %s", recordingNetwork.recordingState, recordingNetwork.recordingType); }
-
-							} else {
-								// if none found then look for season recordings: (type = "season")
-								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Searching for ongoing network season recordings for this device...", device.deviceId); }
-								let recordingNetworkSeason = response.data.recordings.find(recording => recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
-								if (recordingNetworkSeason) {
-									recType = recordingNetworkSeason.mostRelevantEpisode.recordingType;
-									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing network season recording found with status %s %s", recordingNetworkSeason.mostRelevantEpisode.recordingState, recordingNetworkSeason.mostRelevantEpisode.recordingType); }
 								} else {
-									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: No ongoing network recordings found"); }
-									recType = 'idle';
+									// if none found then look for season recordings: (type = "season")
+									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Searching for ongoing network season recordings for this device...", device.deviceId); }
+									let recordingNetworkSeason = response.data.recordings.find(recording => recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
+									if (recordingNetworkSeason) {
+										recType = recordingNetworkSeason.mostRelevantEpisode.recordingType;
+										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing network season recording found with status %s %s", recordingNetworkSeason.mostRelevantEpisode.recordingState, recordingNetworkSeason.mostRelevantEpisode.recordingType); }
+									} else {
+										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: No ongoing network recordings found"); }
+										recType = 'idle';
+									}
 								}
 							}
-						}
 
-						// local has prio over network
-						if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Setting recState for %s according to recType %s", device.deviceId, recType); }
-						if (recType == 'localDVR' || recType == 'LDVR') { 
-							recState = recordingState.ONGOING_LOCALDVR;
-						} else if (recType == 'nDVR') { 
-							recState = recordingState.ONGOING_NDVR;
-						} else {
-							recState = recordingState.IDLE;
-						}
+							// local has prio over network
+							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Setting recState for %s according to recType %s", device.deviceId, recType); }
+							if (recType == 'localDVR' || recType == 'LDVR') { 
+								recState = recordingState.ONGOING_LOCALDVR;
+							} else if (recType == 'nDVR') { 
+								recState = recordingState.ONGOING_NDVR;
+							} else {
+								recState = recordingState.IDLE;
+							}
 
-						// update the device state
-						if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Updating device state for %s to recState %s %s", device.deviceId, recState, recType); }
-						this.mqttDeviceStateHandler(device.deviceId, null, null, recState, null, null, null);
-					});
+							// update the device state
+							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Updating device state for %s to recState %s %s", device.deviceId, recState, recType); }
+							this.mqttDeviceStateHandler(device.deviceId, null, null, recState, null, null, null);
+						});
 
-				}
+					}
 
 
-				return false;
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'getRecordingState for %s failed: '
-				if (error.isAxiosError) { 
-					errReason = error.code + ': ' + (error.hostname || ''); 
-				} else if (error.response) {
-					errReason = (error.response || {}).status + ' ' + ((error.response || {}).statusText || ''); 
-				} else {
-					errReason = error; 
-				}
-				this.log('%s', (errReason || ''));
-				this.log.debug(`getRecordingState error:`, error);
+					return false;
+				})
+				.catch(error => {
+					let errText, errReason;
+					errText = 'getRecordingState for %s failed: '
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+					} else if (error.response) {
+						errReason = (error.response || {}).status + ' ' + ((error.response || {}).statusText || ''); 
+					} else {
+						errReason = error; 
+					}
+					this.log('%s', (errReason || ''));
+					this.log.debug(`getRecordingState error:`, error);
 
-				return false, error;
-			});		
-		return false;
+					return false, error;
+				});		
+			return false;
+
+		} catch (err) {
+			this.log.error("Error trapped in getRecordingState:", err.message);
+			this.log.error(err);
+		}
 	}
 
 
@@ -2368,229 +2464,243 @@ class stbDevice {
 
 	// update the device state changed to async
 	async updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, callback) {
-		// runs at the very start, and then every few seconds, so don't log it unless debugging
-		// doesn't get the data direct from the settop box, but rather: gets it from the this.currentPowerState and this.currentChannelId variables
-		// which are received by the mqtt messages, which occurs very often
-		if (this.config.debugLevel > 0) {
-			this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], , recordingState %s [%s], channelId %s, sourceType %s, profileDataChanged %s', 
-				this.name, 
-				powerState, 
-				mediaState, mediaStateName[mediaState], 
-				recordingState, recordingStateName[recordingState], 
-				channelId,
-				sourceType,
-				profileDataChanged
-			);
-		}
-
-		// get the config for the device, needed for a few status checks
-		var configDevice;
-		if (this.config.devices) {
-			configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
-		}
-
-		// grab the current states and place in previous state
-		this.previousPowerState = this.currentPowerState;
-		this.previousRecordingState = this.currentRecordingState;
-		this.previousPictureMode = this.currentPictureMode;
-		this.previousClosedCaptionsState = this.currentClosedCaptionsState;
-
-		// grab the input variables
-		if (powerState != null) { this.currentPowerState = powerState; }
-		if (mediaState != null) { this.currentMediaState = mediaState; }
-		if (channelId != null) { this.currentChannelId = channelId; }
-		if (sourceType != null) { this.currentSourceType = sourceType; }
-		if (recordingState != null) { this.currentRecordingState = recordingState; }
-		this.profileDataChanged = profileDataChanged || false;
-
-		// profile data is stored on the platform
-		// get the currentClosedCaptionsState from the currently selected profile (stored in this.profileid)
-		//var configDevice = {};
-		if ( this.platform.profiles[this.profileId] && this.platform.profiles[this.profileId].options.showSubtitles ) {
-			this.currentClosedCaptionsState = Characteristic.ClosedCaptions.ENABLED;
-		} else {
-			this.currentClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
-		}
-
-		// debugging, helps a lot to see channelName
-		if (this.config.debugLevel > 0) {
-			let curChannel, currentChannelName;
-			if (this.platform.masterChannelList) {
-				curChannel = this.platform.masterChannelList.find(channel => channel.channelId === this.currentChannelId ); 
-				if (curChannel) { currentChannelName = curChannel.channelName; }
+		try {
+			// runs at the very start, and then every few seconds, so don't log it unless debugging
+			// doesn't get the data direct from the settop box, but rather: gets it from the this.currentPowerState and this.currentChannelId variables
+			// which are received by the mqtt messages, which occurs very often
+			if (this.config.debugLevel > 0) {
+				this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], recordingState %s [%s], channelId %s, sourceType %s, profileDataChanged %s', 
+					this.name, 
+					powerState, 
+					mediaState, mediaStateName[mediaState], 
+					recordingState, recordingStateName[recordingState], 
+					channelId,
+					sourceType,
+					profileDataChanged
+				);
 			}
-			this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentRecordingState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s], currentPictureMode %s [%s], profileDataChanged %s', 
-				this.name, 
-				this.currentPowerState, 
-				this.currentMediaState, mediaStateName[this.currentMediaState], 
-				this.currentRecordingState, recordingStateName[this.currentRecordingState],
-				this.currentChannelId, currentChannelName,
-				this.currentSourceType,
-				this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState],
-				this.currentPictureMode, pictureModeName[this.currentPictureMode],
-				this.profileDataChanged
-			);
-		}
 
-		// only continue if a session was created. If the internet conection is down then we have no session
-		if (currentSessionState != sessionState.CONNECTED) { return null; }
-
-
-		// change only if configured, and update only if changed
-		if (this.televisionService) {
-
-			// set device name if changed, it may have changed due to personalisation update
-			// new name is always in this.device.settings.deviceFriendlyName; 
-			//this.log('updateDeviceState this.name %s, this.device.settings.deviceFriendlyName %s', this.name, this.device.settings.deviceFriendlyName );
-			var oldDeviceName = this.name;
-			var currentDeviceName = this.device.settings.deviceFriendlyName + PLUGIN_ENV;;
-
-			var syncName = true; // default true		
-			if (configDevice && configDevice.syncName == false ) { syncName = configDevice.syncName; }
-			if (syncName == true && oldDeviceName !== currentDeviceName) {
-				this.log("%s: Device name changed from '%s' to '%s'", 
-					this.name,
-					oldDeviceName, 
-					currentDeviceName);
-				this.name = currentDeviceName;
-				this.televisionService.getCharacteristic(Characteristic.ConfiguredName).updateValue(currentDeviceName);
+			// get the config for the device, needed for a few status checks
+			var configDevice;
+			if (this.config.devices) {
+				configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
 			}
-			
-			// check for change of power state
-			// The accessory changes state immediately, and the box takes time to catch up
-			// so store an old box state so we have something to log
-			//this.log("Previous device power state: %s %s", this.previousPowerState, powerStateName[this.previousPowerState]);
-			//this.log("Current device power state: %s %s", this.televisionService.getCharacteristic(Characteristic.Active).value, powerStateName[this.televisionService.getCharacteristic(Characteristic.Active).value]);
-			//this.log("Wanted device power state: %s %s", this.currentPowerState, powerStateName[this.currentPowerState]);
-			//var oldPowerState = this.televisionService.getCharacteristic(Characteristic.Active).value;
-			if (this.previousPowerState !== this.currentPowerState) {
-				this.log('%s: Power changed from %s [%s] to %s [%s]', 
-					this.name,
-					this.previousPowerState, powerStateName[this.previousPowerState],
-					this.currentPowerState, powerStateName[this.currentPowerState]);
-			}
-			this.televisionService.getCharacteristic(Characteristic.Active).updateValue(this.currentPowerState);
 
-			// check for change of closed captions state
-			//this.log("Previous closed captions state: %s %s", this.previousClosedCaptionsState, closedCaptionsStateName[this.previousClosedCaptionsState]);
-			//this.log("Current closed captions state: %s %s", this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).value, closedCaptionsStateName[this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).value]);
-			//this.log("Wanted closed captions state: %s %s", this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]);
-			if (this.previousClosedCaptionsState !== this.currentClosedCaptionsState) {
-				this.log('%s: Closed Captions state changed from %s [%s] to %s [%s]', 
-					this.name,
-					this.previousClosedCaptionsState, closedCaptionsStateName[this.previousClosedCaptionsState],
-					this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]);
-			}
-			this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).updateValue(this.currentClosedCaptionsState);
+			// grab the current states and place in previous state
+			this.previousPowerState = this.currentPowerState;
+			this.previousRecordingState = this.currentRecordingState;
+			this.previousPictureMode = this.currentPictureMode;
+			this.previousClosedCaptionsState = this.currentClosedCaptionsState;
 
+			// grab the input variables
+			if (powerState != null) { this.currentPowerState = powerState; }
+			if (mediaState != null) { this.currentMediaState = mediaState; }
+			if (channelId != null) { this.currentChannelId = channelId; }
+			if (sourceType != null) { this.currentSourceType = sourceType; }
+			if (recordingState != null) { this.currentRecordingState = recordingState; }
+			this.profileDataChanged = profileDataChanged || false;
 
-			// check for change of picture mode or recordingState (both stored in picture mode)
-			if ((configDevice || {}).customPictureMode == 'recordingState') {
-				// PictureMode is used for recordingState function, this is a custom characteristic, not supported by HomeKit. we can use values 0...7
-				//this.log("previousRecordingState", this.previousRecordingState);
-				//this.log("currentRecordingState", this.currentRecordingState);
-				if (this.previousRecordingState !== this.currentRecordingState) {
-					this.log('%s: Recording State changed from %s [%s] to %s [%s]', 
-						this.name,
-						this.previousRecordingState, recordingStateName[this.previousRecordingState],
-						this.currentRecordingState, recordingStateName[this.currentRecordingState]);
-				}
-				//this.log("configDevice.customPictureMode found %s, setting PictureMode to %s", (configDevice || {}).customPictureMode, this.currentRecordingState);
-				this.customPictureMode = this.currentRecordingState;
+			// profile data is stored on the platform
+			// get the currentClosedCaptionsState from the currently selected profile (stored in this.profileid)
+			//var configDevice = {};
+			if ( this.platform.profiles[this.profileId] && this.platform.profiles[this.profileId].options.showSubtitles ) {
+				this.currentClosedCaptionsState = Characteristic.ClosedCaptions.ENABLED;
 			} else {
-				// PictureMode is used for default function: pictureMode
-				//this.log("previousPictureMode", this.previousPictureMode);
-				//this.log("currentPictureMode", this.currentPictureMode);
-				if (this.previousPictureMode !== this.currentPictureMode) {
-					this.log('%s: Picture Mode changed from %s [%s] to %s [%s]', 
+				this.currentClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
+			}
+
+			// debugging, helps a lot to see channelName
+			if (this.config.debugLevel > 0) {
+				let curChannel, currentChannelName;
+				if (this.platform.masterChannelList) {
+					curChannel = this.platform.masterChannelList.find(channel => channel.channelId === this.currentChannelId ); 
+					if (curChannel) { currentChannelName = curChannel.channelName; }
+				}
+				this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentRecordingState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s], currentPictureMode %s [%s], profileDataChanged %s', 
+					this.name, 
+					this.currentPowerState, 
+					this.currentMediaState, mediaStateName[this.currentMediaState], 
+					this.currentRecordingState, recordingStateName[this.currentRecordingState],
+					this.currentChannelId, currentChannelName,
+					this.currentSourceType,
+					this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState],
+					this.currentPictureMode, pictureModeName[this.currentPictureMode],
+					this.profileDataChanged
+				);
+			}
+
+			// only continue if a session was created. If the internet conection is down then we have no session
+			if (currentSessionState != sessionState.CONNECTED) { return null; }
+
+
+			// change only if configured, and update only if changed
+			if (this.televisionService) {
+
+				// set device name if changed, it may have changed due to personalisation update
+				// new name is always in this.device.settings.deviceFriendlyName; 
+				//this.log('updateDeviceState this.name %s, this.device.settings.deviceFriendlyName %s', this.name, this.device.settings.deviceFriendlyName );
+				var oldDeviceName = this.name;
+				var currentDeviceName = this.device.settings.deviceFriendlyName + PLUGIN_ENV;;
+
+				var syncName = true; // default true		
+				if (configDevice && configDevice.syncName == false ) { syncName = configDevice.syncName; }
+				if (syncName == true && oldDeviceName !== currentDeviceName) {
+					this.log("%s: Device name changed from '%s' to '%s'", 
 						this.name,
-						this.previousPictureMode, pictureModeName[this.previousPictureMode],
-						this.currentPictureMode, pictureModeName[this.currentPictureMode]);
+						oldDeviceName, 
+						currentDeviceName);
+					this.name = currentDeviceName;
+					this.televisionService.getCharacteristic(Characteristic.ConfiguredName).updateValue(currentDeviceName);
 				}
-				//this.log("configDevice.customPictureMode not found %s, setting PictureMode to %s", (configDevice || {}).customPictureMode, this.currentPictureMode);
-				this.customPictureMode = this.currentPictureMode;
-			}
-			//this.log("setting PictureMode to %s", this.customPictureMode);
-			this.televisionService.getCharacteristic(Characteristic.PictureMode).updateValue(this.customPictureMode);
-
-
-
-
-			// check for change of active identifier (channel)
-			var searchChannelId = this.currentChannelId;
-			//this.log("DEBUG: checking searchChannelId", searchChannelId);
-			var currentActiveIdentifier  = 0;
-			// if the current channel id is an app, search by channel name name, and not by channel id
-			if (searchChannelId && searchChannelId.includes('.app.')) {
-				// the current channel is an app, eg Netflix
-				//this.log("this channel is an app, looking for this app in the masterChannelList", searchChannelId)
-				// get the name from the master channel list
-				var masterChannelApp = this.platform.masterChannelList.find(channel => channel.channelId === searchChannelId ); 
-				//this.log("found masterChannelApp", masterChannelApp)
-				// now look again in the master channel list to find this channel with the same name but not an app id
-				if (masterChannelApp) {
-					//this.log("looking for channel with same name in the masterChannelList: looking for %s", masterChannelApp.channelName)
-					//var masterChannelByName = this.platform.masterChannelList.find(channel => channel.channelName == masterChannelApp.channelName ); 
-					//this.log("found masterChannel", masterChannelByName)
-					//this.log("looking for channel with same name but different channelId in the masterChannelList: looking for %s where channelId is not %s", masterChannelApp.channelName, masterChannelApp.channelId)
-					var masterChannel = this.platform.masterChannelList.find(channel => channel.channelName == masterChannelApp.channelName && channel.channelId != masterChannelApp.channelId ); 
-					if (masterChannel) {
-						//this.log("found masterChannel", masterChannel)
-						searchChannelId = masterChannel.channelId;
-					} else {
-						//this.log("masterChannel not found in masterChannelList")
-					}
-				} else {
-					//this.log("masterChannelApp not found in masterChannelList")
-				}
-			}
-
-			// search by subtype in the inputServices array, index 0 = input 1
-			const oldActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
-			//this.log("updateDeviceState: oldActiveIdentifier %s, currentActiveIdentifier %s, searchChannelId %s", oldActiveIdentifier, currentActiveIdentifier, searchChannelId)
-			currentActiveIdentifier = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + searchChannelId ) + 1;
-			//this.log("found searchChannelId at currentActiveIdentifier ", currentActiveIdentifier)
-
-
-			if (currentActiveIdentifier <= 0) { currentActiveIdentifier = NO_INPUT_ID; } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
-			if (oldActiveIdentifier !== currentActiveIdentifier) {
-				// get names from loaded channel list. Using Ch Up/Ch Down buttons on the remote rolls around the profile channel list
-				// what happens if the TV is changed to another profile?
-				var oldName = NO_CHANNEL_NAME, newName = oldName; // default to UNKNOWN
-				if (oldActiveIdentifier != NO_INPUT_ID && this.channelList[oldActiveIdentifier-1]) {
-					oldName = this.channelList[oldActiveIdentifier-1].channelName
-				}
-
-				if (currentActiveIdentifier != NO_INPUT_ID) {
-					newName = this.channelList[currentActiveIdentifier-1].channelName
-				}
-				this.log('%s: Channel changed from %s [%s] to %s [%s]', 
-					this.name,
-					oldActiveIdentifier, oldName,
-					currentActiveIdentifier, newName);
-				this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(currentActiveIdentifier);
-			}
-
-			// check for change of current media state
-			var oldMediaState = this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).value;
-			if (oldMediaState !== this.currentMediaState) {
-				this.log('%s: Media state changed from %s [%s] to %s [%s]', 
-					this.name,
-					oldMediaState, mediaStateName[oldMediaState],
-					this.currentMediaState, mediaStateName[this.currentMediaState]);
-			}
-			this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.currentMediaState);
-
-			// check for change of profile
-			if (this.profileDataChanged) {
-				this.log('%s: Profile data changed', this.name);
-				this.refreshChannelList();
 				
+				// check for change of power state
+				// The accessory changes state immediately, and the box takes time to catch up
+				// so store an old box state so we have something to log
+				//this.log("Previous device power state: %s %s", this.previousPowerState, powerStateName[this.previousPowerState]);
+				//this.log("Current device power state: %s %s", this.televisionService.getCharacteristic(Characteristic.Active).value, powerStateName[this.televisionService.getCharacteristic(Characteristic.Active).value]);
+				//this.log("Wanted device power state: %s %s", this.currentPowerState, powerStateName[this.currentPowerState]);
+				//var oldPowerState = this.televisionService.getCharacteristic(Characteristic.Active).value;
+				if (this.previousPowerState !== this.currentPowerState) {
+					this.log('%s: Power changed from %s [%s] to %s [%s]', 
+						this.name,
+						this.previousPowerState, powerStateName[this.previousPowerState],
+						this.currentPowerState, powerStateName[this.currentPowerState]);
+				}
+				this.televisionService.getCharacteristic(Characteristic.Active).updateValue(this.currentPowerState);
+
+				// check for change of closed captions state
+				//this.log("Previous closed captions state: %s %s", this.previousClosedCaptionsState, closedCaptionsStateName[this.previousClosedCaptionsState]);
+				//this.log("Current closed captions state: %s %s", this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).value, closedCaptionsStateName[this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).value]);
+				//this.log("Wanted closed captions state: %s %s", this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]);
+				if (this.previousClosedCaptionsState !== this.currentClosedCaptionsState) {
+					this.log('%s: Closed Captions state changed from %s [%s] to %s [%s]', 
+						this.name,
+						this.previousClosedCaptionsState, closedCaptionsStateName[this.previousClosedCaptionsState],
+						this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]);
+				}
+				this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).updateValue(this.currentClosedCaptionsState);
+
+
+				// check for change of picture mode or recordingState (both stored in picture mode)
+				if ((configDevice || {}).customPictureMode == 'recordingState') {
+					// PictureMode is used for recordingState function, this is a custom characteristic, not supported by HomeKit. we can use values 0...7
+					//this.log("previousRecordingState", this.previousRecordingState);
+					//this.log("currentRecordingState", this.currentRecordingState);
+					if (this.previousRecordingState !== this.currentRecordingState) {
+						this.log('%s: Recording State changed from %s [%s] to %s [%s]', 
+							this.name,
+							this.previousRecordingState, recordingStateName[this.previousRecordingState],
+							this.currentRecordingState, recordingStateName[this.currentRecordingState]);
+					}
+					//this.log("configDevice.customPictureMode found %s, setting PictureMode to %s", (configDevice || {}).customPictureMode, this.currentRecordingState);
+					this.customPictureMode = this.currentRecordingState;
+				} else {
+					// PictureMode is used for default function: pictureMode
+					//this.log("previousPictureMode", this.previousPictureMode);
+					//this.log("currentPictureMode", this.currentPictureMode);
+					if (this.previousPictureMode !== this.currentPictureMode) {
+						this.log('%s: Picture Mode changed from %s [%s] to %s [%s]', 
+							this.name,
+							this.previousPictureMode, pictureModeName[this.previousPictureMode],
+							this.currentPictureMode, pictureModeName[this.currentPictureMode]);
+					}
+					//this.log("configDevice.customPictureMode not found %s, setting PictureMode to %s", (configDevice || {}).customPictureMode, this.currentPictureMode);
+					this.customPictureMode = this.currentPictureMode;
+				}
+				//this.log("setting PictureMode to %s", this.customPictureMode);
+				this.televisionService.getCharacteristic(Characteristic.PictureMode).updateValue(this.customPictureMode);
+
+
+
+
+				// check for change of active identifier (channel)
+				// temporarily wrapped this in a try-catch to capture any errors
+				//this.log("Before error trap");
+				try {
+					var searchChannelId = this.currentChannelId;
+					//this.log("DEBUG: checking searchChannelId", searchChannelId);
+					var currentActiveIdentifier  = 0;
+					// if the current channel id is an app, search by channel name name, and not by channel id
+					if (searchChannelId && searchChannelId.includes('.app.')) {
+						// the current channel is an app, eg Netflix
+						this.log("This channel is an app, looking for this app in the masterChannelList: ", searchChannelId)
+						// get the name from the master channel list
+						var masterChannelApp = this.platform.masterChannelList.find(channel => channel.channelId === searchChannelId ); 
+						//this.log("found masterChannelApp", masterChannelApp)
+						// now look again in the master channel list to find this channel with the same name but not an app id
+						if (masterChannelApp) {
+							//this.log("looking for channel with same name in the masterChannelList: looking for %s", masterChannelApp.channelName)
+							//var masterChannelByName = this.platform.masterChannelList.find(channel => channel.channelName == masterChannelApp.channelName ); 
+							//this.log("found masterChannel", masterChannelByName)
+							//this.log("looking for channel with same name but different channelId in the masterChannelList: looking for %s where channelId is not %s", masterChannelApp.channelName, masterChannelApp.channelId)
+							var masterChannel = this.platform.masterChannelList.find(channel => channel.channelName == masterChannelApp.channelName && channel.channelId != masterChannelApp.channelId ); 
+							if (masterChannel) {
+								searchChannelId = masterChannel.channelId;
+							}
+						}
+					}
+	
+				} catch (err) {
+					this.log.error("Error trapped in updateDeviceState while setting searchChannelId:", err.message);
+					this.log.error(err);
+					this.log.error("Further debug info:");
+					this.log.error("this.currentChannelId", this.currentChannelId);
+					this.log.error("searchChannelId", searchChannelId);
+				}		
+				//this.log("After error trap. searchChannelId:", searchChannelId);
+
+				// search by subtype in the inputServices array, index 0 = input 1
+				const oldActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
+				//this.log("updateDeviceState: oldActiveIdentifier %s, currentActiveIdentifier %s, searchChannelId %s", oldActiveIdentifier, currentActiveIdentifier, searchChannelId)
+				currentActiveIdentifier = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + searchChannelId ) + 1;
+				//this.log("found searchChannelId at currentActiveIdentifier ", currentActiveIdentifier)
+
+
+				if (currentActiveIdentifier <= 0) { currentActiveIdentifier = NO_INPUT_ID; } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
+				if (oldActiveIdentifier !== currentActiveIdentifier) {
+					// get names from loaded channel list. Using Ch Up/Ch Down buttons on the remote rolls around the profile channel list
+					// what happens if the TV is changed to another profile?
+					var oldName = NO_CHANNEL_NAME, newName = oldName; // default to UNKNOWN
+					if (oldActiveIdentifier != NO_INPUT_ID && this.channelList[oldActiveIdentifier-1]) {
+						oldName = this.channelList[oldActiveIdentifier-1].channelName
+					}
+
+					if (currentActiveIdentifier != NO_INPUT_ID) {
+						newName = this.channelList[currentActiveIdentifier-1].channelName
+					}
+					this.log('%s: Channel changed from %s [%s] to %s [%s]', 
+						this.name,
+						oldActiveIdentifier, oldName,
+						currentActiveIdentifier, newName);
+					this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(currentActiveIdentifier);
+				}
+
+				// check for change of current media state
+				var oldMediaState = this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).value;
+				if (oldMediaState !== this.currentMediaState) {
+					this.log('%s: Media state changed from %s [%s] to %s [%s]', 
+						this.name,
+						oldMediaState, mediaStateName[oldMediaState],
+						this.currentMediaState, mediaStateName[this.currentMediaState]);
+				}
+				this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.currentMediaState);
+
+				// check for change of profile
+				if (this.profileDataChanged) {
+					this.log('%s: Profile data changed', this.name);
+					this.refreshChannelList();
+					
+				}
+
+
 			}
+			return null;
 
+		} catch (err) {
+			parent.log.error("Error trapped in updateDeviceState:", err.message);
+			parent.log.error(err);
+		}		
 
-		}
-		return null;
 	}
 
 
