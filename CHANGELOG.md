@@ -13,8 +13,9 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.1.10-beta.2 (2021-05-01)
+## 1.1.10-beta.3 (2021-05-04)
 * Added proper error trapping and handling in the updateDeviceState procedure
+* I really thing I solved the "includes is not a function" error on line 2494 now. Caused by currChannelId being set to a numeric value on line 1411
 * Another fix for "includes is not a function" on line 2494
 * Added Funding options
 * EOSSTB is now homebridge verified! Restart your OS running Homebridge to see the Donate and Verified tags in Homebridge. All donations appreciated :)

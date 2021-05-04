@@ -1408,7 +1408,7 @@ class stbPlatform {
 									// nDVR = playback from saved program (Digital Video Recorder)
 									// Careful: source is not always present in the data
 									if (playerState.source) {
-										currChannelId = playerState.source.channelId || NO_INPUT_ID;
+										currChannelId = playerState.source.channelId || NO_CHANNEL_ID; // must be a string
 										if (parent.config.debugLevel > 0) {
 											let currentChannelName; // let is scopt to the current {} block
 											let curChannel = parent.masterChannelList.find(channel => channel.channelId === currChannelId); 
@@ -2697,8 +2697,15 @@ class stbDevice {
 			return null;
 
 		} catch (err) {
-			parent.log.error("Error trapped in updateDeviceState:", err.message);
-			parent.log.error(err);
+			this.log.error("Error trapped in updateDeviceState:", err.message);
+			this.log.error(err);
+			this.log.error("Further debug info:");
+			this.log.error("this.currentPowerState", this.currentPowerState);
+			this.log.error("this.currentMediaState", this.currentMediaState);
+			this.log.error("this.currentChannelId", this.currentChannelId);
+			this.log.error("this.currentSourceType", this.currentSourceType);
+			this.log.error("this.currentRecordingState", this.currentRecordingState);
+			this.log.error("this.profileDataChanged", this.profileDataChanged);
 		}		
 
 	}
@@ -2706,367 +2713,372 @@ class stbDevice {
 
 	// refresh the channel list that shows in the Home app
 	async refreshChannelList(callback) {
-		if (this.config.debugLevel > 1) { this.log.warn('%s: refreshChannelList', this.name); }
-		this.log("%s: Refreshing channel list...", this.name);
-		
-		// exit if no session exists
-		if (currentSessionState != sessionState.CONNECTED) { 
-			this.log.warn('%s: refreshChannelList: Session not yet created, exiting', this.name);
-			return; 
-		}
-
-		// exit if no master channel list loaded yet (on platform level)
-		if (!this.platform.masterChannelListExpiryDate) { 
-			this.log.warn('%s: refreshChannelList: master channel list not yet loaded, exiting', this.name);
-			return; 
-		}
-
-		// limit the amount of max channels to load.
-		var maxSources = MAX_INPUT_SOURCES;
-
-		//this.profileId = this.platform.profiles.findIndex(profile => profile.name === this.config.profile);
-		/*
-		this.log("%s: Loading profile: %s", this.name, this.config.profile);
-		this.log("%s: config: %s", this.name, this.config);
-		this.log("%s: config.devices: %s", this.name, this.config.devices);
-		this.log("%s: looking for: %s", this.name, this.device.deviceId);
-		*/
-
-		if (this.config.debugLevel > 1) { this.log.warn("%s: Getting profile data from config", this.name); }
-		var chIds = [];
-		var configDevice = {};
-		if (this.config.devices) {
-			configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
-			if (configDevice) {
-				// homebridge config for this device was found, get the profile item (=profile name) if it exists in the published profiles
-				var foundProfileId = this.platform.profiles.findIndex(profile => profile.name === configDevice.profile);
-				if (foundProfileId > -1) {
-					if (this.config.debugLevel > 1) { this.log.warn("%s: Valid profile found in config: '%s'", this.name, configDevice.profile); }
-					this.profileId = foundProfileId;
-				}
-				// get any custom maxChannels, set per device. Caution: maxChannels may not exist!
-				maxSources = Math.min(configDevice.maxChannels || maxSources, maxSources);
-			}
-		}
-
-
-
-		// if no configured profile found (config item does not exist or name not found)
-		// or the selected profile has zero channels added to the "Profile channels list" 
-		// then build a clean, sorted, subscribed channel list
-		var subscribedChList = [];
-		if (this.config.debugLevel > 1) { this.log.warn("%s: Using profileId %s", this.name, this.profileId); }
-		if (this.config.debugLevel > 1) { this.log.warn("%s: Checking if subscribed channel list is needed", this.name); }
-		if (this.profileId <= 0 || this.platform.profiles[this.profileId].favoriteChannels.length == 0 ) {
-			if (this.config.debugLevel > 1) { this.log.warn("%s: Building subscribed channel list", this.name); }
-			// get a clean list of entitled channels (will not be in correct order)
-			// some entitlements are not in the masterchannelList, these must be ignored
-			if (this.config.debugLevel > 1) { this.log.warn("%s: Checking %s entitlements within %s channels in the master channel list", this.name, this.platform.session.entitlements.length, this.platform.masterChannelList.length); }
+		try {
+			if (this.config.debugLevel > 1) { this.log.warn('%s: refreshChannelList', this.name); }
+			this.log("%s: Refreshing channel list...", this.name);
 			
-			this.platform.session.entitlements.forEach((chId) => {
-				// chId can be crid:~~2F~~2Fupcch.tv~~2FSV09170, so split at ~~2F to get SV09170
-				// channels can exist multiple times in the entitlements
+			// exit if no session exists
+			if (currentSessionState != sessionState.CONNECTED) { 
+				this.log.warn('%s: refreshChannelList: Session not yet created, exiting', this.name);
+				return; 
+			}
+
+			// exit if no master channel list loaded yet (on platform level)
+			if (!this.platform.masterChannelListExpiryDate) { 
+				this.log.warn('%s: refreshChannelList: master channel list not yet loaded, exiting', this.name);
+				return; 
+			}
+
+			// limit the amount of max channels to load.
+			var maxSources = MAX_INPUT_SOURCES;
+
+			//this.profileId = this.platform.profiles.findIndex(profile => profile.name === this.config.profile);
+			/*
+			this.log("%s: Loading profile: %s", this.name, this.config.profile);
+			this.log("%s: config: %s", this.name, this.config);
+			this.log("%s: config.devices: %s", this.name, this.config.devices);
+			this.log("%s: looking for: %s", this.name, this.device.deviceId);
+			*/
+
+			if (this.config.debugLevel > 1) { this.log.warn("%s: Getting profile data from config", this.name); }
+			var chIds = [];
+			var configDevice = {};
+			if (this.config.devices) {
+				configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
+				if (configDevice) {
+					// homebridge config for this device was found, get the profile item (=profile name) if it exists in the published profiles
+					var foundProfileId = this.platform.profiles.findIndex(profile => profile.name === configDevice.profile);
+					if (foundProfileId > -1) {
+						if (this.config.debugLevel > 1) { this.log.warn("%s: Valid profile found in config: '%s'", this.name, configDevice.profile); }
+						this.profileId = foundProfileId;
+					}
+					// get any custom maxChannels, set per device. Caution: maxChannels may not exist!
+					maxSources = Math.min(configDevice.maxChannels || maxSources, maxSources);
+				}
+			}
+
+
+
+			// if no configured profile found (config item does not exist or name not found)
+			// or the selected profile has zero channels added to the "Profile channels list" 
+			// then build a clean, sorted, subscribed channel list
+			var subscribedChList = [];
+			if (this.config.debugLevel > 1) { this.log.warn("%s: Using profileId %s", this.name, this.profileId); }
+			if (this.config.debugLevel > 1) { this.log.warn("%s: Checking if subscribed channel list is needed", this.name); }
+			if (this.profileId <= 0 || this.platform.profiles[this.profileId].favoriteChannels.length == 0 ) {
+				if (this.config.debugLevel > 1) { this.log.warn("%s: Building subscribed channel list", this.name); }
+				// get a clean list of entitled channels (will not be in correct order)
+				// some entitlements are not in the masterchannelList, these must be ignored
+				if (this.config.debugLevel > 1) { this.log.warn("%s: Checking %s entitlements within %s channels in the master channel list", this.name, this.platform.session.entitlements.length, this.platform.masterChannelList.length); }
+				
+				this.platform.session.entitlements.forEach((chId) => {
+					// chId can be crid:~~2F~~2Fupcch.tv~~2FSV09170, so split at ~~2F to get SV09170
+					// channels can exist multiple times in the entitlements
+					const chIdParts = chId.split("~~2F");
+					chId = chIdParts[chIdParts.length-1];
+					if (this.config.debugLevel > 2) { 
+						this.log.warn("%s: Checking entitlements ", this.name, chId); 
+					}
+					// see if we can find this in the masterChannelList, but not in the subscribedChList
+					// if exists in masterChannelList, and not in subscribedChList, add to subscribedChList
+					var masterChListIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === chId);
+					var subsChListIndex = subscribedChList.findIndex(subsChId => subsChId === chId);
+					if ( masterChListIndex > -1 && subsChListIndex == -1 ) { 
+						if (this.config.debugLevel > 2) { 
+							this.log.warn("%s: entitlement channelId does not exist in unsorted subscribedChList, adding %s at index %s", this.name, chId, subscribedChList.length); 
+						}
+						subscribedChList.push( chId ); 
+					}
+				});
+
+				// the channels are not in the right sort order, so sort correctly in same order as masterChannelList
+				this.platform.masterChannelList.forEach((channel) => {
+					var foundIndex = subscribedChList.findIndex(chId => chId === channel.channelId);
+					if ( foundIndex > -1 ) { 
+						if (this.config.debugLevel > 2) { 
+							this.log.warn("%s: channelId does not exist in sorted chIds, adding %s %s at index %s", this.name, channel.channelId, channel.channelName, chIds.length); 
+						}
+						chIds.push( channel.channelId ); 
+					} 
+				});
+				if (this.config.debugLevel > 2) { 
+					this.log.warn("%s: Sorted chids created with %s entries", this.name, chIds.length); 
+				}
+
+
+			}
+
+
+
+			// smart default channel list selection
+			// a profile can contain zero channels, this is OK
+			// load from profile channels list if one exists, otherwise from the subscribed channel list
+			// if the subscribed channel list fits  (>0 and <=maxSources), use it
+			// otherwise, use the first found profile channel list that fits
+			// always default to the subscribedChList if nothing else fits
+			if (this.profileId == -1) {
+				this.log("%s: No valid profile found in config. Selecting best-fitting profile", this.name);
+				if (subscribedChList.length > 0 && subscribedChList.length <= maxSources) {
+					// the subscribed channel list fits, use it
+					if (this.config.debugLevel > 1) { this.log.warn("%s: Selecting full subscribed channel list", this.name); }
+					this.profileId = 0; // default channel list
+				} else {
+					// otherwise, use the first found profile channel list theat fits
+					// check all available profiles and choose the first found with <90 channels
+					if (this.config.debugLevel > 1) { this.log.warn("%s: Looking for best fit profile channel list within %s user profiles", this.name, this.platform.profiles.length-1); }
+					for(let i=1; i<this.platform.profiles.length; i++) {
+						if (this.config.debugLevel > 1) { this.log.warn("%s: Checking profile %s '%s' containing %s channels", this.name, i, this.platform.profiles[i].name, this.platform.profiles[i].favoriteChannels.length); }
+						if (this.platform.profiles[i].favoriteChannels.length > 0 && this.platform.profiles[i].favoriteChannels.length <= maxSources) {
+							// found a profile that can be used
+							if (this.config.debugLevel > 1) { this.log.warn("%s: Selecting profile '%s' with %s channels", this.name, this.platform.profiles[i].name, this.platform.profiles[i].favoriteChannels.length); }
+							this.profileId = i;
+							break;
+						}
+					}
+				}
+			}
+
+
+			// if no profile can be found, default to SharedProfile 0
+			// ensures choice is 0, or >0, but never -1
+			this.profileId = Math.max(this.profileId,0); 
+			this.log("%s: Using profile %s '%s'", this.name, this.profileId, this.platform.profiles[this.profileId].name);
+
+		
+
+
+			// determine what channel list we need to load: "Profiles channels list" or master list
+			// profile can have zero channels in it, this is OK, but if so load the master channel list
+			var channelsLoadedFromProfileName;
+			if (this.profileId == 0) {
+				// subscribed channels in Shared Profile, already loaded to chIds
+				channelsLoadedFromProfileName = this.platform.profiles[this.profileId].name;
+				this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
+			} else if ( this.platform.profiles[this.profileId].favoriteChannels.length > 0 ) {
+				chIds = this.platform.profiles[this.profileId].favoriteChannels;
+				channelsLoadedFromProfileName = this.platform.profiles[this.profileId].name;
+				this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
+			} else {	
+				// Default subscribed channels in Shared Profile, already loaded to chIds
+				channelsLoadedFromProfileName = this.platform.profiles[0].name;
+				this.log("%s: Profile '%s' contains 0 channels. Channel list will be loaded from profile '%s'", this.name, this.platform.profiles[this.profileId].name, channelsLoadedFromProfileName);
+			}
+
+			// recently viewed apps
+			if (this.config.debugLevel > 1) { 
+				this.log.warn("%s: refreshChannelList: recentlyUsedApps", this.name, this.platform.profiles[this.profileId].recentlyUsedApps);
+			}
+
+
+			// grab the current ActiveIdentifier, and currentChannel, it might change during the channel refresh
+			/*
+			var currentActiveIdentifier = NO_INPUT_ID, currentChannel, currentChannelName = NO_CHANNEL_NAME;
+			if (this.accessoryConfigured) { 
+				currentActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
+			}
+			if (currentActiveIdentifier != NO_INPUT_ID) {
+				currentChannel = this.inputServices[currentActiveIdentifier];
+				currentChannelName = this.inputServices[currentActiveIdentifier].getCharacteristic(Characteristic.ConfiguredName).value;
+			}
+			if (this.config.debugLevel > 0) { 
+				this.log.warn("%s: refreshChannelList: before channel refresh: this.currentChannelId %s currentActiveIdentifier %s currentChannelName %s", this.name, this.currentChannelId, currentActiveIdentifier, currentChannelName);
+			}
+			*/
+
+
+			//const currentInpIndex = this.inputServices.findIndex(channel => channel.subtype == 'input_' + this.currentChannelId);
+			//this.log("Found before channel load: this.currentChannelId %s found at currentInpIndex %s", this.currentChannelId, currentInpIndex);
+
+
+			// clear the array
+			this.channelList = [];
+
+			// limit the amount to load
+			const chs = Math.min(chIds.length, maxSources);
+			this.log("%s: Refreshing channels 1 to %s", this.name, chs);
+			if (chs < maxSources) {
+				this.log("%s: Hiding     channels %s to %s", this.name, chs + 1, maxSources);
+			}
+
+
+			// loop and load all channels from the chIds in the order defined by the array
+			chIds.forEach((chId, i) => {
+				//this.log("In for-each loop, processing index %s %s", i, chId)
+				// normalise the chId
+				// can be "crid:~~2F~~2Fupcch.tv~~2FSV09170" or just "SVO9170" so split at ~~2F
+				const oldChId = chId;
 				const chIdParts = chId.split("~~2F");
 				chId = chIdParts[chIdParts.length-1];
-				if (this.config.debugLevel > 2) { 
-					this.log.warn("%s: Checking entitlements ", this.name, chId); 
-				}
-				// see if we can find this in the masterChannelList, but not in the subscribedChList
-				// if exists in masterChannelList, and not in subscribedChList, add to subscribedChList
-				var masterChListIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === chId);
-				var subsChListIndex = subscribedChList.findIndex(subsChId => subsChId === chId);
-				if ( masterChListIndex > -1 && subsChListIndex == -1 ) { 
-					if (this.config.debugLevel > 2) { 
-						this.log.warn("%s: entitlement channelId does not exist in unsorted subscribedChList, adding %s at index %s", this.name, chId, subscribedChList.length); 
-					}
-					subscribedChList.push( chId ); 
-				}
-			});
+				if (oldChId.includes("~~2F")) { this.log("chId %s modified to chId %s", oldChId, chId); }
 
-			// the channels are not in the right sort order, so sort correctly in same order as masterChannelList
-			this.platform.masterChannelList.forEach((channel) => {
-				var foundIndex = subscribedChList.findIndex(chId => chId === channel.channelId);
-				if ( foundIndex > -1 ) { 
-					if (this.config.debugLevel > 2) { 
-						this.log.warn("%s: channelId does not exist in sorted chIds, adding %s %s at index %s", this.name, channel.channelId, channel.channelName, chIds.length); 
-					}
-					chIds.push( channel.channelId ); 
-				} 
-			});
-			if (this.config.debugLevel > 2) { 
-				this.log.warn("%s: Sorted chids created with %s entries", this.name, chIds.length); 
-			}
-
-
-		}
-
-
-
-		// smart default channel list selection
-		// a profile can contain zero channels, this is OK
-		// load from profile channels list if one exists, otherwise from the subscribed channel list
-		// if the subscribed channel list fits  (>0 and <=maxSources), use it
-		// otherwise, use the first found profile channel list that fits
-		// always default to the subscribedChList if nothing else fits
-		if (this.profileId == -1) {
-			this.log("%s: No valid profile found in config. Selecting best-fitting profile", this.name);
-			if (subscribedChList.length > 0 && subscribedChList.length <= maxSources) {
-				// the subscribed channel list fits, use it
-				if (this.config.debugLevel > 1) { this.log.warn("%s: Selecting full subscribed channel list", this.name); }
-				this.profileId = 0; // default channel list
-			} else {
-				// otherwise, use the first found profile channel list theat fits
-				// check all available profiles and choose the first found with <90 channels
-				if (this.config.debugLevel > 1) { this.log.warn("%s: Looking for best fit profile channel list within %s user profiles", this.name, this.platform.profiles.length-1); }
-				for(let i=1; i<this.platform.profiles.length; i++) {
-					if (this.config.debugLevel > 1) { this.log.warn("%s: Checking profile %s '%s' containing %s channels", this.name, i, this.platform.profiles[i].name, this.platform.profiles[i].favoriteChannels.length); }
-					if (this.platform.profiles[i].favoriteChannels.length > 0 && this.platform.profiles[i].favoriteChannels.length <= maxSources) {
-						// found a profile that can be used
-						if (this.config.debugLevel > 1) { this.log.warn("%s: Selecting profile '%s' with %s channels", this.name, this.platform.profiles[i].name, this.platform.profiles[i].favoriteChannels.length); }
-						this.profileId = i;
-						break;
+				// find the channel to load.
+				var channel = {};
+				var customChannel = {};
+				
+				// first look in the config channels list for any user-defined custom channel name
+				if (this.config.channels) {
+					customChannel = this.config.channels.find(channel => channel.channelId === chId);
+					if ((customChannel || {}).channelName) { 
+						customChannel.channelName = cleanNameForHomeKit(customChannel.channelName)
+						this.log("%s: Found %s in config channels, setting name to %s", this.name, chId, customChannel.channelName);
+					} else {					
+						customChannel = {}; 
 					}
 				}
-			}
-		}
 
-
-		// if no profile can be found, default to SharedProfile 0
-		// ensures choice is 0, or >0, but never -1
-		this.profileId = Math.max(this.profileId,0); 
-		this.log("%s: Using profile %s '%s'", this.name, this.profileId, this.platform.profiles[this.profileId].name);
-
-	
-
-
-		// determine what channel list we need to load: "Profiles channels list" or master list
-		// profile can have zero channels in it, this is OK, but if so load the master channel list
-		var channelsLoadedFromProfileName;
-		if (this.profileId == 0) {
-			// subscribed channels in Shared Profile, already loaded to chIds
-			channelsLoadedFromProfileName = this.platform.profiles[this.profileId].name;
-			this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
-		} else if ( this.platform.profiles[this.profileId].favoriteChannels.length > 0 ) {
-			chIds = this.platform.profiles[this.profileId].favoriteChannels;
-			channelsLoadedFromProfileName = this.platform.profiles[this.profileId].name;
-			this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
-		} else {	
-			// Default subscribed channels in Shared Profile, already loaded to chIds
-			channelsLoadedFromProfileName = this.platform.profiles[0].name;
-			this.log("%s: Profile '%s' contains 0 channels. Channel list will be loaded from profile '%s'", this.name, this.platform.profiles[this.profileId].name, channelsLoadedFromProfileName);
-		}
-
-		// recently viewed apps
-		if (this.config.debugLevel > 1) { 
-			this.log.warn("%s: refreshChannelList: recentlyUsedApps", this.name, this.platform.profiles[this.profileId].recentlyUsedApps);
-		}
-
-
-		// grab the current ActiveIdentifier, and currentChannel, it might change during the channel refresh
-		/*
-		var currentActiveIdentifier = NO_INPUT_ID, currentChannel, currentChannelName = NO_CHANNEL_NAME;
-		if (this.accessoryConfigured) { 
-			currentActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
-		}
-		if (currentActiveIdentifier != NO_INPUT_ID) {
-			currentChannel = this.inputServices[currentActiveIdentifier];
-			currentChannelName = this.inputServices[currentActiveIdentifier].getCharacteristic(Characteristic.ConfiguredName).value;
-		}
-		if (this.config.debugLevel > 0) { 
-			this.log.warn("%s: refreshChannelList: before channel refresh: this.currentChannelId %s currentActiveIdentifier %s currentChannelName %s", this.name, this.currentChannelId, currentActiveIdentifier, currentChannelName);
-		}
-		*/
-
-
-		//const currentInpIndex = this.inputServices.findIndex(channel => channel.subtype == 'input_' + this.currentChannelId);
-		//this.log("Found before channel load: this.currentChannelId %s found at currentInpIndex %s", this.currentChannelId, currentInpIndex);
-
-
-		// clear the array
-		this.channelList = [];
-
-		// limit the amount to load
-		const chs = Math.min(chIds.length, maxSources);
-		this.log("%s: Refreshing channels 1 to %s", this.name, chs);
-		if (chs < maxSources) {
-			this.log("%s: Hiding     channels %s to %s", this.name, chs + 1, maxSources);
-		}
-
-
-		// loop and load all channels from the chIds in the order defined by the array
-		chIds.forEach((chId, i) => {
-			//this.log("In for-each loop, processing index %s %s", i, chId)
-			// normalise the chId
-			// can be "crid:~~2F~~2Fupcch.tv~~2FSV09170" or just "SVO9170" so split at ~~2F
-			const oldChId = chId;
-			const chIdParts = chId.split("~~2F");
-			chId = chIdParts[chIdParts.length-1];
-			if (oldChId.includes("~~2F")) { this.log("chId %s modified to chId %s", oldChId, chId); }
-
-			// find the channel to load.
-			var channel = {};
-			var customChannel = {};
-			
-			// first look in the config channels list for any user-defined custom channel name
-			if (this.config.channels) {
-				customChannel = this.config.channels.find(channel => channel.channelId === chId);
-				if ((customChannel || {}).channelName) { 
-					customChannel.channelName = cleanNameForHomeKit(customChannel.channelName)
-					this.log("%s: Found %s in config channels, setting name to %s", this.name, chId, customChannel.channelName);
-				} else {					
- 					customChannel = {}; 
-				}
-			}
-
-			// check if the chId exists in the master channel list, if not, push it, using the user-defined name if one exists, and channelNumber >10000
-			this.log.debug("%s: Index %s: Finding chId %s in master channel list", this.name, i, chId);
-			channel = this.platform.masterChannelList.find(channel => channel.channelId === chId); 
-			if (!channel) {
-				const newChName = customChannel.channelName || "Channel " + chId; 
-				this.log("%s: Unknown channel %s [%s] discovered. Adding to the master channel list", this.name, chId, newChName);
-				this.platform.masterChannelList.push({
-					channelId: chId, 
-					channelNumber: 10000 + this.platform.masterChannelList.length, 
-					channelName: newChName
-					//channelListIndex: this.platform.masterChannelList.length
-				});
-				// refresh channel as the not found channel will now be in the masterChannelList
+				// check if the chId exists in the master channel list, if not, push it, using the user-defined name if one exists, and channelNumber >10000
+				this.log.debug("%s: Index %s: Finding chId %s in master channel list", this.name, i, chId);
 				channel = this.platform.masterChannelList.find(channel => channel.channelId === chId); 
-			} else {
-				// show some useful debug data
-				this.log.debug("%s: Index %s: Found %s in master channel list", this.name, i, chId);
-			}
-
-			// load this channel as an input
-			//this.log("loading input %s of %s", i + 1, maxSources)
-			if (i < maxSources) {
-
-				// add the user-defined name if one exists
-				if (customChannel && customChannel.channelName) { channel.channelName = customChannel.channelName; }
-
-				// show channel number if user chose to do so
-				// must only happen once!
-				if ((configDevice || {}).showChannelNumbers) {
-					// a config exists. Add channel number prefix only if the prefix does not exist
-					const chPrefix = ('0' + (i + 1)).slice(-2) + " ";
-					if (!channel.channelConfiguredName || channel.channelConfiguredName.slice(0, 3) != chPrefix) {
-						//this.log("Adding prefix to configured name", chPrefix)
-						channel.channelConfiguredName = chPrefix + channel.channelName;
-					}
-				} else {
-					channel.channelConfiguredName = channel.channelName;
-				}
-
-				// add channel visibility and configured name, these don't exist on the master channel list
-				// these should be read from file...
-				channel.channelVisibilityState = Characteristic.CurrentVisibilityState.SHOWN;
-
-				// show debug and add to array
-				//this.log.debug("%s: Index %s: Refreshing channel %s: [%s] %s", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
-				this.log.debug("%s: Index %s: Refreshing channel %s: %s [%s]", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
-				this.channelList[i] = channel;
-
-				// update accesory only when configured
-				if (this.accessoryConfigured) { 
-					// update existing services
-					//this.log.debug("Adding %s %s to input index %s",channel.channelId, channel.channelName, i);
-					this.log.debug("Adding %s %s to input %s at index %s",channel.channelId, channel.channelName, i+1, i);
-					this.inputServices[i].name = channel.channelConfiguredName;
-					this.inputServices[i].subtype = 'input_' + channel.channelId;
-
-					// Name can only be set for SharedProfile where order can never be changed
-					if (this.profileid == 0) {
-						this.inputServices[i].updateCharacteristic(Characteristic.Name, channel.channelName); // stays unchanged at Input 01 etc
-					}
-					this.inputServices[i].updateCharacteristic(Characteristic.ConfiguredName, channel.channelConfiguredName);
-					this.inputServices[i].updateCharacteristic(Characteristic.CurrentVisibilityState, channel.channelVisibilityState);
-					this.inputServices[i].updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
-					//inputService.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
-				}
-			}
-		});
-
-		// after loading all the channels, reset the ActiveIdentifier (uint32) to the right Identifier (uint32), as it may have moved slots
-		const currentInput = this.inputServices.find(channel => channel.subtype == 'input_' + this.currentChannelId);
-		if (currentInput) { 
-			this.televisionService.updateCharacteristic(Characteristic.ActiveIdentifier, currentInput.getCharacteristic(Characteristic.Identifier).value);
-		} else {
-			// not found, set to NO_INPUT_ID
-			if (this.televisionService) {
-				this.televisionService.updateCharacteristic(Characteristic.ActiveIdentifier, NO_INPUT_ID);
-			}
-		}
-
-
-		// save to disk
-		// not yet active
-		// this.platform.persistConfig(this.deviceId, this.channelList);
-
-
-				// add the recently used apps, if we are loading from a user profile
-				/*
-				if (this.profileId > 0) {
-					// apps have a channel number starting with "app"
-					var appsToload = this.platform.profiles[this.profileId].recentlyUsedApps;
-					appsToload.forEach( (appId, i) => {
-						this.log("loading app", i, appId);
-						if (i <= maxSources) {
-							// get the channel
-							var foundIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === appId);
-							//this.log("foundIndex", foundIndex);
-							if (foundIndex >= 0) {
-								var channel = this.platform.masterChannelList[foundIndex];
-								this.log("loading app", channel);
-	
-								// update existing services
-
-								const inputService = this.inputServices[i];
-								inputService
-									.updateCharacteristic(Characteristic.ConfiguredName, channel.channelName)
-									.updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED)
-									.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.SHOWN)
-									.updateCharacteristic(Characteristic.TargetVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
-	
-							}
-						}
+				if (!channel) {
+					const newChName = customChannel.channelName || "Channel " + chId; 
+					this.log("%s: Unknown channel %s [%s] discovered. Adding to the master channel list", this.name, chId, newChName);
+					this.platform.masterChannelList.push({
+						channelId: chId, 
+						channelNumber: 10000 + this.platform.masterChannelList.length, 
+						channelName: newChName
+						//channelListIndex: this.platform.masterChannelList.length
 					});
+					// refresh channel as the not found channel will now be in the masterChannelList
+					channel = this.platform.masterChannelList.find(channel => channel.channelId === chId); 
+				} else {
+					// show some useful debug data
+					this.log.debug("%s: Index %s: Found %s in master channel list", this.name, i, chId);
 				}
-				*/
-				
 
-				
-		// for any remaining inputs that may have been previously visible, set to not configured and hidden
-		//this.log("channelList pre filter:", this.channelList);
-		//var loadedChs = Math.min(chs, MAX_INPUT_SOURCES);
-		//this.log("channelList, filtering to first %s items", loadedChs);
-		//this.channelList = this.channelList.filter((channel, index) => index < loadedChs)
-		//this.log("channelList post filter:", this.channelList);
-		for(let i=chs; i<maxSources; i++) {
-			//this.log.debug("Hiding channel", ('0' + (i + 1)).slice(-2));
-			this.log.debug("Hiding channel", ('0' + (i+1)).slice(-2));
-			// array must stay same size and have elements that can be queried, but channelId and channelListIndex must never match valid entries
-			this.channelList[i] = {
-				channelId: 'chId_' + i,  // channelid mjust be unique
-				channelNumber: 'none', 
-				channelName: 'HIDDEN', 
-				//channelListIndex: 10000 + i,
-				channelVisibilityState: Characteristic.CurrentVisibilityState.HIDDEN,
-				channelConfiguredName: 'HIDDEN'
+				// load this channel as an input
+				//this.log("loading input %s of %s", i + 1, maxSources)
+				if (i < maxSources) {
+
+					// add the user-defined name if one exists
+					if (customChannel && customChannel.channelName) { channel.channelName = customChannel.channelName; }
+
+					// show channel number if user chose to do so
+					// must only happen once!
+					if ((configDevice || {}).showChannelNumbers) {
+						// a config exists. Add channel number prefix only if the prefix does not exist
+						const chPrefix = ('0' + (i + 1)).slice(-2) + " ";
+						if (!channel.channelConfiguredName || channel.channelConfiguredName.slice(0, 3) != chPrefix) {
+							//this.log("Adding prefix to configured name", chPrefix)
+							channel.channelConfiguredName = chPrefix + channel.channelName;
+						}
+					} else {
+						channel.channelConfiguredName = channel.channelName;
+					}
+
+					// add channel visibility and configured name, these don't exist on the master channel list
+					// these should be read from file...
+					channel.channelVisibilityState = Characteristic.CurrentVisibilityState.SHOWN;
+
+					// show debug and add to array
+					//this.log.debug("%s: Index %s: Refreshing channel %s: [%s] %s", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
+					this.log.debug("%s: Index %s: Refreshing channel %s: %s [%s]", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
+					this.channelList[i] = channel;
+
+					// update accesory only when configured
+					if (this.accessoryConfigured) { 
+						// update existing services
+						//this.log.debug("Adding %s %s to input index %s",channel.channelId, channel.channelName, i);
+						this.log.debug("Adding %s %s to input %s at index %s",channel.channelId, channel.channelName, i+1, i);
+						this.inputServices[i].name = channel.channelConfiguredName;
+						this.inputServices[i].subtype = 'input_' + channel.channelId;
+
+						// Name can only be set for SharedProfile where order can never be changed
+						if (this.profileid == 0) {
+							this.inputServices[i].updateCharacteristic(Characteristic.Name, channel.channelName); // stays unchanged at Input 01 etc
+						}
+						this.inputServices[i].updateCharacteristic(Characteristic.ConfiguredName, channel.channelConfiguredName);
+						this.inputServices[i].updateCharacteristic(Characteristic.CurrentVisibilityState, channel.channelVisibilityState);
+						this.inputServices[i].updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
+						//inputService.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
+					}
+				}
+			});
+
+			// after loading all the channels, reset the ActiveIdentifier (uint32) to the right Identifier (uint32), as it may have moved slots
+			const currentInput = this.inputServices.find(channel => channel.subtype == 'input_' + this.currentChannelId);
+			if (currentInput) { 
+				this.televisionService.updateCharacteristic(Characteristic.ActiveIdentifier, currentInput.getCharacteristic(Characteristic.Identifier).value);
+			} else {
+				// not found, set to NO_INPUT_ID
+				if (this.televisionService) {
+					this.televisionService.updateCharacteristic(Characteristic.ActiveIdentifier, NO_INPUT_ID);
+				}
 			}
-			
-			// get service and hide it if it exists
-			const inputService = this.inputServices[i];
-			if (inputService) {
-				//inputService.getCharacteristic(Characteristic.ConfiguredName).updateValue("Input " + i + 1);
-				//inputService.getCharacteristic(Characteristic.IsConfigured).updateValue(Characteristic.IsConfigured.NOT_CONFIGURED);
-				inputService.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.HIDDEN);
+
+
+			// save to disk
+			// not yet active
+			// this.platform.persistConfig(this.deviceId, this.channelList);
+
+
+					// add the recently used apps, if we are loading from a user profile
+					/*
+					if (this.profileId > 0) {
+						// apps have a channel number starting with "app"
+						var appsToload = this.platform.profiles[this.profileId].recentlyUsedApps;
+						appsToload.forEach( (appId, i) => {
+							this.log("loading app", i, appId);
+							if (i <= maxSources) {
+								// get the channel
+								var foundIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === appId);
+								//this.log("foundIndex", foundIndex);
+								if (foundIndex >= 0) {
+									var channel = this.platform.masterChannelList[foundIndex];
+									this.log("loading app", channel);
+		
+									// update existing services
+
+									const inputService = this.inputServices[i];
+									inputService
+										.updateCharacteristic(Characteristic.ConfiguredName, channel.channelName)
+										.updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED)
+										.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.SHOWN)
+										.updateCharacteristic(Characteristic.TargetVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
+		
+								}
+							}
+						});
+					}
+					*/
+					
+
+					
+			// for any remaining inputs that may have been previously visible, set to not configured and hidden
+			//this.log("channelList pre filter:", this.channelList);
+			//var loadedChs = Math.min(chs, MAX_INPUT_SOURCES);
+			//this.log("channelList, filtering to first %s items", loadedChs);
+			//this.channelList = this.channelList.filter((channel, index) => index < loadedChs)
+			//this.log("channelList post filter:", this.channelList);
+			for(let i=chs; i<maxSources; i++) {
+				//this.log.debug("Hiding channel", ('0' + (i + 1)).slice(-2));
+				this.log.debug("Hiding channel", ('0' + (i+1)).slice(-2));
+				// array must stay same size and have elements that can be queried, but channelId and channelListIndex must never match valid entries
+				this.channelList[i] = {
+					channelId: 'chId_' + i,  // channelid mjust be unique
+					channelNumber: 'none', 
+					channelName: 'HIDDEN', 
+					//channelListIndex: 10000 + i,
+					channelVisibilityState: Characteristic.CurrentVisibilityState.HIDDEN,
+					channelConfiguredName: 'HIDDEN'
+				}
+				
+				// get service and hide it if it exists
+				const inputService = this.inputServices[i];
+				if (inputService) {
+					//inputService.getCharacteristic(Characteristic.ConfiguredName).updateValue("Input " + i + 1);
+					//inputService.getCharacteristic(Characteristic.IsConfigured).updateValue(Characteristic.IsConfigured.NOT_CONFIGURED);
+					inputService.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.HIDDEN);
+				}
+
 			}
 
-		}
+			this.log("%s: Channel list refreshed from profile '%s' with %s channels", this.name, channelsLoadedFromProfileName, Math.min(chIds.length, maxSources));
+			return false;
 
-		this.log("%s: Channel list refreshed from profile '%s' with %s channels", this.name, channelsLoadedFromProfileName, Math.min(chIds.length, maxSources));
-		return false;
-
+		} catch (err) {
+			this.log.error("Error trapped in refreshChannelList:", err.message);
+			this.log.error(err);
+		}		
 	}
 
 	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
