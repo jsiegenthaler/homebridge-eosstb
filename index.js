@@ -374,10 +374,16 @@ class stbPlatform {
 		}
 
 		// as we are called regularly by setInterval, exit immediately if session is still connected and mqtt is still connected
-		if (currentSessionState == sessionState.CONNECTED && mqttClient.connected ) { return; }
+		if (currentSessionState == sessionState.CONNECTED && mqttClient.connected ) { 
+			this.log.warn('sessionWatchdog session connected and mqtt connected, exiting without action'); 
+			return; 
+		}
 
 		// the session might be in a state between disconnected and connected, so exit if not disconnected
-		if (currentSessionState !== sessionState.DISCONNECTED ) { return; }
+		if (currentSessionState !== sessionState.DISCONNECTED ) { 
+			this.log.warn('sessionWatchdog session is not disconnected, exiting without action'); 
+			return; 
+		}
 
 		// detect if running on development environment
 		//	customStoragePath: 'C:\\Users\\jochen\\.homebridge'
@@ -1503,7 +1509,7 @@ class stbPlatform {
 				// Emitted when a reconnect starts.
 				mqttClient.on('reconnect', function () {
 					try {
-						parent.log('mqttClient: Reconnecting');
+						parent.log('mqttClient: Reconnect started');
 					} catch (err) {
 						parent.log.error("Error trapped in mqttClient reconnect event:", err.message);
 						parent.log.error(err);
@@ -1514,7 +1520,7 @@ class stbPlatform {
 				// Emitted after receiving disconnect packet from broker. MQTT 5.0 feature.
 				mqttClient.on('disconnect', function () {
 					try {
-						parent.log('mqttClient: Disconnecting');
+						parent.log('mqttClient: Disconnect command received');
 					} catch (err) {
 						parent.log.error("Error trapped in mqttClient disconnect event:", err.message);
 						parent.log.error(err);
