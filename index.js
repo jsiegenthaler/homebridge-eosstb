@@ -16,7 +16,7 @@ const path = require('path');
 const mqtt = require('mqtt');  
 const qs = require('qs')
 //const _ = require('underscore');
-const mqttClientId = makeId(30).toLowerCase();
+//const mqttClientId = makeId(30).toLowerCase();
 
 const axios = require('axios').default;
 axios.defaults.xsrfCookieName = undefined;
@@ -262,6 +262,8 @@ class stbPlatform {
 
 		// session flags
 		currentSessionState = sessionState.DISCONNECTED;
+		this.sessionWatchdogRunning = false;
+		this.mqttClientConnecting = false;
 
 		/*
 		this.inputsFile = this.storagePath + '/' + 'inputs_' + this.host.split('.').join('');
@@ -369,21 +371,50 @@ class stbPlatform {
 		// runs every few seconds. 
 		// If session exists: Exit immediately
 		// If no session exists: prepares the session, then prepares the device
-		if (this.config.debugLevel > 0) { 
-			this.log.warn('sessionWatchdog sessionState %s, sessionConnected %s, mqttClientConnected %s', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false); 
-		}
+
+		// exit if a previous session is still running
+		if (this.sessionWatchdogRunning) { 
+			if (this.config.debugLevel > 0) { 
+				this.log.warn('sessionWatchdog: a previous watchdog is still working, exiting without action'); 
+			}
+			return;
 
 		// as we are called regularly by setInterval, exit immediately if session is still connected and mqtt is still connected
-		if (currentSessionState == sessionState.CONNECTED && mqttClient.connected ) { 
-			this.log.warn('sessionWatchdog session connected and mqtt connected, exiting without action'); 
+		} else if (currentSessionState == sessionState.CONNECTED && mqttClient.connected ) { 
+			if (this.config.debugLevel > 0) { 
+				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session connected and mqtt connected, exiting without action', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
+			}
 			return; 
-		}
 
-		// the session might be in a state between disconnected and connected, so exit if not disconnected
-		if (currentSessionState !== sessionState.DISCONNECTED ) { 
-			this.log.warn('sessionWatchdog session is not disconnected, exiting without action'); 
+		// the watchdog can fire after session connected but before mqtt has connected, so check and exit
+		} else if (currentSessionState == sessionState.CONNECTED && this.mqttClientConnecting && !mqttClient.connected) { 
+			if (this.config.debugLevel > 0) { 
+				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session connected and mqtt is currently connecting, exiting without action', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
+			}
 			return; 
+
+		// the session is connected, the mqtt client is not connected, continue to try and reconnect
+		} else if (currentSessionState == sessionState.CONNECTED && !this.mqttClientConnecting && !mqttClient.connected) { 
+			if (this.config.debugLevel > 0) { 
+				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session connected but mqtt not connected, continuing...', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
+			}
+
+		// otherwise the session might be in a state between disconnected and connected, so exit if not disconnected (as that means a session connection is currently in progress)
+		} else if (currentSessionState != sessionState.DISCONNECTED) { 
+			if (this.config.debugLevel > 0) { 
+				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session session is not disconnected, must be currently connecting, exiting without action', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
+			}
+			return;
+		
+		// session is not connected and is not in a state between connected and disconnected, so it is disconnected. Continue
+		} else { 
+			if (this.config.debugLevel > 0) { 
+				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session not connected and mqtt not connected, continuing...', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
+			}
+
 		}
+		this.sessionWatchdogRunning = true;
+
 
 		// detect if running on development environment
 		//	customStoragePath: 'C:\\Users\\jochen\\.homebridge'
@@ -508,7 +539,9 @@ class stbPlatform {
 					// wait 3sec for session and devices to be loaded loaded
 					// now get the Jwt Token which triggers the mqtt client
 					wait(3*1000).then(() => { 
+						this.mqttClientConnecting = true;
 						this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
+						this.sessionWatchdogRunning = false;
 					})
 
 				}
@@ -516,6 +549,7 @@ class stbPlatform {
 
 		}).catch((error) => { 
 			this.log.error("sessionWatchdog: Error", error); 
+			this.sessionWatchdogRunning = false;
 		});
 
 	}
@@ -1239,6 +1273,9 @@ class stbPlatform {
 		if (this.config.debugLevel > 2) { 
 			this.log.warn('startMqttClient: Creating mqttClient object with username %s, password %s', mqttUsername ,mqttPassword ); 
 		}
+
+		// make a new mqttClientId on every session start, much robuster, then connect
+		let mqttClientId = makeId(30).toLowerCase();
 		mqttClient = mqtt.connect(mqttUrl, {
 			connectTimeout: 10*1000, //10 seconds
 			clientId: mqttClientId,
@@ -1249,11 +1286,16 @@ class stbPlatform {
 			this.log.warn('startMqttClient: mqttUrl connect request sent' ); 
 		}
 
+		//mqttClient.setMaxListeners(20); // default is 10 sometimes causes issues when the listeners reach 11
+
+		//parent.log(mqttClient); //for debug
+
 		
 		// mqtt client event: connect
 		mqttClient.on('connect', function () {
 			try {
 				parent.log("mqttClient: Connected: %s", mqttClient.connected);
+				parent.mqttClientConnecting = false;
 
 				// https://prod.spark.upctv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
 				parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
@@ -1268,7 +1310,7 @@ class stbPlatform {
 				*/
 
 				// initiate the EOS session by turning on the HGO platform
-				parent.mqttSetHgoOnlineRunning(mqttUsername);
+				parent.mqttSetHgoOnlineRunning(mqttUsername, mqttClientId);
 
 				
 				parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
@@ -1291,7 +1333,7 @@ class stbPlatform {
 				// and request the UI status for each device
 				parent.devices.forEach((device) => {
 					// send a getuiStatus request
-					parent.getUiStatus(device.deviceId);
+					parent.getUiStatus(device.deviceId, mqttClientId);
 				});
 
 				// and request current recordingState
@@ -1320,7 +1362,7 @@ class stbPlatform {
 						/*
 						parent.devices.forEach((device) => {
 							// send a getuiStatus request
-							parent.getUiStatus(device.deviceId);
+							parent.getUiStatus(device.deviceId, mqttClientId);
 						});
 						*/
 
@@ -1495,10 +1537,6 @@ class stbPlatform {
 				mqttClient.on('close', function () {
 					try {
 						parent.log('mqttClient: Connection closed');
-						mqttClient.end(); // end the process
-						parent.log('Session disconnected'); // crude but effective?
-						currentSessionState = sessionState.DISCONNECTED;
-						return false;
 					} catch (err) {
 						parent.log.error("Error trapped in mqttClient close event:", err.message);
 						parent.log.error(err);
@@ -1594,22 +1632,17 @@ class stbPlatform {
 
 	// subscribe to an mqtt message, with logging, to help in debugging
 	mqttSubscribeToTopic(Topic, Qos) {
-		try {
-			if (this.config.debugLevel > 0) { this.log.warn('mqttSubscribeToTopic: Subscribe to topic:', Topic); }
-			mqttClient.subscribe(Topic, function (err) {
-				if(err){
-					this.log('mqttClient connect: subscribe to %s Error %s:', Topic, err);
-					return true;
-				}
-			});
-		} catch (err) {
-			this.log.error("Error trapped in mqttSubscribeToTopic:", err.message);
-			this.log.error(err);
-		}
+		if (this.config.debugLevel > 0) { this.log.warn('mqttSubscribeToTopic: Subscribe to topic:', Topic); }
+		mqttClient.subscribe(Topic, function (err) {
+			if(err){
+				//this.log('mqttClient connect: subscribe to %s Error %s:', Topic, err);
+				return true;
+			}
+		});
 	}
 
 	// start the HGO session
-	mqttSetHgoOnlineRunning(mqttUsername) {
+	mqttSetHgoOnlineRunning(mqttUsername, mqttClientId) {
 		try {
 			if (this.config.debugLevel > 0) { this.log.warn('mqttSetHgoOnlineRunning'); }
 			if (mqttUsername) {
@@ -1728,7 +1761,7 @@ class stbPlatform {
 
 
 	// get the settopbox UI status from the settopbox via mqtt
-	getUiStatus(deviceId) {
+	getUiStatus(deviceId, mqttClientId) {
 		try {
 			if (this.config.debugLevel > 0) {
 				this.log.warn('getUiStatus');
