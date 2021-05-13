@@ -16,7 +16,6 @@ const path = require('path');
 const mqtt = require('mqtt');  
 const qs = require('qs')
 //const _ = require('underscore');
-//const mqttClientId = makeId(30).toLowerCase();
 
 const axios = require('axios').default;
 axios.defaults.xsrfCookieName = undefined;
@@ -151,6 +150,7 @@ var PLUGIN_ENV = ''; // controls the development environment, appended to UUID t
 
 // variables for session and all devices
 let mqttClient = {};
+let mqttClientId = '';
 let mqttUsername;
 //let mqttPassword;
 let currentSessionState;
@@ -1275,7 +1275,7 @@ class stbPlatform {
 		}
 
 		// make a new mqttClientId on every session start, much robuster, then connect
-		let mqttClientId = makeId(30).toLowerCase();
+		mqttClientId = makeId(30).toLowerCase();
 		mqttClient = mqtt.connect(mqttUrl, {
 			connectTimeout: 10*1000, //10 seconds
 			clientId: mqttClientId,
