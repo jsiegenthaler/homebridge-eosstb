@@ -13,7 +13,7 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.1.10-beta.6 (2021-05-14)
+## 1.1.10 (2021-05-13)
 * Improved session startup and mqtt session handling
 * Improved error trapping and handling in the updateDeviceState procedure
 * Fixed a "includes is not a function" error.
