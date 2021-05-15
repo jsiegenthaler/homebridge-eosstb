@@ -1458,12 +1458,17 @@ class stbPlatform {
 									if (playerState.source) {
 										currChannelId = playerState.source.channelId || NO_CHANNEL_ID; // must be a string
 										if (parent.config.debugLevel > 0) {
-											let currentChannelName; // let is scopt to the current {} block
+											let currentChannelName; // let is scoped to the current {} block
 											let curChannel = parent.masterChannelList.find(channel => channel.channelId === currChannelId); 
 											if (curChannel) { currentChannelName = curChannel.channelName; }
 											parent.log.warn('mqttClient: Detected mqtt channelId: %s [%s]', currChannelId, currentChannelName);
 										}
+									} else {
+										// if playerState.source is null, then the settop box could be playing a radio station
+										// the code will pass a null through the code but no change will occur, so deliberately set a NO_CHANNEL_ID
+										currChannelId = NO_CHANNEL_ID;
 									}
+
 									break;
 
 								case 'apps':
