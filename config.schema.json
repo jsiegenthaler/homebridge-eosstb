@@ -211,14 +211,6 @@
                         "descriptionxx": "The key to send when the (Arrow Up) button is tapped once on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "ArrowUp",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "CustomProfile", "enum": ["CustomProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-                            { "title": "ProfileMenu", "enum": ["ProfileMenu"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -238,6 +230,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -260,14 +254,6 @@
                         "descriptionxx": "The key to send when the (Arrow Up) button is double-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "ChannelUp",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "CustomProfile", "enum": ["CustomProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-                            { "title": "ProfileMenu", "enum": ["ProfileMenu"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -287,6 +273,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -309,14 +297,6 @@
                         "descriptionxx": "The key to send when the (Arrow Up) button is triple-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "ArrowUp",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "CustomProfile", "enum": ["CustomProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-                            { "title": "ProfileMenu", "enum": ["ProfileMenu"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -336,6 +316,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -359,14 +341,6 @@
                         "descriptionxx": "The key to send when the (Arrow Down) button is tapped once on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "ArrowDown",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "CustomProfile", "enum": ["CustomProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-                            { "title": "ProfileMenu", "enum": ["ProfileMenu"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -386,6 +360,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -408,14 +384,6 @@
                         "descriptionxx": "The key to send when the (Arrow Down) button is double-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "ChannelDown",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "CustomProfile", "enum": ["CustomProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-                            { "title": "ProfileMenu", "enum": ["ProfileMenu"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -435,6 +403,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -457,14 +427,6 @@
                         "descriptionxx": "The key to send when the (Arrow Down) button is triple-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "ArrowDown",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "CustomProfile", "enum": ["CustomProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-                            { "title": "ProfileMenu", "enum": ["ProfileMenu"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -484,6 +446,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -507,14 +471,6 @@
                         "descriptionxx": "The key to send when the (Arrow Left) button is tapped once on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "ArrowLeft",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "CustomProfile", "enum": ["CustomProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-                            { "title": "ProfileMenu", "enum": ["ProfileMenu"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -534,6 +490,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -556,14 +514,6 @@
                         "descriptionxx": "The key to send when the (Arrow Left) button is double-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "MediaRewind",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "CustomProfile", "enum": ["CustomProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-                            { "title": "ProfileMenu", "enum": ["ProfileMenu"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -583,6 +533,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -605,14 +557,6 @@
                         "descriptionxx": "The key to send when the (Arrow Left) button is triple-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "ArrowLeft",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "CustomProfile", "enum": ["CustomProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-                            { "title": "ProfileMenu", "enum": ["ProfileMenu"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -632,6 +576,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -655,14 +601,6 @@
                         "descriptionxx": "The key to send when the (Arrow Right) button is tapped once on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "ArrowRight",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "CustomProfile", "enum": ["CustomProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-                            { "title": "ProfileMenu", "enum": ["ProfileMenu"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -682,6 +620,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -704,14 +644,6 @@
                         "descriptionxx": "The key to send when the (Arrow Right) button is double-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "MediaFastForward",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "CustomProfile", "enum": ["CustomProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-                            { "title": "ProfileMenu", "enum": ["ProfileMenu"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -731,6 +663,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -753,14 +687,6 @@
                         "descriptionxx": "The key to send when the (Arrow Right) button is triple-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "ArrowRight",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "CustomProfile", "enum": ["CustomProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-                            { "title": "ProfileMenu", "enum": ["ProfileMenu"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -780,6 +706,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -803,12 +731,6 @@
                         "descriptionxx": "The key to send when the (Select) button is tapped once on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "Enter",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -829,6 +751,8 @@
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
 
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
+
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
                             { "title": "MediaPause", "enum": ["MediaPause"] },
@@ -839,7 +763,9 @@
                             
                             { "title": "KeyMacro1", "enum": ["KeyMacro1"] },
                             { "title": "KeyMacro2", "enum": ["KeyMacro2"] },
-                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] }
+                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] },
+                            { "title": "KeyMacro4", "enum": ["KeyMacro4"] },
+                            { "title": "KeyMacro5", "enum": ["KeyMacro5"] }
                         ]
                     },
                     "selectButtonDoubleTap": {
@@ -848,12 +774,6 @@
                         "descriptionxx": "The key to send when the (Select) button is double-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "Enter",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -874,6 +794,8 @@
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
 
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
+
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
                             { "title": "MediaPause", "enum": ["MediaPause"] },
@@ -884,7 +806,9 @@
                             
                             { "title": "KeyMacro1", "enum": ["KeyMacro1"] },
                             { "title": "KeyMacro2", "enum": ["KeyMacro2"] },
-                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] }
+                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] },
+                            { "title": "KeyMacro4", "enum": ["KeyMacro4"] },
+                            { "title": "KeyMacro5", "enum": ["KeyMacro5"] }
                         ]
                     },
                     "selectButtonTripleTap": {
@@ -893,12 +817,6 @@
                         "descriptionxx": "The key to send when the (Select) button is triple-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "Enter",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -919,6 +837,8 @@
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
 
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
+
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
                             { "title": "MediaPause", "enum": ["MediaPause"] },
@@ -929,7 +849,9 @@
                             
                             { "title": "KeyMacro1", "enum": ["KeyMacro1"] },
                             { "title": "KeyMacro2", "enum": ["KeyMacro2"] },
-                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] }
+                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] },
+                            { "title": "KeyMacro4", "enum": ["KeyMacro4"] },
+                            { "title": "KeyMacro5", "enum": ["KeyMacro5"] }
                         ]
                     },
 
@@ -946,12 +868,6 @@
                         "descriptionxx": "The key to send when the (Play/Pause) button is tapped once on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "MediaPlayPause",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -971,6 +887,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -982,7 +900,9 @@
                             
                             { "title": "KeyMacro1", "enum": ["KeyMacro1"] },
                             { "title": "KeyMacro2", "enum": ["KeyMacro2"] },
-                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] }
+                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] },
+                            { "title": "KeyMacro4", "enum": ["KeyMacro4"] },
+                            { "title": "KeyMacro5", "enum": ["KeyMacro5"] }
                         ]
                     },
                     "playPauseButtonDoubleTap": {
@@ -991,12 +911,6 @@
                         "descriptionxx": "The key to send when the (Play/Pause) button is double-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
                         "default": "MediaPlayPause",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -1016,6 +930,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -1038,12 +954,6 @@
                         "descriptionxx": "The key to send when the (Play/Pause) button is triple-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaRecord",
                         "default": "MediaRecord",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -1064,6 +974,8 @@
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
 
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
+
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
                             { "title": "MediaPause", "enum": ["MediaPause"] },
@@ -1074,7 +986,9 @@
                             
                             { "title": "KeyMacro1", "enum": ["KeyMacro1"] },
                             { "title": "KeyMacro2", "enum": ["KeyMacro2"] },
-                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] }
+                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] },
+                            { "title": "KeyMacro4", "enum": ["KeyMacro4"] },
+                            { "title": "KeyMacro5", "enum": ["KeyMacro5"] }
                         ]
                     },
 
@@ -1084,12 +998,6 @@
                         "descriptionxx": "The key to send when the (BACK) button is tapped once on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: Escape",
                         "default": "Escape",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -1110,6 +1018,8 @@
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
 
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
+
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
                             { "title": "MediaPause", "enum": ["MediaPause"] },
@@ -1120,7 +1030,9 @@
                             
                             { "title": "KeyMacro1", "enum": ["KeyMacro1"] },
                             { "title": "KeyMacro2", "enum": ["KeyMacro2"] },
-                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] }
+                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] },
+                            { "title": "KeyMacro4", "enum": ["KeyMacro4"] },
+                            { "title": "KeyMacro5", "enum": ["KeyMacro5"] }
                         ]
                     },
                     "backButtonDoubleTap": {
@@ -1129,12 +1041,6 @@
                         "descriptionxx": "The key to send when the (BACK) button is double-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: Escape",
                         "default": "Escape",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -1155,6 +1061,8 @@
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
 
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
+
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
                             { "title": "MediaPause", "enum": ["MediaPause"] },
@@ -1165,7 +1073,9 @@
                             
                             { "title": "KeyMacro1", "enum": ["KeyMacro1"] },
                             { "title": "KeyMacro2", "enum": ["KeyMacro2"] },
-                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] }
+                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] },
+                            { "title": "KeyMacro4", "enum": ["KeyMacro4"] },
+                            { "title": "KeyMacro5", "enum": ["KeyMacro5"] }
                         ]
                     },
                     "backButtonTripleTap": {
@@ -1174,12 +1084,6 @@
                         "descriptionxx": "The key to send when the (BACK) button is triple-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: TV",
                         "default": "TV",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -1200,6 +1104,8 @@
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
 
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
+
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
                             { "title": "MediaPause", "enum": ["MediaPause"] },
@@ -1210,7 +1116,9 @@
                             
                             { "title": "KeyMacro1", "enum": ["KeyMacro1"] },
                             { "title": "KeyMacro2", "enum": ["KeyMacro2"] },
-                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] }
+                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] },
+                            { "title": "KeyMacro4", "enum": ["KeyMacro4"] },
+                            { "title": "KeyMacro5", "enum": ["KeyMacro5"] }
                         ]
                     },
 
@@ -1220,12 +1128,6 @@
                         "descriptionxx": "The key to send when the (i) button is tapped once on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaTopMenu",
                         "default": "MediaTopMenu",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -1246,6 +1148,8 @@
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
 
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
+
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
                             { "title": "MediaPause", "enum": ["MediaPause"] },
@@ -1256,7 +1160,9 @@
                             
                             { "title": "KeyMacro1", "enum": ["KeyMacro1"] },
                             { "title": "KeyMacro2", "enum": ["KeyMacro2"] },
-                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] }
+                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] },
+                            { "title": "KeyMacro4", "enum": ["KeyMacro4"] },
+                            { "title": "KeyMacro5", "enum": ["KeyMacro5"] }
                         ]
                     },
                     "infoButtonDoubleTap": {
@@ -1265,12 +1171,6 @@
                         "descriptionxx": "The key to send when the (i) button is double-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: Info",
                         "default": "Guide",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -1290,6 +1190,8 @@
 
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
+
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
 
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
@@ -1301,7 +1203,9 @@
                             
                             { "title": "KeyMacro1", "enum": ["KeyMacro1"] },
                             { "title": "KeyMacro2", "enum": ["KeyMacro2"] },
-                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] }
+                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] },
+                            { "title": "KeyMacro4", "enum": ["KeyMacro4"] },
+                            { "title": "KeyMacro5", "enum": ["KeyMacro5"] }
                         ]
                     },
                     "infoButtonTripleTap": {
@@ -1310,12 +1214,6 @@
                         "descriptionxx": "The key to send when the (i) button is triple-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaRecord",
                         "default": "Info",
                         "oneOf": [
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "MediaMenu", "enum": ["MediaMenu"] },
-                            { "title": "UserProfile", "enum": ["UserProfile"] },
-                            { "title": "Profile", "enum": ["Profile"] },
-                            { "title": "Profiles", "enum": ["Profiles"] },
-
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -1336,6 +1234,8 @@
                             { "title": "ChannelUp", "enum": ["ChannelUp"] },
                             { "title": "ChannelDown", "enum": ["ChannelDown"] },
 
+                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
+
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
                             { "title": "MediaPause", "enum": ["MediaPause"] },
@@ -1343,10 +1243,12 @@
                             { "title": "MediaStop", "enum": ["MediaStop"] },
                             { "title": "MediaRewind", "enum": ["MediaRewind"] },
                             { "title": "MediaFastForward", "enum": ["MediaFastForward"] },
-
+                            
                             { "title": "KeyMacro1", "enum": ["KeyMacro1"] },
                             { "title": "KeyMacro2", "enum": ["KeyMacro2"] },
-                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] }
+                            { "title": "KeyMacro3", "enum": ["KeyMacro3"] },
+                            { "title": "KeyMacro4", "enum": ["KeyMacro4"] },
+                            { "title": "KeyMacro5", "enum": ["KeyMacro5"] }
                         ]
                     },
 
