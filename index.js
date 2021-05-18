@@ -3589,7 +3589,7 @@ class stbDevice {
 		// triple key presses triggers a second layer function
 		var tripleVolDownPress = 100000; // default high value to prevent a tripleVolDown detection when no triple key pressed
 		// get the lastkeypress from the array
-		this.log("lastRemoteKeyPress",this.lastRemoteKeyPress);
+		// this.log("lastRemoteKeyPress",this.lastRemoteKeyPress);
 		var lastkeyPress = this.lastRemoteKeyPress[remoteKey] || [];
 		this.log("remoteKey %s, lastkeyPress %s",remoteKey, lastkeyPress);
 
@@ -3730,30 +3730,38 @@ class stbDevice {
 
 			}
 
-			/*
-				// test - parse a long config string
-				var keyMacro = 'Back wait(500) Back wait(500) Back wait(500) MediaTopMenu wait(1000) ArrowDown wait(500) ArrowLeft wait(500) Enter wait(500) Enter'
+			// handle the macros
+			if (keyName.startsWith("KeyMacro")) {
+				var keyMacro;
+				switch (keyName) {
+					case 'KeyMacro1': keyMacro = configDevice.keyMacro1; break;
+					case 'KeyMacro2': keyMacro = configDevice.keyMacro2; break;
+					case 'KeyMacro3': keyMacro = configDevice.keyMacro3; break;
+					case 'KeyMacro4': keyMacro = configDevice.keyMacro4; break;
+					case 'KeyMacro5': keyMacro = configDevice.keyMacro5; break;
+				}
+
+				//var keyMacro = 'Back wait(500) Back wait(500) Back wait(500) MediaTopMenu wait(1000) ArrowDown wait(500) ArrowLeft wait(500) Enter wait(500) Enter'
 				this.log('processing macro ', keyMacro);
 				let keyArray = keyMacro.trim().split(' ');
-				for ( let i = 0; i < keyArray.length; i++ ) {
+				for (let i = 0; i < keyArray.length; i++) {
 					this.log('remoteKey %s, sending key ', keyArray[i]);
 					if ( keyArray[i].startsWith('wait(')) {
 						// do a wait
-						let delay = keyArray[i].replace('wait(', '').replace(')','');
-						this.log('processing wait of %s ms', delay);
-						await waitprom(delay);
-						this.log('wait done');
-					} else {
-						// send the key
-						this.log('sending key %s', keyArray[i].trim());
-						this.platform.sendKey(this.deviceId, this.name, keyArray[i].trim() );
+							let delay = keyArray[i].replace('wait(', '').replace(')','');
+							this.log('processing wait of %s ms', delay);
+							await waitprom(delay);
+							this.log('wait done');
+						} else {
+							// send the key
+							this.log('sending key %s', keyArray[i].trim());
+							this.platform.sendKey(this.deviceId, this.name, keyArray[i].trim() );
+						}
 					}
-				}
-				break; 
-			*/
+			} else {
+				if (keyName) { this.platform.sendKey(this.deviceId, this.name, keyName); }
+			}
 
-
-			if (keyName) { this.platform.sendKey(this.deviceId, this.name, keyName); }
 	}
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
