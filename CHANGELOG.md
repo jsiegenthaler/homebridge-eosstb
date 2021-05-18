@@ -13,6 +13,11 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.1.12-beta.1 (2021-05-18)
+* Added double-tap and triple-tap capabilities to the Remote Control
+* Added Remote Control key Macros
+
+
 ## 1.1.11 (2021-05-15)
 * Fixed issue where the last TV channel name was still displayed after changing to a radio station
 

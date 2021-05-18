@@ -220,6 +220,16 @@ function cleanNameForHomeKit(name) {
 // wait function
 const wait=ms=>new Promise(resolve => setTimeout(resolve, ms)); 
 
+// wait function with promise
+function waitprom(ms) {
+	return new Promise((resolve, reject) => {
+	  setTimeout(() => {
+		resolve(ms)
+	  }, ms )
+	})
+  }  
+
+  
 // ++++++++++++++++++++++++++++++++++++++++++++
 // config end
 // ++++++++++++++++++++++++++++++++++++++++++++
@@ -2118,6 +2128,7 @@ class stbDevice {
 		this.customPictureMode = 0; // default 0
 		this.currentSourceType = 'UNKNOWN';
 		this.volDownLastKeyPress = [];
+		this.lastRemoteKeyPress = [];
 
 		// do an initial accessory channel update, required to configure the accessory
 		this.refreshChannelList(this.deviceId); // async function
@@ -3573,6 +3584,42 @@ class stbDevice {
 		// remoteKey is the key pressed on the Apple TV Remote in the Control Center
 		// keys 12, 13 & 14 are not defined by Apple
 
+		// ------------- triple press function ---------------
+
+		// triple key presses triggers a second layer function
+		var tripleVolDownPress = 100000; // default high value to prevent a tripleVolDown detection when no triple key pressed
+		// get the lastkeypress from the array
+		this.log("lastRemoteKeyPress",this.lastRemoteKeyPress);
+		var lastkeyPress = this.lastRemoteKeyPress[remoteKey] || [];
+		this.log("remoteKey %s, lastkeyPress %s",remoteKey, lastkeyPress);
+
+		// bump the array up one slot
+		lastkeyPress[2] = lastkeyPress[1] || 0;
+		lastkeyPress[1] = lastkeyPress[0] || 0;
+		lastkeyPress[0] = Date.now();
+
+		// write lastkeyPress to the array
+		this.lastRemoteKeyPress[remoteKey] = lastkeyPress;
+		//this.log("remoteKey %s, lastRemoteKeyPress has been updated, now:", remoteKey, this.lastRemoteKeyPress);
+
+
+		// check time difference between current keyPress and 2 keyPresses ago
+		//this.log('remoteKey %s, Timediff between lastkeyPress[0] now and lastkeyPress[2]: %s ms', remoteKey, lastkeyPress[0] - lastkeyPress[2]);
+
+		// check timing, activating triple-press then double-press button layers
+		var buttonLayer=0; // default layer 0
+		if (lastkeyPress[0] - lastkeyPress[2] < (this.config.triplePressTime || 800)) {
+			this.log('remoteKey %s, triple press detected', remoteKey);
+			buttonLayer=2;
+		} else if (lastkeyPress[0] - lastkeyPress[1] < (this.config.doublePressTime || 500)) {
+			this.log('remoteKey %s, double press detected', remoteKey);
+			buttonLayer=1;
+		}
+
+		this.log('remoteKey %s, buttonLayer %s', remoteKey, buttonLayer);
+		
+
+
 		// get any user-defined button remaps
 		var configDevice, backButtonRemap, playPauseButtonRemap, infoButtonRemap, arrowUpRemap, arrowDownRemap;
 		if (this.config.devices) {
@@ -3586,6 +3633,7 @@ class stbDevice {
 			arrowDownRemap = configDevice.arrowDownButton;
 		}
 
+		var keyNameDefault;
 		var keyName;
 		switch (remoteKey) {
 			case Characteristic.RemoteKey.REWIND: // 0
@@ -3598,21 +3646,57 @@ class stbDevice {
 				keyName = 'DisplaySwap'; break;
 
 			case Characteristic.RemoteKey.ARROW_UP: // 4
-				keyName = arrowUpRemap || 'ArrowUp'; 
+				keyNameDefault = "ArrowUp";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.arrowUpButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.arrowUpButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.arrowUpButton || keyNameDefault; 			break;
+				}
 				break;
 
 			case Characteristic.RemoteKey.ARROW_DOWN: // 5
-				keyName = arrowDownRemap || 'ArrowDown'; 
+				keyNameDefault = "ArrowDown";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.arrowDownButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.arrowDownButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.arrowDownButton || keyNameDefault; 			break;
+				}
 				break;
 
 			case Characteristic.RemoteKey.ARROW_LEFT: // 6
-				keyName = 'ArrowLeft'; break;
+				keyNameDefault = "ArrowLeft";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.arrowLeftButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.arrowLeftButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.arrowLeftButton || keyNameDefault; 			break;
+				}
+				break;
+
 			case Characteristic.RemoteKey.ARROW_RIGHT: // 7
-				keyName = 'ArrowRight'; break;
+				keyNameDefault = "ArrowRight";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.arrowRightButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.arrowRightButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.arrowRightButton || keyNameDefault; 				break;
+				}
+				break;
+
 			case Characteristic.RemoteKey.SELECT: // 8
-				keyName = 'Enter'; break;
+				keyNameDefault = "Enter";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.selectButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.selectButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.selectButton || keyNameDefault;	 			break;
+				}
+				break;
+
 			case Characteristic.RemoteKey.BACK: // 9
-				keyName = backButtonRemap || "Escape"; 
+				keyNameDefault = "Escape";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.backButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.backButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.backButton || keyNameDefault; 			break;
+				}
 				break;
 
 			case Characteristic.RemoteKey.EXIT: // 10
@@ -3620,7 +3704,12 @@ class stbDevice {
 				break;
 
 			case Characteristic.RemoteKey.PLAY_PAUSE: // 11
-				keyName = playPauseButtonRemap || "MediaPause"; // others: MediaPlayPause
+				keyNameDefault = "MediaPause";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.playPauseButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.playPauseButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.playPauseButton || keyNameDefault; 			break;
+				}
 				break; 
 
 			case Characteristic.RemoteKey.INFORMATION: // 15
@@ -3630,11 +3719,41 @@ class stbDevice {
 				// Help: 			displays the SETTINGS INFO page
 				// Guide: 			displays the TV GUIDE page, same as the Guide button on the remote
 				// MediaTopMenu: 	displays the top menu (home) page, same as the HOME button on the remote. DEFAULT
-				keyName = infoButtonRemap || "MediaTopMenu"; // use for Menu button
-				break; 
+				keyNameDefault = "MediaTopMenu";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.infoButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.infoButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.infoButton || keyNameDefault; 			break;
+				}
+				break;
+
 
 			}
-		if (keyName) { this.platform.sendKey(this.deviceId, this.name, keyName); }
+
+			/*
+				// test - parse a long config string
+				var keyMacro = 'Back wait(500) Back wait(500) Back wait(500) MediaTopMenu wait(1000) ArrowDown wait(500) ArrowLeft wait(500) Enter wait(500) Enter'
+				this.log('processing macro ', keyMacro);
+				let keyArray = keyMacro.trim().split(' ');
+				for ( let i = 0; i < keyArray.length; i++ ) {
+					this.log('remoteKey %s, sending key ', keyArray[i]);
+					if ( keyArray[i].startsWith('wait(')) {
+						// do a wait
+						let delay = keyArray[i].replace('wait(', '').replace(')','');
+						this.log('processing wait of %s ms', delay);
+						await waitprom(delay);
+						this.log('wait done');
+					} else {
+						// send the key
+						this.log('sending key %s', keyArray[i].trim());
+						this.platform.sendKey(this.deviceId, this.name, keyArray[i].trim() );
+					}
+				}
+				break; 
+			*/
+
+
+			if (keyName) { this.platform.sendKey(this.deviceId, this.name, keyName); }
 	}
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
