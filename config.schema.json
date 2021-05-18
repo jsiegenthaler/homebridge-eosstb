@@ -258,7 +258,7 @@
                         "title": "Arrow Up (double tap)",
                         "type": "string",
                         "descriptionxx": "The key to send when the (Arrow Up) button is double-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
-                        "default": "ArrowUp",
+                        "default": "ChannelUp",
                         "oneOf": [
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
                             { "title": "MediaMenu", "enum": ["MediaMenu"] },
@@ -307,7 +307,7 @@
                         "title": "Arrow Up (triple tap)",
                         "type": "string",
                         "descriptionxx": "The key to send when the (Arrow Up) button is triple-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
-                        "default": "ChannelUp",
+                        "default": "ArrowUp",
                         "oneOf": [
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
                             { "title": "MediaMenu", "enum": ["MediaMenu"] },
@@ -406,7 +406,7 @@
                         "title": "Arrow Down (double tap)",
                         "type": "string",
                         "descriptionxx": "The key to send when the (Arrow Down) button is double-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
-                        "default": "ArrowDown",
+                        "default": "ChannelDown",
                         "oneOf": [
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
                             { "title": "MediaMenu", "enum": ["MediaMenu"] },
@@ -455,7 +455,7 @@
                         "title": "Arrow Down (triple tap)",
                         "type": "string",
                         "descriptionxx": "The key to send when the (Arrow Down) button is triple-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
-                        "default": "ChannelDown",
+                        "default": "ArrowDown",
                         "oneOf": [
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
                             { "title": "MediaMenu", "enum": ["MediaMenu"] },
@@ -554,7 +554,7 @@
                         "title": "Arrow Left (double tap)",
                         "type": "string",
                         "descriptionxx": "The key to send when the (Arrow Left) button is double-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
-                        "default": "ArrowLeft",
+                        "default": "MediaRewind",
                         "oneOf": [
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
                             { "title": "MediaMenu", "enum": ["MediaMenu"] },
@@ -603,7 +603,7 @@
                         "title": "Arrow Left (triple tap)",
                         "type": "string",
                         "descriptionxx": "The key to send when the (Arrow Left) button is triple-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
-                        "default": "MediaRewind",
+                        "default": "ArrowLeft",
                         "oneOf": [
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
                             { "title": "MediaMenu", "enum": ["MediaMenu"] },
@@ -702,7 +702,7 @@
                         "title": "Arrow Right (double tap)",
                         "type": "string",
                         "descriptionxx": "The key to send when the (Arrow Right) button is double-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
-                        "default": "ArrowRight",
+                        "default": "MediaFastForward",
                         "oneOf": [
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
                             { "title": "MediaMenu", "enum": ["MediaMenu"] },
@@ -751,7 +751,7 @@
                         "title": "Arrow Right (triple tap)",
                         "type": "string",
                         "descriptionxx": "The key to send when the (Arrow Right) button is triple-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaPlayPause",
-                        "default": "MediaFastForward",
+                        "default": "ArrowRight",
                         "oneOf": [
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
                             { "title": "MediaMenu", "enum": ["MediaMenu"] },
@@ -1263,7 +1263,7 @@
                         "title": "Info (double tap)",
                         "type": "string",
                         "descriptionxx": "The key to send when the (i) button is double-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: Info",
-                        "default": "Info",
+                        "default": "Guide",
                         "oneOf": [
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
                             { "title": "MediaMenu", "enum": ["MediaMenu"] },
@@ -1308,7 +1308,7 @@
                         "title": "Info (triple tap)",
                         "type": "string",
                         "descriptionxx": "The key to send when the (i) button is triple-tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents\">Wiki KeyEvents</a> for a description of all keys. Default: MediaRecord",
-                        "default": "MediaRecord",
+                        "default": "Info",
                         "oneOf": [
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
                             { "title": "MediaMenu", "enum": ["MediaMenu"] },
@@ -1533,7 +1533,7 @@
                         {
                             "key": "devices[]",
                             "type": "section",
-                            "title": "Channel List Macros",
+                            "title": "Channel List Macros (Future Support)",
                             "expandable": true,
                             "items": [
                                 "devices[].channelMacroName1",
