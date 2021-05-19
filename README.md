@@ -146,7 +146,7 @@ You can force a Home app refresh by switching to another room and then back agai
 To access the **Apple TV Remote**, open your **Control Center** by swiping down from the top (newer iPhones and iPads) or up from the bottom of the screen (older iPhones). If you do not see the remote-control icon, you will need to activate it in **Settings > Control Centre** and ensure that the **Apple TV Remote** is in the list of **INCLUDED CONTROLS**.
 Make sure you select the correct device from the drop-down list at the top of the Apple TV Remote:
 
-From v1.1.12, the EOSSTB supports single tap, double tap and triple tap on the remote control keys. Each tap (single, double or triple) can be assigned to a key or a key macro of your choice. Up to 5 key macros 8sequences of key strokes) are possible.
+From v1.1.12, the EOSSTB supports single tap, double tap and triple tap on the remote control keys. Each tap (single, double or triple) can be assigned to a key or a key macro of your choice. Up to 5 key macros (sequences of key strokes) are possible.
 
 The following keys are supported by in the **Apple TV Remote** in the Control Center:
 
@@ -166,18 +166,30 @@ The following keys are supported by in the **Apple TV Remote** in the Control Ce
 * Channel Up & Channel Down (double tap the ArrowUp and ArrowDown buttons)
 * Rewind & FastForward (double tap the ArrowLeft and ArrowRight buttons)
 * Guide (double tap the Info button)
+* And any other function that you wish to configure (including key macros)
 
 ### Triple Tap:
 * Record (triple tap the Play/Pause button)
 * TV (triple tap the Back button)
 * Info (triple tap the Info button)
 * Mute (triple click the volume down button)
+* And any other function that you wish to configure (including key macros)
 
 You can map any Remote Control key to any set-top box KeyEvent using the config. A llist of all possible KeyEvents can be found in the [Wiki KeyEvents](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents).
 
 The volume controls do not control the set-top box directly, as the set-top box has no volume capability. The set-top box physical remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
 
-Rewind and Fast Forward are also supported in the EOSSTB plugin, but these commands are not exposed in the current Apple TV Remote. If Apple TV ever expose buttons for these commands in the future, then they will work.
+### About Key Macros
+A key macro allows you to send a sequence of keys to activate a certain function. For example, to open the Radio app and play the last played station, you use the key sequence Home Down Left Enter Enter. Note that you have to have a delay between each key press. Translating the required key presses into KeyEvents understood by the set-top box results in the following key macro:
+
+MediaTopMenu wait(300) ArrowDown wait(300) Arrowleft wait(300) Enter wait(500) Enter
+
+But of course, you do not know what state the menu is in when you run the macro. So send a few Back key presses to back out of any menu that may be active. The key macro then becomes:
+
+Back wait(300) Back wait(300) Back wait(300) MediaTopMenu wait(300) ArrowDown wait(300) Arrowleft wait(300) Enter wait(500) Enter
+
+You can access any app by navigating the menu with a key macro, as long as the app position in the menu remains the same.
+
 
 ## Limitations
 ### Channel Count
