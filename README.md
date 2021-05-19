@@ -180,15 +180,15 @@ You can map any Remote Control key to any set-top box KeyEvent using the config.
 The volume controls do not control the set-top box directly, as the set-top box has no volume capability. The set-top box physical remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
 
 ### About Key Macros
-A key macro allows you to send a sequence of keys to activate a certain function. For example, to open the Radio app and play the last played station, you use the key sequence Home Down Left Enter Enter. Note that you have to have a delay between each key press. Translating the required key presses into KeyEvents understood by the set-top box results in the following key macro:
-
+A key macro allows you to send a sequence of keys to activate a certain function. For example, to open the Radio app and play the last played station, you use the key sequence Home Down Left Enter Enter. Note that you have to have a delay between each key press, this can be done with a wait(milliSeconds). Translating the required key presses into KeyEvents understood by the set-top box results in the following key macro:
+```js 
 MediaTopMenu wait(300) ArrowDown wait(300) Arrowleft wait(300) Enter wait(500) Enter
-
+```
 But of course, you do not know what state the menu is in when you run the macro. So send a few Back key presses to back out of any menu that may be active. The key macro then becomes:
-
+```js
 Back wait(300) Back wait(300) Back wait(300) MediaTopMenu wait(300) ArrowDown wait(300) Arrowleft wait(300) Enter wait(500) Enter
-
-You can access any app by navigating the menu with a key macro, as long as the app position in the menu remains the same.
+```
+You can access any app by navigating the menu with a key macro, as long as the app position in the menu remains the same. Experiment with the wait times to find out how fast you can reliably send keys one after the other.
 
 
 ## Limitations
