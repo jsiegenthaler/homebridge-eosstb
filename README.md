@@ -163,15 +163,15 @@ The following keys are supported by in the **Apple TV Remote** in the Control Ce
 * Volume Down
 
 ### Double Tap:
-* Channel Up & Channel Down (double tap the ArrowUp and ArrowDown buttons)
-* Rewind & FastForward (double tap the ArrowLeft and ArrowRight buttons)
-* Guide (double tap the Info button)
+* Channel Up & Channel Down (double tap the ArrowUp and ArrowDown keys)
+* Rewind & FastForward (double tap the ArrowLeft and ArrowRight keys)
+* Guide (double tap the Info key)
 * And any other function that you wish to configure (including key macros)
 
 ### Triple Tap:
-* Record (triple tap the Play/Pause button)
-* TV (triple tap the Back button)
-* Info (triple tap the Info button)
+* Record (triple tap the Play/Pause key)
+* TV (triple tap the Back key)
+* Info (triple tap the Info key)
 * Mute (triple click the volume down button)
 * And any other function that you wish to configure (including key macros)
 
