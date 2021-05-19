@@ -336,7 +336,7 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 ##### Remote Control Button Mapping
 
-* **playPauseButton**: The command issued to the set-top box when the Play/Pause button (**> ||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
+* **playPauseButton**, **playPauseButtonDoubleTap**, **playPauseButtonTripleTap**: The command issued to the set-top box when the Play/Pause button (**> ||**) in the iOS remote is tapped (once, double or triple). Normally MediaPause. Optional, defaults to MediaPause if not found.
 
 * **backButton**: The command issued to the set-top box when the **BACK** button in the iOS remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
 
