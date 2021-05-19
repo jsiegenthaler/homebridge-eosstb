@@ -175,8 +175,9 @@ The following keys are supported by in the **Apple TV Remote** in the Control Ce
 * Mute (triple click the volume down button)
 * And any other function that you wish to configure (including key macros)
 
-You can map any Remote Control key to any set-top box KeyEvent using the config. A llist of all possible KeyEvents can be found in the [Wiki KeyEvents](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents).
+You can map any Remote Control key to any set-top box KeyEvent using the config. A list of all possible KeyEvents can be found in the [Wiki KeyEvents](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents).
 
+### About Volume Controls
 The volume controls do not control the set-top box directly, as the set-top box has no volume capability. The set-top box physical remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
 
 ### About Key Macros
