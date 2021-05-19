@@ -335,12 +335,23 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 
 ##### Remote Control Button Mapping
+Each button supports single, double or triple tap.
+
+* **arrowUpButton**, **arrowUpButtonDoubleTap**, **arrowUpButtonTripleTap**: The command issued to the set-top box when the up arrow button in the iOS remote is tapped (once, double or triple). Normally ArrowUp. Optional, defaults to ArrowUp if not found.
+
+* **arrowDownButton**, **arrowDownButtonDoubleTap**, **arrowDownButtonTripleTap**: The command issued to the set-top box when the down arrow button in the iOS remote is tapped (once, double or triple). Normally ArrowDown. Optional, defaults to ArrowDown if not found.
+
+* **arrowLeftButton**, **arrowLeftButtonDoubleTap**, **arrowLeftButtonTripleTap**: The command issued to the set-top box when the left arrow button in the iOS remote is tapped (once, double or triple). Normally ArrowLeft. Optional, defaults to ArrowLeft if not found.
+
+* **arrowRightButton**, **arrowRightButtonDoubleTap**, **arrowRightButtonTripleTap**: The command issued to the set-top box when the right arrow button in the iOS remote is tapped (once, double or triple). Normally ArrowRight. Optional, defaults to ArrowRight if not found.
+
+* **selectButton**, **selectButtonDoubleTap**, **selectButtonTripleTap**: The command issued to the set-top box when the select button in the iOS remote is tapped (once, double or triple). Normally Enter. Optional, defaults to Enter if not found.
 
 * **playPauseButton**, **playPauseButtonDoubleTap**, **playPauseButtonTripleTap**: The command issued to the set-top box when the Play/Pause button (**> ||**) in the iOS remote is tapped (once, double or triple). Normally MediaPause. Optional, defaults to MediaPause if not found.
 
-* **backButton**: The command issued to the set-top box when the **BACK** button in the iOS remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
+* **backButton**, **backButtonDoubleTap**, **backButtonTripleTap**: The command issued to the set-top box when the **BACK** button in the iOS remote is tapped (once, double or triple). Normally Escape. Optional, defaults to Escape if not found.
 
-* **infoButton**: The command issued to the set-top box when the Info button (**i**) in the iOS remote is tapped. As the iOS remote has no Menu button, the Info button should be used to access the menu. This is why the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
+* **infoButton**, **infoButtonDoubleTap**, **infoButtonTripleTap**: The command issued to the set-top box when the Info button (**i**) in the iOS remote is tapped (once, double or triple). As the iOS remote has no Menu button, the Info button should be used to access the menu. This is why the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
 
 
 
