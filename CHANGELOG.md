@@ -13,6 +13,11 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.1.12-beta.1 (2021-08-30)
+* Increased wait time when initially connecting from 15s to 30s to help with be-nl users
+* Bumped dependencies
+
+
 ## 1.1.11 (2021-05-15)
 * Fixed issue where the last TV channel name was still displayed after changing to a radio station
 

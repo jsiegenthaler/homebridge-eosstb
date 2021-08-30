@@ -431,7 +431,8 @@ class stbPlatform {
 
 		// async wait a few seconds for the session to load, then continue
 		// should be 15s as GB takes 12s for some users
-		wait(15*1000).then(() => { 
+		// increased to 30s on 30.08.2021 to help be-nl
+		wait(30*1000).then(() => { 
 
 			// only continue with mqtt if a session was actually created
 			if (currentSessionState !== sessionState.CONNECTED) { return; }
