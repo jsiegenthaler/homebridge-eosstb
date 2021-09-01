@@ -13,7 +13,7 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.1.12-beta.3 (2021-08-30)
+## 1.1.12 (2021-09-01)
 * Increased wait time when initially connecting from 15s to 30s to help with be-nl users
 * Fixed logging bug on line 2405
 * Bumped dependencies
