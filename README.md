@@ -111,7 +111,7 @@ This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Zigg
 
 
 ## Installation
-Homebridge UI: the easiest way to install is search for **eosstb** in the Homebridge UI, and then click **INSTALL**.
+Homebridge UI: the easiest way to install is to search for **eosstb** in the Homebridge UI, and then click **INSTALL**.
 
 Manual install:
 ```sh
