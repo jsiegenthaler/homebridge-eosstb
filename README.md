@@ -1,8 +1,8 @@
 <p align="center">
-    <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/DCX960andRemoteSmall.jpg" alt="UPC TV Box (ARRIS DCX960)" height="300" align="center"><br>
-    <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/RoomWithEosstb.png" alt="RoomWithEosstb" height="300" align="center">
-    <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/EosstbControls.png" alt="EosstbControls" height="300" align="center">
-    <img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="300" align="center">
+    <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/DCX960andRemoteSmall.jpg" alt="UPC TV Box (ARRIS DCX960)" height="300" align="center"><br>
+    <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/RoomWithEosstb.png" alt="RoomWithEosstb" height="300" align="center">
+    <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbControls.png" alt="EosstbControls" height="300" align="center">
+    <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="300" align="center">
 
   </a>
 </p>
@@ -18,7 +18,7 @@
 
 `homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960) running on the Magenta AT / Telenet BE / UPC CH / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
-<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="left">
+<img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="left">
 This plugin displays your set-top box as a Set-Top Box accessory with power, channel and remote-control capabilities on your iOS device (iPhone, iPad, iMac, etc.).
 
 
@@ -76,7 +76,7 @@ This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Zigg
 * For GB and IE users: the ARRIS DCX960 must be running the TV 360 software, and not the older TiVo V6 software as found in GB and IE. TiVo V6 is not supported by this plugin, but GB users can [upgrade to TV 360 by contacting Virgin Media](https://www.virginmedia.com/shop/customer/virgin-tv-360-upgrade).
 
 ## Features
-<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/EosstbControls.png" alt="EosstbControls" height="300" align="right">
+<img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbControls.png" alt="EosstbControls" height="300" align="right">
 
 * **Full Remote-Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, volume and mute commands.
 
@@ -135,7 +135,7 @@ The set-top box accessory is exposed as a separate external accessory and each s
 11. **Set-Top Box Automations**: Switch on any suggested automations if you wish (you can change these in the Home app later) and tap **Continue**.
 12. **Set-Top Box Added to HomeName**: Tap **Done** to finish the setup.
 
-<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="left">
+<img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="left">
 Your new accessory will appear shortly in the room that you selected. It may show **Updating...** for a few minutes as it loads all the data.
 
 You can force a Home app refresh by switching to another room and then back again.
@@ -148,8 +148,8 @@ Make sure you select the correct device from the drop-down list at the top of th
 
 The following keys are supported by in the **Apple TV Remote** in the Control Center:
 
-<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="300" align="right">
-<img src="https://github.com/jsiegenthaler/eosstb/blob/master/pics/SelectingDeviceForRemoteControl.png" alt="SelectingDeviceForRemoteControl" height="300" align="right">
+<img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="300" align="right">
+<img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/SelectingDeviceForRemoteControl.png" alt="SelectingDeviceForRemoteControl" height="300" align="right">
 
 * Navigation (Up/Down/Left/Right)   
 * OK
