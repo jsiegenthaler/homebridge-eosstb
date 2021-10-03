@@ -20,7 +20,7 @@ const qs = require('qs')
 const axios = require('axios').default;
 axios.defaults.xsrfCookieName = undefined;
 
-const axiosCookieJarSupport = require('axios-cookiejar-support').default;
+//const axiosCookieJarSupport = require('axios-cookiejar-support').default;
 const tough = require('tough-cookie');
 
 // create a new instance called axiosWS
@@ -35,7 +35,7 @@ axiosWS.defaults.headers.post = {}; // ensure no default post header
 
 
 // setup the cookieJar
-axiosCookieJarSupport(axiosWS);
+//axiosCookieJarSupport(axiosWS);
 const cookieJar = new tough.CookieJar();
 
 
