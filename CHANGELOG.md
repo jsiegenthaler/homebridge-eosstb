@@ -13,8 +13,9 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.1.17-beta.1 (2021-10-09)
-* Fixed issues caused by upgrade of axios-cookiejar-support to 2.0.2
+## 1.1.17 (2021-10-09)
+* Refactored code due to axios-cookiejar-support migration to 2.0.x 
+* Bumped dependencies
 
 
 ## 1.1.16 (2021-10-03)

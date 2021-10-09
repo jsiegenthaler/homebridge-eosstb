@@ -20,20 +20,28 @@ const qs = require('qs')
 const axios = require('axios').default;
 axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
 
+// axios-cookiejar-support v1.0.1 syntax
+//const axiosCookieJarSupport = require('axios-cookiejar-support').default;
+
+// axios-cookiejar-support v2.0.2 syntax
 const { wrapper: axiosCookieJarSupport } = require('axios-cookiejar-support'); // as of axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
+
 const tough = require('tough-cookie');
 const cookieJar = new tough.CookieJar();
 
 // create a new instance called axiosWS
 const axiosWS = axios.create({
+	// axios-cookiejar-support v1.0.1 required config
 	//withCredentials: true, // deprecated since axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 	//jar: true //deprecated since axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-	jar: cookieJar, //added in axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
+
+	// axios-cookiejar-support v2.0.2 required config
+	jar: cookieJar //added in axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 });
 // remove default header in axios that causes trouble with Telenet
 delete axiosWS.defaults.headers.common["Accept"];
 delete axiosWS.defaults.headers.common;
-axiosWS.defaults.headers.post = {}; // ensure no default post header
+axiosWS.defaults.headers.post = {}; // ensure no default post header, upsets some logon routines
 // setup the cookieJar support with axiosWS
 axiosCookieJarSupport(axiosWS);
 
@@ -657,8 +665,10 @@ class stbPlatform {
 		*/
 		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-		// ensure the default POST headers are cleared
-		axiosWS.defaults.headers.post = {};
+
+		// ensure the required POST header is set
+		axiosWS.defaults.headers.post = { 'Content-Type': 'application/x-www-form-urlencoded' }; // needed for axios-cookiejar-support v2.0.x
+
 
 		// Step 1: # get authentication details
 		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/authorization';
@@ -689,14 +699,15 @@ class stbPlatform {
 		
 						// Step 3: # login
 						this.log('Step 3 of 7: logging in with username %s', this.config.username);
-						this.log.debug('Step 3 of 7: post login to',BE_AUTH_URL);
+						this.log.debug('Step 3 of 7: post login to auth url:',BE_AUTH_URL);
+						this.log.debug('Step 3 of 7: Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
 						currentSessionState = sessionState.LOGGING_IN;
-						//this.log('Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
 						var payload = qs.stringify({
 							j_username: this.config.username,
 							j_password: this.config.password,
 							rememberme: 'true'
 						});
+						this.log.debug('Step 3 of 7: using payload',payload);
 						axiosWS.post(BE_AUTH_URL,payload,{
 							jar: cookieJar,
 							maxRedirects: 0, // do not follow redirects
@@ -706,8 +717,8 @@ class stbPlatform {
 							})
 							.then(response => {	
 								this.log('Step 3 of 7: response:',response.status, response.statusText);
-								//this.log('Step 3 response.headers.location:',response.headers.location); 
-								//this.log('Step 3 response.headers:',response.headers);
+								this.log.debug('Step 3 response.headers.location:',response.headers.location); 
+								this.log.debug('Step 3 response.headers:',response.headers);
 								var url = response.headers.location;
 								if (!url) {		// robustness: fail if url missing
 									this.log.warn('getSessionBE: Step 3: location url empty!');
