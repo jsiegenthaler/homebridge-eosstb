@@ -18,25 +18,25 @@ const qs = require('qs')
 //const _ = require('underscore');
 
 const axios = require('axios').default;
-axios.defaults.xsrfCookieName = undefined;
+axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
 
-//const axiosCookieJarSupport = require('axios-cookiejar-support').default;
+const { wrapper: axiosCookieJarSupport } = require('axios-cookiejar-support'); // as of axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 const tough = require('tough-cookie');
+const cookieJar = new tough.CookieJar();
 
 // create a new instance called axiosWS
-// add withCredentials: true to ensure credential cookie support
-// remove default header in axios that causes trouble with Telenet
 const axiosWS = axios.create({
-	withCredentials: true, // IMPORTANT!
+	//withCredentials: true, // deprecated since axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
+	//jar: true //deprecated since axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
+	jar: cookieJar, //added in axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 });
+// remove default header in axios that causes trouble with Telenet
 delete axiosWS.defaults.headers.common["Accept"];
 delete axiosWS.defaults.headers.common;
 axiosWS.defaults.headers.post = {}; // ensure no default post header
+// setup the cookieJar support with axiosWS
+axiosCookieJarSupport(axiosWS);
 
-
-// setup the cookieJar
-//axiosCookieJarSupport(axiosWS);
-const cookieJar = new tough.CookieJar();
 
 
 // ++++++++++++++++++++++++++++++++++++++++++++
@@ -639,7 +639,7 @@ class stbPlatform {
 		axiosWS.interceptors.request.use(req => {
 			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
 			'\nMethod:',req.method, '\nURL:', req.url, 
-			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers, '\nWithCredentials:', req.withCredentials, 
+			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,  
 			//'\nParams:', req.params, '\nData:', req.data
 			);
 			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
@@ -882,7 +882,7 @@ class stbPlatform {
 			this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
 			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
 			'\nMethod:',req.method, '\nURL:', req.url, 
-			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers, '\nWithCredentials:', req.withCredentials, 
+			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,
 			//'\nParams:', req.params, '\nData:', req.data
 			);
 			return req; // must return request
@@ -923,8 +923,9 @@ class stbPlatform {
 				this.log('Step 2 of 7: get AUTH cookie');
 				this.log.debug('Step 2 of 7: get AUTH cookie from',authAuthorizationUri);
 				axiosWS.get(authAuthorizationUri, {
-						jar: cookieJar,
-						ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie
+						jar: cookieJar
+						// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
+						//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
 					})
 					.then(response => {	
 						this.log('Step 2 of 7: response:',response.status, response.statusText);
@@ -942,7 +943,8 @@ class stbPlatform {
 						axiosWS(GB_AUTH_URL,{
 						//axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
 							jar: cookieJar,
-							ignoreCookieErrors: true, // ignore the error triggered by the Domain=mint.dummydomain cookie
+							// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
+							//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
 							data: '{"username":"' + this.config.username + '","credential":"' + this.config.password + '"}',
 							method: "POST",
 							// minimum headers are "accept": "*/*",
