@@ -33,13 +33,13 @@ If you like this plugin, consider making a donation or buying me a coffee!<br>
 ## Readme Applicability
 Due to the adding of features and functions, this Readme applies from v1.1.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
 
-# Works in Your Country (If you are with Magenta / Telenet / UPC / Virgin Media / Vodafone / Ziggo)
+# Works in Your Country (If you are with Magenta / Telenet / Sunrise UPC / Virgin Media / Vodafone / Ziggo)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 set-top box are:
 
 | Country | TV Provider | Web App | Box Name | Plugin Status |
 | ------- | ----------- | ------- | -------- | ------------- |
 | BE | [Telenet](https://www2.telenet.be/) | [Telenet TV](https://www.telenettv.be/nl.html) | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/) | Fully Working |
-| CH | [UPC Switzerland](https://www.upc.ch/en/) | [UPC TV](https://www.upctv.ch/obo_en.html) | [UPC TV Box](https://www.upc.ch/en/television/learn-about-tv/tv/)* | Fully Working |
+| CH | [Sunrise UPC](https://www.upc.ch/en/) | [UPC TV](https://www.upctv.ch/obo_en.html) | [UPC TV Box](https://www.upc.ch/en/television/learn-about-tv/tv/)* | Fully Working |
 | GB | [Virgin Media](https://www.virginmedia.com/) | [Magenta TV](https://www.magentatv.at/de.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | Fully Working |
 | IE | [Virgin Media](https://www.virginmedia.ie/) | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/) | Fully Working |
 | NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo Go](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | Fully Working |
