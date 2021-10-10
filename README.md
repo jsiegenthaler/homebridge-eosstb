@@ -23,7 +23,7 @@ This plugin displays your set-top box as a Set-Top Box accessory with power, cha
 
 
 You need a subscription to the online TV service from your local TV provider.
-The username and password are the same as used in the TV provider's TV app on your iOS device (the app varies by country; in Switzerland it is [upc tv Schweiz](https://apps.apple.com/ch/app/upc-tv-schweiz/id1292688012)).
+The username and password are the same as used in the TV provider's TV app on your iOS device (the app varies by country; in Switzerland it is [Sunrise UPC TV](https://apps.apple.com/ch/app/upc-tv-schweiz/id1292688012)).
 
 Supports multiple set-top boxes, should you have more than one.
 
@@ -58,7 +58,7 @@ If you subscribe to a TV service from one of these countries, you are lucky, thi
 May also work with other UPC countries, if you know of any, let me know.
 
 ## Made in Switzerland
-This plugin was written and tested on the author's set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) running on UPC TV in Switzerland. It has also been extensively tested on Telenet in Belgium, Virgin Media in Great Britain and Ireland, and Ziggo in the Netherlands.
+This plugin was written and tested on the author's set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) running on Sunrise UPC TV in Switzerland. It has also been extensively tested on Telenet in Belgium, Virgin Media in Great Britain and Ireland, and Ziggo in the Netherlands.
 
 ## Why I chose the Name EOSSTB
 I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, uses an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. I stuck with the box identifier that appears in the mqtt messages: EOSSTB.
@@ -220,7 +220,7 @@ Example extended configuration as used on the author with his Samsung TV (where 
             "devices": [
                 {
                     "deviceId": "3C36E4-EOSSTB-00365657xxxx",
-                    "name": "UPC TV",
+                    "name": "Sunrise UPC TV",
                     "syncName": true,
                     "profile": "Dad",
                     "accessoryCategory": "settopbox",
