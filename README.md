@@ -257,13 +257,13 @@ Mandatory config items must always exist. These are used to establish the sessio
 
 + **country**: Your country. Must be one of ch, nl, be-nl, be-fr, at or gb. Not case sensitive. This controls the country-specific logon sequence and the mqtt sessions. Mandatory.
 
-* **username**: Your login username for your TV account (Switzerland: My UPC). Normally an email address. Mandatory.
+* **username**: Your login username for your TV account. Normally an email address. Mandatory.
 
 * **password**: Your password associated with your TV account. Mandatory.
 
 #### Optional
 
-* **name**: The platform name that appears in the Homebridge logs. In Switzerland, the platform is called EOS. In Belgium and Great Britain, the platform is called Horizon. Optional, defaults to "EOSSTB".
+* **name**: The platform name that appears in the Homebridge logs. In many countries the platform is called Horizon, but you can name it to anything. Optional, defaults to "EOSSTB".
 
 * **triplePressTime**: The amount of time in ms to detect triple-press of a button. Used for triple-press features, such as triple-press of Volume Down generates Mute. Optional, defaults to 800ms.
 
