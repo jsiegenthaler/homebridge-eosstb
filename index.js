@@ -2555,19 +2555,24 @@ class stbDevice {
 			//this.displayOrder.push(0x01, 0x04,       i, 0x00, 0x00, 0x00);
 			// inputId is the inputIdentifier (not the index), starting index 0 = identifier 1
 			// types:
-			// 0x01 display order sort
-			this.displayOrder.push(0x01, 0x01, i & 0xff);
+			// 	0x00 end of TLV item
+			// 	0x01 identifier...new TLV item for displayOrder
+			// length:	Number of following bytes, excluding type and len fields
+			// value:	A number of <len> bytes. Can be mepty if length=0
+			// 0x01 0x01 xx is a valid TLV8 as it contains only 1 data byte.
+			// the data must be a single 8-bit byte, hence the logical AND with 0xff
+			this.displayOrder.push(0x01, 0x01, i & 0xff); // 0x01 0x01 0xXX
 
 			this.accessory.addService(inputService);
 			this.televisionService.addLinkedService(inputService);
 
 		} // end of for loop getting the inputSource
 
-		this.displayOrder.push(0x00, 0x00); // close off the displayorder array with 2x 00
+		// close off the TLV8 by sending 0x00 0x00
+		this.displayOrder.push(0x00, 0x00); // close off the displayorder array with 0x00 0x00
 		//this.log("this.displayOrder")
 		//this.log(this.displayOrder)
 
-		// write the date to file... to do
 	}
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// END of preparing accessory and services
