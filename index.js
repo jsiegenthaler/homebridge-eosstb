@@ -1825,25 +1825,6 @@ class stbPlatform {
 		}
 	}
 
-	// send a remote control keypress to the settopbox via mqtt
-	sendKeyOld(deviceId, deviceName, keyName) {
-		try {
-			if (this.config.debugLevel > 0) { this.log.warn('sendKey keyName %s, deviceName %s, deviceId %s', keyName, deviceName, deviceId); }
-			if (mqttUsername) {
-				this.log('Send key %s to %s', keyName, deviceName);
-				this.log.debug('Send key %s to %s %s', keyName, deviceName, deviceId);
-				this.mqttPublishMessage(
-					mqttUsername + '/' + deviceId, 
-					'{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}',
-					'{"qos":0}'
-				);
-			}
-		} catch (err) {
-			this.log.error("Error trapped in sendKey:", err.message);
-			this.log.error(err);
-		}
-	}
-
 
 	// get the settopbox UI status from the settopbox via mqtt
 	getUiStatus(deviceId, mqttClientId) {
@@ -3657,78 +3638,6 @@ class stbDevice {
 		// must return a valid index, and must never return null
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setDisplayOrder displayOrder',this.name, displayOrder); }
 		callback(null);
-	}
-
-
-	// set remote key
-	async setRemoteKeyOld(remoteKey, callback) {
-		if (this.config.debugLevel > 1) { this.log.warn('%s: setRemoteKey remoteKey:',this.name, remoteKey); }
-		callback(null); // for rapid response
-		// remoteKey is the key pressed on the Apple TV Remote in the Control Center
-		// keys 12, 13 & 14 are not defined by Apple
-
-		// get any user-defined button remaps
-		var configDevice, backButtonRemap, playPauseButtonRemap, infoButtonRemap, arrowUpRemap, arrowDownRemap;
-		if (this.config.devices) {
-			configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
-		}
-		if (configDevice) {
-			backButtonRemap = configDevice.backButton;
-			playPauseButtonRemap = configDevice.playPauseButton;
-			infoButtonRemap = configDevice.infoButton;
-			arrowUpRemap = configDevice.arrowUpButton;
-			arrowDownRemap = configDevice.arrowDownButton;
-		}
-
-		var keyName;
-		switch (remoteKey) {
-			case Characteristic.RemoteKey.REWIND: // 0
-				keyName = 'MediaRewind'; break;
-			case Characteristic.RemoteKey.FAST_FORWARD: // 1
-				keyName = 'MediaFastForward'; break;
-			case Characteristic.RemoteKey.NEXT_TRACK: // 2
-				keyName = 'DisplaySwap'; break;
-			case Characteristic.RemoteKey.PREVIOUS_TRACK: // 3
-				keyName = 'DisplaySwap'; break;
-
-			case Characteristic.RemoteKey.ARROW_UP: // 4
-				keyName = arrowUpRemap || 'ArrowUp'; 
-				break;
-
-			case Characteristic.RemoteKey.ARROW_DOWN: // 5
-				keyName = arrowDownRemap || 'ArrowDown'; 
-				break;
-
-			case Characteristic.RemoteKey.ARROW_LEFT: // 6
-				keyName = 'ArrowLeft'; break;
-			case Characteristic.RemoteKey.ARROW_RIGHT: // 7
-				keyName = 'ArrowRight'; break;
-			case Characteristic.RemoteKey.SELECT: // 8
-				keyName = 'Enter'; break;
-			case Characteristic.RemoteKey.BACK: // 9
-				keyName = backButtonRemap || "Escape"; 
-				break;
-
-			case Characteristic.RemoteKey.EXIT: // 10
-				keyName = backButtonRemap || "Escape"; 
-				break;
-
-			case Characteristic.RemoteKey.PLAY_PAUSE: // 11
-				keyName = playPauseButtonRemap || "MediaPause"; // others: MediaPlayPause
-				break; 
-
-			case Characteristic.RemoteKey.INFORMATION: // 15
-				// this is the button that should be used to access the settop box menu. Options:
-				// ContextMenu: 	same as the [...] button on the remote
-				// Info: 			displays the INFO screenm same as the [...] button + Info on the remote
-				// Help: 			displays the SETTINGS INFO page
-				// Guide: 			displays the TV GUIDE page, same as the Guide button on the remote
-				// MediaTopMenu: 	displays the top menu (home) page, same as the HOME button on the remote. DEFAULT
-				keyName = infoButtonRemap || "MediaTopMenu"; // use for Menu button
-				break; 
-
-			}
-		if (keyName) { this.platform.sendKey(this.deviceId, this.name, keyName); }
 	}
 
 	// set remote key
