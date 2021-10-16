@@ -46,7 +46,7 @@ As UPC operates in multiple countries under multiple brands, this plugin will wo
 | ------- | ----------- | ------- | -------- | ------------- |
 | AT | [Magenta](https://www.magenta.at/) | [Magenta TV](https://www.magentatv.at/de.html) | [Entertain Box 4K](https://www.magenta.at/entertain-box) | _Testers Wanted_ |
 | CZ | [Vodafone CZ](https://www.vodafone.cz/) | [Horizon Go](https://www.horizon.tv/cs_cz.html) | Vodafone TV | _Testers Wanted_ |
-| DE | [Vodafone DE](https://zuhauseplus.vodafone.de/digital-fernsehen/) | [Horizon Go](https://www.horizon.tv/de_de.html) | [Unsure](https://zuhauseplus.vodafone.de/digital-fernsehen/tv-endgeraete/) | _Testers Wanted_ |
+| DE | [Vodafone DE](https://zuhauseplus.vodafone.de/digital-fernsehen/) | [Horizon Go](https://www.horizon.tv/de_de.html) | [GigaTV Cable Box](https://zuhauseplus.vodafone.de/digital-fernsehen/tv-endgeraete/) | _Testers Wanted_ |
 | HU | [Vodafone Hungary](https://www.upc.hu/) | [Horizon Go](https://www.horizon.tv/hu_hu.html) | ?? | _Testers Wanted_ |
 | PL | [UPC PL](https://www.upc.pl/) | [Horizon Go](https://www.horizon.tv/pl_pl.html) | Horizon decoder | _Testers Wanted_ |
 | RO | [Vodafone Romania](https://www.vodafone.ro/) | [Horizon Go](https://www.horizon.tv/ro_ro.html) | Vodafone TV | _Testers Wanted_ |
