@@ -2345,7 +2345,7 @@ class stbDevice {
 			.setCharacteristic(Characteristic.TargetMediaState, Characteristic.TargetMediaState.STOP)
 			.setCharacteristic(Characteristic.ClosedCaptions, Characteristic.ClosedCaptions.DISABLED)
 			.setCharacteristic(Characteristic.PictureMode, Characteristic.PictureMode.STANDARD)
-			// extra characteristics added here are accessible in Shortcuts, personal and home Automations
+			// extra characteristics added here are accessible in Shortcuts and Automations (both personal and home)
 			//.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT) // NO_FAULT or GENERAL_FAULT
 			;
 				
