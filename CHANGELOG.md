@@ -13,6 +13,10 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.1.18-beta.3 (2021-10-16)
+* Fixed some small config.schema entry values
+* Bumped dependencies
+
 ## 1.1.18-beta.2 (2021-10-10)
 * Fixed some config.schema entries for the enhanced remote control support
 
