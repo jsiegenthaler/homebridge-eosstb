@@ -228,6 +228,16 @@ function cleanNameForHomeKit(name) {
 // wait function
 const wait=ms=>new Promise(resolve => setTimeout(resolve, ms)); 
 
+// wait function with promise
+function waitprom(ms) {
+	return new Promise((resolve, reject) => {
+	  setTimeout(() => {
+		resolve(ms)
+	  }, ms )
+	})
+  }  
+
+
 // ++++++++++++++++++++++++++++++++++++++++++++
 // config end
 // ++++++++++++++++++++++++++++++++++++++++++++
@@ -1759,8 +1769,64 @@ class stbPlatform {
 		}
 	}
 
+	// send a remote control keySequence to the settopbox via mqtt
+	async sendKey(deviceId, deviceName, keySequence) {
+		try {
+			if (this.config.debugLevel > 0) { this.log.warn('sendKey: keySequence %s, deviceName %s, deviceId %s', keySequence, deviceName, deviceId); }
+			if (mqttUsername) {
+
+				let keyArray = keySequence.trim().split(' ');
+				if (keyArray.length > 1) { this.log('sendKey: processing keySequence %s for %s %s', keySequence, deviceName, deviceId); }
+				// supported key1 key2 key3 wait() wait(100)
+				for (let i = 0; i < keyArray.length; i++) {
+					const keyName = keyArray[i].trim();
+					this.log('sendKey: processing key %s of %s: %s', i+1, keyArray.length, keyName);
+					
+					// if a wait appears, use it
+					let waitDelay; // default
+					if (keyName.toLowerCase().startsWith('wait(')) {
+						this.log.debug('sendKey: reading delay from %s', keyName);
+						waitDelay = keyName.toLowerCase().replace('wait(', '').replace(')','');
+						if (waitDelay == ''){ waitDelay = 100; } // default 100ms
+						this.log.debug('sendKey: delay read as %s', waitDelay);
+					}
+					// else if not first key and previous key was not wait, and next key is not wait, then set a default delay of 100 ms
+					 else if (i>0 && i<keyArray.length-1 && !(keyArray[i-1] || '').toLowerCase().startsWith('wait(') && !(keyArray[i+1] || '').toLowerCase().startsWith('wait(')) {
+						this.log.debug('sendKey: not first key and neiher previous key %s nor next key %s is wait(). Setting default wait of 100 ms', keyArray[i-1], keyArray[i+1]);
+						waitDelay = 100;
+					} 
+		
+					// add a wait if waitDelay is defined
+					if (waitDelay) {
+						this.log('sendKey: waiting %s ms', waitDelay);
+						await waitprom(waitDelay);
+						this.log.debug('sendKey: wait %s done', waitDelay);
+					}
+		
+					// send the key if not a wait()
+					if (!keyName.toLowerCase().startsWith('wait(')) {
+						this.log('sendKey: sending key %s to %s %s', keyName, deviceName, deviceId);
+
+						this.mqttPublishMessage(
+							mqttUsername + '/' + deviceId, 
+							'{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}',
+							'{"qos":0}'
+						);
+						this.log.debug('sendKey: send %s done', keyName);
+
+					}
+		
+				} // end for loop
+
+			}
+		} catch (err) {
+			this.log.error("Error trapped in sendKey:", err.message);
+			this.log.error(err);
+		}
+	}
+
 	// send a remote control keypress to the settopbox via mqtt
-	sendKey(deviceId, deviceName, keyName) {
+	sendKeyOld(deviceId, deviceName, keyName) {
 		try {
 			if (this.config.debugLevel > 0) { this.log.warn('sendKey keyName %s, deviceName %s, deviceId %s', keyName, deviceName, deviceId); }
 			if (mqttUsername) {
@@ -2131,7 +2197,13 @@ class stbDevice {
 		this.previousRecordingState = null;
 		this.customPictureMode = 0; // default 0
 		this.currentSourceType = 'UNKNOWN';
-		this.volDownLastKeyPress = [];
+
+		this.lastRemoteKeyPressed = -1;	// holds the last key pressed, -1 = no key
+		this.lastRemoteKeyPress0 = [];	// holds the time value of the last remote button press for key index i
+		this.lastRemoteKeyPress1 = [];	// holds the time value of the last-1 remote button press for key index i
+		this.lastRemoteKeyPress2 = [];	// holds the time value of the last-2 remote button press for key index i
+		this.lastVolDownKeyPress = [];  // holds the time value of the last button press for the volume down button
+
 
 		// do an initial accessory channel update, required to configure the accessory
 		this.refreshChannelList(this.deviceId); // async function
@@ -2291,7 +2363,10 @@ class stbDevice {
 			.setCharacteristic(Characteristic.CurrentMediaState, Characteristic.CurrentMediaState.STOP)
 			.setCharacteristic(Characteristic.TargetMediaState, Characteristic.TargetMediaState.STOP)
 			.setCharacteristic(Characteristic.ClosedCaptions, Characteristic.ClosedCaptions.DISABLED)
-			.setCharacteristic(Characteristic.PictureMode, Characteristic.PictureMode.STANDARD);
+			.setCharacteristic(Characteristic.PictureMode, Characteristic.PictureMode.STANDARD)
+			// extra characteristics added here are accessible in Shortcuts, personal and home Automations
+			//.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT) // NO_FAULT or GENERAL_FAULT
+			;
 				
 		// characteristics actively controlled in the current Apple Home app 
 		
@@ -2483,19 +2558,24 @@ class stbDevice {
 			//this.displayOrder.push(0x01, 0x04,       i, 0x00, 0x00, 0x00);
 			// inputId is the inputIdentifier (not the index), starting index 0 = identifier 1
 			// types:
-			// 0x01 display order sort
-			this.displayOrder.push(0x01, 0x01, i & 0xff);
+			// 	0x00 end of TLV item
+			// 	0x01 identifier...new TLV item for displayOrder
+			// length:	Number of following bytes, excluding type and len fields
+			// value:	A number of <len> bytes. Can be mepty if length=0
+			// 0x01 0x01 xx is a valid TLV8 as it contains only 1 data byte.
+			// the data must be a single 8-bit byte, hence the logical AND with 0xff
+			this.displayOrder.push(0x01, 0x01, i & 0xff); // 0x01 0x01 0xXX
 
 			this.accessory.addService(inputService);
 			this.televisionService.addLinkedService(inputService);
 
 		} // end of for loop getting the inputSource
 
-		this.displayOrder.push(0x00, 0x00); // close off the displayorder array with 2x 00
+		// close off the TLV8 by sending 0x00 0x00
+		this.displayOrder.push(0x00, 0x00); // close off the displayorder array with 0x00 0x00
 		//this.log("this.displayOrder")
 		//this.log(this.displayOrder)
 
-		// write the date to file... to do
 	}
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// END of preparing accessory and services
@@ -3295,12 +3375,12 @@ class stbDevice {
 		// triple rapid VolDown presses triggers setMute
 		var tripleVolDownPress = 100000; // default high value to prevent a tripleVolDown detection when no triple key pressed
 		if (volumeSelectorValue === Characteristic.VolumeSelector.DECREMENT) {
-			this.volDownLastKeyPress[2] = this.volDownLastKeyPress[1] || 0;
-			this.volDownLastKeyPress[1] = this.volDownLastKeyPress[0] || 0;
-			this.volDownLastKeyPress[0] = Date.now();
-			tripleVolDownPress = this.volDownLastKeyPress[0] - this.volDownLastKeyPress[2];
+			this.lastVolDownKeyPress[2] = this.lastVolDownKeyPress[1] || 0;
+			this.lastVolDownKeyPress[1] = this.lastVolDownKeyPress[0] || 0;
+			this.lastVolDownKeyPress[0] = Date.now();
+			tripleVolDownPress = this.lastVolDownKeyPress[0] - this.lastVolDownKeyPress[2];
 			// check time difference between current keyPress and 2 keyPresses ago
-			this.log.debug('setVolume: Timediff between volDownKeyPress[0] now and volDownKeyPress[2]: %s ms', this.volDownLastKeyPress[0] - this.volDownLastKeyPress[2]);
+			this.log.debug('setVolume: Timediff between volDownKeyPress[0] now and volDownKeyPress[2]: %s ms', this.lastVolDownKeyPress[0] - this.lastVolDownKeyPress[2]);
 		}
 			
 		// check for triple press of volDown, send setMute if tripleVolDownPress less than triplePressTime of 800ms
@@ -3581,7 +3661,7 @@ class stbDevice {
 
 
 	// set remote key
-	async setRemoteKey(remoteKey, callback) {
+	async setRemoteKeyOld(remoteKey, callback) {
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setRemoteKey remoteKey:',this.name, remoteKey); }
 		callback(null); // for rapid response
 		// remoteKey is the key pressed on the Apple TV Remote in the Control Center
@@ -3649,6 +3729,236 @@ class stbDevice {
 
 			}
 		if (keyName) { this.platform.sendKey(this.deviceId, this.name, keyName); }
+	}
+
+	// set remote key
+	async setRemoteKey(remoteKey, callback) {
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setRemoteKey remoteKey:',this.name, remoteKey); }
+		callback(null); // for rapid response
+
+		// remoteKey is the key pressed on the Apple TV Remote in the Control Center
+		// keys 0...15 exist, but keys 12, 13 & 14 are not defined by Apple
+
+		// all the keys have to mapped to a key that the EOSSTB understands
+		// keys:
+		// https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents
+
+
+		// ------------- double and triple press function ---------------
+		// supports up to three layers of keys:
+		// single press, double press and triple press
+		// currently (October 2021) single and double are working, triple is reserved for the future.
+		var tripleVolDownPress = 100000; // default high value to prevent a tripleVolDown detection when no triple key pressed
+
+		var lastKeyPressTime = this.lastRemoteKeyPress0[remoteKey] || 0; // find the time the current key was last pressed
+		this.log.debug("%s: setRemoteKey: remoteKey %s, lastKeyPressTime %s",this.name, remoteKey, lastKeyPressTime);
+
+		// get the config for this device
+		var configDevice
+		if (this.config.devices) {
+			configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
+		}
+
+		// bump the array up one slot
+		/*
+		this.log("Shifting the array up one, and storing current time in index 0");
+		lastkeyPress[remoteKey][2] = lastkeyPress[remoteKey][1] || 0;
+		lastkeyPress[remoteKey][1] = lastkeyPress[remoteKey][0] || 0;
+		lastkeyPress[remoteKey][0] = Date.now();
+		*/
+
+		// bump the array up one level and store now in lastRemoteKeyPress0
+		this.lastRemoteKeyPress2[remoteKey] = this.lastRemoteKeyPress1[remoteKey];
+		this.lastRemoteKeyPress1[remoteKey] = this.lastRemoteKeyPress0[remoteKey];
+		this.lastRemoteKeyPress0[remoteKey] = Date.now();
+
+		var lastPressTime2 = (this.lastRemoteKeyPress2[remoteKey] || (Date.now() - 86400)); // default to same time yesterday if empty
+		var lastPressTime1 = this.lastRemoteKeyPress1[remoteKey] || Date.now() - 86400; // default to same time yesterday if empty
+		var lastPressTime0 = this.lastRemoteKeyPress0[remoteKey];
+
+		// write lastkeyPress to the array
+		//this.lastRemoteKeyPress0[remoteKey] = lastkeyPress;
+		//this.log("remoteKey %s, lastRemoteKeyPress has been updated, now:", remoteKey, this.lastRemoteKeyPress);
+
+
+		// check if same as previous key pressed, within the limits of the triple press time
+		var buttonLayer=0; // default layer 0
+		var doublePressTime = configDevice.doublePressTime || 250;
+		var triplePressTime = configDevice.triplePressTime || 450;
+
+		if (this.lastRemoteKeyPressed == remoteKey) {
+			this.log.debug("%s: setRemoteKey: current key %s same as last key %s", this.name, remoteKey, this.lastRemoteKeyPressed);
+
+			// if same key, check for double or triple press
+			// check timing, activating triple-press then double-press button layers
+			// if historical key presses exist in buffer
+			/*
+			// disabled triplePress until I get doublePress working
+			if (lastPressTime0 - lastPressTime2 < triplePressTime) {
+				this.log('setRemoteKey remoteKey %s, triple press detected', remoteKey);
+				buttonLayer=2;
+				this.pendingKeyPress = -1; // clear any pending key press
+				this.sendRemoteKeyPressAfterDelay = false;	// disable send after delay
+				this.readyToSendRemoteKeyPress = true; // enable immediate send
+			*/
+			if (lastPressTime0 - lastPressTime1 < doublePressTime) {
+				this.log.debug('%s: setRemoteKey remoteKey %s, double press detected', this.name, remoteKey);
+				buttonLayer=1;
+				this.pendingKeyPress = -1; // clear any pending key press
+				this.sendRemoteKeyPressAfterDelay = false;	// disable send after delay
+				this.readyToSendRemoteKeyPress = true; // enable immediate send
+			} else {
+				// no historical key presses exist, queue as a pending press
+				this.log.debug('%s: setRemoteKey remoteKey %s, no historical key press detected', this.name, remoteKey);
+				this.pendingKeyPress = remoteKey;
+				this.sendRemoteKeyPressAfterDelay = true;	// enable send after delay
+				this.readyToSendRemoteKeyPress = false; // disable readyToSend, will send on cache timeout
+			}
+		} else {
+			this.log.debug("%s: setRemoteKey current key %s different to last key %s", this.name, remoteKey, this.lastRemoteKeyPressed);
+			// this key is different to last key, send after delay (may be start of another double or triple key press)
+			this.pendingKeyPress = remoteKey;
+			this.sendRemoteKeyPressAfterDelay = true;	// enable send after delay
+			this.readyToSendRemoteKeyPress = false; // disable readyToSend, will send on cache timeout
+		}; 
+
+		// check time difference between current keyPress and 2 keyPresses ago
+		this.log.debug('%s: setRemoteKey remoteKey %s, Timediff between lastRemoteKeyPress0 now and lastRemoteKeyPress1: %s ms', this.name, remoteKey, lastPressTime0 - lastPressTime1);
+		this.log.debug('%s: setRemoteKey remoteKey %s, buttonLayer %s, pendingKeyPress %s, sendRemoteKeyPressAfterDelay %s, readyToSendRemoteKeyPress %s', this.name, remoteKey, buttonLayer, this.pendingKeyPress, this.sendRemoteKeyPressAfterDelay, this.readyToSendRemoteKeyPress);
+
+
+		// do the button layer mapping
+		// get any user-defined button remaps
+		var keyNameDefault;
+		var keyName;
+		switch (remoteKey) {
+			case Characteristic.RemoteKey.REWIND: // 0
+				// no button exists in the Apple TV Remote for REWIND (as of iOS 14 & 15)
+				keyName = 'MediaRewind'; break;
+
+			case Characteristic.RemoteKey.FAST_FORWARD: // 1
+				// no button exists in the Apple TV Remote for FAST_FORWARD (as of iOS 14 & 15)
+				keyName = 'MediaFastForward'; break;
+
+			case Characteristic.RemoteKey.NEXT_TRACK: // 2
+				// no button exists in the Apple TV Remote for NEXT_TRACK (as of iOS 14 & 15)
+				//keyNameDefault = "";  // no corresponding keys can be identified. not supported in Apple Remote GUI
+				break;
+
+			case Characteristic.RemoteKey.PREVIOUS_TRACK: // 3
+				// no button exists in the Apple TV Remote for PREVIOUS_TRACK (as of iOS 14 & 15)
+				//keyNameDefault = "";  // no corresponding keys can be identified. not supported in Apple Remote GUI
+				break;
+
+			case Characteristic.RemoteKey.ARROW_UP: // 4
+				keyNameDefault = "ArrowUp";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.arrowUpButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.arrowUpButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.arrowUpButton || keyNameDefault; 			break;
+				}
+				break;
+
+			case Characteristic.RemoteKey.ARROW_DOWN: // 5
+				keyNameDefault = "ArrowDown";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.arrowDownButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.arrowDownButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.arrowDownButton || keyNameDefault; 			break;
+				}
+				break;
+
+			case Characteristic.RemoteKey.ARROW_LEFT: // 6
+				keyNameDefault = "ArrowLeft";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.arrowLeftButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.arrowLeftButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.arrowLeftButton || keyNameDefault; 			break;
+				}
+				break;
+
+			case Characteristic.RemoteKey.ARROW_RIGHT: // 7
+				keyNameDefault = "ArrowRight";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.arrowRightButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.arrowRightButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.arrowRightButton || keyNameDefault; 				break;
+				}
+				break;
+
+			case Characteristic.RemoteKey.SELECT: // 8
+				keyNameDefault = "Enter";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.selectButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.selectButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.selectButton || keyNameDefault;	 			break;
+				}
+				break;
+
+			case Characteristic.RemoteKey.BACK: // 9
+				keyNameDefault = "Escape";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.backButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.backButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.backButton || keyNameDefault; 			break;
+				}
+				break;
+
+			case Characteristic.RemoteKey.EXIT: // 10
+				keyNameDefault = "Escape";
+				keyName = this.deviceConfig.backButton || keyNameDefault; 
+				break;
+
+			case Characteristic.RemoteKey.PLAY_PAUSE: // 11
+				keyNameDefault = "MediaPlayPause";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.playPauseButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.playPauseButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.playPauseButton || keyNameDefault; 			break;
+				}
+				break; 
+
+			case Characteristic.RemoteKey.INFORMATION: // 15
+				keyNameDefault = "MediaTopMenu";
+				switch (buttonLayer) {
+					case 2: 	keyName = configDevice.infoButtonTripleTap || keyNameDefault; 	break;
+					case 1: 	keyName = configDevice.infoButtonDoubleTap || keyNameDefault; 	break;
+					default: 	keyName = configDevice.infoButton || keyNameDefault; 			break;
+				}
+				break;
+
+			}
+
+
+		// handle the key code (can be a sequence)
+		// send only if keyName is not null
+		if (keyName) {
+			if (this.readyToSendRemoteKeyPress){ 
+				// send immediately
+				this.log.debug('%s: setRemoteKey: sending key %s immediately', this.name, keyName);
+				this.platform.sendKey(this.deviceId, this.name, keyName);
+			} else {
+				// immediate send is not enabled. 
+				// start a delay equal to doublePressTime, then send only if the readyToSendRemoteKeyPress is true
+				var delayTime = this.config.doublePressDelayTime || 300;
+				this.log.debug('%s: setRemoteKey: sending key %s after delay of %s milliseconds', this.name, keyName, delayTime);
+				setTimeout(() => { 
+					// check if can be sent. Only send if sendRemoteKeyPressAfterDelay is still set. It may have been reset by another key press
+					this.log.debug('%s: setRemoteKey: setTimeout delay completed, checking sendRemoteKeyPressAfterDelay for %s', this.name, keyName);
+					if (this.sendRemoteKeyPressAfterDelay){ 
+						this.log.debug('%s: setRemoteKey: setTimeout delay completed, sending %s', this.name, keyName);
+						this.platform.sendKey(this.deviceId, this.name, keyName);
+						this.log.debug('%s: setRemoteKey: setTimeout delay completed, key %s sent, resetting readyToSendRemoteKeyPress', this.name, keyName);
+						this.readyToSendRemoteKeyPress = true; // reset the enable flag
+					} else {
+						this.log.debug('%s: setRemoteKey: setTimeout delay completed, checking sendRemoteKeyPressAfterDelay for %s: sendRemoteKeyPressAfterDelay is false, doing nothing', this.name, keyName);
+					}
+				},
+				delayTime); // send after delayTime
+			}
+		}
+		this.lastRemoteKeyPressed = remoteKey; // store the current key as last key pressed
+
 	}
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++

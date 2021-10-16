@@ -13,6 +13,15 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.1.18-beta.2 (2021-10-10)
+* Fixed some config.schema entries for the enhanced remote control support
+
+## 1.1.18-beta.1 (2021-10-10)
+* Added enhanced remote control support with user definable single-tap and double-tap support 
+* Renamed UPC TV to Sunrise UPC TV for CH
+* Bumped homebridge dependency
+
+
 ## 1.1.17 (2021-10-09)
 * Refactored code due to axios-cookiejar-support migration to 2.0.x 
 * Bumped dependencies
