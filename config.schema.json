@@ -23,7 +23,7 @@
           "default": "ch",
           "required": true,
           "oneOf": [
-            { "title": "AT: Magenta", "enum": ["at"] },
+            { "title": "AT: Magenta TV", "enum": ["at"] },
             { "title": "BE-FR:  Telenet TV", "enum": ["be-fr"] },
             { "title": "BE-NL:  Telenet TV", "enum": ["be-nl"] },
             { "title": "CH:  Sunrise UPC TV", "enum": ["ch"] },
@@ -158,8 +158,8 @@
                     "firmwareRevision": {
                         "title": "Firmware",
                         "type": "string",
-                        "description": "The firmware version to display in the Home app. Numbers only eg 4.31. Default: plugin version.",
-                        "placeholder": "4.31",
+                        "description": "The firmware version to display in the Home app. Numbers only eg 4.35. Default: plugin version.",
+                        "placeholder": "4.35",
                         "pattern": "^(\\d+)((\\.{1}\\d+)*)(\\.{0})$"
                     },       
                     
