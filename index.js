@@ -2363,7 +2363,10 @@ class stbDevice {
 			.setCharacteristic(Characteristic.CurrentMediaState, Characteristic.CurrentMediaState.STOP)
 			.setCharacteristic(Characteristic.TargetMediaState, Characteristic.TargetMediaState.STOP)
 			.setCharacteristic(Characteristic.ClosedCaptions, Characteristic.ClosedCaptions.DISABLED)
-			.setCharacteristic(Characteristic.PictureMode, Characteristic.PictureMode.STANDARD);
+			.setCharacteristic(Characteristic.PictureMode, Characteristic.PictureMode.STANDARD)
+			// extra characteristics added here are accessible in Shortcuts, personal and home Automations
+			//.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT) // NO_FAULT or GENERAL_FAULT
+			;
 				
 		// characteristics actively controlled in the current Apple Home app 
 		
