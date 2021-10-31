@@ -3731,9 +3731,9 @@ class stbDevice {
 			this.readyToSendRemoteKeyPress = false; // disable readyToSend, will send on cache timeout
 		}; 
 
-		// check time difference between current keyPress and 2 keyPresses ago
-		this.log.debug('%s: setRemoteKey remoteKey %s, Timediff between lastRemoteKeyPress0 now and lastRemoteKeyPress1: %s ms', this.name, remoteKey, lastPressTime0 - lastPressTime1);
-		this.log.debug('%s: setRemoteKey remoteKey %s, buttonLayer %s, pendingKeyPress %s, sendRemoteKeyPressAfterDelay %s, readyToSendRemoteKeyPress %s', this.name, remoteKey, buttonLayer, this.pendingKeyPress, this.sendRemoteKeyPressAfterDelay, this.readyToSendRemoteKeyPress);
+		// check time difference between current keyPress and last keyPress
+		this.log('%s: setRemoteKey remoteKey %s, Timediff between lastPressTime0 (now) and lastPressTime1 (previous): %s ms', this.name, remoteKey, lastPressTime0 - lastPressTime1);
+		this.log('%s: setRemoteKey remoteKey %s, buttonLayer %s, pendingKeyPress %s, sendRemoteKeyPressAfterDelay %s, readyToSendRemoteKeyPress %s', this.name, remoteKey, buttonLayer, this.pendingKeyPress, this.sendRemoteKeyPressAfterDelay, this.readyToSendRemoteKeyPress);
 
 
 		// do the button layer mapping
@@ -3844,13 +3844,13 @@ class stbDevice {
 		if (keyName) {
 			if (this.readyToSendRemoteKeyPress){ 
 				// send immediately
-				this.log.debug('%s: setRemoteKey: sending key %s immediately', this.name, keyName);
+				this.log('%s: setRemoteKey: sending key %s immediately', this.name, keyName);
 				this.platform.sendKey(this.deviceId, this.name, keyName);
 			} else {
 				// immediate send is not enabled. 
 				// start a delay equal to doublePressTime, then send only if the readyToSendRemoteKeyPress is true
 				var delayTime = this.config.doublePressDelayTime || 300;
-				this.log.debug('%s: setRemoteKey: sending key %s after delay of %s milliseconds', this.name, keyName, delayTime);
+				this.log('%s: setRemoteKey: sending key %s after delay of %s milliseconds', this.name, keyName, delayTime);
 				setTimeout(() => { 
 					// check if can be sent. Only send if sendRemoteKeyPressAfterDelay is still set. It may have been reset by another key press
 					this.log.debug('%s: setRemoteKey: setTimeout delay completed, checking sendRemoteKeyPressAfterDelay for %s', this.name, keyName);
