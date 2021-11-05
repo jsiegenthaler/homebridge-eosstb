@@ -150,20 +150,22 @@ The following keys are supported by in the **Apple TV Remote** in the Control Ce
 <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="300" align="right">
 <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/SelectingDeviceForRemoteControl.png" alt="SelectingDeviceForRemoteControl" height="300" align="right">
 
-* Navigation (Up/Down/Left/Right)   
-* OK
-* Play/Pause
-* Back
-* Info (i)
-* Volume Up
-* Volume Down (also used for Mute)
+| Key | Single Tap | Double Tap |
+| ------- | ----------- | ------- |
+| Up | ArrowUp | ChannelUp |
+| Down | ArrowDown | ChannelDown |
+| Left | ArrowLeft | MediaRewind |
+| Right | ArrowRight | MediaFastForward |
+| Select | Enter | Enter |
+| PlayPause | MediaPlayPause | MediaPlayPause |
+| Back | Escape | Escape |
+| Info | MediaTopMenu | Guide |
+| Volume Up | volUpCommand | - |
+| Volume Down | volDownCommand | 3 clicks = muteCommand |
 
-You can configure the (i) button to be Info, Help, Guide, ContextMenu or MediaTopMenu.
-Most useful is MediaTopMenu (the normal menu command), which is the default.
+You can map any Apple TV Remote button to any EOSSTB remote control button, see the Wiki for the [KeyEvents](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents).
 
 The volume controls do not control the set-top box directly, as the set-top box has no volume capability. The set-top box physical remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
-
-Rewind and Fast Forward are also supported in the EOSSTB plugin, but these commands are not exposed in the current Apple TV Remote. If Apple TV ever expose buttons for these commands in the future, then they will work.
 
 ## Limitations
 ### Channel Count
