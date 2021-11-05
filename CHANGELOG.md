@@ -13,6 +13,11 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.1.18-beta.5 (2021-11-05)
+* Refactored remote control code
+* Improved performance of double key press
+
+
 ## 1.1.18-beta.4 (2021-10-31)
 * Bumped dependencies
 
