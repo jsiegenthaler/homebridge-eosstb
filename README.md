@@ -161,7 +161,7 @@ The following keys are supported by in the **Apple TV Remote** in the Control Ce
 | Back | Escape | Escape |
 | Info | MediaTopMenu | Guide |
 | Volume Up | volUpCommand | - |
-| Volume Down | volDownCommand | 3 clicks = muteCommand |
+| Volume Down | volDownCommand | 3 clicks = mute |
 
 the table shows the default key mappings. You can map any Apple TV Remote button to any EOSSTB remote control button, see the Wiki for all of the known [KeyEvents](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents).
 
