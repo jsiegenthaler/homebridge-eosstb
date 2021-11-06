@@ -78,11 +78,11 @@ This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Zigg
 ## Features
 <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbControls.png" alt="EosstbControls" height="300" align="right">
 
-* **Full Remote-Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, fast-forward, rewind, channel up/down, volume and mute commands. All keys are fully configurable.
+* **Full Remote-Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, fast-forward, rewind, channel up/down, volume and mute commands. All keys are fully configurable for single-tap and double-tap.
 
 * **Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports).
 
-* **Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple Siri supports), allowing you to schedule switch-on and channel in HomeKit.
+* **Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple Siri supports), allowing you to control switch-on and channel selection in Home Automations, Shorcuts and Personal Automations.
 
 * **Synchronised Set-Top Box Name**: Changing the name of the set-top box in the Home app changes it on the TV and backend systems in real time, and vice-versa. No reboot required. You can turn off the sync if desired in the config.
 
