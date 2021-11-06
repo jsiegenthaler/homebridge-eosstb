@@ -180,13 +180,13 @@ Services used in this set-top box accessory are:
 The eosstb plugin emulates the TV service web app. If the web app is started on a web browser on a laptop or PC, the backend systems may prefer the web app to HomeKit, and disconnect HomeKit from the mqtt session. The mqtt session will try and reconnect if it gets disconnected.
 
 ### Media State (Play/Pause) Limitations
-The eosstb plugin can detect the current and target media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 14.4) apart from allow you to read it in the Shortcuts app. Hopefully this will improve in the future.
+The eosstb plugin can detect the current and target media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 14.4) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ### Recording State Limitations
-The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but a eosstb config option **customPictureMode** allows you to use the PictureMode to read the recording state in the Shortcuts app.
+The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but a eosstb config option **customPictureMode** allows you to use the PictureMode to read the recording state in  Shortcuts or Automations.
 
 ### Closed Captions Limitations
-The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 14.4) apart from allow you to read it in the Shortcuts app. Hopefully this will improve in the future.
+The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 14.4) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ## Configuration
 Note that the config changed from 0.1.13 to 1.0.0. If you are updating, please make sure your config matches the examples shown here.
