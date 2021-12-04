@@ -13,6 +13,13 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.2.2-beta.0 (2021-12-xx)
+* Added extra characteristics (StatusActive, StatusFault, InUse, ProgramMode, InputDeviceType, InputSourceType) for use in Shortcuts and Automations
+* Shifted some log messages to higher debug levels to allow for easier debugging
+* Increased MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S from 120 to 600s to reduce network traffic
+* Improved Wiki!
+
+
 ## 1.2.1 (2021-12-04)
 * Bumped dependencies    
     "homebridge": ">=1.3.8",
