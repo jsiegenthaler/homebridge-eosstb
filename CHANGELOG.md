@@ -14,6 +14,7 @@ If you used custom channels, you must updated your config when updating from 1.1
 
 
 ## 1.2.2-beta.6 (2022-01-17)
+* InputSourceType not yet fully working
 * Improved reliability of mqtt reconnects when mqtt session goes offline
 * Added extra characteristics (StatusActive, StatusFault, InUse, ProgramMode, InputDeviceType, InputSourceType) for use in Shortcuts and Automations
 * Shifted some log messages to higher debug levels to allow for easier debugging

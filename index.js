@@ -1719,7 +1719,10 @@ class stbPlatform {
 					try {
 						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
 						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
-						parent.log.warn('mqttClient: Error:', err);
+						parent.log.warn('mqttClient: Error', err.code);
+						if (parent.config.debugLevel > 2) { 
+							parent.log.warn('mqttClient: Error details:', err); 
+						}
 						mqttClient.end();
 						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 						return false;
