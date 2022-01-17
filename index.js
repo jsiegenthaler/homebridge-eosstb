@@ -452,7 +452,7 @@ class stbPlatform {
 		// detect if running on development environment
 		//	customStoragePath: 'C:\\Users\\jochen\\.homebridge'
 		if ( this.api.user.customStoragePath.includes( 'jochen' ) ) { PLUGIN_ENV = ' DEV' }
-		if (PLUGIN_ENV) { this.log.warn('%s running in %s environment with debugLevel %s', PLUGIN_NAME, PLUGIN_ENV, this.config.debugLevel); }
+		if (PLUGIN_ENV) { this.log.warn('%s running in %s environment with debugLevel %s', PLUGIN_NAME, PLUGIN_ENV.trim(), this.config.debugLevel); }
 	
 		// Step 1: session does not exist, so create the session, passing the country value
 		if (currentSessionState == sessionState.DISCONNECTED ) { 
@@ -1511,7 +1511,7 @@ class stbPlatform {
 							}
 						}
 
-						parent.log.warn('mqttClient: CPE.uiStatus: stbState %s, currStatusActive %s, currPowerState %s, currMediaState %s', stbState, currStatusActive, currPowerState, currMediaState); 
+						//parent.log.warn('mqttClient: CPE.uiStatus: stbState %s, currStatusActive %s, currPowerState %s, currMediaState %s', stbState, currStatusActive, currPowerState, currMediaState); 
 						
 						// handle CPE UI status messages for the STB
 						// topic can be many, so look for mqttMessage.type
@@ -1643,7 +1643,7 @@ class stbPlatform {
 
 
 						// update the device on every message
-						parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currSourceType, null, Characteristic.StatusFault.NO_FAULT, null, currStatusActive, currInputDeviceType);
+						parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currSourceType, null, Characteristic.StatusFault.NO_FAULT, null, currStatusActive, currInputDeviceType, currInputSourceType);
 				
 						//end of try
 					} catch (err) {
@@ -1741,15 +1741,15 @@ class stbPlatform {
 
 
 	// handle the state change of the device, calling the updateDeviceState of the relevant device
-	mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType) {
+	mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType) {
 		try {
 			if (this.config.debugLevel > 1) { 
-				this.log.warn('mqttDeviceStateHandler: calling updateDeviceState with deviceId %s, powerState %s, mediaState %s, channelId %s, sourceType %s, profileDataChanged %s, statusFault %s, programMode %s, statusActive %s, currInputDeviceType %s', deviceId, powerState, mediaState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType); 
+				this.log.warn('mqttDeviceStateHandler: calling updateDeviceState with deviceId %s, powerState %s, mediaState %s, channelId %s, sourceType %s, profileDataChanged %s, statusFault %s, programMode %s, statusActive %s, currInputDeviceType %s, currInputSourceType %s', deviceId, powerState, mediaState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
 			}
 			if (this.devices) {
 				const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
 				if (deviceIndex > -1 && this.stbDevices.length > 0) { 
-					this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType); 
+					this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
 				}
 			}
 		} catch (err) {
@@ -1985,7 +1985,7 @@ class stbPlatform {
 						this.log.warn('getRecordingState: planned recordings response data:');
 						this.log.warn(response.data);
 					}
-					this.log.warn('getRecordingState: planned recordings totalResults:', response.data.totalResults);
+					//this.log.warn('getRecordingState: planned recordings totalResults:', response.data.totalResults);
 					if (response.data.totalResults > 0) { 
 						currProgramMode = Characteristic.ProgramMode.PROGRAM_SCHEDULED;
 					} else {
@@ -2702,7 +2702,7 @@ class stbDevice {
 				.setCharacteristic(Characteristic.Identifier, i)
 				.setCharacteristic(Characteristic.Name, chFixedName)
 				.setCharacteristic(Characteristic.ConfiguredName, chName || `Input ${i < 9 ? `0${i}` : i}`)
-				.setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.APPLICATION)
+				.setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.APPLICATION) 
 				.setCharacteristic(Characteristic.InputDeviceType, Characteristic.InputDeviceType.TV)
 				.setCharacteristic(Characteristic.IsConfigured, configState)
 				.setCharacteristic(Characteristic.CurrentVisibilityState, visState)
@@ -2773,7 +2773,7 @@ class stbDevice {
 
 	// update the device state changed to async
 	//async updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, callback) {
-	async updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, inputDeviceType, callback) {
+	async updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, inputDeviceType, inputSourceType, callback) {
 			try {
 			// runs at the very start, and then every few seconds, so don't log it unless debugging
 			// doesn't get the data direct from the settop box, but rather: gets it from the this.currentPowerState and this.currentChannelId variables
@@ -2992,14 +2992,17 @@ class stbDevice {
 
 
 				// check for change of InputSourceType state
+				// this is part of inputService which is an array... need to adapt code to get it to work properly
+				/*
 				if (this.previousInputSourceType !== this.currentInputSourceType) {
 					this.log('%s: Input Source Type changed from %s [%s] to %s [%s]', 
 						this.name,
 						this.previousInputSourceType, inputSourceTypeName[this.previousInputSourceType],
 						this.currentInputSourceType, inputSourceTypeName[this.currentInputSourceType]);
 				}
-				this.televisionService.getCharacteristic(Characteristic.InputSourceType).updateValue(this.currentInputSourceType);
+				//this.televisionService.inputService.getCharacteristic(Characteristic.InputSourceType).updateValue(this.currentInputSourceType); // generates Homebridge warning
 				this.previousInputSourceType = this.currentInputSourceType;
+				*/
 
 
 				// check for change of InputDeviceType state
