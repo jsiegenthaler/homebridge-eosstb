@@ -14,6 +14,7 @@ If you used custom channels, you must updated your config when updating from 1.1
 
 
 ## 1.2.2-beta.4 (2022-01-17)
+* Improved reliability of mqtt reconnects when mqtt session goes offline
 * Added extra characteristics (StatusActive, StatusFault, InUse, ProgramMode, InputDeviceType, InputSourceType) for use in Shortcuts and Automations
 * Shifted some log messages to higher debug levels to allow for easier debugging
 * Increased MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S from 120 to 600s to reduce network traffic

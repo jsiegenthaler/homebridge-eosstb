@@ -1665,6 +1665,7 @@ class stbPlatform {
 						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
 						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 						parent.log('mqttClient: Connection closed');
+						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 					} catch (err) {
 						parent.log.error("Error trapped in mqttClient close event:", err.message);
 						parent.log.error(err);
@@ -1691,6 +1692,7 @@ class stbPlatform {
 						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
 						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 						parent.log('mqttClient: Disconnect command received');
+						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 					} catch (err) {
 						parent.log.error("Error trapped in mqttClient disconnect event:", err.message);
 						parent.log.error(err);
@@ -1704,6 +1706,7 @@ class stbPlatform {
 						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
 						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 						parent.log('mqttClient: Client is offline');
+						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 					} catch (err) {
 						parent.log.error("Error trapped in mqttClient offline event:", err.message);
 						parent.log.error(err);
@@ -1718,6 +1721,7 @@ class stbPlatform {
 						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 						parent.log.warn('mqttClient: Error:', err);
 						mqttClient.end();
+						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 						return false;
 					} catch (err) {
 						parent.log.error("Error trapped in mqttClient error event:", err.message);
@@ -1729,6 +1733,7 @@ class stbPlatform {
 			} catch (err) {
 				parent.log.error("Error trapped in mqttClient connect event:", err.message);
 				parent.log.error(err);
+				currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 			}
 		}); // end of mqttClient.on('connect'... event
 
