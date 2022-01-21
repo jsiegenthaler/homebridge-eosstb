@@ -13,12 +13,13 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.2.3-beta.7 (2022-01-22)
-* InputSourceType not yet fully working
+## 1.3.0-beta.1 (2022-01-22)
+* +++ InputSourceType not yet fully working +++
 * Improved reliability of mqtt reconnects when mqtt session goes offline
 * Added extra characteristics (StatusActive, StatusFault, InUse, ProgramMode, InputDeviceType, InputSourceType) for use in Shortcuts and Automations
-* Shifted some log messages to higher debug levels to allow for easier debugging
 * Increased MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S from 120 to 600s to reduce network traffic
+* Shifted some log messages to higher debug levels to allow for easier debugging
+* Bumped dependencies (homebridge)
 * Improved Wiki
 
 
