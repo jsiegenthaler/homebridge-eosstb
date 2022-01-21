@@ -3705,60 +3705,60 @@ class stbDevice {
 
 			case Characteristic.RemoteKey.ARROW_UP: // 4
 				keyNameLayer[DEFAULT_KEYNAME] = "ArrowUp";
-				keyNameLayer[SINGLE_TAP] = configDevice.arrowUpButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.arrowUpButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.arrowUpButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).arrowUpButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).arrowUpButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).arrowUpButtonTripleTap;
 				break;
 
 			case Characteristic.RemoteKey.ARROW_DOWN: // 5
 				keyNameLayer[DEFAULT_KEYNAME] = "ArrowDown";
-				keyNameLayer[SINGLE_TAP] = configDevice.arrowDownButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.arrowDownButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.arrowDownButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).arrowDownButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).arrowDownButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).arrowDownButtonTripleTap;
 				break;
 
 			case Characteristic.RemoteKey.ARROW_LEFT: // 6
 				keyNameLayer[DEFAULT_KEYNAME] = "ArrowLeft";
-				keyNameLayer[SINGLE_TAP] = configDevice.arrowLeftButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.arrowLeftButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.arrowLeftButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).arrowLeftButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).arrowLeftButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).arrowLeftButtonTripleTap;
 				break;
 
 			case Characteristic.RemoteKey.ARROW_RIGHT: // 7
 				keyNameLayer[DEFAULT_KEYNAME] = "ArrowRight";
-				keyNameLayer[SINGLE_TAP] = configDevice.arrowRightButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.arrowRightButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.arrowRightButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).arrowRightButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).arrowRightButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).arrowRightButtonTripleTap;
 				break;
 
 			case Characteristic.RemoteKey.SELECT: // 8
 				keyNameLayer[DEFAULT_KEYNAME] = "Enter";
-				keyNameLayer[SINGLE_TAP] = configDevice.selectButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.selectButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.selectButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).selectButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).selectButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).selectButtonTripleTap;
 				break;
 
 			case Characteristic.RemoteKey.BACK: // 9
 			case Characteristic.RemoteKey.EXIT: // 10 
 				// both BACK and EXIT are handled the same
 				keyNameLayer[DEFAULT_KEYNAME] = "Escape";
-				keyNameLayer[SINGLE_TAP] = configDevice.backButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.backButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.backButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).backButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).backButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).backButtonTripleTap;
 				break;
 
 			case Characteristic.RemoteKey.PLAY_PAUSE: // 11
 				keyNameLayer[DEFAULT_KEYNAME] = "MediaPlayPause";
-				keyNameLayer[SINGLE_TAP] = configDevice.playPauseButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.playPauseButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.playPauseButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).playPauseButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).playPauseButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).playPauseButtonTripleTap;
 				break; 
 
 			case Characteristic.RemoteKey.INFORMATION: // 15
 				keyNameLayer[DEFAULT_KEYNAME] = "MediaTopMenu";
-				keyNameLayer[SINGLE_TAP] = configDevice.infoButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.infoButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.infoButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).infoButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).infoButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).infoButtonTripleTap;
 				break; 
 			}
 
