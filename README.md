@@ -68,7 +68,7 @@ This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Zigg
 
 ## Requirements
 * An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1...15.2, earlier versions not tested.
-* [Homebridge](https://homebridge.io/) v1.3.8 (or later). Developed on Homebridge 1.1.116....1.3.8, earlier versions not tested.
+* [Homebridge](https://homebridge.io/) v1.3.9 (or later). Developed on Homebridge 1.1.116....1.3.9, earlier versions not tested.
 * A TV subscription from one of the supported countries and TV providers.
 * An online account for viewing TV in the web app (often part of your TV package), see the table above.
 * The ARRIS DCX960 mediabox, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" and marketed under different names in different UPC countries. 
