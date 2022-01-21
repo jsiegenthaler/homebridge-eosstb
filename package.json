@@ -7,7 +7,7 @@
   "platformname": "eosstb",
   "dependencies": {
     "axios-cookiejar-support": "^2.0.3",
-    "axios": "^0.24.0",
+    "axios": "^0.25.0",
     "mqtt": "^4.3.4",
     "qs": "^6.10.3",
     "tough-cookie": "^4.0.0"
