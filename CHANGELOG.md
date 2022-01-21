@@ -13,6 +13,11 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.2.2 (2022-01-21)
+* Fixed remote control crash when using minimum plugin config
+* Bumped dependencies (homebridge, axios, mqtt, qs)
+
+
 ## 1.2.1 (2021-12-04)
 * Bumped dependencies    
     "homebridge": ">=1.3.8",
