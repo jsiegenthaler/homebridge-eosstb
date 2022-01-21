@@ -13,15 +13,18 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.2.2-beta.7 (2022-01-17)
+## 1.2.3-beta.7 (2022-01-22)
 * InputSourceType not yet fully working
 * Improved reliability of mqtt reconnects when mqtt session goes offline
 * Added extra characteristics (StatusActive, StatusFault, InUse, ProgramMode, InputDeviceType, InputSourceType) for use in Shortcuts and Automations
 * Shifted some log messages to higher debug levels to allow for easier debugging
 * Increased MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S from 120 to 600s to reduce network traffic
-* Improved Wiki!
-* Bumped dependencies
-* Fixed issue where remote keys caused a crash when using minimum plugin config (no deviceId specified)
+* Improved Wiki
+
+
+## 1.2.2 (2022-01-21)
+* Fixed remote control crash when using minimum plugin config
+* Bumped dependencies (homebridge, axios, mqtt, qs)
 
 
 ## 1.2.1 (2021-12-04)
