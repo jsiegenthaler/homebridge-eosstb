@@ -21,6 +21,7 @@ If you used custom channels, you must updated your config when updating from 1.1
 * Increased MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S from 120 to 600s to reduce network traffic
 * Improved Wiki!
 * Bumped dependencies
+* Fixed issue where remote keys caused a crash when using minimum plugin config (no deviceId specified)
 
 
 ## 1.2.1 (2021-12-04)

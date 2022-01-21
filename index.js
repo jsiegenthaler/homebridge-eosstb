@@ -131,6 +131,7 @@ const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
 
 // state constants
 const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 };
+const sessionStateName = ["DISCONNECTED", "LOADING", "LOGGING_IN", "AUTHENTICATING", "VERIFYING", "AUTHENTICATED", "CONNECTED"];
 const mediaStateName = ["PLAY", "PAUSE", "STOP", "UNKNOWN3", "LOADING", "INTERRUPTED"];
 const powerStateName = ["OFF", "ON"];
 const closedCaptionsStateName = ["DISABLED", "ENABLED"];
@@ -144,7 +145,6 @@ const programModeName = ["NO_PROGRAM_SCHEDULED", "PROGRAM_SCHEDULED", "PROGRAM_S
 const statusActiveName = ["NOT_ACTIVE", "ACTIVE"];
 const inputSourceTypeName = ["OTHER", "HOME_SCREEN", "TUNER", "HDMI", "COMPOSITE_VIDEO", "S_VIDEO", "COMPONENT_VIDEO", "DVI", "AIRPLAY", "USB", "APPLICATION"];
 const inputDeviceTypeName = ["OTHER", "TV", "RECORDING", "TUNER", "PLAYBACK", "AUDIO_SYSTEM"];
-
 
 Object.freeze(sessionState);
 Object.freeze(mediaStateName);
@@ -294,9 +294,11 @@ class stbPlatform {
 
 		// session flags
 		currentSessionState = sessionState.DISCONNECTED;
+		mqttClient.connected = false;
 		this.sessionWatchdogRunning = false;
 		this.mqttClientConnecting = false;
 		this.currentStatusFault = null;
+
 
 		/*
 		this.inputsFile = this.storagePath + '/' + 'inputs_' + this.host.split('.').join('');
@@ -447,19 +449,21 @@ class stbPlatform {
 
 		}
 		this.sessionWatchdogRunning = true;
+		this.log('sessionWatchdog: Session state: %s, mqtt connected: %s', sessionStateName[currentSessionState], mqttClient.connected);
+		
 
 
 		// detect if running on development environment
 		//	customStoragePath: 'C:\\Users\\jochen\\.homebridge'
 		if ( this.api.user.customStoragePath.includes( 'jochen' ) ) { PLUGIN_ENV = ' DEV' }
-		if (PLUGIN_ENV) { this.log.warn('%s running in %s environment with debugLevel %s', PLUGIN_NAME, PLUGIN_ENV.trim(), this.config.debugLevel); }
+		if (PLUGIN_ENV) { this.log.warn('%s running in %s environment with debugLevel %s', PLUGIN_NAME, PLUGIN_ENV.trim(), (this.config || {}).debugLevel || 0); }
 	
 		// Step 1: session does not exist, so create the session, passing the country value
 		if (currentSessionState == sessionState.DISCONNECTED ) { 
-			this.log('Session is not connected, starting session reconnect...');
+			//this.log('Session is not connected');
 			this.createSession(this.config.country.toLowerCase());
 		} else if (currentSessionState == sessionState.CONNECTED && !mqttClient.connected) { 
-			this.log('Session is still connected, but mqttCLient is disconnected, refreshing session and restarting mqttClient...');
+			this.log('sessionWatchdog: Session is still connected, but mqttCLient is disconnected, refreshing session and restarting mqttClient...');
 		}
 
 		// async wait a few seconds for the session to load, then continue
@@ -639,6 +643,7 @@ class stbPlatform {
 				this.log('Session created');
 				currentSessionState = sessionState.CONNECTED;
 				this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+				this.log('Session state:', sessionStateName[currentSessionState]);
 				return true;
 			})
 			.catch(error => {
@@ -4057,60 +4062,60 @@ class stbDevice {
 
 			case Characteristic.RemoteKey.ARROW_UP: // 4
 				keyNameLayer[DEFAULT_KEYNAME] = "ArrowUp";
-				keyNameLayer[SINGLE_TAP] = configDevice.arrowUpButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.arrowUpButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.arrowUpButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).arrowUpButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).arrowUpButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).arrowUpButtonTripleTap;
 				break;
 
 			case Characteristic.RemoteKey.ARROW_DOWN: // 5
 				keyNameLayer[DEFAULT_KEYNAME] = "ArrowDown";
-				keyNameLayer[SINGLE_TAP] = configDevice.arrowDownButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.arrowDownButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.arrowDownButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).arrowDownButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).arrowDownButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).arrowDownButtonTripleTap;
 				break;
 
 			case Characteristic.RemoteKey.ARROW_LEFT: // 6
 				keyNameLayer[DEFAULT_KEYNAME] = "ArrowLeft";
-				keyNameLayer[SINGLE_TAP] = configDevice.arrowLeftButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.arrowLeftButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.arrowLeftButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).arrowLeftButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).arrowLeftButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).arrowLeftButtonTripleTap;
 				break;
 
 			case Characteristic.RemoteKey.ARROW_RIGHT: // 7
 				keyNameLayer[DEFAULT_KEYNAME] = "ArrowRight";
-				keyNameLayer[SINGLE_TAP] = configDevice.arrowRightButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.arrowRightButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.arrowRightButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).arrowRightButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).arrowRightButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).arrowRightButtonTripleTap;
 				break;
 
 			case Characteristic.RemoteKey.SELECT: // 8
 				keyNameLayer[DEFAULT_KEYNAME] = "Enter";
-				keyNameLayer[SINGLE_TAP] = configDevice.selectButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.selectButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.selectButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).selectButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).selectButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).selectButtonTripleTap;
 				break;
 
 			case Characteristic.RemoteKey.BACK: // 9
 			case Characteristic.RemoteKey.EXIT: // 10 
 				// both BACK and EXIT are handled the same
 				keyNameLayer[DEFAULT_KEYNAME] = "Escape";
-				keyNameLayer[SINGLE_TAP] = configDevice.backButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.backButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.backButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).backButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).backButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).backButtonTripleTap;
 				break;
 
 			case Characteristic.RemoteKey.PLAY_PAUSE: // 11
 				keyNameLayer[DEFAULT_KEYNAME] = "MediaPlayPause";
-				keyNameLayer[SINGLE_TAP] = configDevice.playPauseButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.playPauseButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.playPauseButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).playPauseButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).playPauseButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).playPauseButtonTripleTap;
 				break; 
 
 			case Characteristic.RemoteKey.INFORMATION: // 15
 				keyNameLayer[DEFAULT_KEYNAME] = "MediaTopMenu";
-				keyNameLayer[SINGLE_TAP] = configDevice.infoButton;
-				keyNameLayer[DOUBLE_TAP] = configDevice.infoButtonDoubleTap;
-				keyNameLayer[TRIPLE_TAP] = configDevice.infoButtonTripleTap;
+				keyNameLayer[SINGLE_TAP] = (configDevice || {}).infoButton;
+				keyNameLayer[DOUBLE_TAP] = (configDevice || {}).infoButtonDoubleTap;
+				keyNameLayer[TRIPLE_TAP] = (configDevice || {}).infoButtonTripleTap;
 				break; 
 			}
 
