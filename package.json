@@ -14,7 +14,7 @@
   },
   "deprecated": false,
   "engines": {
-    "homebridge": ">=1.3.8",
+    "homebridge": ">=1.3.9",
     "node": ">=16.13.1"
   },
   "homepage": "https://github.com/jsiegenthaler/homebridge-eosstb#readme",
