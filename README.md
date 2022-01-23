@@ -10,6 +10,7 @@
 # homebridge-eosstb
 
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
+[![npm](https://badgen.net/npm/dm/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![npm](https://img.shields.io/npm/v/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![EOSSTB Discord](https://img.shields.io/discord/432663330281226270?color=728ED5&logo=discord&label=discord)](https://discord.gg/VBQjaQjxcz)
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
