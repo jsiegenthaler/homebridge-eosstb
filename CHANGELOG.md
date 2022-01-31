@@ -13,6 +13,10 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.3.0-beta.2 (2022-01-31)
+* Corrected ChangeLog and package-lock.json
+
+
 ## 1.3.0-beta.1 (2022-01-23)
 * +++ InputSourceType not yet fully working +++
 * Improved reliability of mqtt reconnects when mqtt session goes offline
