@@ -15,7 +15,7 @@ If you used custom channels, you must updated your config when updating from 1.1
 
 ## 1.3.0-beta.3 (2022-02-22)
 * Increased logging of mqttClient errors to try and capture a bug
-* Bumped dependencies (axios, mqtt)
+* Bumped dependencies (axios, axios-cookiejar-support, mqtt)
 
 
 ## 1.3.0-beta.2 (2022-01-31)
