@@ -132,6 +132,8 @@ const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
 // state constants
 const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 };
 const sessionStateName = ["DISCONNECTED", "LOADING", "LOGGING_IN", "AUTHENTICATING", "VERIFYING", "AUTHENTICATED", "CONNECTED"];
+const mqttState = { disconnected: 0, offline: 1, closed: 2, connected: 3, reconnected: 4, error: 5, end: 6, messagereceived: 7, packetsent: 8, packetreceived: 9 };
+const mqttStateName = [ "DISCONNECTED", "OFFLINE", "CLOSED", "CONNECTED", "RECONNECTED", "ERROR", "END", "MESSAGERECEIVED", "PACKETSENT", "PACKETRECEIVED" ];
 const mediaStateName = ["PLAY", "PAUSE", "STOP", "UNKNOWN3", "LOADING", "INTERRUPTED"];
 const powerStateName = ["OFF", "ON"];
 const closedCaptionsStateName = ["DISABLED", "ENABLED"];
@@ -295,6 +297,7 @@ class stbPlatform {
 		// session flags
 		currentSessionState = sessionState.DISCONNECTED;
 		mqttClient.connected = false;
+		this.currentMqttState = mqttState.disconnected;
 		this.sessionWatchdogRunning = false;
 		this.mqttClientConnecting = false;
 		this.currentStatusFault = null;
@@ -407,51 +410,53 @@ class stbPlatform {
 		// If session exists: Exit immediately
 		// If no session exists: prepares the session, then prepares the device
 
+		if (this.config.debugLevel >= 0) { 
+			this.log.warn('sessionWatchdog: sessionState=%s  mqttState=%s  mqttClient.connected=%s',  sessionStateName[currentSessionState], mqttStateName[this.currentMqttState], mqttClient.connected); 
+		}
+
 		// exit if a previous session is still running
 		if (this.sessionWatchdogRunning) { 
-			if (this.config.debugLevel > 1) { 
-				this.log.warn('sessionWatchdog: a previous watchdog is still working, exiting without action'); 
-			}
+			//if (this.config.debugLevel > 1) { 
+			//	this.log.warn('sessionWatchdog: a previous watchdog is still working, exiting without action'); 
+			//}
 			return;
 
 		// as we are called regularly by setInterval, exit immediately if session is still connected and mqtt is still connected
 		} else if (currentSessionState == sessionState.CONNECTED && mqttClient.connected ) { 
-			if (this.config.debugLevel > 1) { 
-				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session connected and mqtt connected, exiting without action', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
-			}
+			//if (this.config.debugLevel > 1) { 
+			//	this.log.warn('sessionWatchdog: Session connected and mqtt connected, exiting without action'); 
+			//}
 			return; 
 
 		// the watchdog can fire after session connected but before mqtt has connected, so check and exit
 		} else if (currentSessionState == sessionState.CONNECTED && this.mqttClientConnecting && !mqttClient.connected) { 
 			if (this.config.debugLevel > 1) { 
-				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session connected and mqtt is currently connecting, exiting without action', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
+				this.log.warn('sessionWatchdog: Session connected and mqtt is currently connecting, exiting without action'); 
 			}
 			return; 
 
 		// the session is connected, the mqtt client is not connected, continue to try and reconnect
 		} else if (currentSessionState == sessionState.CONNECTED && !this.mqttClientConnecting && !mqttClient.connected) { 
 			if (this.config.debugLevel > 1) { 
-				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session connected but mqtt not connected, continuing...', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
+				this.log.warn('sessionWatchdog: Session connected but mqtt not connected, continuing...'); 
 			}
 
 		// otherwise the session might be in a state between disconnected and connected, so exit if not disconnected (as that means a session connection is currently in progress)
 		} else if (currentSessionState != sessionState.DISCONNECTED) { 
 			if (this.config.debugLevel > 1) { 
-				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session session is not disconnected, must be currently connecting, exiting without action', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
+				this.log.warn('sessionWatchdog: Session session is not disconnected, must be currently connecting, exiting without action'); 
 			}
 			return;
 		
 		// session is not connected and is not in a state between connected and disconnected, so it is disconnected. Continue
 		} else { 
 			if (this.config.debugLevel > 1) { 
-				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session not connected and mqtt not connected, continuing...', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
+				this.log.warn('sessionWatchdog: Session not connected and mqtt not connected, continuing...'); 
 			}
 
 		}
 		this.sessionWatchdogRunning = true;
-		this.log('sessionWatchdog: Session state: %s, mqtt connected: %s', sessionStateName[currentSessionState], mqttClient.connected);
 		
-
 
 		// detect if running on development environment
 		//	customStoragePath: 'C:\\Users\\jochen\\.homebridge'
@@ -1373,6 +1378,7 @@ class stbPlatform {
 		// mqtt client event: connect
 		mqttClient.on('connect', function () {
 			try {
+				parent.currentMqttState = mqttState.connected;
 				parent.log("mqttClient: Connected: %s", mqttClient.connected);
 				parent.mqttClientConnecting = false;
 
@@ -1426,6 +1432,7 @@ class stbPlatform {
 					try {
 
 						// store some mqtt diagnostic data
+						parent.currentMqttState = mqttState.connected; // set to connected on every message received event
 						parent.lastMqttMessageReceived = Date.now();
 
 						let mqttMessage = JSON.parse(payload);
@@ -1668,6 +1675,7 @@ class stbPlatform {
 				mqttClient.on('close', function () {
 					try {
 						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
+						parent.currentMqttState = mqttState.closed;
 						parent.log('mqttClient: Connection closed');
 						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
@@ -1682,6 +1690,7 @@ class stbPlatform {
 				mqttClient.on('reconnect', function () {
 					try {
 						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
+						parent.currentMqttState = mqttState.reconnected;
 						parent.log('mqttClient: Reconnect started');
 						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 					} catch (err) {
@@ -1695,6 +1704,7 @@ class stbPlatform {
 				mqttClient.on('disconnect', function () {
 					try {
 						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
+						parent.currentMqttState = mqttState.disconnected;
 						parent.log('mqttClient: Disconnect command received');
 						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
@@ -1709,6 +1719,7 @@ class stbPlatform {
 				mqttClient.on('offline', function () {
 					try {
 						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
+						parent.currentMqttState = mqttState.offline;
 						parent.log('mqttClient: Client is offline');
 						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
@@ -1723,6 +1734,7 @@ class stbPlatform {
 				mqttClient.on('error', function(err) {
 					try {
 						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
+						parent.currentMqttState = mqttState.error;
 						parent.log.warn('mqttClient: Error', err.code);
 						parent.log.warn('mqttClient: Error details:', err); 
 						//if (parent.config.debugLevel > 2) { 

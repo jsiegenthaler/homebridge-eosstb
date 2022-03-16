@@ -13,7 +13,7 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.3.0-beta.3 (2022-02-22)
+## 1.3.0-beta.3 (2022-03-16)
 * Increased logging of mqttClient errors to try and capture a bug
 * Bumped dependencies (axios, axios-cookiejar-support, mqtt)
 
