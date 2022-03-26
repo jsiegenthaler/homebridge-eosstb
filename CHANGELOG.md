@@ -22,7 +22,6 @@ If you used custom channels, you must updated your config when updating from 1.1
 * Improved Wiki
 * Corrected typos in ChangeLog and package-lock.json
 * Bumped dependencies (axios, axios-cookiejar-support, mqtt, homebridge, node)
-* ToDo: get characteristic InputSourceType fully working
 
 
 ## 1.2.2 (2022-01-21)
