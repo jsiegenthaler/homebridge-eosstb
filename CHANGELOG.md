@@ -14,7 +14,7 @@ If you used custom channels, you must updated your config when updating from 1.1
 
 
 ## 1.3.0 (2022-03-26)
-* Added extra characteristics (StatusActive, StatusFault, InUse, ProgramMode, InputDeviceType, InputSourceType) for use in Shortcuts and Automations
+* Added extra characteristics (StatusActive, StatusFault, InUse, ProgramMode, InputDeviceType) for use in Shortcuts and Automations
 * Reduced network traffic by increasing master channel list refresh check interval from 120 to 600s
 * Improved Watchdog, cause of failing reconnects has finally been resolved
 * Improved robustness of error handling for creating jwtToken, retrieval of personalisation data and refresh of master channel list
