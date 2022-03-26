@@ -20,9 +20,6 @@ const qs = require('qs')
 const axios = require('axios').default;
 axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
 
-// axios-cookiejar-support v1.0.1 syntax
-//const axiosCookieJarSupport = require('axios-cookiejar-support').default;
-
 // axios-cookiejar-support v2.0.2 syntax
 const { wrapper: axiosCookieJarSupport } = require('axios-cookiejar-support'); // as of axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 
@@ -149,6 +146,9 @@ const inputSourceTypeName = ["OTHER", "HOME_SCREEN", "TUNER", "HDMI", "COMPOSITE
 const inputDeviceTypeName = ["OTHER", "TV", "RECORDING", "TUNER", "PLAYBACK", "AUDIO_SYSTEM"];
 
 Object.freeze(sessionState);
+Object.freeze(sessionStateName);
+Object.freeze(mqttState);
+Object.freeze(mqttStateName);
 Object.freeze(mediaStateName);
 Object.freeze(powerStateName);
 Object.freeze(closedCaptionsStateName);
