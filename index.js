@@ -299,6 +299,7 @@ class stbPlatform {
 		mqttClient.connected = false;
 		this.currentMqttState = mqttState.disconnected;
 		this.sessionWatchdogRunning = false;
+		this.watchdogCounter = 0;
 		this.mqttClientConnecting = false;
 		this.currentStatusFault = null;
 
@@ -407,77 +408,88 @@ class stbPlatform {
 	async sessionWatchdog() {
 		// the session watchdog creates a session when none exists, and creates stbDevices when none exist
 		// runs every few seconds. 
-		// If session exists: Exit immediately
+		// If session exists or is still being connected: Exit immediately
 		// If no session exists: prepares the session, then prepares the device
+		this.watchdogCounter++; // increment global counter by 1
+		let watchdogInstance = 'sessionWatchdog(' + this.watchdogCounter + ')'; // set a log prefix for this instance of the watchdog to allow differentiation in the logs
+		let statusOverview = watchdogInstance + ':';
 
-		if (this.config.debugLevel >= 0) { 
-			this.log.warn('sessionWatchdog: sessionState=%s  mqttState=%s  mqttClient.connected=%s',  sessionStateName[currentSessionState], mqttStateName[this.currentMqttState], mqttClient.connected); 
+		//robustness: if session state ever gets disconnected due to session creation problems, ensure the mqtt status is always disconnected
+		if (currentSessionState == sessionState.DISCONNECTED) { 
+			this.mqttClientConnecting = false;
+			this.currentMqttState = mqttState.disconnected;
+		}
+
+
+		if (this.config.debugLevel > 1) { 
+			statusOverview = statusOverview + ' sessionState=' + sessionStateName[currentSessionState]
+			statusOverview = statusOverview + ' mqttState=' + mqttStateName[this.currentMqttState]
+			statusOverview = statusOverview + ' mqttClient.connected=' + mqttClient.connected
+			statusOverview = statusOverview + ' sessionWatchdogRunning=' + this.sessionWatchdogRunning
 		}
 
 		// exit if a previous session is still running
 		if (this.sessionWatchdogRunning) { 
-			//if (this.config.debugLevel > 1) { 
-			//	this.log.warn('sessionWatchdog: a previous watchdog is still working, exiting without action'); 
-			//}
+			if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Previous sessionWatchdog still working, exiting %s without action', watchdogInstance); }
 			return;
 
-		// as we are called regularly by setInterval, exit immediately if session is still connected and mqtt is still connected
-		} else if (currentSessionState == sessionState.CONNECTED && mqttClient.connected ) { 
-			//if (this.config.debugLevel > 1) { 
-			//	this.log.warn('sessionWatchdog: Session connected and mqtt connected, exiting without action'); 
-			//}
-			return; 
+		// as we are called regularly by setInterval, check connection status and exit without action if required
+		} else if (currentSessionState == sessionState.CONNECTED) { 
+			// session is connected, check mqtt state
 
-		// the watchdog can fire after session connected but before mqtt has connected, so check and exit
-		} else if (currentSessionState == sessionState.CONNECTED && this.mqttClientConnecting && !mqttClient.connected) { 
-			if (this.config.debugLevel > 1) { 
-				this.log.warn('sessionWatchdog: Session connected and mqtt is currently connecting, exiting without action'); 
-			}
-			return; 
-
-		// the session is connected, the mqtt client is not connected, continue to try and reconnect
-		} else if (currentSessionState == sessionState.CONNECTED && !this.mqttClientConnecting && !mqttClient.connected) { 
-			if (this.config.debugLevel > 1) { 
-				this.log.warn('sessionWatchdog: Session connected but mqtt not connected, continuing...'); 
+			if (mqttClient.connected) { 
+				if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session and mqtt connected, exiting %s without action', watchdogInstance); }
+				return; 
+			} else if (this.mqttClientConnecting) { 
+				if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session connected but mqtt still connecting, exiting %s without action', watchdogInstance); }
+				return; 
+			} else {
+				if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session connected but mqtt not connected, %s will try to reconnect mqtt now...', watchdogInstance); }
 			}
 
-		// otherwise the session might be in a state between disconnected and connected, so exit if not disconnected (as that means a session connection is currently in progress)
 		} else if (currentSessionState != sessionState.DISCONNECTED) { 
-			if (this.config.debugLevel > 1) { 
-				this.log.warn('sessionWatchdog: Session session is not disconnected, must be currently connecting, exiting without action'); 
-			}
+			// session is not disconnected, meaning it is between connected and disconnected, ie: a connection is in progress
+			if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session still connecting, exiting %s without action', watchdogInstance); }
 			return;
-		
-		// session is not connected and is not in a state between connected and disconnected, so it is disconnected. Continue
+
 		} else { 
-			if (this.config.debugLevel > 1) { 
-				this.log.warn('sessionWatchdog: Session not connected and mqtt not connected, continuing...'); 
-			}
+			// session is not connected and is not in a state between connected and disconnected, so it is disconnected. Continue
+			if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session and mqtt not connected, %s will try to connect now...', watchdogInstance); }
 
 		}
+
+		// the watchdog will now attempt to reconnect the session. Flag that the watchdog is running
 		this.sessionWatchdogRunning = true;
+		if (this.config.debugLevel > 2) { this.log.warn('%s: sessionWatchdogRunning=%s', watchdogInstance, this.sessionWatchdogRunning); }
 		
 
 		// detect if running on development environment
-		//	customStoragePath: 'C:\\Users\\jochen\\.homebridge'
+		// customStoragePath: 'C:\\Users\\jochen\\.homebridge'
 		if ( this.api.user.customStoragePath.includes( 'jochen' ) ) { PLUGIN_ENV = ' DEV' }
-		if (PLUGIN_ENV) { this.log.warn('%s running in %s environment with debugLevel %s', PLUGIN_NAME, PLUGIN_ENV.trim(), (this.config || {}).debugLevel || 0); }
+		if (PLUGIN_ENV) { this.log.warn('%s: %s running in %s environment with debugLevel %s', watchdogInstance, PLUGIN_NAME, PLUGIN_ENV.trim(), (this.config || {}).debugLevel || 0); }
 	
 		// Step 1: session does not exist, so create the session, passing the country value
 		if (currentSessionState == sessionState.DISCONNECTED ) { 
 			//this.log('Session is not connected');
+			if (this.config.debugLevel > 2) { this.log.warn('%s: attempting to create session', watchdogInstance); }
 			this.createSession(this.config.country.toLowerCase());
 		} else if (currentSessionState == sessionState.CONNECTED && !mqttClient.connected) { 
-			this.log('sessionWatchdog: Session is still connected, but mqttCLient is disconnected, refreshing session and restarting mqttClient...');
+			this.log('%s: session is still connected, but mqttCLient is disconnected, refreshing session and restarting mqttClient...', watchdogInstance);
 		}
 
 		// async wait a few seconds for the session to load, then continue
 		// should be 15s as GB takes 12s for some users
 		// increased to 30s on 30.08.2021 to help be-nl
+		if (this.config.debugLevel > 2) { this.log.warn('%s: waiting for session to be created', watchdogInstance); }
 		wait(30*1000).then(() => { 
 
 			// only continue with mqtt if a session was actually created
-			if (currentSessionState !== sessionState.CONNECTED) { return; }
+			if (this.config.debugLevel > 2) { this.log.warn('%s: session connect wait completed, checking currentSessionState: %s', watchdogInstance, sessionStateName[currentSessionState]); }
+			if (currentSessionState !== sessionState.CONNECTED) { 
+				this.sessionWatchdogRunning = false;
+				if (this.config.debugLevel > 1) { this.log.warn('%s: session connection timeout. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+				return; 
+			}
 
 			// discovery devices at every session connection
 			this.log('Discovering platform and devices...');
@@ -515,6 +527,10 @@ class stbPlatform {
 				if (!this.devices || !this.devices[0].settings) {
 					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 					this.log('Failed to find any devices. The backend systems may be down, or you have no supported devices on your customer account')
+					this.sessionWatchdogRunning = false;
+					if (this.config.debugLevel > 1) { this.log.warn('%s: session connected but no devices found. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+					return
+
 				} else {
 					// at least one device found
 					var logText = "Found %s device";
@@ -588,6 +604,8 @@ class stbPlatform {
 						this.mqttClientConnecting = true;
 						this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
 						this.sessionWatchdogRunning = false;
+						if (this.config.debugLevel > 1) { this.log.warn('%s: session connection successful. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+						return
 					})
 
 				}
@@ -596,6 +614,7 @@ class stbPlatform {
 		}).catch((error) => { 
 			this.log.error("sessionWatchdog: Error", error); 
 			this.sessionWatchdogRunning = false;
+			if (this.config.debugLevel > 1) { this.log.warn('%s: session connection error. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
 		});
 
 	}
@@ -1276,10 +1295,13 @@ class stbPlatform {
 			.catch(error => {
 				let errText, errReason;
 				errText = 'Failed to refresh the master channel list - check your internet connection:'
-				if (error.isAxiosError) { errReason = error.code + ': ' + (error.hostname || ''); }
+				if (error.isAxiosError) { 
+					errReason = error.code + ': ' + (error.hostname || ''); 
+					// if no connection then set session to disconnected to force a session reconnect
+					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+				}
 				this.log('%s %s', errText, (errReason || ''));
 				this.log.debug(`refreshMasterChannelList error:`, error);
-
 				return error;
 			});
 	}
@@ -1332,7 +1354,10 @@ class stbPlatform {
 				
 			})
 			.catch(error => {
-				this.log.error('getJwtToken error:', error);
+				this.log('Failed to get jwtToken: ', error.code + ' ' + (error.hostname || '') );
+				this.log.debug('getJwtToken error details:', error);
+				// set session flag to disconnected to force a session reconnect
+				currentSessionState = sessionState.DISCONNECTED;
 				return false;
 			});			
 	}
@@ -1735,11 +1760,8 @@ class stbPlatform {
 					try {
 						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
 						parent.currentMqttState = mqttState.error;
-						parent.log.warn('mqttClient: Error', err.code);
-						parent.log.warn('mqttClient: Error details:', err); 
-						//if (parent.config.debugLevel > 2) { 
-						//	parent.log.warn('mqttClient: Error details:', err); 
-						//}
+						parent.log.warn('mqttClient: Error', err.syscall + ' ' + err.code + ' ' + (err.hostname || ''));
+						parent.log.debug('mqttClient: Error:', err); 
 						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 						mqttClient.end();
@@ -2233,10 +2255,13 @@ class stbPlatform {
 			.catch(error => {
 				let errText, errReason;
 				errText = 'Failed to refresh personalization data for ' + requestType + ' - check your internet connection:'
-				if (error.isAxiosError) { errReason = error.code + ': ' + (error.hostname || ''); }
+				if (error.isAxiosError) { 
+					errReason = error.code + ': ' + (error.hostname || ''); 
+					// if no connection then set session to disconnected to force a session reconnect
+					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+				}
 				this.log('%s %s', errText, (errReason || ''));
 				this.log.debug(`refreshMasterChannelList error:`, error);
-
 				return false, error;
 			});		
 		return false;
