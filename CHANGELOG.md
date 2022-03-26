@@ -13,32 +13,16 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.3.0-beta.5 (2022-03-22)
-* Bumped dependencies (node)
-
-
-## 1.3.0-beta.4 (2022-03-16)
-* More logging of mqttClient state to try and understand the disconnects
-* Bumped dependencies (axios, axios-cookiejar-support, mqtt)
-
-
-## 1.3.0-beta.3 (2022-02-22)
-* Increased logging of mqttClient errors to try and capture a bug
-* Bumped dependencies (axios, mqtt)
-
-
-## 1.3.0-beta.2 (2022-01-31)
-* Corrected ChangeLog and package-lock.json
-
-
-## 1.3.0-beta.1 (2022-01-23)
-* +++ InputSourceType not yet fully working +++
-* Improved reliability of mqtt reconnects when mqtt session goes offline
+## 1.3.0 (2022-03-26)
 * Added extra characteristics (StatusActive, StatusFault, InUse, ProgramMode, InputDeviceType, InputSourceType) for use in Shortcuts and Automations
-* Increased MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S from 120 to 600s to reduce network traffic
-* Shifted some log messages to higher debug levels to allow for easier debugging
-* Bumped dependencies (homebridge, node)
+* Reduced network traffic by increasing master channel list refresh check interval from 120 to 600s
+* Improved Watchdog, cause of failing reconnects has finally been resolved
+* Improved robustness of error handling for creating jwtToken, retrieval of personalisation data and refresh of master channel list
+* Improved logging
 * Improved Wiki
+* Corrected typos in ChangeLog and package-lock.json
+* Bumped dependencies (axios, axios-cookiejar-support, mqtt, homebridge, node)
+* ToDo: get characteristic InputSourceType fully working
 
 
 ## 1.2.2 (2022-01-21)
