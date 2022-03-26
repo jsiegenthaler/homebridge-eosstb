@@ -13,6 +13,18 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.3.0 (2022-03-26)
+* Added extra characteristics (StatusActive, StatusFault, InUse, ProgramMode, InputDeviceType, InputSourceType) for use in Shortcuts and Automations
+* Reduced network traffic by increasing master channel list refresh check interval from 120 to 600s
+* Improved Watchdog, cause of failing reconnects has finally been resolved
+* Improved robustness of error handling for creating jwtToken, retrieval of personalisation data and refresh of master channel list
+* Improved logging
+* Improved Wiki
+* Corrected typos in ChangeLog and package-lock.json
+* Bumped dependencies (axios, axios-cookiejar-support, mqtt, homebridge, node)
+* ToDo: get characteristic InputSourceType fully working
+
+
 ## 1.2.2 (2022-01-21)
 * Fixed remote control crash when using minimum plugin config
 * Bumped dependencies (homebridge, axios, mqtt, qs)

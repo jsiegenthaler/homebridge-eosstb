@@ -124,13 +124,16 @@ const NO_CHANNEL_NAME = 'UNKNOWN'; // name for a channel not in the channel list
 const MAX_INPUT_SOURCES = 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
 const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in millisec. Default = 15000 (15s)
 const MQTT_WATCHDOG_INTERVAL_MS = 10000; // mqtt watchdog interval in millisec. Default = 10000 (10s)
-const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 120; // channel list refresh check interval, in seconds. Default = 120
+const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 600; // channel list refresh check interval, in seconds. Default = 600
 const RECORDING_STATE_ONGOING = 1; // Custom characteristic
 const SETTOPBOX_NAME_MINLEN = 3; // min len of the set-top box name
 const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
 
 // state constants
 const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 };
+const sessionStateName = ["DISCONNECTED", "LOADING", "LOGGING_IN", "AUTHENTICATING", "VERIFYING", "AUTHENTICATED", "CONNECTED"];
+const mqttState = { disconnected: 0, offline: 1, closed: 2, connected: 3, reconnected: 4, error: 5, end: 6, messagereceived: 7, packetsent: 8, packetreceived: 9 };
+const mqttStateName = [ "DISCONNECTED", "OFFLINE", "CLOSED", "CONNECTED", "RECONNECTED", "ERROR", "END", "MESSAGERECEIVED", "PACKETSENT", "PACKETRECEIVED" ];
 const mediaStateName = ["PLAY", "PAUSE", "STOP", "UNKNOWN3", "LOADING", "INTERRUPTED"];
 const powerStateName = ["OFF", "ON"];
 const closedCaptionsStateName = ["DISABLED", "ENABLED"];
@@ -138,6 +141,13 @@ const visibilityStateName = ["SHOWN", "HIDDEN"];
 const pictureModeName = ["OTHER", "STANDARD", "CALIBRATED", "CALIBRATED_DARK", "VIVID", "GAME", "COMPUTER", "CUSTOM"];
 const recordingState = { IDLE: 0, ONGOING_NDVR: 1, ONGOING_LOCALDVR: 2 };
 const recordingStateName = ["IDLE", "ONGOING_NDVR", "ONGOING_LOCALDVR"];
+const statusFaultName = ["NO_FAULT", "GENERAL_FAULT"];
+const inUseName = ["NOT_IN_USE", "IN_USE"];
+const programModeName = ["NO_PROGRAM_SCHEDULED", "PROGRAM_SCHEDULED", "PROGRAM_SCHEDULED_MANUAL_MODE_"];
+const statusActiveName = ["NOT_ACTIVE", "ACTIVE"];
+const inputSourceTypeName = ["OTHER", "HOME_SCREEN", "TUNER", "HDMI", "COMPOSITE_VIDEO", "S_VIDEO", "COMPONENT_VIDEO", "DVI", "AIRPLAY", "USB", "APPLICATION"];
+const inputDeviceTypeName = ["OTHER", "TV", "RECORDING", "TUNER", "PLAYBACK", "AUDIO_SYSTEM"];
+
 Object.freeze(sessionState);
 Object.freeze(mediaStateName);
 Object.freeze(powerStateName);
@@ -145,6 +155,12 @@ Object.freeze(closedCaptionsStateName);
 Object.freeze(visibilityStateName);
 Object.freeze(pictureModeName);
 Object.freeze(recordingStateName);
+Object.freeze(statusFaultName);
+Object.freeze(inUseName);
+Object.freeze(programModeName);
+Object.freeze(statusActiveName);
+Object.freeze(inputSourceTypeName);
+Object.freeze(inputDeviceTypeName);
 
 
 
@@ -280,8 +296,13 @@ class stbPlatform {
 
 		// session flags
 		currentSessionState = sessionState.DISCONNECTED;
+		mqttClient.connected = false;
+		this.currentMqttState = mqttState.disconnected;
 		this.sessionWatchdogRunning = false;
+		this.watchdogCounter = 0;
 		this.mqttClientConnecting = false;
+		this.currentStatusFault = null;
+
 
 		/*
 		this.inputsFile = this.storagePath + '/' + 'inputs_' + this.host.split('.').join('');
@@ -387,79 +408,95 @@ class stbPlatform {
 	async sessionWatchdog() {
 		// the session watchdog creates a session when none exists, and creates stbDevices when none exist
 		// runs every few seconds. 
-		// If session exists: Exit immediately
+		// If session exists or is still being connected: Exit immediately
 		// If no session exists: prepares the session, then prepares the device
+		this.watchdogCounter++; // increment global counter by 1
+		let watchdogInstance = 'sessionWatchdog(' + this.watchdogCounter + ')'; // set a log prefix for this instance of the watchdog to allow differentiation in the logs
+		let statusOverview = watchdogInstance + ':';
+
+		//robustness: if session state ever gets disconnected due to session creation problems, ensure the mqtt status is always disconnected
+		if (currentSessionState == sessionState.DISCONNECTED) { 
+			this.mqttClientConnecting = false;
+			this.currentMqttState = mqttState.disconnected;
+		}
+
+
+		if (this.config.debugLevel > 1) { 
+			statusOverview = statusOverview + ' sessionState=' + sessionStateName[currentSessionState]
+			statusOverview = statusOverview + ' mqttState=' + mqttStateName[this.currentMqttState]
+			statusOverview = statusOverview + ' mqttClient.connected=' + mqttClient.connected
+			statusOverview = statusOverview + ' sessionWatchdogRunning=' + this.sessionWatchdogRunning
+		}
 
 		// exit if a previous session is still running
 		if (this.sessionWatchdogRunning) { 
-			if (this.config.debugLevel > 0) { 
-				this.log.warn('sessionWatchdog: a previous watchdog is still working, exiting without action'); 
-			}
+			if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Previous sessionWatchdog still working, exiting %s without action', watchdogInstance); }
 			return;
 
-		// as we are called regularly by setInterval, exit immediately if session is still connected and mqtt is still connected
-		} else if (currentSessionState == sessionState.CONNECTED && mqttClient.connected ) { 
-			if (this.config.debugLevel > 0) { 
-				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session connected and mqtt connected, exiting without action', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
-			}
-			return; 
+		// as we are called regularly by setInterval, check connection status and exit without action if required
+		} else if (currentSessionState == sessionState.CONNECTED) { 
+			// session is connected, check mqtt state
 
-		// the watchdog can fire after session connected but before mqtt has connected, so check and exit
-		} else if (currentSessionState == sessionState.CONNECTED && this.mqttClientConnecting && !mqttClient.connected) { 
-			if (this.config.debugLevel > 0) { 
-				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session connected and mqtt is currently connecting, exiting without action', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
-			}
-			return; 
-
-		// the session is connected, the mqtt client is not connected, continue to try and reconnect
-		} else if (currentSessionState == sessionState.CONNECTED && !this.mqttClientConnecting && !mqttClient.connected) { 
-			if (this.config.debugLevel > 0) { 
-				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session connected but mqtt not connected, continuing...', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
+			if (mqttClient.connected) { 
+				if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session and mqtt connected, exiting %s without action', watchdogInstance); }
+				return; 
+			} else if (this.mqttClientConnecting) { 
+				if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session connected but mqtt still connecting, exiting %s without action', watchdogInstance); }
+				return; 
+			} else {
+				if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session connected but mqtt not connected, %s will try to reconnect mqtt now...', watchdogInstance); }
 			}
 
-		// otherwise the session might be in a state between disconnected and connected, so exit if not disconnected (as that means a session connection is currently in progress)
 		} else if (currentSessionState != sessionState.DISCONNECTED) { 
-			if (this.config.debugLevel > 0) { 
-				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session session is not disconnected, must be currently connecting, exiting without action', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
-			}
+			// session is not disconnected, meaning it is between connected and disconnected, ie: a connection is in progress
+			if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session still connecting, exiting %s without action', watchdogInstance); }
 			return;
-		
-		// session is not connected and is not in a state between connected and disconnected, so it is disconnected. Continue
+
 		} else { 
-			if (this.config.debugLevel > 0) { 
-				this.log.warn('sessionWatchdog: sessionState %s, sessionConnected %s, mqttClientConnected %s, mqttClientConnecting %s. Session not connected and mqtt not connected, continuing...', currentSessionState, (currentSessionState == sessionState.CONNECTED), mqttClient.connected || false, this.mqttClientConnecting); 
-			}
+			// session is not connected and is not in a state between connected and disconnected, so it is disconnected. Continue
+			if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session and mqtt not connected, %s will try to connect now...', watchdogInstance); }
 
 		}
-		this.sessionWatchdogRunning = true;
 
+		// the watchdog will now attempt to reconnect the session. Flag that the watchdog is running
+		this.sessionWatchdogRunning = true;
+		if (this.config.debugLevel > 2) { this.log.warn('%s: sessionWatchdogRunning=%s', watchdogInstance, this.sessionWatchdogRunning); }
+		
 
 		// detect if running on development environment
-		//	customStoragePath: 'C:\\Users\\jochen\\.homebridge'
+		// customStoragePath: 'C:\\Users\\jochen\\.homebridge'
 		if ( this.api.user.customStoragePath.includes( 'jochen' ) ) { PLUGIN_ENV = ' DEV' }
-		if (PLUGIN_ENV) { this.log.warn('%s running in %s environment with debugLevel %s', PLUGIN_NAME, PLUGIN_ENV, this.config.debugLevel); }
+		if (PLUGIN_ENV) { this.log.warn('%s: %s running in %s environment with debugLevel %s', watchdogInstance, PLUGIN_NAME, PLUGIN_ENV.trim(), (this.config || {}).debugLevel || 0); }
 	
 		// Step 1: session does not exist, so create the session, passing the country value
 		if (currentSessionState == sessionState.DISCONNECTED ) { 
-			this.log('Session is not connected, starting session reconnect...');
+			//this.log('Session is not connected');
+			if (this.config.debugLevel > 2) { this.log.warn('%s: attempting to create session', watchdogInstance); }
 			this.createSession(this.config.country.toLowerCase());
 		} else if (currentSessionState == sessionState.CONNECTED && !mqttClient.connected) { 
-			this.log('Session is still connected, but mqttCLient is disconnected, refreshing session and restarting mqttClient...');
+			this.log('%s: session is still connected, but mqttCLient is disconnected, refreshing session and restarting mqttClient...', watchdogInstance);
 		}
 
 		// async wait a few seconds for the session to load, then continue
 		// should be 15s as GB takes 12s for some users
 		// increased to 30s on 30.08.2021 to help be-nl
+		if (this.config.debugLevel > 2) { this.log.warn('%s: waiting for session to be created', watchdogInstance); }
 		wait(30*1000).then(() => { 
 
 			// only continue with mqtt if a session was actually created
-			if (currentSessionState !== sessionState.CONNECTED) { return; }
+			if (this.config.debugLevel > 2) { this.log.warn('%s: session connect wait completed, checking currentSessionState: %s', watchdogInstance, sessionStateName[currentSessionState]); }
+			if (currentSessionState !== sessionState.CONNECTED) { 
+				this.sessionWatchdogRunning = false;
+				if (this.config.debugLevel > 1) { this.log.warn('%s: session connection timeout. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+				return; 
+			}
 
 			// discovery devices at every session connection
 			this.log('Discovering platform and devices...');
 
 			// show feedback for customer data found
 			if (!this.session.customer) {
+				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 				this.log('Failed to find customer data. The backend systems may be down')
 			} else {
 				this.log('Found customer data: %s %s %s', this.session.customer.customerId, (this.session.customer.givenName || ''), (this.session.customer.familyName || '') );
@@ -478,6 +515,7 @@ class stbPlatform {
 				this.getPersonalizationData('devices'); // async function
 			} else {
 				// show warning if no physicalDeviceId found
+				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 				this.log('Failed to find physicalDeviceId in your customer data. Are you sure you have a compatible set-top box?')
 				if (this.config.country.toLowerCase() == 'gb') { this.log('You may have an older TiVo box. TiVo boxes are not supported by %s', PLUGIN_NAME); }
 			}
@@ -487,7 +525,12 @@ class stbPlatform {
 
 				// show feedback for devices found
 				if (!this.devices || !this.devices[0].settings) {
+					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 					this.log('Failed to find any devices. The backend systems may be down, or you have no supported devices on your customer account')
+					this.sessionWatchdogRunning = false;
+					if (this.config.debugLevel > 1) { this.log.warn('%s: session connected but no devices found. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+					return
+
 				} else {
 					// at least one device found
 					var logText = "Found %s device";
@@ -561,6 +604,8 @@ class stbPlatform {
 						this.mqttClientConnecting = true;
 						this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
 						this.sessionWatchdogRunning = false;
+						if (this.config.debugLevel > 1) { this.log.warn('%s: session connection successful. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+						return
 					})
 
 				}
@@ -569,6 +614,7 @@ class stbPlatform {
 		}).catch((error) => { 
 			this.log.error("sessionWatchdog: Error", error); 
 			this.sessionWatchdogRunning = false;
+			if (this.config.debugLevel > 1) { this.log.warn('%s: session connection error. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
 		});
 
 	}
@@ -577,6 +623,7 @@ class stbPlatform {
 
 	// select the right session to create
 	async createSession(country) {
+		this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
 		switch(country) {
 			case 'be-nl': case 'be-fr':
 				this.getSessionBE(); break;
@@ -606,6 +653,7 @@ class stbPlatform {
 		if (!axiosConfig.url) {
 			this.log.warn('getSession: axiosConfig.url empty!');
 			currentSessionState = sessionState.DISCONNECTED;
+			this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 			return false;						
 		}
 		
@@ -618,6 +666,8 @@ class stbPlatform {
 				if (this.session.customer) { currentSessionState = sessionState.AUTHENTICATED; }
 				this.log('Session created');
 				currentSessionState = sessionState.CONNECTED;
+				this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+				this.log('Session state:', sessionStateName[currentSessionState]);
 				return true;
 			})
 			.catch(error => {
@@ -635,6 +685,7 @@ class stbPlatform {
 				this.log('%s %s', errText, (errReason || ''));
 				this.log.debug('getSession: error:', error);
 				currentSessionState = sessionState.DISCONNECTED;
+				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 				return false;
 			});	
 		return false;
@@ -742,10 +793,12 @@ class stbPlatform {
 								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
 									this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
 									currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 								} else if (url.indexOf('error=session_expired') > 0 ) {
 									this.log.warn('Step 3 of 7: Unable to login: session expired');
 									cookieJar.removeAllCookies();	// remove all the locally cached cookies
 									currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 								} else {
 
 									// Step 4: # follow redirect url
@@ -766,6 +819,7 @@ class stbPlatform {
 											if (!url) {		// robustness: fail if url missing
 												this.log.warn('Step 4 of 7: location url empty!');
 												currentSessionState = sessionState.DISCONNECTED;
+												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 												return false;						
 											}
 
@@ -773,10 +827,12 @@ class stbPlatform {
 											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
 												this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
 												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 											} else if (url.indexOf('error=session_expired') > 0 ) {
 												this.log.warn('Step 4 of 7: Unable to login: session expired');
 												cookieJar.removeAllCookies();	// remove all the locally cached cookies
 												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 											} else {
 
 												// Step 5: # obtain authorizationCode
@@ -785,6 +841,7 @@ class stbPlatform {
 												if (!url) {		// robustness: fail if url missing
 													this.log.warn('Step 5 of 7: location url empty!');
 													currentSessionState = sessionState.DISCONNECTED;
+													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 													return false;						
 												}
 	
@@ -832,6 +889,7 @@ class stbPlatform {
 																	this.session = response.data;
 																	this.log('Session created');
 																	currentSessionState = sessionState.CONNECTED;
+																	this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
 																	return true;
 																})
 																// Step 7 http errors
@@ -839,6 +897,7 @@ class stbPlatform {
 																	this.log.warn("Step 7 of 7: Unable to get OESP token:", error.response.status, error.response.statusText);
 																	this.log.debug("Step 7 of 7: Unable to get OESP token:",error);
 																	currentSessionState = sessionState.DISCONNECTED;
+																	this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 																});
 														})
 														// Step 6 http errors
@@ -846,6 +905,7 @@ class stbPlatform {
 															this.log.warn("Step 6 of 7: Unable to authorize with oauth code:", error.response.status, error.response.statusText);
 															this.log.debug("Step 6 of 7: Unable to authorize with oauth code:",error);
 															currentSessionState = sessionState.DISCONNECTED;
+															this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 														});	
 													};
 												};
@@ -855,6 +915,7 @@ class stbPlatform {
 											this.log.warn("Step 4 of 7: Unable to oauth authorize:", error.response.status, error.response.statusText);
 											this.log.debug("Step 4 of 7: Unable to oauth authorize:",error);
 											currentSessionState = sessionState.DISCONNECTED;
+											this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 										});
 								};
 							})
@@ -863,6 +924,7 @@ class stbPlatform {
 								this.log.warn("Step 3 of 7: Unable to login:", error.response.status, error.response.statusText);
 								this.log.debug("Step 3 of 7: Unable to login:",error);
 								currentSessionState = sessionState.DISCONNECTED;
+								this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 							});
 					})
 					// Step 2 http errors
@@ -870,6 +932,7 @@ class stbPlatform {
 						this.log.warn("Step 2 of 7: Could not get authorizationUri", error.response.status, error.response.statusText);
 						this.log.debug("Step 2 of 7: Could not get authorizationUri:",error);
 						currentSessionState = sessionState.DISCONNECTED;
+						this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 					});
 			})
 			// Step 1 http errors
@@ -881,9 +944,11 @@ class stbPlatform {
 				}
 				this.log.debug('Step 1 of 7: getSessionBE: error:', error);
 				currentSessionState = sessionState.DISCONNECTED;
+				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 			});
 
 		currentSessionState = sessionState.DISCONNECTED;
+		this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 	}
 
 
@@ -987,6 +1052,7 @@ class stbPlatform {
 								if (!url) {		// robustness: fail if url missing
 									this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
 									currentSessionState = sessionState.DISCONNECTED;
+									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 									return false;						
 								}								
 								//location is h??=... if success
@@ -998,6 +1064,7 @@ class stbPlatform {
 									this.log.warn('Step 3 of 7: Unable to login: session expired');
 									cookieJar.removeAllCookies();	// remove all the locally cached cookies
 									currentSessionState = sessionState.DISCONNECTED;	// flag the session as dead
+									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 								} else {
 									this.log.debug('Step 3 of 7: login successful');
 
@@ -1019,6 +1086,7 @@ class stbPlatform {
 											if (!url) {		// robustness: fail if url missing
 												this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
 												currentSessionState = sessionState.DISCONNECTED;
+												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 												return false;						
 											}								
 			
@@ -1026,10 +1094,12 @@ class stbPlatform {
 											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
 												this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
 												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 											} else if (url.indexOf('error=session_expired') > 0 ) {
 												this.log.warn('Step 4 of 7: Unable to login: session expired');
 												cookieJar.removeAllCookies();	// remove all the locally cached cookies
 												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 											} else {
 
 												// Step 5: # obtain authorizationCode
@@ -1038,6 +1108,7 @@ class stbPlatform {
 												if (!url) {		// robustness: fail if url missing
 													this.log.warn('getSessionGB: Step 5: location url empty!');
 													currentSessionState = sessionState.DISCONNECTED;
+													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 													return false;						
 												}								
 				
@@ -1087,6 +1158,7 @@ class stbPlatform {
 																	// get device data from the session
 																	this.session = response.data;
 																	currentSessionState = sessionState.CONNECTED;
+																	this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
 																	this.log('Session created');
 																	return true;
 																})
@@ -1095,12 +1167,14 @@ class stbPlatform {
 																	this.log.warn("Step 7 of 7: Unable to get OESP token:",error.response.status, error.response.statusText);
 																	this.log.debug("Step 7 of 7: error:",error);
 																	currentSessionState = sessionState.DISCONNECTED;
+																	this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 																});
 														})
 														// Step 6 http errors
 														.catch(error => {
 															this.log.warn("Step 6 of 7: Unable to authorize with oauth code, http error:",error);
 															currentSessionState = sessionState.DISCONNECTED;
+															this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 														});	
 												};
 											};
@@ -1110,6 +1184,7 @@ class stbPlatform {
 											this.log.warn("Step 4 of 7: Unable to oauth authorize:",error.response.status, error.response.statusText);
 											this.log.debug("Step 4 of 7: error:",error);
 											currentSessionState = sessionState.DISCONNECTED;
+											this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 										});
 								};
 							})
@@ -1118,6 +1193,7 @@ class stbPlatform {
 								this.log.warn("Step 3 of 7: Unable to login:",error.response.status, error.response.statusText);
 								this.log.debug("Step 3 of 7: error:",error);
 								currentSessionState = sessionState.DISCONNECTED;
+								this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 							});
 					})
 					// Step 2 http errors
@@ -1125,6 +1201,7 @@ class stbPlatform {
 						this.log.warn("Step 2 of 7: Unable to get authorizationUri:",error.response.status, error.response.statusText);
 						this.log.debug("Step 2 of 7: error:",error);
 						currentSessionState = sessionState.DISCONNECTED;
+						this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 					});
 			})
 			// Step 1 http errors
@@ -1133,9 +1210,11 @@ class stbPlatform {
 				this.log.warn("Step 1 of 7: Could not get apiAuthorizationUrl:",error.response.status, error.response.statusText);
 				this.log.debug("Step 1 of 7: error:",error);
 				currentSessionState = sessionState.DISCONNECTED;
+				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 			});
 
 		currentSessionState = sessionState.DISCONNECTED;
+		this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 	}
 
 
@@ -1151,13 +1230,13 @@ class stbPlatform {
 
 		// exit immediately if channel list has not expired
 		if (this.masterChannelListExpiryDate > Date.now()) {
-			if (this.config.debugLevel > 0) {
+			if (this.config.debugLevel > 1) {
 				this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString());
 			}
 			return false;
 		}
 
-		if (this.config.debugLevel > 0) {
+		if (this.config.debugLevel > 1) {
 			this.log.warn('refreshMasterChannelList: Refreshing master channel list...');
 		}
 
@@ -1216,10 +1295,13 @@ class stbPlatform {
 			.catch(error => {
 				let errText, errReason;
 				errText = 'Failed to refresh the master channel list - check your internet connection:'
-				if (error.isAxiosError) { errReason = error.code + ': ' + (error.hostname || ''); }
+				if (error.isAxiosError) { 
+					errReason = error.code + ': ' + (error.hostname || ''); 
+					// if no connection then set session to disconnected to force a session reconnect
+					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+				}
 				this.log('%s %s', errText, (errReason || ''));
 				this.log.debug(`refreshMasterChannelList error:`, error);
-
 				return error;
 			});
 	}
@@ -1272,7 +1354,10 @@ class stbPlatform {
 				
 			})
 			.catch(error => {
-				this.log.error('getJwtToken error:', error);
+				this.log('Failed to get jwtToken: ', error.code + ' ' + (error.hostname || '') );
+				this.log.debug('getJwtToken error details:', error);
+				// set session flag to disconnected to force a session reconnect
+				currentSessionState = sessionState.DISCONNECTED;
 				return false;
 			});			
 	}
@@ -1318,6 +1403,7 @@ class stbPlatform {
 		// mqtt client event: connect
 		mqttClient.on('connect', function () {
 			try {
+				parent.currentMqttState = mqttState.connected;
 				parent.log("mqttClient: Connected: %s", mqttClient.connected);
 				parent.mqttClientConnecting = false;
 
@@ -1371,6 +1457,7 @@ class stbPlatform {
 					try {
 
 						// store some mqtt diagnostic data
+						parent.currentMqttState = mqttState.connected; // set to connected on every message received event
 						parent.lastMqttMessageReceived = Date.now();
 
 						let mqttMessage = JSON.parse(payload);
@@ -1379,7 +1466,7 @@ class stbPlatform {
 						}
 
 						// variables for just in this function
-						var deviceId, currPowerState, currMediaState, currChannelId, currSourceType, currRecordingState;
+						var deviceId, stbState, currPowerState, currMediaState, currChannelId, currSourceType, currRecordingState, currStatusActive, currInputDeviceType, currInputSourceType;
 
 						// and request the UI status for each device
 						// 14.03.2021 does not respond, disabling for now...
@@ -1422,19 +1509,46 @@ class stbPlatform {
 							if (mqttMessage.deviceType == 'STB') {
 								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: STB status: Detecting Power State: Received Message of deviceType %s for %s', mqttMessage.deviceType, mqttMessage.source); }
 								// sometimes a rogue empty message appears without a mac or ipAddress, so ensure a mac is always present
+								// mac.length = 0 when the box is physically offline
 								if (mqttMessage.mac.length > 0) {
 									deviceId = mqttMessage.source;
-									// mac address is present, we have a valid message
-									if (mqttMessage.state == 'ONLINE_RUNNING') { 				// ONLINE_RUNNING: power is on
+									stbState = mqttMessage.state;
+								} else {
+									deviceId = mqttMessage.source;
+									stbState = mqttMessage.state;
+								}
+								// Box setting: StandbyPowerConsumption = FastStart / ActiveStart / EcoSlowstart
+								// In FastStart the box goes to ONLINE_STANDBY when turned off, and can be turned on again over mqtt
+								// In ActiveStart the box goes to ONLINE_STANDBY when turned off, and maybe changes after time? test this. 
+								switch (stbState) {
+									case 'ONLINE_RUNNING':	// ONLINE_RUNNING: power is on
+										currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
 										currPowerState = Characteristic.Active.ACTIVE; 
-									} else { 													// default off for ONLINE_STANDBY or OFFLINE_NETWORK_STANDBY or OFFLINE
+										break;
+									case 'ONLINE_STANDBY': // ONLINE_STANDBY: power is off, device is on standby, still reachable over the network, can be turned on via mqtt. 
+										currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
 										currPowerState = Characteristic.Active.INACTIVE;
 										currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
-									}
+										break;
+									case 'OFFLINE_NETWORK_STANDBY': // OFFLINE_NETWORK_STANDBY: power is off, device is still reachable on the network
+										currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
+										currPowerState = Characteristic.Active.INACTIVE;
+										currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
+										break;
+									case 'OFFLINE':			// OFFLINE: power is off, device is not reachable over the network
+										currStatusActive = Characteristic.Active.INACTIVE; // bool, 0 = not active, 1 = active
+										currPowerState = Characteristic.Active.INACTIVE;
+										currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
+										break;
 								}
+								if (parent.config.debugLevel > 0) { 
+									parent.log.warn('mqttClient: %s %s ', deviceId, stbState);
+								}
+
 							}
 						}
 
+						//parent.log.warn('mqttClient: CPE.uiStatus: stbState %s, currStatusActive %s, currPowerState %s, currMediaState %s', stbState, currStatusActive, currPowerState, currMediaState); 
 						
 						// handle CPE UI status messages for the STB
 						// topic can be many, so look for mqttMessage.type
@@ -1448,6 +1562,10 @@ class stbPlatform {
 								parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
 								parent.log.warn('mqttClient: mqttMessage.status.uiStatus:', mqttMessage.status.uiStatus);
 							}
+							// if we have this message, then the power is on. Sometimes the message arrives before the status topic with the power state
+							currStatusActive = Characteristic.Active.ACTIVE; // ensure statusActive is set to Active
+							currPowerState = Characteristic.Active.ACTIVE;  // ensure power is set to ON
+
 							parent.lastMqttUiStatusMessageReceived = Date.now();
 							deviceId = mqttMessage.source;
 							const cpeUiStatus = mqttMessage.status;
@@ -1472,12 +1590,27 @@ class stbPlatform {
 										currMediaState = Characteristic.CurrentMediaState.LOADING;
 									}
 
-									// get channelId (current playing channel) from linear TV
+									// get sourceType to set the currInputSourceType and currInputDeviceType
 									// playerState.sourceType
 									// linear = normal TV
 									// reviewbuffer = delayed buffered TV playback
 									// replay = replay TV
 									// nDVR = playback from saved program (Digital Video Recorder)
+									switch (playerState.sourceType) {
+										case 'linear':	// ONLINE_RUNNING: power is on
+										case 'reviewbuffer': 
+											currInputSourceType = Characteristic.InputSourceType.TUNER;
+											currInputDeviceType = Characteristic.InputDeviceType.TV; // linear TV
+											break;
+										case 'replay': // replay TV
+										case 'nDVR':
+											currInputSourceType = Characteristic.InputSourceType.OTHER;
+											currInputDeviceType = Characteristic.InputDeviceType.PLAYBACK; // replay TV
+											break;
+									}
+	
+
+									// get channelId (current playing channel) from linear TV
 									// Careful: source is not always present in the data
 									if (playerState.source) {
 										currChannelId = playerState.source.channelId || NO_CHANNEL_ID; // must be a string
@@ -1500,6 +1633,8 @@ class stbPlatform {
 									//parent.log("mqttClient: apps: Detected mqtt app appName %s", cpeUiStatus.appsState.appName);
 									// we get id and appName here, load to the channel list...
 									// useful for YouTube and Netflix
+									currInputSourceType = Characteristic.InputSourceType.APPLICATION;
+									currInputDeviceType = Characteristic.InputDeviceType.OTHER; // apps
 									switch (cpeUiStatus.appsState.id) {
 				
 										case 'com.bbc.app.launcher': case 'com.bbc.app.crb':
@@ -1545,8 +1680,7 @@ class stbPlatform {
 
 
 						// update the device on every message
-						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged) 
-						parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currSourceType);
+						parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currSourceType, null, Characteristic.StatusFault.NO_FAULT, null, currStatusActive, currInputDeviceType, currInputSourceType);
 				
 						//end of try
 					} catch (err) {
@@ -1565,7 +1699,11 @@ class stbPlatform {
 				// Emitted after a disconnection.
 				mqttClient.on('close', function () {
 					try {
+						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
+						parent.currentMqttState = mqttState.closed;
 						parent.log('mqttClient: Connection closed');
+						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 					} catch (err) {
 						parent.log.error("Error trapped in mqttClient close event:", err.message);
 						parent.log.error(err);
@@ -1576,7 +1714,10 @@ class stbPlatform {
 				// Emitted when a reconnect starts.
 				mqttClient.on('reconnect', function () {
 					try {
+						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
+						parent.currentMqttState = mqttState.reconnected;
 						parent.log('mqttClient: Reconnect started');
+						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 					} catch (err) {
 						parent.log.error("Error trapped in mqttClient reconnect event:", err.message);
 						parent.log.error(err);
@@ -1587,7 +1728,11 @@ class stbPlatform {
 				// Emitted after receiving disconnect packet from broker. MQTT 5.0 feature.
 				mqttClient.on('disconnect', function () {
 					try {
+						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
+						parent.currentMqttState = mqttState.disconnected;
 						parent.log('mqttClient: Disconnect command received');
+						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 					} catch (err) {
 						parent.log.error("Error trapped in mqttClient disconnect event:", err.message);
 						parent.log.error(err);
@@ -1598,7 +1743,11 @@ class stbPlatform {
 				// Emitted when the client goes offline.
 				mqttClient.on('offline', function () {
 					try {
+						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
+						parent.currentMqttState = mqttState.offline;
 						parent.log('mqttClient: Client is offline');
+						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 					} catch (err) {
 						parent.log.error("Error trapped in mqttClient offline event:", err.message);
 						parent.log.error(err);
@@ -1609,7 +1758,12 @@ class stbPlatform {
 				// Emitted when the client cannot connect (i.e. connack rc != 0) or when a parsing error occurs.
 				mqttClient.on('error', function(err) {
 					try {
-						parent.log.warn('mqttClient: Error:', err);
+						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
+						parent.currentMqttState = mqttState.error;
+						parent.log.warn('mqttClient: Error', err.syscall + ' ' + err.code + ' ' + (err.hostname || ''));
+						parent.log.debug('mqttClient: Error:', err); 
+						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 						mqttClient.end();
 						return false;
 					} catch (err) {
@@ -1622,6 +1776,7 @@ class stbPlatform {
 			} catch (err) {
 				parent.log.error("Error trapped in mqttClient connect event:", err.message);
 				parent.log.error(err);
+				currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 			}
 		}); // end of mqttClient.on('connect'... event
 
@@ -1629,15 +1784,15 @@ class stbPlatform {
 
 
 	// handle the state change of the device, calling the updateDeviceState of the relevant device
-	mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged) {
+	mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType) {
 		try {
 			if (this.config.debugLevel > 1) { 
-				this.log.warn('deviceStateHandler: deviceId %s, powerState %s, mediaState %s, channelId %s, sourceType %s, profileDataChanged %s', deviceId, powerState, mediaState, channelId, sourceType, profileDataChanged); 
+				this.log.warn('mqttDeviceStateHandler: calling updateDeviceState with deviceId %s, powerState %s, mediaState %s, channelId %s, sourceType %s, profileDataChanged %s, statusFault %s, programMode %s, statusActive %s, currInputDeviceType %s, currInputSourceType %s', deviceId, powerState, mediaState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
 			}
 			if (this.devices) {
 				const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
 				if (deviceIndex > -1 && this.stbDevices.length > 0) { 
-					this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged); 
+					this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
 				}
 			}
 		} catch (err) {
@@ -1855,10 +2010,51 @@ class stbPlatform {
 			this.log("Refreshing recording state");
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState'); }
 
+			// headers for the connection
+			const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
+
+			// get all planned recordings. We only need to know if any results exist. 
+			// 0 results = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED
+			// >0 results = Characteristic.ProgramMode.PROGRAM_SCHEDULED
+			// https://obo-prod.oesp.upctv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?plannedOnly=true&range=1-20
+			//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
+			var currProgramMode = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED; // default
+			var url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?plannedOnly=true&range=1-20'; // limit to 20 recordings for performance
+			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: planned recordings: GET %s', url); }
+			axiosWS.get(url, config)
+				.then(response => {	
+					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: planned recordings response: %s %s', response.status, response.statusText); }
+					if (this.config.debugLevel > 2) { 
+						this.log.warn('getRecordingState: planned recordings response data:');
+						this.log.warn(response.data);
+					}
+					//this.log.warn('getRecordingState: planned recordings totalResults:', response.data.totalResults);
+					if (response.data.totalResults > 0) { 
+						currProgramMode = Characteristic.ProgramMode.PROGRAM_SCHEDULED;
+					} else {
+						currProgramMode = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED;
+					}
+					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: planned recordings %s, currProgramMode set to %s [%s]', response.data.recordings.length, currProgramMode, programModeName[currProgramMode]); }
+				})
+				.catch(error => {
+					let errText, errReason;
+					errText = 'getRecordingState get planned recordings for %s failed: '
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+					} else if (error.response) {
+						errReason = (error.response || {}).status + ' ' + ((error.response || {}).statusText || ''); 
+					} else {
+						errReason = error; 
+					}
+					this.log('%s', (errReason || ''));
+					this.log.debug(`getRecordingState get planned recordings error:`, error);
+				});	
+
+
+			// get all saved recordings
 			// https://obo-prod.oesp.upctv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20
 			//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
-			const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?plannedOnly=false&range=1-20'; // works
-			const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
+			url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?plannedOnly=false&range=1-20'; // works
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: GET %s', url); }
 			axiosWS.get(url, config)
 				.then(response => {	
@@ -1874,7 +2070,7 @@ class stbPlatform {
 					if (response.data.recordings) { 
 						// a recording carries these properties:
 						// for type='single'
-						// recordingState: 'ongoing', 'recorded' or ??, for all types
+						// recordingState: 'ongoing', 'recorded', 'planned' or ??, for all types
 						// recordingType: 'nDVR', 'localDVR', 'LDVR', 
 						// cpeId: '3C36E4-EOSSTB-003597101009', only for local DVRs
 
@@ -1889,11 +2085,11 @@ class stbPlatform {
 							});
 						}
 
-						// get each device. Fifor every recordingState update, update all devices
+						// get each device. for every recordingState update, update all devices
 						// only the main device can have a HDD and thus should receive the ONGOING_LOCALDVR state
 						// loop through all devices, handling devices with HDDs and devices without HDDs
 						this.devices.forEach((device) => {
-							var recType, recState;
+							var recType, recState, systemRecordingState;
 
 							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s...", device.deviceId); }
 							if (device.capabilities.hasHDD) {
@@ -1907,7 +2103,7 @@ class stbPlatform {
 									// found ongoing local non-season recording
 									recType = recordingLocal.recordingType;
 									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing local non-season recording found for device %s with status %s %s", recordingLocal.cpeId, recordingLocal.recordingState, recordingLocal.recordingType); }
-								
+
 								} else {
 									// if none found then look for season recordings:
 									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s with HDD. Searching for ongoing local season recordings for this device...", device.deviceId); }
@@ -1935,15 +2131,16 @@ class stbPlatform {
 								if (recordingNetwork) {
 									// found ongoing network non-season recording
 									recType = recordingNetwork.recordingType;
-									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing network non-season recording found with status %s %s", recordingNetwork.recordingState, recordingNetwork.recordingType); }
+									if (this.config.debugLevel >= 0) { this.log.warn("getRecordingState: ongoing network non-season recording found with status %s %s", recordingNetwork.recordingState, recordingNetwork.recordingType); }
 
 								} else {
-									// if none found then look for season recordings: (type = "season")
+									// if none found then look for season or show recordings: (type = "season") type = show also exists
 									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Searching for ongoing network season recordings for this device...", device.deviceId); }
 									let recordingNetworkSeason = response.data.recordings.find(recording => recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
 									if (recordingNetworkSeason) {
 										recType = recordingNetworkSeason.mostRelevantEpisode.recordingType;
 										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing network season recording found with status %s %s", recordingNetworkSeason.mostRelevantEpisode.recordingState, recordingNetworkSeason.mostRelevantEpisode.recordingType); }
+
 									} else {
 										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: No ongoing network recordings found"); }
 										recType = 'idle';
@@ -1961,10 +2158,11 @@ class stbPlatform {
 								recState = recordingState.IDLE;
 							}
 
-							// update the device state
+							// update the device state. Set StatusFault to nofault as connection is working
 							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Updating device state for %s to recState %s %s", device.deviceId, recState, recType); }
-							this.mqttDeviceStateHandler(device.deviceId, null, null, recState, null, null, null);
-						});
+							//mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode) {
+							this.mqttDeviceStateHandler(device.deviceId, null, null, recState, null, null, null, Characteristic.StatusFault.NO_FAULT, currProgramMode );
+							});
 
 					}
 
@@ -2019,8 +2217,8 @@ class stbPlatform {
 					if (this.stbDevices.length > 0) {
 						this.devices.forEach((device) => {
 							device.profiles = this.profiles; // update the device with the profiles array
-							// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged) {
-							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true);
+							// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault) {
+							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT );
 						});
 					}
 
@@ -2036,7 +2234,7 @@ class stbPlatform {
 							const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
 							if (deviceIndex > -1 && this.stbDevices[deviceIndex]) { 
 								this.stbDevices[deviceIndex].device = device;
-								this.mqttDeviceStateHandler(deviceId); // update one device
+								this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, null, Characteristic.StatusFault.NO_FAULT ); // update one device
 							}
 						});
 
@@ -2046,7 +2244,7 @@ class stbPlatform {
 						const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
 						if (deviceIndex > -1) { 
 							this.stbDevices[deviceIndex].device = response.data; 
-							this.mqttDeviceStateHandler(deviceId); // update one device
+							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, null, Characteristic.StatusFault.NO_FAULT ); // update one device
 						}
 				
 					}
@@ -2057,10 +2255,13 @@ class stbPlatform {
 			.catch(error => {
 				let errText, errReason;
 				errText = 'Failed to refresh personalization data for ' + requestType + ' - check your internet connection:'
-				if (error.isAxiosError) { errReason = error.code + ': ' + (error.hostname || ''); }
+				if (error.isAxiosError) { 
+					errReason = error.code + ': ' + (error.hostname || ''); 
+					// if no connection then set session to disconnected to force a session reconnect
+					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+				}
 				this.log('%s %s', errText, (errReason || ''));
 				this.log.debug(`refreshMasterChannelList error:`, error);
-
 				return false, error;
 			});		
 		return false;
@@ -2178,6 +2379,14 @@ class stbDevice {
 		this.previousRecordingState = null;
 		this.customPictureMode = 0; // default 0
 		this.currentSourceType = 'UNKNOWN';
+		// custom characteristics, default values must be legal values otherwise Homebridge shows a warning
+		this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+		this.currentInUse = Characteristic.InUse.NOT_IN_USE;
+		this.currentProgramMode = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED;
+		this.currentStatusActive = Characteristic.Active.ACTIVE;; // bool,  use o=NotStatusActive, 1=StatusActive
+		this.currentInputSourceType = Characteristic.InputSourceType.TUNER;
+		this.currentInputDeviceType = Characteristic.InputDeviceType.TV;
+
 
 		this.lastRemoteKeyPressed = -1;	// holds the last key pressed, -1 = no key
 		this.lastRemoteKeyPress0 = [];	// holds the time value of the last remote button press for key index i
@@ -2346,7 +2555,11 @@ class stbDevice {
 			.setCharacteristic(Characteristic.ClosedCaptions, Characteristic.ClosedCaptions.DISABLED)
 			.setCharacteristic(Characteristic.PictureMode, Characteristic.PictureMode.STANDARD)
 			// extra characteristics added here are accessible in Shortcuts and Automations (both personal and home)
-			//.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT) // NO_FAULT or GENERAL_FAULT
+			.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT) // NO_FAULT or GENERAL_FAULT
+			.setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE) // NOT_IN_USE or IN_USE
+			.setCharacteristic(Characteristic.ProgramMode, Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED) // NO_PROGRAM_SCHEDULED or PROGRAM_SCHEDULED or PROGRAM_SCHEDULED_MANUAL_MODE_
+			.setCharacteristic(Characteristic.StatusActive, Characteristic.Active.ACTIVE) // bool, 0 = NotStatusActive, 1=StatusActive
+			.setCharacteristic(Characteristic.InputDeviceType, Characteristic.InputDeviceType.TV)
 			;
 				
 		// characteristics actively controlled in the current Apple Home app 
@@ -2405,6 +2618,29 @@ class stbDevice {
 		this.televisionService.getCharacteristic(Characteristic.TargetMediaState)
 			.on('get', this.getTargetMediaState.bind(this))
 			.on('set', (newMediaState, callback) => { this.setTargetMediaState(newMediaState, callback); });
+
+		// extra characteristics added here are accessible in Shortcuts and Automations (both personal and home)
+		// gneral fault
+		this.televisionService.getCharacteristic(Characteristic.StatusFault)
+			.on('get', this.getStatusFault.bind(this));
+		
+		// set-top box in use
+		this.televisionService.getCharacteristic(Characteristic.InUse)
+			.on('get', this.getInUse.bind(this));
+
+		// current program mode (recording scheduled, not scheduled)
+		this.televisionService.getCharacteristic(Characteristic.ProgramMode)
+			.on('get', this.getProgramMode.bind(this));
+
+		// current StatusActive state
+		this.televisionService.getCharacteristic(Characteristic.StatusActive)
+			.on('get', this.getStatusActive.bind(this));
+
+		// current InputDeviceType state
+		this.televisionService.getCharacteristic(Characteristic.InputDeviceType)
+			.on('get', this.getInputDeviceType.bind(this));
+
+
 
 
 		// actively controled charateristics in the current Apple TV Remote app
@@ -2512,7 +2748,7 @@ class stbDevice {
 				.setCharacteristic(Characteristic.Identifier, i)
 				.setCharacteristic(Characteristic.Name, chFixedName)
 				.setCharacteristic(Characteristic.ConfiguredName, chName || `Input ${i < 9 ? `0${i}` : i}`)
-				.setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.APPLICATION)
+				.setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.APPLICATION) 
 				.setCharacteristic(Characteristic.InputDeviceType, Characteristic.InputDeviceType.TV)
 				.setCharacteristic(Characteristic.IsConfigured, configState)
 				.setCharacteristic(Characteristic.CurrentVisibilityState, visState)
@@ -2582,20 +2818,23 @@ class stbDevice {
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// update the device state changed to async
-	async updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, callback) {
-		try {
+	//async updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, callback) {
+	async updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, inputDeviceType, inputSourceType, callback) {
+			try {
 			// runs at the very start, and then every few seconds, so don't log it unless debugging
 			// doesn't get the data direct from the settop box, but rather: gets it from the this.currentPowerState and this.currentChannelId variables
 			// which are received by the mqtt messages, which occurs very often
 			if (this.config.debugLevel > 0) {
-				this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], recordingState %s [%s], channelId %s, sourceType %s, profileDataChanged %s', 
+				this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], recordingState %s [%s], channelId %s, sourceType %s, profileDataChanged %s, statusFault %s [%s], programMode %s [%s]', 
 					this.name, 
 					powerState, 
 					mediaState, mediaStateName[mediaState], 
 					recordingState, recordingStateName[recordingState], 
 					channelId,
 					sourceType,
-					profileDataChanged
+					profileDataChanged,
+					statusFault, statusFaultName[statusFault], 
+					programMode, programModeName[programMode]
 				);
 			}
 
@@ -2605,19 +2844,34 @@ class stbDevice {
 				configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
 			}
 
-			// grab the current states and place in previous state
-			this.previousPowerState = this.currentPowerState;
-			this.previousRecordingState = this.currentRecordingState;
-			this.previousPictureMode = this.currentPictureMode;
-			this.previousClosedCaptionsState = this.currentClosedCaptionsState;
+			
+
+			
 
 			// grab the input variables
 			if (powerState != null) { this.currentPowerState = powerState; }
 			if (mediaState != null) { this.currentMediaState = mediaState; }
+			if (recordingState != null) { this.currentRecordingState = recordingState; }
 			if (channelId != null) { this.currentChannelId = channelId; }
 			if (sourceType != null) { this.currentSourceType = sourceType; }
-			if (recordingState != null) { this.currentRecordingState = recordingState; }
 			this.profileDataChanged = profileDataChanged || false;
+			if (statusFault != null) { this.currentStatusFault = statusFault; }
+			if (programMode != null) { this.currentProgramMode = programMode; }
+			if (statusActive != null) { this.currentStatusActive = statusActive; }
+			if (inputDeviceType != null) { this.currentInputDeviceType = inputDeviceType; }
+			if (inputSourceType != null) { this.currentInputSourceType = inputSourceType; }
+			
+			
+			
+			// set the inUse state as a combination of power state and recording state. Added from v1.2.1
+			// 1 (IN_USE) when box is on or is recording 
+			// 0 (NOT_IN_USE) when box is off and not recording
+			if ((this.currentPowerState == Characteristic.Active.ACTIVE) || (this.currentRecordingState == 2)) {  // 2=ONGOING_LOCALDVR
+				this.currentInUse = Characteristic.InUse.IN_USE;
+			} else {
+				this.currentInUse = Characteristic.InUse.NOT_IN_USE;
+			}
+
 
 			// profile data is stored on the platform
 			// get the currentClosedCaptionsState from the currently selected profile (stored in this.profileid)
@@ -2635,7 +2889,7 @@ class stbDevice {
 					curChannel = this.platform.masterChannelList.find(channel => channel.channelId === this.currentChannelId ); 
 					if (curChannel) { currentChannelName = curChannel.channelName; }
 				}
-				this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentRecordingState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s], currentPictureMode %s [%s], profileDataChanged %s', 
+				this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentRecordingState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s], currentPictureMode %s [%s], profileDataChanged %s, currentStatusFault %s [%s], currentProgramMode %s [%s], currentStatusActive %s', 
 					this.name, 
 					this.currentPowerState, 
 					this.currentMediaState, mediaStateName[this.currentMediaState], 
@@ -2644,7 +2898,10 @@ class stbDevice {
 					this.currentSourceType,
 					this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState],
 					this.currentPictureMode, pictureModeName[this.currentPictureMode],
-					this.profileDataChanged
+					this.profileDataChanged,
+					this.currentStatusFault, statusFaultName[this.currentStatusFault],
+					this.currentProgramMode, programModeName[this.currentProgramMode],
+					this.currentStatusActive
 				);
 			}
 
@@ -2655,6 +2912,7 @@ class stbDevice {
 			// change only if configured, and update only if changed
 			if (this.televisionService) {
 
+				
 				// set device name if changed, it may have changed due to personalisation update
 				// new name is always in this.device.settings.deviceFriendlyName; 
 				//this.log('updateDeviceState this.name %s, this.device.settings.deviceFriendlyName %s', this.name, this.device.settings.deviceFriendlyName );
@@ -2672,6 +2930,28 @@ class stbDevice {
 					this.televisionService.getCharacteristic(Characteristic.ConfiguredName).updateValue(currentDeviceName);
 				}
 				
+				// check for change of StatusFault state
+				if (this.previousStatusFault !== this.currentStatusFault) {
+					this.log('%s: Status Fault changed from %s [%s] to %s [%s]', 
+						this.name,
+						this.previousStatusFault, statusFaultName[this.previousStatusFault],
+						this.currentStatusFault, statusFaultName[this.currentStatusFault]);
+				}
+				this.televisionService.getCharacteristic(Characteristic.StatusFault).updateValue(this.currentStatusFault);
+				this.previousStatusFault = this.currentStatusFault;
+	
+
+				// check for change of StatusActive state
+				if (this.previousStatusActive !== this.currentStatusActive) {
+					this.log('%s: Status Active changed from %s [%s] to %s [%s]', 
+						this.name,
+						this.previousStatusActive, statusActiveName[this.previousStatusActive],
+						this.currentStatusActive, statusActiveName[this.currentStatusActive]);
+				}
+				this.televisionService.getCharacteristic(Characteristic.StatusActive).updateValue(this.currentStatusActive);
+				this.previousStatusActive = this.currentStatusActive;
+
+
 				// check for change of power state
 				// The accessory changes state immediately, and the box takes time to catch up
 				// so store an old box state so we have something to log
@@ -2686,6 +2966,19 @@ class stbDevice {
 						this.currentPowerState, powerStateName[this.currentPowerState]);
 				}
 				this.televisionService.getCharacteristic(Characteristic.Active).updateValue(this.currentPowerState);
+				this.previousPowerState = this.currentPowerState;
+
+
+				// check for change of InUse state
+				if (this.previousInUse !== this.currentInUse) {
+					this.log('%s: In Use changed from %s [%s] to %s [%s]', 
+						this.name,
+						this.previousInUse, inUseName[this.previousInUse],
+						this.currentInUse, inUseName[this.currentInUse]);
+				}
+				this.televisionService.getCharacteristic(Characteristic.InUse).updateValue(this.currentInUse);
+				this.previousInUse = this.currentInUse;
+
 
 				// check for change of closed captions state
 				//this.log("Previous closed captions state: %s %s", this.previousClosedCaptionsState, closedCaptionsStateName[this.previousClosedCaptionsState]);
@@ -2698,6 +2991,7 @@ class stbDevice {
 						this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]);
 				}
 				this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).updateValue(this.currentClosedCaptionsState);
+				this.previousClosedCaptionsState = this.currentClosedCaptionsState;
 
 
 				// check for change of picture mode or recordingState (both stored in picture mode)
@@ -2713,6 +3007,7 @@ class stbDevice {
 					}
 					//this.log("configDevice.customPictureMode found %s, setting PictureMode to %s", (configDevice || {}).customPictureMode, this.currentRecordingState);
 					this.customPictureMode = this.currentRecordingState;
+					this.previousRecordingState = this.currentRecordingState;
 				} else {
 					// PictureMode is used for default function: pictureMode
 					//this.log("previousPictureMode", this.previousPictureMode);
@@ -2725,11 +3020,46 @@ class stbDevice {
 					}
 					//this.log("configDevice.customPictureMode not found %s, setting PictureMode to %s", (configDevice || {}).customPictureMode, this.currentPictureMode);
 					this.customPictureMode = this.currentPictureMode;
+					this.previousPictureMode = this.currentPictureMode;
 				}
 				//this.log("setting PictureMode to %s", this.customPictureMode);
 				this.televisionService.getCharacteristic(Characteristic.PictureMode).updateValue(this.customPictureMode);
 
 
+				// check for change of ProgramMode state
+				if (this.previousProgramMode !== this.currentProgramMode) {
+					this.log('%s: Program Mode changed from %s [%s] to %s [%s]', 
+						this.name,
+						this.previousProgramMode, programModeName[this.previousProgramMode],
+						this.currentProgramMode, programModeName[this.currentProgramMode]);
+				}
+				this.televisionService.getCharacteristic(Characteristic.ProgramMode).updateValue(this.currentProgramMode);
+				this.previousProgramMode = this.currentProgramMode;
+
+
+				// check for change of InputSourceType state
+				// this is part of inputService which is an array... need to adapt code to get it to work properly
+				/*
+				if (this.previousInputSourceType !== this.currentInputSourceType) {
+					this.log('%s: Input Source Type changed from %s [%s] to %s [%s]', 
+						this.name,
+						this.previousInputSourceType, inputSourceTypeName[this.previousInputSourceType],
+						this.currentInputSourceType, inputSourceTypeName[this.currentInputSourceType]);
+				}
+				//this.televisionService.inputService.getCharacteristic(Characteristic.InputSourceType).updateValue(this.currentInputSourceType); // generates Homebridge warning
+				this.previousInputSourceType = this.currentInputSourceType;
+				*/
+
+
+				// check for change of InputDeviceType state
+				if (this.previousInputDeviceType !== this.currentInputDeviceType) {
+					this.log('%s: Input Device Type changed from %s [%s] to %s [%s]', 
+						this.name,
+						this.previousInputDeviceType, inputDeviceTypeName[this.previousInputDeviceType],
+						this.currentInputDeviceType, inputDeviceTypeName[this.currentInputDeviceType]);
+				}
+				this.televisionService.getCharacteristic(Characteristic.InputDeviceType).updateValue(this.currentInputDeviceType);
+				this.previousInputDeviceType = this.currentInputDeviceType;
 
 
 				// check for change of active identifier (channel)
@@ -2792,7 +3122,9 @@ class stbDevice {
 						oldActiveIdentifier, oldName,
 						currentActiveIdentifier, newName);
 					this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(currentActiveIdentifier);
+					this.previousActiveIdentifier = this.currentActiveIdentifier;
 				}
+
 
 				// check for change of current media state
 				var oldMediaState = this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).value;
@@ -2803,6 +3135,7 @@ class stbDevice {
 						this.currentMediaState, mediaStateName[this.currentMediaState]);
 				}
 				this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.currentMediaState);
+				this.previousMediaState = this.currentMediaState;
 
 				// check for change of profile
 				if (this.profileDataChanged) {
@@ -3639,6 +3972,68 @@ class stbDevice {
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setDisplayOrder displayOrder',this.name, displayOrder); }
 		callback(null);
 	}
+
+	// get status fault
+	async getStatusFault(callback) {
+		// useful in Shortcuts and Automations
+		// log the status fault 
+		if (this.config.debugLevel > 1) { 
+			this.log.warn('%s: getStatusFault returning %s [%s]', this.name, this.currentStatusFault, statusFaultName[this.currentStatusFault]);
+		}
+		callback(null, this.currentStatusFault);
+	}
+
+	// get in use
+	async getInUse(callback) {
+		// useful in Shortcuts and Automations
+		// log the in use value
+		if (this.config.debugLevel > 1) { 
+			this.log.warn('%s: getInUse returning %s [%s]', this.name, this.currentInUse, inUseName[this.currentInUse]);
+		}
+		callback(null, this.currentInUse);
+	}
+
+	// get program mode (recording scheduled, not scheduled)
+	async getProgramMode(callback) {
+		// useful in Shortcuts and Automations
+		// log the program mode value 
+		if (this.config.debugLevel > 1) { 
+			this.log.warn('%s: getProgramMode returning %s [%s]', this.name, this.currentProgramMode, programModeName[this.currentProgramMode]);
+		}
+		callback(null, this.currentProgramMode);
+	}
+
+	// get StatusActive state
+	async getStatusActive(callback) {
+		// useful in Shortcuts and Automations
+		// log the StatusActive value 
+		if (this.config.debugLevel > 1) { 
+			this.log.warn('%s: getStatusActive returning %s [%s]', this.name, this.currentStatusActive, statusActiveName[this.currentStatusActive]);
+		}
+		callback(null, this.currentStatusActive);
+	}
+
+	// get InputSourceType state
+	async getInputSourceType(callback) {
+		// useful in Shortcuts and Automations
+		// log the InputSourceType value 
+		if (this.config.debugLevel > 1) { 
+			this.log.warn('%s: getInputSourceType returning %s [%s]', this.name, this.currentInputSourceType, inputSourceTypeName[this.currentInputSourceType]);
+		}
+		callback(null, 0);
+	}
+
+	// get InputDeviceType state
+	async getInputDeviceType(callback) {
+		// useful in Shortcuts and Automations
+		// log the InputDeviceType value 
+		if (this.config.debugLevel > 1) { 
+			this.log.warn('%s: getInputDeviceType returning %s [%s]', this.name, this.currentInputDeviceType, inputDeviceTypeName[this.currentInputDeviceType]);
+		}
+		callback(null, 0);
+	}
+
+
 
 	// set remote key
 	async setRemoteKey(remoteKey, callback) {
