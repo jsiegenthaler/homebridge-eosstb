@@ -352,6 +352,7 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
         {
             "channelId": "netflix",
             "channelName": "Netflix"
+        }
     ]
 ```
  
@@ -361,7 +362,7 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
         {
             "channelId": "1755",
             "channelName": "Netflix"
-           },
+        },
         {
             "channelId": "2054",
             "channelName": "Prime Video"
@@ -375,6 +376,7 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
         {
             "channelId": "SVO9690",
             "channelName": "Netflix"
+        }
     ]
 ```
 
@@ -384,6 +386,7 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
         {
             "channelId": "NL_000073_019506",
             "channelName": "Netflix"
+        }
     ]
 ```
 
