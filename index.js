@@ -421,7 +421,7 @@ class stbPlatform {
 		}
 
 
-		if (this.config.debugLevel > 1) { 
+		if (this.config.debugLevel > 0) { 
 			statusOverview = statusOverview + ' sessionState=' + sessionStateName[currentSessionState]
 			statusOverview = statusOverview + ' mqttState=' + mqttStateName[this.currentMqttState]
 			statusOverview = statusOverview + ' mqttClient.connected=' + mqttClient.connected
