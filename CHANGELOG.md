@@ -13,6 +13,11 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.4.0-beta1 (2022-04-09)
+* Added support for new EOS2STB set-top box: HUMAX 2008C-STB-TN
+* Added extra keywords to package.json
+
+
 ## 1.3.0 (2022-03-26)
 * Added extra characteristics (StatusActive, StatusFault, InUse, ProgramMode, InputDeviceType) for use in Shortcuts and Automations
 * Improved Watchdog, cause of failing reconnects has finally been resolved
