@@ -13,7 +13,7 @@ If you used custom channels, you must updated your config when updating from 1.1
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.4.0-beta1 (2022-04-09)
+## 1.4.0-beta2 (2022-04-09)
 * Added support for new EOS2STB set-top box: HUMAX 2008C-STB-TN
 * Added extra keywords to package.json
 
