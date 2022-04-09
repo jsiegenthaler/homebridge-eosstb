@@ -2494,8 +2494,6 @@ class stbDevice {
 
 		const ver = PLUGIN_VERSION.split("-");
 		const deviceType = this.device.deviceId.split("-");
-		this.log('prepareAccessoryInformationService: DEBUG: this.device.deviceId',this.device.deviceId);
-		this.log('prepareAccessoryInformationService: DEBUG: deviceType[0-2]',deviceType[0], deviceType[1], deviceType[2]);
 
 		switch (deviceType[0]) {
 			// 000378-EOSSTB-003893xxxxxx Ireland
@@ -2505,13 +2503,11 @@ class stbDevice {
 				switch (deviceType[1]) {
 					case 'EOS2STB':
 						// new EOS2STB released March 2022 is a HUMAX 2008C-STB-TN
-						this.log('prepareAccessoryInformationService: DEBUG: EOS2STB detected');
 						manufacturer = 'HUMAX [' + (this.device.platformType || '') + ']'; 
 						model = '2008C-STB-TN [' + (this.device.deviceType || '') + ']';
 						break;
 					case 'EOSSTB':
 					default:
-						this.log('prepareAccessoryInformationService: DEBUG: EOSSTB (default) detected');
 						manufacturer = 'ARRIS [' + (this.device.platformType || '') + ']'; // NL uses EOS as platformType
 						model = 'DCX960 [' + (this.device.deviceType || '') + ']'; // NL has no deviceType in their device settings
 						break;
