@@ -388,6 +388,10 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
         {
             "channelId": "NL_000073_019506",
             "channelName": "Netflix"
+        },
+        {
+            "channelId": "NL_000210_019505",
+            "channelName": "Viaplay"
         }
     ]
 ```
