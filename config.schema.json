@@ -2,7 +2,7 @@
     "pluginAlias": "eosstb",
     "pluginType": "platform",
     "singular": true,
-    "headerDisplay": "Homebridge plugin for the [ARRIS DCX960 EOSSTB](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md).",
+    "headerDisplay": "Homebridge plugin for the [ARRIS DCX960 EOSSTB and the HUMAX 2008C-STB-TN EOS2STB](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md).",
     "footerDisplay": "For a detailed description, see [this version's README](https://www.npmjs.com/package/homebridge-eosstb), or [the current README](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration) and the [Wiki](https://github.com/jsiegenthaler/homebridge-eosstb/wiki).",
     "schema": {
       "type": "object",
