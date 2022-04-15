@@ -192,8 +192,6 @@ The eosstb plugin can detect the current recording state of the set-top box, bot
 The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 14.4) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ## Configuration
-Note that the config changed from 0.1.13 to 1.0.0. If you are updating, please make sure your config matches the examples shown here.
-
 Add a new platform to the platforms section of your homebridge `config.json`.
 
 Example minimum (mandatory) configuration:
