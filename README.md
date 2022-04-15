@@ -62,9 +62,9 @@ May also work with other UPC countries, if you know of any, let me know.
 This plugin was written and tested on the author's set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) running on Sunrise UPC TV in Switzerland. It has also been extensively tested on Telenet in Belgium (also on the 2nd generation HUMAX 2008C-STB-TN), Virgin Media in Great Britain and Ireland, and Ziggo in the Netherlands.
 
 ## Why I chose the Name EOSSTB
-I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, uses an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. I stuck with the box identifier that appears in the mqtt messages: EOSSTB. 
+I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, originally used an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. I stuck with the box identifier that appears in the mqtt messages: EOSSTB. 
 
-In March 2022, a newer version of the set-top box has started to appear in Telenet in Belgium: a HUMAX 2008C-STB-TN, which identifies itself as EOS2STB. However, I will keep the  plugin name unchanged at EOSSTB. 
+In March 2022, a newer version of the set-top box has started to appear in Telenet in Belgium: a HUMAX 2008C-STB-TN, which identifies itself as EOS2STB. However, I will keep the plugin name unchanged at EOSSTB. 
 
 ## Disclaimer (The Legal Stuff)
 This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Ziggo any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. UPC can change their systems at any time and that might break this plugin. But I hope not.
