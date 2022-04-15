@@ -3,9 +3,6 @@ All notable changes to this project will be documented in this file.
 See the [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md) for full plugin documentation.
 Please restart Homebridge after every plugin update.
 
-# CONFIG CHANGES REQUIRED
-If you used custom channels, you must updated your config when updating from 1.1.3 to later versions. See the [configuration section in the Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration).
-
 # Bug Fixes and Improvements
 
 ## Current In-Work List (Future Releases)
@@ -16,6 +13,7 @@ If you used custom channels, you must updated your config when updating from 1.1
 ## 1.4.0 (2022-04-15)
 * Added support for new EOS2STB set-top box: HUMAX 2008C-STB-TN
 * Added extra keywords to package.json
+* Updated documentation
 
 
 ## 1.3.0 (2022-03-26)
