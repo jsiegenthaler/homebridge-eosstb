@@ -17,7 +17,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/jsiegenthaler/homebridge-eosstb)](https://github.com/jsiegenthaler/homebridge-eosstb/issues)
 [![donate](https://badgen.net/badge/donate/paypal/91BE09)](https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468)
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960 or HUMAX 2008C-STB-TN) running on the Magenta AT / Telenet BE / UPC CH / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960 or HUMAX 2008C-STB-TN) running on the Magenta AT / Telenet BE / Sunrise UPC CH / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
 <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="left">
 This plugin displays your set-top box as a Set-Top Box accessory with power, channel and remote-control capabilities on your iOS device (iPhone, iPad, iMac, etc.).
@@ -62,12 +62,12 @@ May also work with other UPC countries, if you know of any, let me know.
 This plugin was written and tested on the author's set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) running on Sunrise UPC TV in Switzerland. It has also been extensively tested on Telenet in Belgium (also on the 2nd generation HUMAX 2008C-STB-TN), Virgin Media in Great Britain and Ireland, and Ziggo in the Netherlands.
 
 ## Why I chose the Name EOSSTB
-I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, uses an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. I stuck with the box identifier that appears in the mqtt messages: EOSSTB. 
+I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, originally used an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. I stuck with the box identifier that appears in the mqtt messages: EOSSTB. 
 
-In March 2022, a newer version of the set-top box has started to appear in Telenet in Belgium: a HUMAX 2008C-STB-TN, which identifies itself as EOS2STB. However, I will keep the  plugin name unchanged at EOSSTB. 
+In March 2022, a newer version of the set-top box has started to appear in Telenet in Belgium: a HUMAX 2008C-STB-TN, which identifies itself as EOS2STB. However, I will keep the plugin name unchanged at EOSSTB. 
 
 ## Disclaimer (The Legal Stuff)
-This plugin is not provided by Magenta or Telenet or UPC or Virgin Media or Ziggo any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. UPC can change their systems at any time and that might break this plugin. But I hope not.
+This plugin is not provided by Magenta or Telenet or Sunrise UPC or Virgin Media or Ziggo any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. UPC can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
 * An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1...15.4, earlier versions not tested.
@@ -192,8 +192,6 @@ The eosstb plugin can detect the current recording state of the set-top box, bot
 The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 14.4) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ## Configuration
-Note that the config changed from 0.1.13 to 1.0.0. If you are updating, please make sure your config matches the examples shown here.
-
 Add a new platform to the platforms section of your homebridge `config.json`.
 
 Example minimum (mandatory) configuration:
