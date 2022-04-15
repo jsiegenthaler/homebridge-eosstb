@@ -2497,12 +2497,26 @@ class stbDevice {
 
 		switch (deviceType[0]) {
 			// 000378-EOSSTB-003893xxxxxx Ireland
+			// 3C36E4-EOSSTB-003792xxxxxx  Belgium
+			// 000378-EOS2STB-008420xxxxxx Belgium
 			case '3C36E4': case '000378':
-				manufacturer = 'ARRIS [' + (this.device.platformType || '') + ']'; // NL uses EOS as platformType
-				model = 'DCX960 [' + (this.device.deviceType || '') + ']'; // NL has no deviceType in their device settings
+				switch (deviceType[1]) {
+					case 'EOS2STB':
+						// new EOS2STB released March 2022 is a HUMAX 2008C-STB-TN
+						manufacturer = 'HUMAX [' + (this.device.platformType || '') + ']'; 
+						model = '2008C-STB-TN [' + (this.device.deviceType || '') + ']';
+						break;
+					case 'EOSSTB':
+					default:
+						manufacturer = 'ARRIS [' + (this.device.platformType || '') + ']'; // NL uses EOS as platformType
+						model = 'DCX960 [' + (this.device.deviceType || '') + ']'; // NL has no deviceType in their device settings
+						break;
+				}
+				// EOSSTB and EOS2STB both use deviceId as serial number
 				serialnumber = this.device.deviceId; // same as shown on TV
 				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
 				break;
+
 			default:
 				manufacturer = this.device.platformType || PLATFORM_NAME;
 				model = this.device.deviceType || PLUGIN_NAME;
