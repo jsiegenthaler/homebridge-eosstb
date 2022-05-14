@@ -10,6 +10,11 @@ Please restart Homebridge after every plugin update.
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.4.2-beta1 (2022-05-14)
+* Updated description and keywords in package.json
+* Bumped dependencies (axios-cookiejar-support)
+
+
 ## 1.4.1 (2022-04-30)
 * Updated config.schema to reference the HUMAX 2008C-STB-TN
 * Bumped dependencies (Homebridge, axios)
