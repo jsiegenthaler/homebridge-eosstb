@@ -26,7 +26,7 @@
             { "title": "AT: Magenta TV", "enum": ["at"] },
             { "title": "BE-FR:  Telenet TV", "enum": ["be-fr"] },
             { "title": "BE-NL:  Telenet TV", "enum": ["be-nl"] },
-            { "title": "CH:  Sunrise UPC TV", "enum": ["ch"] },
+            { "title": "CH:  Sunrise TV", "enum": ["ch"] },
             { "title": "CZ", "enum": ["cz"] },
             { "title": "DE", "enum": ["de"] },
             { "title": "GB:  Virgin Media TV 360", "enum": ["gb"] },

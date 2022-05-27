@@ -1,12 +1,12 @@
 {
   "name": "homebridge-eosstb",
   "displayName": "Homebridge EOSSTB",
-  "description": "homebridge-plugin - Add your set-top box to Homekit (for Magenta AT, Telenet BE, Sunrise UPC CH, Virgin Media GB & IE, Ziggo NL)",
+  "description": "homebridge-plugin - Add your set-top box to Homekit (for Magenta AT, Telenet BE, Sunrise CH, Virgin Media GB & IE, Ziggo NL)",
   "author": "Jochen Siegenthaler (https://github.com/jsiegenthaler/)",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "platformname": "eosstb",
   "dependencies": {
-    "axios-cookiejar-support": "^4.0.1",
+    "axios-cookiejar-support": "^4.0.2",
     "axios": "^0.27.2",
     "mqtt": "^4.3.7",
     "qs": "^6.10.3",
@@ -15,7 +15,7 @@
   "deprecated": false,
   "engines": {
     "homebridge": ">=1.4.1",
-    "node": ">=16.14.2"
+    "node": ">=16.15.0"
   },
   "homepage": "https://github.com/jsiegenthaler/homebridge-eosstb#readme",
   "keywords": [
@@ -34,6 +34,12 @@
     "Sunrise UPC Suisse",
     "Sunrise UPC TV",
     "Sunrise UPC TV Box",
+    "Sunrise CH",
+    "Sunrise Switzerland",
+    "Sunrise Schweiz",
+    "Sunrise Suisse",
+    "Sunrise TV",
+    "Sunrise TV Box",
     "Ziggo",
     "Ziggo Next",
     "Telenet",

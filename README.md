@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/DCX960andRemoteSmall.jpg" alt="UPC TV Box (ARRIS DCX960)" height="300" align="center"><br>
+    <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/DCX960andRemoteSmall.jpg" alt="Sunrise TV Box (ARRIS DCX960)" height="300" align="center"><br>
     <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/RoomWithEosstb.png" alt="RoomWithEosstb" height="300" align="center">
     <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbControls.png" alt="EosstbControls" height="300" align="center">
     <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="300" align="center">
@@ -17,14 +17,14 @@
 [![GitHub issues](https://img.shields.io/github/issues/jsiegenthaler/homebridge-eosstb)](https://github.com/jsiegenthaler/homebridge-eosstb/issues)
 [![donate](https://badgen.net/badge/donate/paypal/91BE09)](https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468)
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960 or HUMAX 2008C-STB-TN) running on the Magenta AT / Telenet BE / Sunrise UPC CH / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960 or HUMAX 2008C-STB-TN) running on the Magenta AT / Telenet BE / Sunrise CH / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
 <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="left">
 This plugin displays your set-top box as a Set-Top Box accessory with power, channel and remote-control capabilities on your iOS device (iPhone, iPad, iMac, etc.).
 
 
 You need a subscription to the online TV service from your local TV provider.
-The username and password are the same as used in the TV provider's TV app on your iOS device (the app varies by country; in Switzerland it is [Sunrise UPC TV](https://apps.apple.com/ch/app/upc-tv-schweiz/id1292688012)).
+The username and password are the same as used in the TV provider's TV app on your iOS device (the app varies by country; in Switzerland it is [Sunrise TV](https://apps.apple.com/ch/app/sunrise-tv/id1292688012)).
 
 Supports multiple set-top boxes, should you have more than one.
 
@@ -34,13 +34,13 @@ If you like this plugin, consider making a donation or buying me a coffee!<br>
 ## Readme Applicability
 Due to the adding of features and functions, this Readme applies from v1.1.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
 
-# Works in Your Country (If you are with Magenta / Telenet / Sunrise UPC / Virgin Media / Vodafone / Ziggo)
+# Works in Your Country (If you are with Magenta / Telenet / Sunrise / Virgin Media / Vodafone / Ziggo)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 or HUMAX 2008C-STB-TN set-top box are:
 
 | Country | TV Provider | Web App | Box Name | Plugin Status |
 | ------- | ----------- | ------- | -------- | ------------- |
 | BE | [Telenet](https://www2.telenet.be/) | [Telenet TV](https://www.telenettv.be/nl.html) | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/) | Fully Working |
-| CH | [Sunrise UPC](https://www.upc.ch/en/) | [Sunrise UPC TV](https://www.sunriseupctv.ch/en.html) | [UPC TV Box](https://www.upc.ch/en/television/learn-about-tv/tv/)* | Fully Working |
+| CH | [Sunrise](https://www.sunrise.ch/en/) | [Sunrise TV](https://www.sunrisetv.ch/en.html) | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription)* | Fully Working |
 | GB | [Virgin Media](https://www.virginmedia.com/) | [Magenta TV](https://www.magentatv.at/de.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | Fully Working |
 | IE | [Virgin Media](https://www.virginmedia.ie/) | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/) | Fully Working |
 | NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo Go](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | Fully Working |
@@ -59,7 +59,7 @@ If you subscribe to a TV service from one of these countries, you are lucky, thi
 May also work with other UPC countries, if you know of any, let me know.
 
 ## Made in Switzerland
-This plugin was written and tested on the author's set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) running on Sunrise UPC TV in Switzerland. It has also been extensively tested on Telenet in Belgium (also on the 2nd generation HUMAX 2008C-STB-TN), Virgin Media in Great Britain and Ireland, and Ziggo in the Netherlands.
+This plugin was written and tested on the author's set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) running on Sunrise TV in Switzerland. It has also been extensively tested on Telenet in Belgium (also on the 2nd generation HUMAX 2008C-STB-TN), Virgin Media in Great Britain and Ireland, and Ziggo in the Netherlands.
 
 ## Why I chose the Name EOSSTB
 I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, originally used an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. I stuck with the box identifier that appears in the mqtt messages: EOSSTB. 
@@ -67,10 +67,10 @@ I tried to find a good common name that works for this plugin for all countries.
 In March 2022, a newer version of the set-top box has started to appear in Telenet in Belgium: a HUMAX 2008C-STB-TN, which identifies itself as EOS2STB. However, I will keep the plugin name unchanged at EOSSTB. 
 
 ## Disclaimer (The Legal Stuff)
-This plugin is not provided by Magenta or Telenet or Sunrise UPC or Virgin Media or Ziggo any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. UPC can change their systems at any time and that might break this plugin. But I hope not.
+This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or Ziggo any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. UPC can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
-* An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1...15.4, earlier versions not tested.
+* An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1...15.5, earlier versions not tested.
 * [Homebridge](https://homebridge.io/) v1.4.1 (or later). Developed on Homebridge 1.1.116....1.4.1, earlier versions not tested.
 * A TV subscription from one of the supported countries and TV providers.
 * An online account for viewing TV in the web app (often part of your TV package), see the table above.
@@ -222,7 +222,7 @@ Example extended configuration as used on the author with his Samsung TV (where 
             "devices": [
                 {
                     "deviceId": "3C36E4-EOSSTB-00365657xxxx",
-                    "name": "Sunrise UPC TV",
+                    "name": "Sunrise TV",
                     "syncName": true,
                     "profile": "Dad",
                     "accessoryCategory": "settopbox",
@@ -370,7 +370,7 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
     ]
 ```
 
-* UPC CH: 
+* Sunrise CH: 
 ```js
     "channels": [
         {
