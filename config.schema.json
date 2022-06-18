@@ -158,8 +158,8 @@
                     "firmwareRevision": {
                         "title": "Firmware",
                         "type": "string",
-                        "description": "The firmware version to display in the Home app. Numbers only eg 4.35. Default: plugin version.",
-                        "placeholder": "4.35",
+                        "description": "The firmware version to display in the Home app. Numbers only eg 4.40. Default: plugin version.",
+                        "placeholder": "4.40",
                         "pattern": "^(\\d+)((\\.{1}\\d+)*)(\\.{0})$"
                     },       
                     
