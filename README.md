@@ -235,7 +235,7 @@ Example extended configuration as used on the author with his Samsung TV (where 
                     "manufacturer": "ARRIS",
                     "modelName": "DCX960",
                     "serialNumber": "123456",
-                    "firmwareRevision": "4.31",
+                    "firmwareRevision": "4.40",
                     "showChannelNumbers": false,
                     "maxChannels": 50
                 },
