@@ -11,6 +11,7 @@ Please restart Homebridge after every plugin update.
 
 
 ## 1.4.4 (2022-06-18)
+* Small updates to README.md and config.schema.json
 * Bumped dependencies (node, qs)
 
 
