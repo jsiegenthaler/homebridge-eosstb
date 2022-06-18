@@ -10,9 +10,14 @@ Please restart Homebridge after every plugin update.
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.4.4 (2022-06-18)
+* Bumped dependencies (node, qs)
+
+
 ## 1.4.3 (2022-05-27)
 * Bumped dependencies (node, axios-cookiejar-support)
 * Updated brand names from UPC TV to Sunrise TV for Switzerland
+
 
 ## 1.4.2 (2022-05-14)
 * Updated description and keywords in package.json
