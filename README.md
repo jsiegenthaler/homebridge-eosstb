@@ -34,7 +34,7 @@ If you like this plugin, consider making a donation or buying me a coffee!<br>
 ## Readme Applicability
 Due to the adding of features and functions, this Readme applies from v1.1.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
 
-# Works in Your Country (If you are with Magenta / Telenet / Sunrise / Virgin Media / Vodafone / Ziggo)
+# Works in Your Country (If you are with Magenta / Sunrise / Telenet / Virgin Media / Vodafone / Ziggo)
 As UPC operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 or HUMAX 2008C-STB-TN set-top box are:
 
 | Country | TV Provider | Web App | Box Name | Plugin Status |
