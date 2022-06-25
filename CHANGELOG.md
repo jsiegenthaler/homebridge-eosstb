@@ -10,6 +10,10 @@ Please restart Homebridge after every plugin update.
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.4.5 (2022-06-25)
+* Bumped dependencies (homebridge)
+
+
 ## 1.4.4 (2022-06-18)
 * Small updates to version references in README.md and config.schema.json
 * Bumped dependencies (node, qs)
