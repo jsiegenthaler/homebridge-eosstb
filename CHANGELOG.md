@@ -10,6 +10,11 @@ Please restart Homebridge after every plugin update.
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
+## 1.4.9 (2022-08-23)
+* Bumped dependencies (node, tough-cookie, axios-cookiejar-support)
+* Updated default software version in config.schema.json
+
+
 ## 1.4.8 (2022-07-24)
 * Updated iOS version references in README.md
 
