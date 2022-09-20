@@ -109,7 +109,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
-* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 15.6). Hopefully, Apple will add support for these features in the future. You can however use this data in the Shortcuts app.
+* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 16.0). Hopefully, Apple will add support for these features in the future. You can however use this data in the Shortcuts app.
 
 
 
@@ -183,13 +183,13 @@ Services used in this set-top box accessory are:
 The eosstb plugin emulates the TV service web app. If the web app is started on a web browser on a laptop or PC, the backend systems may prefer the web app to HomeKit, and disconnect HomeKit from the mqtt session. The mqtt session will try and reconnect if it gets disconnected.
 
 ### Media State (Play/Pause) Limitations
-The eosstb plugin can detect the current and target media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 15.6) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
+The eosstb plugin can detect the current and target media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 16.0) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ### Recording State Limitations
 The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but a eosstb config option **customPictureMode** allows you to use the PictureMode to read the recording state in  Shortcuts or Automations.
 
 ### Closed Captions Limitations
-The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 15.6) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
+The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 16.0) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ## Configuration
 Add a new platform to the platforms section of your homebridge `config.json`.
