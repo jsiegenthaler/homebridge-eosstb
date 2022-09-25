@@ -21,7 +21,7 @@
 
 | iOS 16 Accessory Tiles | Older iOS/iPadOS Accessory Tiles |
 |   :---:   |   :---:   |
-| <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="center"> | <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTileiOS15.png" alt="EosstbAccessoryTileiOS15" height="80" align="center"> |
+| <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="60" align="center"> | <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTileiOS15.png" alt="EosstbAccessoryTileiOS15" height="80" align="center"> |
 
 
 This plugin displays your set-top box as a Set-Top Box accessory with power, channel and remote-control capabilities on your iOS device (iPhone, iPad, iMac, etc.).
@@ -141,7 +141,7 @@ The set-top box accessory is exposed as a separate external accessory and each s
 11. **Set-Top Box Automations**: Switch on any suggested automations if you wish (you can change these in the Home app later) and tap **Continue**.
 12. **Set-Top Box Added to \<HomeName\>**: Tap **Done** to finish the setup.
 
-<img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="left">
+<img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="60" align="left">
 Your new accessory will appear shortly in the room that you selected. It may show **Updating...** for a few minutes as it loads all the data.
 
 You can force a Home app refresh by switching to another room and then back again.
