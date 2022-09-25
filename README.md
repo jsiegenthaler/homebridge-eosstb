@@ -83,7 +83,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 * For GB and IE users: if using an ARRIS DCX960, it must be running the TV 360 software, and not the older TiVo V6 software as found in GB and IE. TiVo V6 is not supported by this plugin, but GB users can [upgrade to TV 360 by contacting Virgin Media](https://www.virginmedia.com/shop/customer/virgin-tv-360-upgrade).
 
 ## Features
-<img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbControls.png" alt="EosstbControls" height="300" align="right">
+<img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbControls.png" alt="EosstbControls" height="400" align="right">
 
 * **Full Remote-Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, fast-forward, rewind, channel up/down, volume and mute commands. All keys are fully configurable for single-tap and double-tap.
 
