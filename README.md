@@ -19,7 +19,11 @@
 
 `homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960 or HUMAX 2008C-STB-TN) running on the Magenta AT / Telenet BE / Sunrise CH / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
-<img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="left">
+| iOS 16 Accessory Tiles | Older iOS/iPadOS Accessory Tiles |
+|   :---:   |   :---:   |
+| <img src="https://github.com/jsiegenthaler/homebridge-samsungtvht/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="center"> | <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTileiOS15.png" alt="EosstbAccessoryTileiOS15" height="80" align="center"> |
+
+
 This plugin displays your set-top box as a Set-Top Box accessory with power, channel and remote-control capabilities on your iOS device (iPhone, iPad, iMac, etc.).
 
 
