@@ -1,7 +1,7 @@
 <p align="center">
     <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/DCX960andRemoteSmall.jpg" alt="Sunrise TV Box (ARRIS DCX960)" height="300" align="center"><br>
     <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/RoomWithEosstb.png" alt="RoomWithEosstb" height="300" align="center">
-    <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbControls.png" alt="EosstbControls" height="300" align="center">
+    <img style="border:5px solid black;" src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbControls.png" alt="EosstbControls" height="300" align="center">
     <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="300" align="center">
 
   </a>
