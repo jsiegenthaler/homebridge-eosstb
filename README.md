@@ -21,7 +21,7 @@
 
 | iOS 16 Accessory Tiles | Older iOS/iPadOS Accessory Tiles |
 |   :---:   |   :---:   |
-| <img src="https://github.com/jsiegenthaler/homebridge-samsungtvht/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="center"> | <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTileiOS15.png" alt="EosstbAccessoryTileiOS15" height="80" align="center"> |
+| <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="80" align="center"> | <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTileiOS15.png" alt="EosstbAccessoryTileiOS15" height="80" align="center"> |
 
 
 This plugin displays your set-top box as a Set-Top Box accessory with power, channel and remote-control capabilities on your iOS device (iPhone, iPad, iMac, etc.).
