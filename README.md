@@ -154,7 +154,7 @@ Make sure you select the correct device from the drop-down list at the top of th
 
 The following keys are supported by in the **Apple TV Remote** in the Control Center:
 
-<img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="300" align="right">
+<img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="400" align="right">
 
 | Key | Single Tap | Double Tap |
 | ------- | ----------- | ------- |
