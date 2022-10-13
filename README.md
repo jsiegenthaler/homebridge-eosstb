@@ -43,6 +43,8 @@ It appears that the system backend has changed. First noted on Thursday 13 Octob
 
 Initial investigations reveal that the change will need a large rewrite of the plugin. This may take some time.
 
+Please disable this plugin on your Homebridge until such time as I can issue a new version that works.
+
 
 
 ## Readme Applicability
