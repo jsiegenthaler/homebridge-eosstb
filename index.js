@@ -2721,7 +2721,7 @@ class stbDevice {
 		// index 0 is identifier 1, etc, needed for displayOrder
 		for (let i = 1; i <= maxSources; i++) {
 			if (this.config.debugLevel > 2) {
-				this.log.warn('prepareInputSourceServices Adding service',i, this.channelList[i-1].channelName);
+				this.log.warn('prepareInputSourceServices Adding service',i, (this.channelList[i-1] || {}).channelName);
 			}
 
 			// default values to hide the input if nothing exists in this.channelList
