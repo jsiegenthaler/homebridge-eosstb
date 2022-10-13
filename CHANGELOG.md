@@ -12,7 +12,8 @@ Please restart Homebridge after every plugin update.
 
 
 ## 1.4.10-beta.1 (2022-10-13)
-* Fixed Sunrise TV logon by changing endpoints from upctv to sunrisetv
+* Fixed crash when debugLevel > 2 (TypeError: Cannot read properties of undefined (reading 'channelName') in line 2724)
+* Improved Sunrise TV connection by changing endpoints from upctv to sunrisetv (done)
 * Bumped dependencies (node, tough-cookie) (done, not published)
 * Updated README.md to reference iOS 16.0 (done, not published)
 
