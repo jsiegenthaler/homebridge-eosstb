@@ -84,20 +84,20 @@ const mqttUrlArray = {
 };
 
 // profile url endpoints varies by country
-// https://prod.spark.upctv.ch/deu/web/personalization-service/v1/customer/{household_id}/devices
+// https://prod.spark.sunrisetv.ch/deu/web/personalization-service/v1/customer/{household_id}/devices
 // without terminating / 
 const personalizationServiceUrlArray = {
     'at':		'https://prod.spark.magentatv.at/deu/web/personalization-service/v1/customer/{householdId}',
     'be-fr':  	'https://prod.spark.telenettv.be/fr/web/personalization-service/v1/customer/{householdId}',
     'be-nl': 	'https://prod.spark.telenettv.be/nld/web/personalization-service/v1/customer/{householdId}',
-    'ch': 		'https://prod.spark.upctv.ch/eng/web/personalization-service/v1/customer/{householdId}',
+    'ch': 		'https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/{householdId}',
 	'cz':		'',
 	'de':		'',
     'gb':       'https://prod.spark.virginmedia.com/eng/web/personalization-service/v1/customer/{householdId}',
 	'hu':		'',
     'ie':       'https://prod.spark.virginmediatv.ie/eng/web/personalization-service/v1/customer/{householdId}',
     'nl': 		'https://prod.spark.ziggogo.tv/nld/web/personalization-service/v1/customer/{householdId}',
-    'pl': 		'https://prod.spark.upctv.pl/pol/web/personalization-service/v1/customer/{householdId}',
+    'pl': 		'https://prod.spark.unknown.pl/pol/web/personalization-service/v1/customer/{householdId}',
 	'sk':		'',
 	'ro':		''
 };
@@ -1407,7 +1407,7 @@ class stbPlatform {
 				parent.log("mqttClient: Connected: %s", mqttClient.connected);
 				parent.mqttClientConnecting = false;
 
-				// https://prod.spark.upctv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
+				// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
 				parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
 
 				// experimental support
@@ -2016,7 +2016,7 @@ class stbPlatform {
 			// get all planned recordings. We only need to know if any results exist. 
 			// 0 results = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED
 			// >0 results = Characteristic.ProgramMode.PROGRAM_SCHEDULED
-			// https://obo-prod.oesp.upctv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?plannedOnly=true&range=1-20
+			// https://obo-prod.oesp.sunrisetv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?plannedOnly=true&range=1-20
 			//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
 			var currProgramMode = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED; // default
 			var url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?plannedOnly=true&range=1-20'; // limit to 20 recordings for performance
@@ -2052,7 +2052,7 @@ class stbPlatform {
 
 
 			// get all saved recordings
-			// https://obo-prod.oesp.upctv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20
+			// https://obo-prod.oesp.sunrisetv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20
 			//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
 			url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?plannedOnly=false&range=1-20'; // works
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: GET %s', url); }
