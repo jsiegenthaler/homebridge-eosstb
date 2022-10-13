@@ -10,9 +10,11 @@ Please restart Homebridge after every plugin update.
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.4.10 (2022-09-25)
-* Bumped dependencies (node, tough-cookie)
-* Updated README.md to reference iOS 16.0
+
+## 1.4.10-beta.1 (2022-10-13)
+* Fixed Sunrise TV logon by changing endpoints from upctv to sunrisetv
+* Bumped dependencies (node, tough-cookie) (done, not published)
+* Updated README.md to reference iOS 16.0 (done, not published)
 
 
 ## 1.4.9 (2022-08-23)
