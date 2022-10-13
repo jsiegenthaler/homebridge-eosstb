@@ -38,8 +38,8 @@ If you like this plugin, consider making a donation or buying me a coffee!<br>
 # BACKEND CHANGES CAUSED THIS PLUGIN TO STOP WORKING AS OF 13 OCTOBER 2022
 It appears that the system backend has changed. First noted on Thursday 13 October 2022. I have had reports from the following countries so far:
 
-* NL: Plugin backend logon failure
-* CH: Intially backend logon failure, now logon appears to work again. However MQTT control and channel list retrieval are no longer working.
+* NL: Plugin backend logon failure: Failed to create session - check your eosstb username and password: 401 Unauthorized
+* CH: Plugin backend logon failure: Failed to create session - check your eosstb username and password: 401 Unauthorized
 
 Initial investigations reveal that the change will need a large rewrite of the plugin. This may take some time.
 
