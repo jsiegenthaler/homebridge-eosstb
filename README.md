@@ -8,6 +8,7 @@
 
 # homebridge-eosstb
 
+
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![npm](https://badgen.net/npm/dm/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![npm](https://img.shields.io/npm/v/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
@@ -33,6 +34,16 @@ Supports multiple set-top boxes, should you have more than one.
 
 If you like this plugin, consider making a donation or buying me a coffee!<br>
 <a target="blank" href="https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468"><img src="https://img.shields.io/badge/PayPal-Donate-blue.svg?logo=paypal"/></a>  <a target="blank" href="https://ko-fi.com/jsiegenthaler"><img src="https://img.shields.io/badge/Ko--Fi-Buy%20me%20a%20coffee-29abe0.svg?logo=ko-fi"/></a>
+
+# BACKEND CHANGES CAUSED THIS PLUGIN TO STOP WORKING AS OF 13 OCTOBER 2022
+It appears that the system backend has changed. First noted on Thursday 13 October 2022. I have had reports from the following countries so far:
+
+* NL: Plugin backend logon failure
+* CH: Intially backend logon failure, now logon appears to work again. However MQTT control and channel list retrieval are no longer working.
+
+Initial investigations reveal that the change will need a large rewrite of the plugin. This may take some time.
+
+
 
 ## Readme Applicability
 Due to the adding of features and functions, this Readme applies from v1.1.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
