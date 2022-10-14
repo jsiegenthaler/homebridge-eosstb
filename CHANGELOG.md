@@ -5,12 +5,8 @@ Please restart Homebridge after every plugin update.
 
 # Bug Fixes and Improvements
 
-## Current In-Work List (Future Releases)
-* In work: testing of Input Current Visibility State
-* In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
-
-
 ## 1.4.10 (2022-10-14)
+* Incorporated an Important Notice to the logs
 * Disabled plugin fr CH and NL as MQTT services are no longer available.
 * Bumped dependencies (node, tough-cookie)
 * Updated README.md to reference iOS 16.0
