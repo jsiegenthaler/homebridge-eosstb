@@ -10,7 +10,8 @@ Please restart Homebridge after every plugin update.
 * In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
 
 
-## 1.4.10 (2022-09-25)
+## 1.4.10 (2022-10-14)
+* Disabled plugin fr CH and NL as MQTT services are no longer available.
 * Bumped dependencies (node, tough-cookie)
 * Updated README.md to reference iOS 16.0
 
