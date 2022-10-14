@@ -131,7 +131,7 @@ const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
 
 
 // state constants
-const sessionType = { MQTT: 0, WEB: 1 }; // MQTT existed prior to 13.10.2022, web started on 13.10.2022 in CH
+const sessionType = { MQTT: 0, WS_MQTT: 1 }; // MQTT existed prior to 13.10.2022, WS_MQTT started on 13.10.2022 in CH
 const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 };
 const sessionStateName = ["DISCONNECTED", "LOADING", "LOGGING_IN", "AUTHENTICATING", "VERIFYING", "AUTHENTICATED", "CONNECTED"];
 const mqttState = { disconnected: 0, offline: 1, closed: 2, connected: 3, reconnected: 4, error: 5, end: 6, messagereceived: 7, packetsent: 8, packetreceived: 9 };
@@ -535,9 +535,9 @@ class stbPlatform {
 				}
 			}
 
-			// new WEB session type, from 13.10.2022
+			// new WS_MQTT session type, from 13.10.2022
 			// writing this as a separate IF first for ease of debugging
-			if (this.sessionType == sessionType.WEB) {
+			if (this.sessionType == sessionType.WS_MQTT) {
 				if (!this.session.householdId) {
 					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 					this.log('Failed to find customer data. The backend systems may be down')
@@ -634,19 +634,13 @@ class stbPlatform {
 
 					// wait 3sec for session and devices to be loaded loaded
 					// now get the Jwt Token which triggers the mqtt client
-					// no MQTT in the web type
-					if (this.sessionType == sessionType.MQTT) {
-						wait(3*1000).then(() => { 
-							this.mqttClientConnecting = true;
-							this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
-							this.sessionWatchdogRunning = false;
-							if (this.config.debugLevel > 1) { this.log.warn('%s: session connection successful (MQTT). Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
-							return
-						})
-					}
-					if (this.sessionType == sessionType.WEB) {
-						if (this.config.debugLevel > 1) { this.log.warn('%s: session connection successful (WEB). Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
-					}
+					wait(3*1000).then(() => { 
+						this.mqttClientConnecting = true;
+						this.getJwtToken(this.session.username, this.session.accessToken, this.session.householdId);
+						this.sessionWatchdogRunning = false;
+						if (this.config.debugLevel > 1) { this.log.warn('%s: session connection successful. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+						return
+					})
 
 				}
 			});
@@ -753,13 +747,13 @@ class stbPlatform {
 				this.session = response.data;
 				// check if householdId exists, if so, we have authenticated ok
 				if (this.session.householdId) { currentSessionState = sessionState.AUTHENTICATED; }
-				this.log('Session username:', this.session.username);
-				this.log('Session householdId:', this.session.householdId);
+				this.log.debug('Session username:', this.session.username);
+				this.log.debug('Session householdId:', this.session.householdId);
 				this.log.debug('Session accessToken:', this.session.accessToken);
 				this.log.debug('Session refreshToken:', this.session.refreshToken);
 				this.log.debug('Session refreshTokenExpiry:', this.session.refreshTokenExpiry);
-				this.log('Session created');
-				this.sessionType = sessionType.WEB // set the flag, we need it to know what session type we have
+				this.log('Session created for householdId', this.session.householdId);
+				this.sessionType = sessionType.WS_MQTT // set the flag, we need it to know what session type we have
 				currentSessionState = sessionState.CONNECTED;
 				this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
 				this.log('Session state:', sessionStateName[currentSessionState]);
@@ -1401,7 +1395,7 @@ class stbPlatform {
 		//if (currentSessionState != sessionState.CONNECTED) { return; }
 		
 		// channels can be retrieved for the country without having a mqtt session going  but then the list is not relevant for the user's locationId
-		// so you should add the user's locationId as a parameter, and this needs the oespToken
+		// so you should add the user's locationId as a parameter, and this needs the accessToken
 		// syntax:
 		// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/channels?byLocationId=41043&includeInvisible=true&includeNotEntitled=true&personalised=true&sort=channelNumber
 		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/channels';
@@ -1419,7 +1413,7 @@ class stbPlatform {
 			method: 'GET',
 			url: url,
 			headers: {
-				'X-OESP-Token': this.session.oespToken,		
+				'X-OESP-Token': this.session.accessToken,		
 				'X-OESP-Username': this.session.username
 			}
 		};
@@ -1478,25 +1472,28 @@ class stbPlatform {
 	// START session handler mqtt
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-	// get a Java Web Token
-	getJwtToken(oespUsername, oespToken, householdId){
-		// get a JSON web token from the supplied oespToken and householdId
+	// get a Json Web Token
+	getJwtToken(oespUsername, accessToken, householdId){
+		// get a JSON web token from the supplied accessToken and householdId
 		if (this.config.debugLevel > 1) { this.log.warn('getJwtToken'); }
 		// robustness checks
 		if (currentSessionState !== sessionState.CONNECTED) {
 			this.log.warn('Cannot get JWT token: currentSessionState incorrect:', currentSessionState);
 			return false;
 		}
-		if (!oespToken) {
-			this.log.warn('Cannot get JWT token: oespToken not set');
+		if (!accessToken) {
+			this.log.warn('Cannot get JWT token: accessToken not set');
 			return false;
 		}
 
 		const jwtAxiosConfig = {
 			method: 'GET',
 			url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/tokens/jwt',
+			// https://prod.spark.ziggogo.tv/auth-service/v1/mqtt/token
+			// https://prod.spark.sunrisetv.ch/auth-service/v1/mqtt/token
+			url: 'https://prod.spark.sunrisetv.ch/auth-service/v1/mqtt/token', // new from October 2022
 			headers: {
-				'X-OESP-Token': oespToken,
+				'X-OESP-Token': accessToken,
 				'X-OESP-Username': oespUsername, 
 			}
 		};
@@ -1577,7 +1574,8 @@ class stbPlatform {
 				*/
 
 				// initiate the EOS session by turning on the HGO platform
-				parent.mqttSetHgoOnlineRunning(mqttUsername, mqttClientId);
+				// From oct 2022, no longer needed as the HGO client is no longer the web client
+				//parent.mqttSetHgoOnlineRunning(mqttUsername, mqttClientId);
 
 				
 				parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
@@ -1590,7 +1588,7 @@ class stbPlatform {
 				// subscribe to all devices after the mqttSetHgoOnlineRunning is sent
 				parent.devices.forEach((device) => {
 					// subscribe to our own generated unique householdId/mqttClientId and everything for our box
-					parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId);
+					//parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId); // not needed from Oct 2022 due to change in web client
 					// subscribe to our householdId/deviceId
 					parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId);
 					// subscribe to our householdId/deviceId/status
@@ -1604,7 +1602,8 @@ class stbPlatform {
 				});
 
 				// and request current recordingState
-				parent.getRecordingState();  // async function
+				// disabled: not working since 13.10.2022
+				// parent.getRecordingState();  // async function
 
 				// ++++++++++++++++++++ mqttConnected +++++++++++++++++++++
 			
@@ -1656,7 +1655,8 @@ class stbPlatform {
 						// Message: {"id":"crid:~~2F~~2Fgn.tv~~2F2004781~~2FEP019440730003,imi:2d369682b865679f2e5182ea52a93410171cfdc8","event":"scheduleEvent","transactionId":"/CH/eng/web/networkdvrrecordings - 013f12fc-23ef-4b77-a244-eeeea0c6901c"}
 						if (topic.includes(mqttUsername + '/recordingStatus')) {
 							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: event: %s', mqttMessage.event); }
-							parent.getRecordingState(); // async function
+							// disabled: not working since 13.10.2022
+							//parent.getRecordingState(); // async function
 						}
 
 						// handle status messages for the STB
@@ -1771,7 +1771,7 @@ class stbPlatform {
 									// Careful: source is not always present in the data
 									if (playerState.source) {
 										currChannelId = playerState.source.channelId || NO_CHANNEL_ID; // must be a string
-										if (parent.config.debugLevel > 0) {
+										if (parent.config.debugLevel > 0 && parent.masterChannelList) {
 											let currentChannelName; // let is scoped to the current {} block
 											let curChannel = parent.masterChannelList.find(channel => channel.channelId === currChannelId); 
 											if (curChannel) { currentChannelName = curChannel.channelName; }
@@ -2341,7 +2341,7 @@ class stbPlatform {
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState'); }
 
 			// headers for the connection
-			const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
+			const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
 
 			// get all planned recordings. We only need to know if any results exist. 
 			// 0 results = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED
@@ -2528,8 +2528,8 @@ class stbPlatform {
 		this.log("Refreshing personalization data for %s", requestType);
 		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData requestType:', requestType); }
 
-		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.customer.householdId) + '/' + requestType;
-		const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
+		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
+		const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
 		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: GET %s', url); }
 		// this.log('getPersonalizationData: GET %s', url);
 		axiosWS.get(url, config)
@@ -2601,12 +2601,12 @@ class stbPlatform {
 	// get the Personalization Data V2 via web request GET
 	// this is for the web session type as of 13.10.2022
 	async getPersonalizationDataV2(householdId, callback) {
-		this.log("Refreshing personalization data for %s", householdId);
+		this.log("Refreshing personalization data for householdId %s", householdId);
 		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataV2 requestType:', householdId); }
 
-		//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.customer.householdId) + '/' + requestType;
+		//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
 		const url='https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
-		//const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
+		//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
 		const config = {headers: {
 			"x-oesp-username": this.session.username
 		}};
@@ -2668,9 +2668,9 @@ class stbPlatform {
 	// set the Personalization Data for the current device via web request PUT
 	async setPersonalizationDataForDevice(deviceId, deviceSettings, callback) {
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: deviceSettings:', deviceSettings); }
-		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.customer.householdId) + '/devices/' + deviceId;
+		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/devices/' + deviceId;
 		const data = {"settings": deviceSettings};
-		const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
+		const config = {headers: {"x-cus": accessToken, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: PUT %s', url); }
 		axiosWS.put(url, data, config)
 			.then(response => {	
