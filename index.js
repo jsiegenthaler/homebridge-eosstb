@@ -317,6 +317,19 @@ class stbPlatform {
 			if (this.config.debugLevel > 2) { this.log.warn('API event: didFinishLaunching'); }
 			this.log('%s v%s', PLUGIN_NAME, PLUGIN_VERSION);
 
+			switch(this.config.country) {
+				case 'ch': case 'nl':
+					this.log.warn('-- IMPORTANT NOTICE --');
+					this.log.warn('The %s plugin can no longer be used in your country due to changes in the backend systems.', PLUGIN_NAME);
+					this.log.warn('The backend change means that the accessory will show No Response in HomeKit.');
+					this.log.warn('The auther is investigating how to adapt the plugin.');
+					this.log.warn('You can leave this plugin installed so as not to miss any future updates.');
+					this.log.warn('Please monitor https://github.com/jsiegenthaler/homebridge-eosstb for more information.');
+					this.log.warn('Any and all assistance is welcome!');
+					return;
+				default:
+				}
+
 			// call the session watchdog now to create the session
 			this.sessionWatchdog.bind(this);
 
