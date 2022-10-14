@@ -6,16 +6,23 @@ Please restart Homebridge after every plugin update.
 # Bug Fixes and Improvements
 
 ## Current In-Work List (Future Releases)
-* In work: testing of Input Current Visibility State
-* In work: improve handling of channel names: characters not allowed in HomeKit are now replaced with whitespace
+* In work: Rebuild for non-MQTT backend
 
 
-
-## 1.4.10-beta.1 (2022-10-13)
+## 2.0.0-alpha.1 (2022-10-14
+* Started re-write to work on nonMQTT backend
 * Fixed crash when debugLevel > 2 (TypeError: Cannot read properties of undefined (reading 'channelName') in line 2724)
-* Improved Sunrise TV connection by changing endpoints from upctv to sunrisetv (done)
-* Bumped dependencies (node, tough-cookie) (done, not published)
-* Updated README.md to reference iOS 16.0 (done, not published)
+* Updated Sunrise TV endpoints from upctv to sunrisetv
+* Bumped dependencies (node, tough-cookie)
+* Updated README.md to reference iOS 16.0
+
+
+# Older Versions
+Older versions support MQTT session mechanisms, which were disabled on 13 October 2022 on the backend systems.
+As the backend system has changed, these older versions will not longer work from 13 October 2022.
+
+## 1.5.0 (2022-10-14)
+* Disabled plugin for countires where the MQTT service is no longer functional.
 
 
 ## 1.4.9 (2022-08-23)
