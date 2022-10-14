@@ -7,9 +7,10 @@
 </p>
 
 # homebridge-eosstb
-# CURRENTLY DISABLED FOR CH AND NL COUNTRIES DUE TO BACKEND CHANGES
+# IMPORTANT NOTICE: CURRENTLY DISABLED FOR CH AND NL COUNTRIES DUE TO BACKEND CHANGES
 It appears that the system backend has changed. First noted on Thursday 13 October 2022.
 Unfortunately this means the plugin will no longer work, it has been disabled for the affected countries.
+The author is investigating, stay tuned.
 
 
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
