@@ -10,7 +10,8 @@ Please restart Homebridge after every plugin update.
 
 
 ## 2.0.0-alpha.1 (2022-10-14
-* Started re-write to work on nonMQTT backend
+* Adapted MQTT session connection
+* Fixed various crashes when no expected data received
 * Fixed crash when debugLevel > 2 (TypeError: Cannot read properties of undefined (reading 'channelName') in line 2724)
 * Updated Sunrise TV endpoints from upctv to sunrisetv
 * Bumped dependencies (node, tough-cookie)
