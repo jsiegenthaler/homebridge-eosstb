@@ -7,7 +7,7 @@ Please restart Homebridge after every plugin update.
 
 ## 1.4.10 (2022-10-14)
 * Incorporated an Important Notice to the logs
-* Disabled plugin fr CH and NL as MQTT services are no longer available.
+* Disabled plugin for CH and NL as MQTT services are no longer available.
 * Bumped dependencies (node, tough-cookie)
 * Updated README.md to reference iOS 16.0
 
