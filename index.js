@@ -17,7 +17,10 @@ const mqtt = require('mqtt');
 const qs = require('qs')
 //const _ = require('underscore');
 
+
 const axios = require('axios').default;
+//const instance = axios.create(); // cannot create new instance in v1.1.x, do not know why. stay with v0.27.2 
+
 axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
 
 // axios-cookiejar-support v2.0.2 syntax
@@ -26,7 +29,6 @@ const { wrapper: axiosCookieJarSupport } = require('axios-cookiejar-support'); /
 const tough = require('tough-cookie');
 const cookieJar = new tough.CookieJar();
 
-// create a new instance called axiosWS
 const axiosWS = axios.create({
 	// axios-cookiejar-support v1.0.1 required config
 	//withCredentials: true, // deprecated since axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
@@ -118,7 +120,7 @@ const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=
 const NO_INPUT_ID = 99; // an input id that does not exist. Must be > 0 as a uint32 is expected
 const NO_CHANNEL_ID = 'NO_ID'; // id for a channel not in the channel list
 const NO_CHANNEL_NAME = 'UNKNOWN'; // name for a channel not in the channel list
-const MAX_INPUT_SOURCES = 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
+const MAX_INPUT_SOURCES = 2 // 2 for testing, normally 95 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
 const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in millisec. Default = 15000 (15s)
 const MQTT_WATCHDOG_INTERVAL_MS = 10000; // mqtt watchdog interval in millisec. Default = 10000 (10s)
 const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 600; // channel list refresh check interval, in seconds. Default = 600
@@ -126,7 +128,10 @@ const RECORDING_STATE_ONGOING = 1; // Custom characteristic
 const SETTOPBOX_NAME_MINLEN = 3; // min len of the set-top box name
 const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
 
+
+
 // state constants
+const sessionType = { MQTT: 0, WEB: 1 }; // MQTT existed prior to 13.10.2022, web started on 13.10.2022 in CH
 const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 };
 const sessionStateName = ["DISCONNECTED", "LOADING", "LOGGING_IN", "AUTHENTICATING", "VERIFYING", "AUTHENTICATED", "CONNECTED"];
 const mqttState = { disconnected: 0, offline: 1, closed: 2, connected: 3, reconnected: 4, error: 5, end: 6, messagereceived: 7, packetsent: 8, packetreceived: 9 };
@@ -193,6 +198,13 @@ function makeId(length) {
 	}
 	return result;
 };
+
+
+// get unix timestamp in seconds
+function getTimestampInSeconds() {
+	return Math.floor(Date.now() / 1000)
+};
+
 
 // clean a name so it is acceptable for HomeKit
 function cleanNameForHomeKit(name) {
@@ -495,29 +507,51 @@ class stbPlatform {
 			this.log('Discovering platform and devices...');
 
 			// show feedback for customer data found
-			if (!this.session.customer) {
-				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-				this.log('Failed to find customer data. The backend systems may be down')
-			} else {
-				this.log('Found customer data: %s %s %s', this.session.customer.customerId, (this.session.customer.givenName || ''), (this.session.customer.familyName || '') );
-				if (this.config.debugLevel > 2) { 
-					this.log.warn('Session data: %s', this.session); 
-					this.log.warn('Session data profileSettings: %s', this.session.profileSettings); 
+			// original MQTT session type, retain for backwards compatibility
+			if (this.sessionType == sessionType.MQTT) {
+				if (!this.session.customer) {
+					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+					this.log('Failed to find customer data. The backend systems may be down')
+				} else {
+					this.log('Found customer data: %s %s %s', this.session.customer.customerId, (this.session.customer.givenName || ''), (this.session.customer.familyName || '') );
+					if (this.config.debugLevel > 2) { 
+						this.log.warn('Session data: %s', this.session); 
+						this.log.warn('Session data profileSettings: %s', this.session.profileSettings); 
+					}
+					if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
 				}
-				if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
+
+				// Step 3: after session is created, get the masterChannelList get the Personalization Data, but only if this.session.customer.physicalDeviceId exists
+				if ((this.session.customer || {}).physicalDeviceId) {
+					this.log('Loading master channel list and personalization data')
+					this.refreshMasterChannelList(); // async function, processing continues
+					this.getPersonalizationData('profiles'); // async function
+					this.getPersonalizationData('devices'); // async function
+				} else {
+					// show warning if no physicalDeviceId found
+					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+					this.log('Failed to find physicalDeviceId in your customer data. Are you sure you have a compatible set-top box?')
+					if (this.config.country.toLowerCase() == 'gb') { this.log('You may have an older TiVo box. TiVo boxes are not supported by %s', PLUGIN_NAME); }
+				}
 			}
 
-			// Step 3: after session is created, get the masterChannelList get the Personalization Data, but only if this.session.customer.physicalDeviceId exists
-			if (this.session.customer.physicalDeviceId) {
-				this.log('Loading master channel list and personalization data')
-				this.refreshMasterChannelList(); // async function, processing continues
-				this.getPersonalizationData('profiles'); // async function
-				this.getPersonalizationData('devices'); // async function
-			} else {
-				// show warning if no physicalDeviceId found
-				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-				this.log('Failed to find physicalDeviceId in your customer data. Are you sure you have a compatible set-top box?')
-				if (this.config.country.toLowerCase() == 'gb') { this.log('You may have an older TiVo box. TiVo boxes are not supported by %s', PLUGIN_NAME); }
+			// new WEB session type, from 13.10.2022
+			// writing this as a separate IF first for ease of debugging
+			if (this.sessionType == sessionType.WEB) {
+				if (!this.session.householdId) {
+					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+					this.log('Failed to find customer data. The backend systems may be down')
+				} else {
+					this.log('Found customer data: %s', this.session.householdId);
+					// call the function to get the 
+					this.log('Calling getPersonalizationDataV2');
+					this.getPersonalizationDataV2(this.session.householdId); // async function
+					//if (this.config.debugLevel > 2) { 
+					//	this.log.warn('Session data: %s', this.session); 
+					//		this.log.warn('Session data profileSettings: %s', this.session.profileSettings); 
+					//	}
+					//	if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
+				}
 			}
 
 			// wait for master channel list and personalization data to load then see how many devices were found
@@ -600,13 +634,19 @@ class stbPlatform {
 
 					// wait 3sec for session and devices to be loaded loaded
 					// now get the Jwt Token which triggers the mqtt client
-					wait(3*1000).then(() => { 
-						this.mqttClientConnecting = true;
-						this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
-						this.sessionWatchdogRunning = false;
-						if (this.config.debugLevel > 1) { this.log.warn('%s: session connection successful. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
-						return
-					})
+					// no MQTT in the web type
+					if (this.sessionType == sessionType.MQTT) {
+						wait(3*1000).then(() => { 
+							this.mqttClientConnecting = true;
+							this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
+							this.sessionWatchdogRunning = false;
+							if (this.config.debugLevel > 1) { this.log.warn('%s: session connection successful (MQTT). Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+							return
+						})
+					}
+					if (this.sessionType == sessionType.WEB) {
+						if (this.config.debugLevel > 1) { this.log.warn('%s: session connection successful (WEB). Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+					}
 
 				}
 			});
@@ -629,10 +669,127 @@ class stbPlatform {
 				this.getSessionBE(); break;
 			case 'gb':
 				this.getSessionGB(); break;
+			case 'ch':
+				this.getSessionCH(); break;
 			default: // ch, nl, ie, at
 				this.getSession();
 			}
 	}
+
+	// get session ch new
+	// using new auth method, attempting as of 13.10.2022
+	async getSessionCH() {
+		this.log('Creating %s session for CH using new auth method...', PLATFORM_NAME);
+		currentSessionState = sessionState.LOADING;
+
+
+		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		// axios interceptors to log request and response for debugging
+		// works on all following requests in this sub
+		/*
+		axiosWS.interceptors.request.use(req => {
+			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
+			'\nMethod:',req.method, '\nURL:', req.url, 
+			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,  
+			//'\nParams:', req.params, '\nData:', req.data
+			);
+			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
+			return req; // must return request
+		});
+		axiosWS.interceptors.response.use(res => {
+			this.log.warn('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
+			'\nHeaders:', res.headers, 
+			'\nData:', res.data, 
+			//'\nLast Request:', res.request
+			);
+			//this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
+			return res; // must return response
+		});
+		*/
+		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+		const axiosConfig = {
+			method: 'POST',
+			url: 'https://prod.spark.sunrisetv.ch/auth-service/v1/authorization',
+			headers: {
+				// these are all the headers, I've commented out what is not mandatory
+				//"accept": "*/*",
+				//"accept-language": "en-GB,en;q=0.9",
+				//"content-type": "application/json; charset=utf-8",
+				//"sec-ch-ua": "\"Chromium\";v=\"106\", \"Google Chrome\";v=\"106\", \"Not;A=Brand\";v=\"99\"",
+				//"sec-ch-ua-mobile": "?0",
+				//"sec-ch-ua-platform": "\"Windows\"",
+				//"sec-fetch-dest": "empty",
+				//"sec-fetch-mode": "cors",
+				//"sec-fetch-site": "same-site",
+				"x-device-code": "web" // mandatory
+				//"cookie": "rxVisitor=1665654726715VKLULTBB5F4QET4UTEBTVUR54325FGC7; dtSa=-; rxvt=1665656528149|1665654726717; dtPC=-79$54726711_533h-vGLPFJCAAVMFFWMIAQAMPMDTGKKWAOSGL-0e0; dtLatC=1; dtCookie=1$EC2GQ0FA2LCBN8937L1PBS2SQAJF102P|832518aee056ba0c|1"
+				//"Referer": "https://www.sunrisetv.ch/",
+				//"Referrer-Policy": "strict-origin-when-cross-origin"
+			}, 
+			jar: cookieJar,
+			data: {
+				username: this.config.username,
+				password: this.config.password,
+				stayLoggedIn: false // could alos set to true
+			}
+		};
+
+		// robustness: fail if url missing
+		if (!axiosConfig.url) {
+			this.log.warn('getSession: axiosConfig.url empty!');
+			currentSessionState = sessionState.DISCONNECTED;
+			this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+			return false;						
+		}
+		
+		this.log('Step 1 of 1: logging in with username %s', this.config.username);
+		this.log.debug('Step 1 of 1: post login to',axiosConfig.url);
+		axiosWS(axiosConfig)
+			.then(response => {	
+				this.log('Step 1 of 1: response:',response.status, response.statusText);
+				//this.log('response data',response.data);
+				this.session = response.data;
+				// check if householdId exists, if so, we have authenticated ok
+				if (this.session.householdId) { currentSessionState = sessionState.AUTHENTICATED; }
+				this.log('Session username:', this.session.username);
+				this.log('Session householdId:', this.session.householdId);
+				this.log.debug('Session accessToken:', this.session.accessToken);
+				this.log.debug('Session refreshToken:', this.session.refreshToken);
+				this.log.debug('Session refreshTokenExpiry:', this.session.refreshTokenExpiry);
+				this.log('Session created');
+				this.sessionType = sessionType.WEB // set the flag, we need it to know what session type we have
+				currentSessionState = sessionState.CONNECTED;
+				this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+				this.log('Session state:', sessionStateName[currentSessionState]);
+
+				//
+
+				return true;
+			})
+			.catch(error => {
+				let errText, errReason;
+				errText = 'Failed to create session'
+				if (error.response && error.response.status >= 400 && error.response.status < 500) {
+					errReason = '- check your ' + PLATFORM_NAME + ' username and password: ' + error.response.status + ' ' + (error.response.statusText || '');
+				} else if (error.response && error.response.status >= 500 && error.response.status < 600) {
+					errReason = '- try again later: ' + error.response.status + ' ' + (error.response.statusText || '');
+				} else if (error.response && error.response.status) {
+					errReason = '- check your internet connection: ' + error.response.status + ' ' + (error.response.statusText || '');
+				} else {
+					errReason = '- check your internet connection: ' + error.code + ' ' + (error.hostname || '');
+				}
+				this.log('%s %s', errText, (errReason || ''));
+				this.log.debug('getSession: error:', error);
+				currentSessionState = sessionState.DISCONNECTED;
+				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+				return false;
+			});	
+		return false;
+	}
+
+
 
 	// get session ch, nl, ie, at
 	async getSession() {
@@ -1924,8 +2081,181 @@ class stbPlatform {
 		}
 	}
 
+	// send a remote control keySequence to the settopbox via http GET
+	async sendKeyHTTP(deviceId, deviceName, keySequence) {
+		try {
+			if (this.config.debugLevel > 0) { this.log.warn('sendKeyHTTP: keySequence %s, deviceName %s, deviceId %s', keySequence, deviceName, deviceId); }
+			if (1==1) {
+
+				let keyArray = keySequence.trim().split(' ');
+				if (keyArray.length > 1) { this.log('sendKeyHTTP: processing keySequence %s for %s %s', keySequence, deviceName, deviceId); }
+				// supported key1 key2 key3 wait() wait(100)
+				for (let i = 0; i < keyArray.length; i++) {
+					const keyName = keyArray[i].trim();
+					this.log('sendKeyHTTP: processing key %s of %s: %s', i+1, keyArray.length, keyName);
+					
+					// if a wait appears, use it
+					let waitDelay; // default
+					if (keyName.toLowerCase().startsWith('wait(')) {
+						this.log.debug('sendKeyHTTP: reading delay from %s', keyName);
+						waitDelay = keyName.toLowerCase().replace('wait(', '').replace(')','');
+						if (waitDelay == ''){ waitDelay = 100; } // default 100ms
+						this.log.debug('sendKeyHTTP: delay read as %s', waitDelay);
+					}
+					// else if not first key and previous key was not wait, and next key is not wait, then set a default delay of 100 ms
+					 else if (i>0 && i<keyArray.length-1 && !(keyArray[i-1] || '').toLowerCase().startsWith('wait(') && !(keyArray[i+1] || '').toLowerCase().startsWith('wait(')) {
+						this.log.debug('sendKeyHTTP: not first key and neiher previous key %s nor next key %s is wait(). Setting default wait of 100 ms', keyArray[i-1], keyArray[i+1]);
+						waitDelay = 100;
+					} 
+		
+					// add a wait if waitDelay is defined
+					if (waitDelay) {
+						this.log('sendKeyHTTP: waiting %s ms', waitDelay);
+						await waitprom(waitDelay);
+						this.log.debug('sendKeyHTTP: wait %s done', waitDelay);
+					}
+		
+					// send the key if not a wait()
+					if (!keyName.toLowerCase().startsWith('wait(')) {
+						this.log('sendKeyHTTP: sending key %s to %s %s', keyName, deviceName, deviceId);
+
+						// form the url
+						var stburl = 'https://upc.d2.sc.omtrdc.net/b/ss/upchorizontvonline/0?';
+						stburl = stburl + 'c.stb.key=Play%2FPause';
+						stburl = stburl + '&c.action.origin=Companion+Device+%28full+view%29';
+						// stb id is the hashedCPEId:"44860df59331eede16960bf8188f2e9b008875d5fe6b06a129ccf194352ebd40"
+						stburl = stburl + '&c.stb.id=44860df59331eede16960bf8188f2e9b008875d5fe6b06a129ccf194352ebd40';
+						//stburl = stburl + '&c.app.display=browser';
+						//stburl = stburl + '&c.stb.mainboxtype=EOS';
+						
+						// entire url as per browser, for testing
+						stburl='https://upc.d2.sc.omtrdc.net/b/ss/upchorizontvonline/0?c.stb.key=Play%2FPause&c.action.origin=Companion+Device+%28full+view%29'
+						stburl = stburl + '&c.page.channel=Saved%2FRented&c.entity.contentId=crid%3A~~2F~~2Fgn.tv~~2F7818268~~2FSH019019910000~~2F141743702%2Cimi%3A97643094efa3b797ac5bb7a0d000b943dbec149e&c.entity.type=Replay'
+						stburl = stburl + '&c.stb.id=44860df59331eede16960bf8188f2e9b008875d5fe6b06a129ccf194352ebd40&c.app.display=browser&c.stb.mainboxtype=EOS&c.visitor.idhash=42196225bcbef0f2d78383f5da43555b75182e6c53df5808b067c55846edf566'
+						stburl = stburl + '&c.profile.id=45a24a08c6c9c456993c225049da3264aff2b46647a335ed16fabad042cd3190&c.visitor.segment=3799&c.visitor.type=normal&c.visitor.country=CH&c.app.mode=online&c.action.name=stb.keypress&c.a.OSVersion=Unknown'
+						stburl = stburl + '&c.a.DeviceName=Unknown&c.a.TimeSinceLaunch=6736&c.a.RunMode=Application&c.a.AppID=web%2FSunrise+TV%2F4.42.5016%2F1795+&c.a.Resolution=1858x1301&bh=1301&bw=1858&k=Y&v=N&j=1.6&ch=Saved%2FRented'
+						stburl = stburl + '&pageName=Saved%2FRented&s=1858x1301'
+						//stburl = stburl + '&ts=1665676514'
+						this.log('timestamp:', getTimestampInSeconds());
+						stburl = stburl + '&ts=' + getTimestampInSeconds()
+						stburl = stburl + '&t=00%2F00%2F0000+00%3A00%3A00+0+-120&vid=42196225bcbef0f2d78383f5da43555b75182e6c53df5808b067c55846edf566&aamlh=6&cp=1&pev2=stb.keypress&pe=o';
+
+						
+						/*
+						c.stb.key: Play/Pause
+						c.action.origin: Companion Device (full view)
+						c.page.channel: Home
+						c.entity.contentId: crid:~~2F~~2Fgn.tv~~2F7818268~~2FSH019019910000~~2F141743702,imi:97643094efa3b797ac5bb7a0d000b943dbec149e
+						c.entity.type: Live
+						c.stb.id: 44860df59331eede16960bf8188f2e9b008875d5fe6b06a129ccf194352ebd40
+						c.app.display: browser
+						c.stb.mainboxtype: EOS
+						c.visitor.idhash: 42196225bcbef0f2d78383f5da43555b75182e6c53df5808b067c55846edf566
+						c.profile.id: 45a24a08c6c9c456993c225049da3264aff2b46647a335ed16fabad042cd3190
+						c.visitor.segment: 3799
+						c.visitor.type: normal
+						c.visitor.country: CH
+						c.app.mode: online
+						c.action.name: stb.keypress
+						c.a.OSVersion: Unknown
+						c.a.DeviceName: Unknown
+						c.a.TimeSinceLaunch: 3900
+						c.a.RunMode: Application
+						c.a.AppID: web/Sunrise TV/4.42.5016/1795 
+						c.a.Resolution: 1858x1301
+						bh: 1301
+						bw: 1858
+						k: Y
+						v: N
+						j: 1.6
+						ch: Home
+						pageName: Home
+						s: 1858x1301
+						ts: 1665673678
+						t: 00/00/0000 00:00:00 0 -120
+						vid: 42196225bcbef0f2d78383f5da43555b75182e6c53df5808b067c55846edf566
+						aamlh: 6
+						cp: 1
+						pev2: stb.keypress
+						pe: o
+						*/
+
+
+						// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+						// axios interceptors to log request and response for debugging
+						// works on all following requests in this sub
+						axiosWS.interceptors.request.use(req => {
+							this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
+							'\nMethod:',req.method, '\nURL:', req.url, 
+							'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,  
+							//'\nParams:', req.params, '\nData:', req.data
+							);
+							this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
+							return req; // must return request
+						});
+						axiosWS.interceptors.response.use(res => {
+							this.log.warn('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
+							'\nHeaders:', res.headers, 
+							'\nData:', res.data, 
+							//'\nLast Request:', res.request
+							);
+							//this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
+							return res; // must return response
+						});
+						// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+						// do the http call here
+						const axiosConfig = {
+							method: 'GET',
+							url: stburl,
+							headers: {
+								// these are all the headers, I've commented out what is not mandatory
+								"accept": "*/*",
+								"accept-language": "en-GB,en;q=0.9",
+								"sec-ch-ua": "\"Chromium\";v=\"106\", \"Google Chrome\";v=\"106\", \"Not;A=Brand\";v=\"99\"",
+								"sec-ch-ua-mobile": "?0",
+								"sec-ch-ua-platform": "\"Windows\"",
+								"sec-fetch-dest": "empty",
+								"sec-fetch-mode": "cors",
+								"sec-fetch-site": "cross-site",
+								"Referer": "https://www.sunrisetv.ch/",
+								"Referrer-Policy": "strict-origin-when-cross-origin"
+							}, 
+							body: null
+							//jar: cookieJar,
+						};
+				
+						this.log('Sending PlayPause keypress');
+						this.log('url:', stburl);
+						axiosWS(axiosConfig)
+							.then(response => {	
+								this.log('response:',response.status, response.statusText);
+								//this.log('response data',response.data);
+								this.session = response.data;
+				
+								return true;
+							})
+							.catch(error => {
+								this.log.warn('getSession: error:', error);
+								return false;
+							});	
+						this.log.debug('sendKeyHTTP: send %s done', keyName);
+						return false;						
+
+
+					}
+		
+				} // end for loop
+
+			}
+		} catch (err) {
+			this.log.error("Error trapped in sendKeyHTTP:", err.message);
+			this.log.error(err);
+		}
+	}
+
 	// send a remote control keySequence to the settopbox via mqtt
-	async sendKey(deviceId, deviceName, keySequence) {
+	async sendKeyMQTT(deviceId, deviceName, keySequence) {
 		try {
 			if (this.config.debugLevel > 0) { this.log.warn('sendKey: keySequence %s, deviceName %s, deviceId %s', keySequence, deviceName, deviceId); }
 			if (mqttUsername) {
@@ -2261,7 +2591,75 @@ class stbPlatform {
 					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
 				}
 				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug(`refreshMasterChannelList error:`, error);
+				this.log.debug(`getPersonalizationData error:`, error);
+				return false, error;
+			});		
+		return false;
+	}
+
+
+	// get the Personalization Data V2 via web request GET
+	// this is for the web session type as of 13.10.2022
+	async getPersonalizationDataV2(householdId, callback) {
+		this.log("Refreshing personalization data for %s", householdId);
+		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataV2 requestType:', householdId); }
+
+		//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.customer.householdId) + '/' + requestType;
+		const url='https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
+		//const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
+		const config = {headers: {
+			"x-oesp-username": this.session.username
+		}};
+		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataV2: GET %s', url); }
+		// this.log('getPersonalizationData: GET %s', url);
+		axiosWS.get(url, config)
+			.then(response => {	
+				if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataV2: %s: response: %s %s', householdId, response.status, response.statusText); }
+				if (this.config.debugLevel > 2) { 
+					this.log.warn('getPersonalizationDataV2: %s: response data:', householdId);
+					this.log.warn(response.data);
+				}
+
+				// devices are an array in assignedDevices
+				this.devices = response.data.assignedDevices; // store the entire device array at platform level
+			
+				// update all the devices in the array. Don't trust the index order in the Personalization Data message
+				this.devices.forEach((device) => {
+					const deviceId = device.deviceId;
+					const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
+					if (deviceIndex > -1 && this.stbDevices[deviceIndex]) { 
+						this.stbDevices[deviceIndex].device = device;
+						//this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, null, Characteristic.StatusFault.NO_FAULT ); // update one device
+					}
+				});
+				
+
+				// profiles are an array in profiles
+				this.profiles = response.data.profiles; // set this.profiles to the profile data we just received
+
+				// for every profiles data update, update all devices as closedCaptions may have changed
+				// but only if stbDevices has been created...
+				if (this.stbDevices.length > 0) {
+					this.devices.forEach((device) => {
+						device.profiles = this.profiles; // update the device with the profiles array
+						// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault) {
+						//this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT );
+					});
+				}
+
+
+				return false;
+			})
+			.catch(error => {
+				let errText, errReason;
+				errText = 'Failed to refresh personalization data for ' + requestType + ' - check your internet connection:'
+				if (error.isAxiosError) { 
+					errReason = error.code + ': ' + (error.hostname || ''); 
+					// if no connection then set session to disconnected to force a session reconnect
+					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+				}
+				this.log('%s %s', errText, (errReason || ''));
+				this.log.debug(`getPersonalizationDataV2 error:`, error);
 				return false, error;
 			});		
 		return false;
@@ -3587,7 +3985,8 @@ class stbDevice {
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setPower targetPowerState:', this.name, targetPowerState, powerStateName[targetPowerState]); }
 		callback(null); // for rapid response
 		if(this.currentPowerState !== targetPowerState){
-			this.platform.sendKey(this.deviceId, this.name, 'Power');
+			//this.platform.sendKey(this.deviceId, this.name, 'Power');
+			this.platform.sendKeyHTTP(this.deviceId, this.name, 'Power');
 			this.lastPowerKeySent = Date.now();
 		}
 	}
@@ -4266,7 +4665,8 @@ class stbDevice {
 			if (this.readyToSendRemoteKeyPress){ 
 				// send immediately
 				this.log('%s: setRemoteKey: sending key %s now', this.name, keyName);
-				this.platform.sendKey(this.deviceId, this.name, keyName);
+				//this.platform.sendKey(this.deviceId, this.name, keyName);
+				this.platform.sendKeyHTTP(this.deviceId, this.name, keyName);
 				this.pendingKeyPress = -1; // clear any pending key press
 			} else {
 				// immediate send is not enabled. 
@@ -4278,7 +4678,9 @@ class stbDevice {
 					this.log.debug('%s: setRemoteKey: setTimeout delay completed, checking sendRemoteKeyPressAfterDelay for %s', this.name, keyName);
 					if (this.sendRemoteKeyPressAfterDelay){ 
 						this.log('%s: setRemoteKey: setTimeout delay completed, sending %s', this.name, keyName);
-						this.platform.sendKey(this.deviceId, this.name, keyName);
+						//this.platform.sendKey(this.deviceId, this.name, keyName);
+						this.platform.sendKeyHTTP(this.deviceId, this.name, keyName);
+						
 						this.log.debug('%s: setRemoteKey: setTimeout delay completed, key %s sent, resetting readyToSendRemoteKeyPress', this.name, keyName);
 						this.readyToSendRemoteKeyPress = true; // reset the enable flag
 						this.pendingKeyPress = -1; // clear any pending key press
