@@ -27,6 +27,11 @@ See below
 
 
 
+## 2.0.0-alpha.5 (2022-10-16)
+* Adapted refreshMasterChannelList to get the rwork with new end point, needs fine tuning still
+* IN WROK *
+
+
 ## 2.0.0-alpha.5 (2022-10-15)
 * Fixed url for getPersonalizationData so that it works for all countries, this will help users to test
 * Adapted refreshMasterChannelList to work with new end point, needs fine tuning still
