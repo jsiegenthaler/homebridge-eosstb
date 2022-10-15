@@ -26,8 +26,8 @@ In work: Rebuild for non-MQTT backend
 
 
 ## 2.0.0-alpha.1 (2022-10-15)
+* Reworked authorization due to changes in backend, logons now running again for CH. NL, IE and AT should work as well.
 * Reworked MQTT session connection due to changes in backend, MQTT now running again
-* Adapted auth endpoints for CH, NL, IE and AT. Logons should all work now.
 * Updated Sunrise TV endpoints from upctv to sunrisetv
 * Fixed incorrect link in readme for Virgin TV GO
 * Fixed various crashes when no expected data received
