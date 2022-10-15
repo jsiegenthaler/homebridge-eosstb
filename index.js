@@ -129,7 +129,8 @@ const NO_CHANNEL_NAME = 'UNKNOWN'; // name for a channel not in the channel list
 const MAX_INPUT_SOURCES = 2 // 2 for testing, normally 95 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
 const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in millisec. Default = 15000 (15s)
 const MQTT_WATCHDOG_INTERVAL_MS = 10000; // mqtt watchdog interval in millisec. Default = 10000 (10s)
-const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 3600; // channel list refresh check interval, in seconds. Default = 3600 (1hr) (increased from 600)
+const MASTER_CHANNEL_LIST_VALID_FOR_S = 87600; // master channel list starts valid for 24 hours from last refresh
+const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 3600; // master channel list refresh check interval, in seconds. Default = 3600 (1hr) (increased from 600)
 const RECORDING_STATE_ONGOING = 1; // Custom characteristic
 const SETTOPBOX_NAME_MINLEN = 3; // min len of the set-top box name
 const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
@@ -1439,7 +1440,11 @@ class stbPlatform {
 				if (this.config.debugLevel > 2) {
 					this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.length);
 				}
-				//this.masterChannelListExpiryDate = new Date(response.data.expires); // does not exist any more, need to make my own expiry date
+
+				// set the masterChannelListExpiryDate to now + MASTER_CHANNEL_LIST_VALID_FOR_S
+				var now = new Date();
+				this.masterChannelListExpiryDate = now.setSeconds(now.getSeconds() + MASTER_CHANNEL_LIST_VALID_FOR_S);
+				this.log('MasterChannelList valid until',this.masterChannelListExpiryDate.toLocaleString())
 			
 				// load the channel list with all channels found
 				this.masterChannelList = [];
