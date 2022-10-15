@@ -28,7 +28,8 @@ See below
 
 ## 2.0.0-alpha.5 (2022-10-15)
 * Fixed url for getPersonalizationData so that it works for all countries
-* Started work on refreshMasterChannelList
+* Started work on refreshMasterChannelList, not completed yet
+
 
 ## 2.0.0-alpha.4 (2022-10-15)
 * Fixed ReferenceError in getPersonalizationData: requestType is not defined at /usr/local/lib/node_modules/homebridge-eosstb/index.js:2659:63
