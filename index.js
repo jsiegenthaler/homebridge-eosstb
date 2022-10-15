@@ -52,23 +52,29 @@ axiosCookieJarSupport(axiosWS);
 
 
 // base url varies by country
+// without any trailing /
 const countryBaseUrlArray = {
-    'at': 		'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web', // v3 and v4 works
+	'at': 		'https://prod.spark.magentatv.at/',
     'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/fr/web',
     'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/nld/web',
-    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v2, v3 and v4 work
+    'ch': 		'https://prod.spark.sunrisetv.ch',
 	'cz':		'https://web-api-pepper.horizon.tv/oesp/v4/CZ/ces/web/', // v2, v3 and v4 work
 	'de':		'https://web-api-pepper.horizon.tv/oesp/v4/DE/deu/web', // v2, v3 and v4 work
     'gb':       'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web',
 	'hu':		'https://web-api-pepper.horizon.tv/oesp/v4/HU/hun/web',  // v2, v3 and v4 work
-	'ie':       'https://prod.oesp.virginmediatv.ie/oesp/v4/IE/eng/web/',
-    'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web',
+	'ie':       'https://prod.spark.virginmediatv.ie/',
+    'nl': 		'https://prod.spark.ziggogo.tv',
 	'pl':		'https://web-api-pepper.horizon.tv/oesp/v4/PL/pol/web', // v2, v3 and v4 work
 	'sk':		'https://web-api-pepper.horizon.tv/oesp/v4/SK/slk/web', // v2, v3 and v4 work
 	'ro':		'https://web-api-pepper.horizon.tv/oesp/v4/RO/ron/web' // v2, v3 and v4 work
+	// old endpoints:
+    //'at': 		'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web', // v3 and v4 works old
+    //'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v2, v3 and v4 work old
+    //'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web', // old
+	//'ie':       'https://prod.oesp.virginmediatv.ie/oesp/v4/IE/eng/web/', // old
 };
 
-// mqtt endpoints varies by country
+// mqtt endpoints varies by country, unchanged after backend change on 13.10.2022
 const mqttUrlArray = {
     'at':		'wss://obomsg.prod.at.horizon.tv/mqtt',
     'be-fr':  	'wss://obomsg.prod.be.horizon.tv/mqtt',
@@ -442,7 +448,7 @@ class stbPlatform {
 
 		// exit if a previous session is still running
 		if (this.sessionWatchdogRunning) { 
-			if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Previous sessionWatchdog still working, exiting %s without action', watchdogInstance); }
+			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Previous sessionWatchdog still working, exiting %s without action', watchdogInstance); }
 			return;
 
 		// as we are called regularly by setInterval, check connection status and exit without action if required
@@ -450,23 +456,23 @@ class stbPlatform {
 			// session is connected, check mqtt state
 
 			if (mqttClient.connected) { 
-				if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session and mqtt connected, exiting %s without action', watchdogInstance); }
+				if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session and mqtt connected, exiting %s without action', watchdogInstance); }
 				return; 
 			} else if (this.mqttClientConnecting) { 
-				if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session connected but mqtt still connecting, exiting %s without action', watchdogInstance); }
+				if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session connected but mqtt still connecting, exiting %s without action', watchdogInstance); }
 				return; 
 			} else {
-				if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session connected but mqtt not connected, %s will try to reconnect mqtt now...', watchdogInstance); }
+				if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session connected but mqtt not connected, %s will try to reconnect mqtt now...', watchdogInstance); }
 			}
 
 		} else if (currentSessionState != sessionState.DISCONNECTED) { 
 			// session is not disconnected, meaning it is between connected and disconnected, ie: a connection is in progress
-			if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session still connecting, exiting %s without action', watchdogInstance); }
+			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session still connecting, exiting %s without action', watchdogInstance); }
 			return;
 
 		} else { 
 			// session is not connected and is not in a state between connected and disconnected, so it is disconnected. Continue
-			if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session and mqtt not connected, %s will try to connect now...', watchdogInstance); }
+			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session and mqtt not connected, %s will try to connect now...', watchdogInstance); }
 
 		}
 
@@ -499,7 +505,7 @@ class stbPlatform {
 			if (this.config.debugLevel > 2) { this.log.warn('%s: session connect wait completed, checking currentSessionState: %s', watchdogInstance, sessionStateName[currentSessionState]); }
 			if (currentSessionState !== sessionState.CONNECTED) { 
 				this.sessionWatchdogRunning = false;
-				if (this.config.debugLevel > 1) { this.log.warn('%s: session connection timeout. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+				if (this.config.debugLevel > 2) { this.log.warn('%s: session connection timeout. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
 				return; 
 			}
 
@@ -507,7 +513,7 @@ class stbPlatform {
 			this.log('Discovering platform and devices...');
 
 			// show feedback for customer data found
-			// original MQTT session type, retain for backwards compatibility
+			// original MQTT session type, retain for reference, delete before release
 			if (this.sessionType == sessionType.MQTT) {
 				if (!this.session.customer) {
 					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
@@ -546,11 +552,12 @@ class stbPlatform {
 					// call the function to get the 
 					this.log('Calling getPersonalizationDataV2');
 					this.getPersonalizationDataV2(this.session.householdId); // async function
-					//if (this.config.debugLevel > 2) { 
-					//	this.log.warn('Session data: %s', this.session); 
-					//		this.log.warn('Session data profileSettings: %s', this.session.profileSettings); 
-					//	}
-					//	if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
+					if (this.config.debugLevel > 2) { 
+						this.log.warn('Session data: %s', this.session); 
+						this.log.warn('Session data assignedDevices: %s', this.session.assignedDevices); 
+						this.log.warn('Session data profiles: %s', this.session.profiles); 
+					}
+					if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
 				}
 			}
 
@@ -562,7 +569,7 @@ class stbPlatform {
 					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 					this.log('Failed to find any devices. The backend systems may be down, or you have no supported devices on your customer account')
 					this.sessionWatchdogRunning = false;
-					if (this.config.debugLevel > 1) { this.log.warn('%s: session connected but no devices found. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+					if (this.config.debugLevel > 2) { this.log.warn('%s: session connected but no devices found. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
 					return
 
 				} else {
@@ -638,7 +645,7 @@ class stbPlatform {
 						this.mqttClientConnecting = true;
 						this.getJwtToken(this.session.username, this.session.accessToken, this.session.householdId);
 						this.sessionWatchdogRunning = false;
-						if (this.config.debugLevel > 1) { this.log.warn('%s: session connection successful. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+						if (this.config.debugLevel > 2) { this.log.warn('%s: session connection successful. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
 						return
 					})
 
@@ -648,7 +655,7 @@ class stbPlatform {
 		}).catch((error) => { 
 			this.log.error("sessionWatchdog: Error", error); 
 			this.sessionWatchdogRunning = false;
-			if (this.config.debugLevel > 1) { this.log.warn('%s: session connection error. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+			if (this.config.debugLevel > 2) { this.log.warn('%s: session connection error. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
 		});
 
 	}
@@ -663,17 +670,15 @@ class stbPlatform {
 				this.getSessionBE(); break;
 			case 'gb':
 				this.getSessionGB(); break;
-			case 'ch':
-				this.getSessionCH(); break;
 			default: // ch, nl, ie, at
 				this.getSession();
 			}
 	}
 
-	// get session ch new
+	// get session ch, nl, ie, at
 	// using new auth method, attempting as of 13.10.2022
-	async getSessionCH() {
-		this.log('Creating %s session for CH using new auth method...', PLATFORM_NAME);
+	async getSession() {
+		this.log('Creating %s session...', PLATFORM_NAME);
 		currentSessionState = sessionState.LOADING;
 
 
@@ -705,22 +710,9 @@ class stbPlatform {
 
 		const axiosConfig = {
 			method: 'POST',
-			url: 'https://prod.spark.sunrisetv.ch/auth-service/v1/authorization',
+			url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/authorization',
 			headers: {
-				// these are all the headers, I've commented out what is not mandatory
-				//"accept": "*/*",
-				//"accept-language": "en-GB,en;q=0.9",
-				//"content-type": "application/json; charset=utf-8",
-				//"sec-ch-ua": "\"Chromium\";v=\"106\", \"Google Chrome\";v=\"106\", \"Not;A=Brand\";v=\"99\"",
-				//"sec-ch-ua-mobile": "?0",
-				//"sec-ch-ua-platform": "\"Windows\"",
-				//"sec-fetch-dest": "empty",
-				//"sec-fetch-mode": "cors",
-				//"sec-fetch-site": "same-site",
 				"x-device-code": "web" // mandatory
-				//"cookie": "rxVisitor=1665654726715VKLULTBB5F4QET4UTEBTVUR54325FGC7; dtSa=-; rxvt=1665656528149|1665654726717; dtPC=-79$54726711_533h-vGLPFJCAAVMFFWMIAQAMPMDTGKKWAOSGL-0e0; dtLatC=1; dtCookie=1$EC2GQ0FA2LCBN8937L1PBS2SQAJF102P|832518aee056ba0c|1"
-				//"Referer": "https://www.sunrisetv.ch/",
-				//"Referrer-Policy": "strict-origin-when-cross-origin"
 			}, 
 			jar: cookieJar,
 			data: {
@@ -752,14 +744,11 @@ class stbPlatform {
 				this.log.debug('Session accessToken:', this.session.accessToken);
 				this.log.debug('Session refreshToken:', this.session.refreshToken);
 				this.log.debug('Session refreshTokenExpiry:', this.session.refreshTokenExpiry);
-				this.log('Session created for householdId', this.session.householdId);
+				this.log('Session created');
 				this.sessionType = sessionType.WS_MQTT // set the flag, we need it to know what session type we have
 				currentSessionState = sessionState.CONNECTED;
 				this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
 				this.log('Session state:', sessionStateName[currentSessionState]);
-
-				//
-
 				return true;
 			})
 			.catch(error => {
@@ -786,7 +775,8 @@ class stbPlatform {
 
 
 	// get session ch, nl, ie, at
-	async getSession() {
+	// the previous mqtt session used in v1, no longer applicable from 13.10.2022
+	async getSessionOld() {
 		this.log('Creating %s session...', PLATFORM_NAME);
 		currentSessionState = sessionState.LOADING;
 
@@ -1377,7 +1367,19 @@ class stbPlatform {
 		if (currentSessionState != sessionState.CONNECTED) { 
 			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not exist, exiting'); }
 			return;
-		 }
+		}
+
+
+		// This function needs to be re-written for the new endpoint as per 13.10.2022
+		// load the channel list with a dummy list of 2 channels so we have some homekit data
+		this.masterChannelList = [];
+		for(let i=0; i<2; i++) {
+			this.masterChannelList.push({
+				channelId: 'CH' + i, 
+				channelNumber: i+1, 
+				channelName: 'Channel ' + i
+			});
+		}
 
 		// exit immediately if channel list has not expired
 		if (this.masterChannelListExpiryDate > Date.now()) {
@@ -1489,9 +1491,10 @@ class stbPlatform {
 		const jwtAxiosConfig = {
 			method: 'GET',
 			url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/tokens/jwt',
+			// examples of auth-service/v1/mqtt/token urls:
 			// https://prod.spark.ziggogo.tv/auth-service/v1/mqtt/token
 			// https://prod.spark.sunrisetv.ch/auth-service/v1/mqtt/token
-			url: 'https://prod.spark.sunrisetv.ch/auth-service/v1/mqtt/token', // new from October 2022
+			url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/mqtt/token', // new from October 2022
 			headers: {
 				'X-OESP-Token': accessToken,
 				'X-OESP-Username': oespUsername, 
@@ -1501,8 +1504,7 @@ class stbPlatform {
 		axiosWS(jwtAxiosConfig)
 			.then(response => {	
 				this.log.debug("getJwtToken: response.data:", response.data)
-				mqttUsername = householdId;
-				//mqttPassword = response.data.token;
+				//mqttUsername = householdId; don't think this is needed here any more 15.10.2022, But it's still a global variable so watch out
 				if (this.config.debugLevel > 1) { this.log.warn('getJwtToken: calling startMqttClient'); }
 				this.startMqttClient(this, householdId, response.data.token);  // this starts the mqtt session
 				
@@ -1602,8 +1604,7 @@ class stbPlatform {
 				});
 
 				// and request current recordingState
-				// disabled: not working since 13.10.2022
-				// parent.getRecordingState();  // async function
+				parent.getRecordingState();  // async function
 
 				// ++++++++++++++++++++ mqttConnected +++++++++++++++++++++
 			
@@ -1655,8 +1656,7 @@ class stbPlatform {
 						// Message: {"id":"crid:~~2F~~2Fgn.tv~~2F2004781~~2FEP019440730003,imi:2d369682b865679f2e5182ea52a93410171cfdc8","event":"scheduleEvent","transactionId":"/CH/eng/web/networkdvrrecordings - 013f12fc-23ef-4b77-a244-eeeea0c6901c"}
 						if (topic.includes(mqttUsername + '/recordingStatus')) {
 							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: event: %s', mqttMessage.event); }
-							// disabled: not working since 13.10.2022
-							//parent.getRecordingState(); // async function
+							parent.getRecordingState(); // async function
 						}
 
 						// handle status messages for the STB
@@ -2336,6 +2336,8 @@ class stbPlatform {
 
 	// get the recording state via web request GET
 	async getRecordingState(callback) {
+		this.log.warn('getRecordingState: this function is currently disabled');
+		return false;
 		try {
 			this.log("Refreshing recording state");
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState'); }
@@ -2524,19 +2526,20 @@ class stbPlatform {
 
 
 	// get the Personalization Data via web request GET
-	async getPersonalizationData(requestType, callback) {
+	// this was for the endpoints available before 13.10.2022. The end points no longer exist
+	async getPersonalizationDataOld(requestType, callback) {
 		this.log("Refreshing personalization data for %s", requestType);
-		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData requestType:', requestType); }
+		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataOld requestType:', requestType); }
 
 		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
 		const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
-		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: GET %s', url); }
+		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataOld: GET %s', url); }
 		// this.log('getPersonalizationData: GET %s', url);
 		axiosWS.get(url, config)
 			.then(response => {	
-				if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: %s: response: %s %s', requestType, response.status, response.statusText); }
+				if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataOld: %s: response: %s %s', requestType, response.status, response.statusText); }
 				if (this.config.debugLevel > 2) { 
-					this.log.warn('getPersonalizationData: %s: response data:', requestType);
+					this.log.warn('getPersonalizationDataOld: %s: response data:', requestType);
 					this.log.warn(response.data);
 				}
 				if (requestType.includes('profiles')) { 
@@ -2591,7 +2594,7 @@ class stbPlatform {
 					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
 				}
 				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug(`getPersonalizationData error:`, error);
+				this.log.debug(`getPersonalizationDataOld error:`, error);
 				return false, error;
 			});		
 		return false;
@@ -2602,7 +2605,6 @@ class stbPlatform {
 	// this is for the web session type as of 13.10.2022
 	async getPersonalizationDataV2(householdId, callback) {
 		this.log("Refreshing personalization data for householdId %s", householdId);
-		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataV2 requestType:', householdId); }
 
 		//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
 		const url='https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
@@ -2620,7 +2622,7 @@ class stbPlatform {
 					this.log.warn(response.data);
 				}
 
-				// devices are an array in assignedDevices
+				// devices are an array named assignedDevices
 				this.devices = response.data.assignedDevices; // store the entire device array at platform level
 			
 				// update all the devices in the array. Don't trust the index order in the Personalization Data message
@@ -2634,7 +2636,7 @@ class stbPlatform {
 				});
 				
 
-				// profiles are an array in profiles
+				// profiles are an array named profiles
 				this.profiles = response.data.profiles; // set this.profiles to the profile data we just received
 
 				// for every profiles data update, update all devices as closedCaptions may have changed
@@ -2666,7 +2668,10 @@ class stbPlatform {
 	}
 
 	// set the Personalization Data for the current device via web request PUT
+	// Not tested yet following backend changes 13.10.2022
 	async setPersonalizationDataForDevice(deviceId, deviceSettings, callback) {
+		this.log.warn('setPersonalizationDataForDevice: this function is currently disabled');
+		/*
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: deviceSettings:', deviceSettings); }
 		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/devices/' + deviceId;
 		const data = {"settings": deviceSettings};
@@ -2682,6 +2687,7 @@ class stbPlatform {
 				this.log.debug('setPersonalizationDataForDevice: error:', error);
 				return true, error;
 			});		
+		*/
 		return false;
 	}
 
