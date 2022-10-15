@@ -26,6 +26,8 @@ See below
 
 
 
+## 2.0.0-alpha.4 (2022-10-15)
+* Fixed ReferenceError in getPersonalizationData: requestType is not defined at /usr/local/lib/node_modules/homebridge-eosstb/index.js:2659:63
 
 
 ## 2.0.0-alpha.3 (2022-10-15)
