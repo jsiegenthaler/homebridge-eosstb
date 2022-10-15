@@ -1504,7 +1504,7 @@ class stbPlatform {
 		axiosWS(jwtAxiosConfig)
 			.then(response => {	
 				this.log.debug("getJwtToken: response.data:", response.data)
-				//mqttUsername = householdId; don't think this is needed here any more 15.10.2022, But it's still a global variable so watch out
+				mqttUsername = householdId; // used in sendKey to ensure that mqtt is connected
 				if (this.config.debugLevel > 1) { this.log.warn('getJwtToken: calling startMqttClient'); }
 				this.startMqttClient(this, householdId, response.data.token);  // this starts the mqtt session
 				
@@ -2257,7 +2257,7 @@ class stbPlatform {
 	}
 
 	// send a remote control keySequence to the settopbox via mqtt
-	async sendKeyMQTT(deviceId, deviceName, keySequence) {
+	async sendKey(deviceId, deviceName, keySequence) {
 		try {
 			if (this.config.debugLevel > 0) { this.log.warn('sendKey: keySequence %s, deviceName %s, deviceId %s', keySequence, deviceName, deviceId); }
 			if (mqttUsername) {
@@ -3993,8 +3993,8 @@ class stbDevice {
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setPower targetPowerState:', this.name, targetPowerState, powerStateName[targetPowerState]); }
 		callback(null); // for rapid response
 		if(this.currentPowerState !== targetPowerState){
-			//this.platform.sendKey(this.deviceId, this.name, 'Power');
-			this.platform.sendKeyHTTP(this.deviceId, this.name, 'Power');
+			this.platform.sendKey(this.deviceId, this.name, 'Power');
+			//this.platform.sendKeyHTTP(this.deviceId, this.name, 'Power');
 			this.lastPowerKeySent = Date.now();
 		}
 	}
@@ -4674,7 +4674,7 @@ class stbDevice {
 				// send immediately
 				this.log('%s: setRemoteKey: sending key %s now', this.name, keyName);
 				//this.platform.sendKey(this.deviceId, this.name, keyName);
-				this.platform.sendKeyHTTP(this.deviceId, this.name, keyName);
+				this.platform.sendKey(this.deviceId, this.name, keyName);
 				this.pendingKeyPress = -1; // clear any pending key press
 			} else {
 				// immediate send is not enabled. 
@@ -4687,7 +4687,7 @@ class stbDevice {
 					if (this.sendRemoteKeyPressAfterDelay){ 
 						this.log('%s: setRemoteKey: setTimeout delay completed, sending %s', this.name, keyName);
 						//this.platform.sendKey(this.deviceId, this.name, keyName);
-						this.platform.sendKeyHTTP(this.deviceId, this.name, keyName);
+						this.platform.sendKey(this.deviceId, this.name, keyName);
 						
 						this.log.debug('%s: setRemoteKey: setTimeout delay completed, key %s sent, resetting readyToSendRemoteKeyPress', this.name, keyName);
 						this.readyToSendRemoteKeyPress = true; // reset the enable flag
