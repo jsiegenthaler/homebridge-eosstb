@@ -18,7 +18,8 @@ Please report all bugs and problems.
 See below
 
 ## Major Reworks TO-DO (in rough order of priority):
-* Rework refreshMasterChannelList: currently does nothing, needs to be rewritten for new endpoint
+* Finish refreshMasterChannelList: needs fine tuning, not currently using any profile
+* Adapt refreshChannelList to follow the selected profile from the box as we now know the profile data
 * Implement refreshToken capabilities
 * Rework getRecordingState: currently disabled, new endpoint not yet known
 * Rework setPersonalizationDataForDevice: currently disabled, new endpoint not yet known
@@ -27,8 +28,9 @@ See below
 
 
 ## 2.0.0-alpha.5 (2022-10-15)
-* Fixed url for getPersonalizationData so that it works for all countries
-* Started work on refreshMasterChannelList, not completed yet
+* Fixed url for getPersonalizationData so that it works for all countries, this will help users to test
+* Adapted refreshMasterChannelList to work with new end point, needs fine tuning still
+* Adapted refreshChannelList to work with the new data structure, not yet complete, needs fine tuning still
 
 
 ## 2.0.0-alpha.4 (2022-10-15)
