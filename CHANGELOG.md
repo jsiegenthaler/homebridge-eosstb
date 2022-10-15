@@ -29,7 +29,7 @@ See below
 
 ## 2.0.0-alpha.3 (2022-10-15)
 * Got MQTT control working again
-* Resinstated sendKey via MQTT
+* Reinstated sendKey via MQTT
 
 ## 2.0.0-alpha.2 (2022-10-15)
 * Fixed crash when the box pushed a personalizationData change
