@@ -2656,7 +2656,7 @@ class stbPlatform {
 			})
 			.catch(error => {
 				let errText, errReason;
-				errText = 'Failed to refresh personalization data for ' + requestType + ' - check your internet connection:'
+				errText = 'Failed to refresh personalization data for ' + householdId + ' - check your internet connection:'
 				if (error.isAxiosError) { 
 					errReason = error.code + ': ' + (error.hostname || ''); 
 					// if no connection then set session to disconnected to force a session reconnect
