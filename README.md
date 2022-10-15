@@ -7,7 +7,7 @@
 </p>
 
 # homebridge-eosstb
-# IMPORTANT NOTICE: CURRENTLY DISABLED FOR CH AND NL COUNTRIES DUE TO BACKEND CHANGES
+# IMPORTANT NOTICE: CURRENTLY DISABLED FOR ALL COUNTRIES DUE TO BACKEND CHANGES
 It appears that the system backend has changed. First noted on Thursday 13 October 2022.
 Unfortunately this means the plugin will no longer work, it has been disabled for the affected countries.
 The author is investigating, stay tuned.
@@ -44,10 +44,13 @@ It appears that the system backend has changed. First noted on Thursday 13 Octob
 
 * NL: Plugin backend logon failure: Failed to create session - check your eosstb username and password: 401 Unauthorized
 * CH: Plugin backend logon failure: Failed to create session - check your eosstb username and password: 401 Unauthorized
+* BE: The same is being reported
 
-Initial investigations reveal that the change will need a large rewrite of the plugin. This may take some time.
+As multiple countries are affected, I have updated the Important Notice in the plugin to apply to all countries.
 
-Please disable this plugin on your Homebridge until such time as I can issue a new version that works.
+Initial investigations reveal that the change will need a large rewrite of the plugin. This may take some time, however as of 15.10.2022 I have managed to get the MQTT working again for CH. Stay tuned for alpha version coming soom.
+
+You may wish to  disable this plugin on your Homebridge until such time as I can issue a new version that works.
 
 
 
