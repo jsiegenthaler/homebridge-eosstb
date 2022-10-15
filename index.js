@@ -129,7 +129,7 @@ const NO_CHANNEL_NAME = 'UNKNOWN'; // name for a channel not in the channel list
 const MAX_INPUT_SOURCES = 2 // 2 for testing, normally 95 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
 const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in millisec. Default = 15000 (15s)
 const MQTT_WATCHDOG_INTERVAL_MS = 10000; // mqtt watchdog interval in millisec. Default = 10000 (10s)
-const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 600; // channel list refresh check interval, in seconds. Default = 600
+const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 3600; // channel list refresh check interval, in seconds. Default = 3600 (1hr) (increased from 600)
 const RECORDING_STATE_ONGOING = 1; // Custom characteristic
 const SETTOPBOX_NAME_MINLEN = 3; // min len of the set-top box name
 const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
@@ -1360,7 +1360,125 @@ class stbPlatform {
 
 
 	// load all available TV channels at regular intervals into an array
+	// new version using endpoints available from 13.10.2022
 	async refreshMasterChannelList(callback) {
+		// called by refreshMasterChannelList (state handler), thus runs at polling interval
+
+		// exit immediately if the session does not exist
+		if (currentSessionState != sessionState.CONNECTED) { 
+			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not exist, exiting'); }
+			return;
+		}
+
+		// exit immediately if channel list has not expired
+		if (this.masterChannelListExpiryDate > Date.now()) {
+			if (this.config.debugLevel > 1) {
+				this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString());
+			}
+			return false;
+		}
+
+		if (this.config.debugLevel > 1) {
+			this.log.warn('refreshMasterChannelList: Refreshing master channel list...');
+		}
+
+		// only continue if a session was created. If the internet conection is down then we have no session
+		//if (currentSessionState != sessionState.CONNECTED) { return; }
+		
+		// channels can be retrieved for the country without having a mqtt session going  but then the list is not relevant for the user's locationId
+		// so you should add the user's locationId as a parameter, and this needs the accessToken
+		// syntax:
+		// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/channels?byLocationId=41043&includeInvisible=true&includeNotEntitled=true&personalised=true&sort=channelNumber
+		// https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH
+		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/channels';
+		url = url + '?byLocationId=' + this.session.locationId // locationId needed to get user-specific list
+		url = url + '&includeInvisible=true' // includeInvisible
+		url = url + '&includeNotEntitled=true' // includeNotEntitled
+		url = url + '&personalised=true' // personalised
+		url = url + '&sort=channelNumber' // sort
+		//url = 'https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH'
+		url = 'https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels'
+		url = url + '?cityId=' + this.customer.cityId //+ this.customer.cityId // cityId needed to get user-specific list
+		url = url + '&language=en' // language
+		url = url + '&productClass=Orion-DASH' // productClass
+		//this.log('For checking the cityId: this.customer:',this.customer);
+
+		if (this.config.debugLevel > 2) {
+			this.log.warn('refreshMasterChannelList: loading inputs from',url);
+		}
+
+		// call the webservice to get all available channels
+		const axiosConfig = {
+			method: 'GET',
+			url: url,
+			headers: {
+				//'X-OESP-Token': this.session.accessToken,		
+				//'X-OESP-Username': this.session.username
+				"accept": "*/*",
+				"accept-language": "en-GB,en;q=0.9",
+				"cache-control": "max-age=0",
+				"if-modified-since": "1970-01-01 00:00:00",
+				"sec-ch-ua": "\"Chromium\";v=\"106\", \"Google Chrome\";v=\"106\", \"Not;A=Brand\";v=\"99\"",
+				"sec-ch-ua-mobile": "?0",
+				"sec-ch-ua-platform": "\"Windows\"",
+				"sec-fetch-dest": "empty",
+				"sec-fetch-mode": "cors",
+				"sec-fetch-site": "same-site",
+				"x-go-dev": "8e264b4e-3ad2-40fe-b23d-b380a911ac81", // not sure what this is
+				"x-oesp-username": this.session.username,
+				// Shared Profile: b198cb46-dda8-46c7-8bf1-93c6f73fc81e
+				// Test: 8f57e0e7-4893-4340-9944-6681e2d16793"
+				"x-profile": "8f57e0e7-4893-4340-9944-6681e2d16793", // this is the current profile id
+				"x-tracking-id": "42196225bcbef0f2d78383f5da43555b75182e6c53df5808b067c55846edf566" // not sure which id should be here
+			}
+		};
+		axiosWS(axiosConfig)
+			.then(response => {
+				//this.log(response.data);
+
+				if (this.config.debugLevel > 2) {
+					this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.length);
+				}
+				//this.masterChannelListExpiryDate = new Date(response.data.expires); // does not exist any more, need to make my own expiry date
+			
+				// load the channel list with all channels found
+				this.masterChannelList = [];
+				const channels = response.data;
+				this.log('Channels to process:',channels.length);
+				for(let i=0; i<channels.length; i++) {
+					const channel = channels[i];
+					this.log('Loading channel:',i,channel.logicalChannelNumber,channel.id, channel.name);
+					this.masterChannelList.push({
+						channelId: channel.id, 
+						channelNumber: channel.logicalChannelNumber, 
+						channelName: cleanNameForHomeKit(channel.name)
+					});
+				}
+					
+				if (this.config.debugLevel > 0) {
+					//this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', this.masterChannelList.length, this.masterChannelListExpiryDate.toLocaleString());
+					this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels', this.masterChannelList.length);
+				}
+				return true;
+
+			})
+			.catch(error => {
+				let errText, errReason;
+				errText = 'Failed to refresh the master channel list - check your internet connection:'
+				if (error.isAxiosError) { 
+					errReason = error.code + ': ' + (error.hostname || ''); 
+					// if no connection then set session to disconnected to force a session reconnect
+					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+				}
+				this.log('%s %s', errText, (errReason || ''));
+				this.log.warn(`refreshMasterChannelList error:`, error);
+				return error;
+			});
+	}
+
+
+	// load all available TV channels at regular intervals into an array
+	async refreshMasterChannelListOld(callback) {
 		// called by refreshMasterChannelList (state handler), thus runs at polling interval
 
 		// exit immediately if the session does not exist
@@ -2609,7 +2727,8 @@ class stbPlatform {
 		this.log("Refreshing personalization data for householdId %s", householdId);
 
 		//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
-		const url='https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
+		//const url='https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
+		const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
 		//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
 		const config = {headers: {
 			"x-oesp-username": this.session.username
@@ -2625,6 +2744,7 @@ class stbPlatform {
 				}
 
 				// devices are an array named assignedDevices
+				this.customer = response.data; // store the entire personalization data for future use in this.customer
 				this.devices = response.data.assignedDevices; // store the entire device array at platform level
 			
 				// update all the devices in the array. Don't trust the index order in the Personalization Data message
@@ -2650,6 +2770,9 @@ class stbPlatform {
 						//this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT );
 					});
 				}
+
+				// now we have the cityId data, load the MasterChannelList
+				this.refreshMasterChannelList(); // async function, processing continues, must load after customer data is loaded
 
 
 				return false;
@@ -3588,6 +3711,8 @@ class stbDevice {
 		try {
 			if (this.config.debugLevel > 1) { this.log.warn('%s: refreshChannelList', this.name); }
 			this.log("%s: Refreshing channel list...", this.name);
+			//this.log("%s: Refreshing channel list: CURRENTLY DISABLED AS MASTER CHANNEL LIST NOT YET BUILT", this.name);
+			//return;
 			
 			// exit if no session exists
 			if (currentSessionState != sessionState.CONNECTED) { 
@@ -3596,12 +3721,12 @@ class stbDevice {
 			}
 
 			// exit if no master channel list loaded yet (on platform level)
-			if (!this.platform.masterChannelListExpiryDate) { 
+			if (!this.platform.masterChannelList) { 
 				this.log.warn('%s: refreshChannelList: master channel list not yet loaded, exiting', this.name);
 				return; 
 			}
 
-			// limit the amount of max channels to load.
+			// limit the amount of max channels to load as Apple HomeKit is limited to 100 services per accessory.
 			var maxSources = MAX_INPUT_SOURCES;
 
 			//this.profileId = this.platform.profiles.findIndex(profile => profile.name === this.config.profile);
@@ -3641,8 +3766,15 @@ class stbDevice {
 				if (this.config.debugLevel > 1) { this.log.warn("%s: Building subscribed channel list", this.name); }
 				// get a clean list of entitled channels (will not be in correct order)
 				// some entitlements are not in the masterchannelList, these must be ignored
-				if (this.config.debugLevel > 1) { this.log.warn("%s: Checking %s entitlements within %s channels in the master channel list", this.name, this.platform.session.entitlements.length, this.platform.masterChannelList.length); }
-				
+				//if (this.config.debugLevel > 1) { this.log.warn("%s: Checking %s entitlements within %s channels in the master channel list", this.name, this.platform.session.entitlements.length, this.platform.masterChannelList.length); }
+
+				// entitlements needs to be reworked, currently load everything
+				this.log.warn("%s: Loading all channels into the subscribedChList", this.name)
+				this.platform.masterChannelList.forEach((channel) => {
+					subscribedChList.push( channel.channelId ); 
+				});
+
+				/*
 				this.platform.session.entitlements.forEach((chId) => {
 					// chId can be crid:~~2F~~2Fupcch.tv~~2FSV09170, so split at ~~2F to get SV09170
 					// channels can exist multiple times in the entitlements
@@ -3662,6 +3794,7 @@ class stbDevice {
 						subscribedChList.push( chId ); 
 					}
 				});
+				*/
 
 				// the channels are not in the right sort order, so sort correctly in same order as masterChannelList
 				this.platform.masterChannelList.forEach((channel) => {
