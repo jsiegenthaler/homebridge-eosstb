@@ -5,7 +5,8 @@ Please restart Homebridge after every plugin update.
 
 # IMPORTANT NOTICE
 This is a major update due to the change in endpoints in the backend systems that occured on 13.10.2022.
-I've managed to get the MQTT back up and running, which will allow you to control the settop box again.
+I've managed to get the MQTT back up and running, which will allow HomeKit to know the box status again.
+Controlling the box is still an issue.
 The channel list needs to be rewritten as the data has changed a lot, so currently I've simply loaded 2 x dummy channel names to keep HomeKit happy.
 This is alpha code, and I'm currently testing on my own system.
 Please report all bugs and problems.
@@ -14,8 +15,7 @@ Please report all bugs and problems.
 # Bug Fixes and Improvements
 
 ## Current In-Work List (Future Releases)
-In work: Rebuild for non-MQTT backend
-
+See below
 
 ## Major Reworks TO-DO:
 * Rework refreshMasterChannelList: currently generates a dummy list of 2 channels, needs to be rewritten for new endpoint
@@ -25,9 +25,12 @@ In work: Rebuild for non-MQTT backend
 
 
 
-## 2.0.0-alpha.1 (2022-10-15)
+
+## 2.0.0-alpha.2 (2022-10-15)
+* Fixed crash when the box pushed a personalizationData change
 * Reworked authorization due to changes in backend, logons now running again for CH. NL, IE and AT should work as well.
-* Reworked MQTT session connection due to changes in backend, MQTT now running again
+* Reworked MQTT session connection due to changes in backend, MQTT now running again and shows box status, including power state
+* Controlling via MQTT is not yet possible
 * Updated Sunrise TV endpoints from upctv to sunrisetv
 * Fixed incorrect link in readme for Virgin TV GO
 * Fixed various crashes when no expected data received
