@@ -9,7 +9,7 @@
 # homebridge-eosstb
 # IMPORTANT NOTICE: CURRENTLY DISABLED FOR ALL COUNTRIES DUE TO BACKEND CHANGES
 It appears that the system backend has changed. First noted on Thursday 13 October 2022.
-Unfortunately this means the plugin will no longer work, it has been disabled for the affected countries.
+Unfortunately this means the plugin will no longer work, I have disabled it in the code to prevent flooding the server and the Homebridge logs with connection attempts.
 The author is investigating, stay tuned.
 
 
