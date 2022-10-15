@@ -10,7 +10,11 @@
 # IMPORTANT NOTICE: THIS IS AN ALPHA RELEASE DUE TO BACKEND CHANGES
 The system backend changed, first noted on Thursday 13 October 2022, requiring a rewrite of many parts of this plugin.
 The new release is contained in this branch and is currently in alpha testing.
-Feel free to try it out, but always read the [CHANGELOG.md](/CHANGELOG.md) to see what state the plugin is currently in.
+I have box status and control working again, so CH, NL, IE and AT users can once again control their box.
+Note that the Channel List is not yet working, and the BE logon sequence is not yet working. I need a BE user to help in testing.
+
+Feel free to try out the new alpha and eventually beta versions, but please always read the [CHANGELOG.md](/CHANGELOG.md) to see what state the plugin is currently in.
+Please provide feedback via bug reports if anything is not working as expected.
 
 
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
