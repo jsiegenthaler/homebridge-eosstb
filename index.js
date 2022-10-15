@@ -531,8 +531,8 @@ class stbPlatform {
 				if ((this.session.customer || {}).physicalDeviceId) {
 					this.log('Loading master channel list and personalization data')
 					this.refreshMasterChannelList(); // async function, processing continues
-					this.getPersonalizationData('profiles'); // async function
-					this.getPersonalizationData('devices'); // async function
+					this.getPersonalizationDataOld('profiles'); // async function
+					this.getPersonalizationDataOld('devices'); // async function
 				} else {
 					// show warning if no physicalDeviceId found
 					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
@@ -550,8 +550,8 @@ class stbPlatform {
 				} else {
 					this.log('Found customer data: %s', this.session.householdId);
 					// call the function to get the 
-					this.log('Calling getPersonalizationDataV2');
-					this.getPersonalizationDataV2(this.session.householdId); // async function
+					this.log('Calling getPersonalizationData');
+					this.getPersonalizationData(this.session.householdId); // async function
 					if (this.config.debugLevel > 2) { 
 						this.log.warn('Session data: %s', this.session); 
 						this.log.warn('Session data assignedDevices: %s', this.session.assignedDevices); 
@@ -1641,13 +1641,15 @@ class stbPlatform {
 						if (topic.includes(mqttUsername + '/personalizationService')) {
 							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s: action', mqttMessage.action); }
 							if (mqttMessage.action == 'OPS.getProfilesUpdate') {
-								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData for profiles', mqttMessage.action); }
-								parent.getPersonalizationData('profiles'); // async function
+								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationDataOld for profiles', mqttMessage.action); }
+								//parent.getPersonalizationDataOld('profiles'); // async function
+								parent.getPersonalizationData(parent.session.householdId); // async function
 
 							} else if (mqttMessage.action == 'OPS.getDeviceUpdate') {
-								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData for devices', mqttMessage.action); }
-								deviceId = mqttMessage.deviceId;
-								parent.getPersonalizationData('devices/' + deviceId); // async function
+								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationDataOld for devices', mqttMessage.action); }
+								//deviceId = mqttMessage.deviceId;
+								//parent.getPersonalizationDataOld('devices/' + deviceId); // async function
+								parent.getPersonalizationData(parent.session.householdId); // async function
 							}
 						}
 
@@ -2534,7 +2536,7 @@ class stbPlatform {
 		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
 		const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
 		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataOld: GET %s', url); }
-		// this.log('getPersonalizationData: GET %s', url);
+		// this.log('getPersonalizationDataOld: GET %s', url);
 		axiosWS.get(url, config)
 			.then(response => {	
 				if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataOld: %s: response: %s %s', requestType, response.status, response.statusText); }
@@ -2603,7 +2605,7 @@ class stbPlatform {
 
 	// get the Personalization Data V2 via web request GET
 	// this is for the web session type as of 13.10.2022
-	async getPersonalizationDataV2(householdId, callback) {
+	async getPersonalizationData(householdId, callback) {
 		this.log("Refreshing personalization data for householdId %s", householdId);
 
 		//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
@@ -2612,13 +2614,13 @@ class stbPlatform {
 		const config = {headers: {
 			"x-oesp-username": this.session.username
 		}};
-		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataV2: GET %s', url); }
-		// this.log('getPersonalizationData: GET %s', url);
+		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: GET %s', url); }
+		// this.log('getPersonalizationDataOld: GET %s', url);
 		axiosWS.get(url, config)
 			.then(response => {	
-				if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataV2: %s: response: %s %s', householdId, response.status, response.statusText); }
+				if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: %s: response: %s %s', householdId, response.status, response.statusText); }
 				if (this.config.debugLevel > 2) { 
-					this.log.warn('getPersonalizationDataV2: %s: response data:', householdId);
+					this.log.warn('getPersonalizationData: %s: response data:', householdId);
 					this.log.warn(response.data);
 				}
 
@@ -2661,7 +2663,7 @@ class stbPlatform {
 					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
 				}
 				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug(`getPersonalizationDataV2 error:`, error);
+				this.log.debug(`getPersonalizationData error:`, error);
 				return false, error;
 			});		
 		return false;
