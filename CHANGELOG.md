@@ -7,7 +7,7 @@ Please restart Homebridge after every plugin update.
 This is a major update due to the change in endpoints in the backend systems that occured on 13.10.2022.
 I've managed to get the MQTT back up and running, which will allow you to control the settop box again.
 The channel list needs to be rewritten as the data has changed a lot, so currently I've simply loaded 2 x dummy channel names to keep HomeKit happy.
-This is alpha code, but tested and working on my system.
+This is alpha code, and I'm currently testing on my own system.
 Please report all bugs and problems.
 
 
