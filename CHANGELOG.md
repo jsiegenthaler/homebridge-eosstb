@@ -5,6 +5,10 @@ Please restart Homebridge after every plugin update.
 
 # Bug Fixes and Improvements
 
+## 1.4.11 (2022-10-15)
+* Adapted Important Notice to apply to all countries
+
+
 ## 1.4.10 (2022-10-14)
 * Incorporated an Important Notice to the logs
 * Disabled plugin for CH and NL as MQTT services are no longer available.
