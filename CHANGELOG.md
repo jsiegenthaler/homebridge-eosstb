@@ -7,7 +7,8 @@ Please restart Homebridge after every plugin update.
 This is a major update due to the change in endpoints in the backend systems that occured on 13.10.2022.
 I've managed to get the MQTT back up and running, which will allow HomeKit to know the box status again.
 MQTT control is working again: Power control, and Remote Control are working properly.
-The channel list needs to be rewritten as the data has changed a lot, so currently I've simply loaded 2 x dummy channel names to keep HomeKit happy.
+Channel list is working again, you can change channels. Currently being populated with the first 95 channels.
+Detection of correct Profile not yet working
 This is alpha code, and I'm currently testing on my own system.
 Please report all bugs and problems.
 
@@ -27,9 +28,9 @@ See below
 
 
 
-## 2.0.0-alpha.5 (2022-10-16)
-* Adapted refreshMasterChannelList to get the rwork with new end point, needs fine tuning still
-* IN WROK *
+## 2.0.0-alpha.6 (2022-10-17)
+* Adapted refreshMasterChannelList to work with new end point and all countries, needs fine tuning still
+* Cleaned up some transitional code
 
 
 ## 2.0.0-alpha.5 (2022-10-15)
