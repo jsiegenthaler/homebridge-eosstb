@@ -126,7 +126,7 @@ const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=
 const NO_INPUT_ID = 99; // an input id that does not exist. Must be > 0 as a uint32 is expected
 const NO_CHANNEL_ID = 'NO_ID'; // id for a channel not in the channel list
 const NO_CHANNEL_NAME = 'UNKNOWN'; // name for a channel not in the channel list
-const MAX_INPUT_SOURCES = 2 // 2 for testing, normally 95 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
+const MAX_INPUT_SOURCES = 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
 const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in millisec. Default = 15000 (15s)
 const MQTT_WATCHDOG_INTERVAL_MS = 10000; // mqtt watchdog interval in millisec. Default = 10000 (10s)
 const MASTER_CHANNEL_LIST_VALID_FOR_S = 87600; // master channel list starts valid for 24 hours from last refresh
@@ -138,7 +138,6 @@ const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
 
 
 // state constants
-const sessionType = { MQTT: 0, WS_MQTT: 1 }; // MQTT existed prior to 13.10.2022, WS_MQTT started on 13.10.2022 in CH
 const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 };
 const sessionStateName = ["DISCONNECTED", "LOADING", "LOGGING_IN", "AUTHENTICATING", "VERIFYING", "AUTHENTICATED", "CONNECTED"];
 const mqttState = { disconnected: 0, offline: 1, closed: 2, connected: 3, reconnected: 4, error: 5, end: 6, messagereceived: 7, packetsent: 8, packetreceived: 9 };
@@ -514,8 +513,8 @@ class stbPlatform {
 			this.log('Discovering platform and devices...');
 
 			// show feedback for customer data found
-			// original MQTT session type, retain for reference, delete before release
-			if (this.sessionType == sessionType.MQTT) {
+			// original MQTT session type, retain for reference, disabled for now with 1=0, delete before release
+			if (1 == 0) {
 				if (!this.session.customer) {
 					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 					this.log('Failed to find customer data. The backend systems may be down')
@@ -544,22 +543,20 @@ class stbPlatform {
 
 			// new WS_MQTT session type, from 13.10.2022
 			// writing this as a separate IF first for ease of debugging
-			if (this.sessionType == sessionType.WS_MQTT) {
-				if (!this.session.householdId) {
-					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-					this.log('Failed to find customer data. The backend systems may be down')
-				} else {
-					this.log('Found customer data: %s', this.session.householdId);
-					// call the function to get the 
-					this.log('Calling getPersonalizationData');
-					this.getPersonalizationData(this.session.householdId); // async function
-					if (this.config.debugLevel > 2) { 
-						this.log.warn('Session data: %s', this.session); 
-						this.log.warn('Session data assignedDevices: %s', this.session.assignedDevices); 
-						this.log.warn('Session data profiles: %s', this.session.profiles); 
-					}
-					if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
+			if (!this.session.householdId) {
+				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+				this.log('Failed to find customer data. The backend systems may be down')
+			} else {
+				this.log('Found customer data: %s', this.session.householdId);
+				// call the function to get the 
+				this.log('Calling getPersonalizationData');
+				this.getPersonalizationData(this.session.householdId); // async function
+				if (this.config.debugLevel > 2) { 
+					this.log.warn('Session data: %s', this.session); 
+					this.log.warn('Session data assignedDevices: %s', this.session.assignedDevices); 
+					this.log.warn('Session data profiles: %s', this.session.profiles); 
 				}
+				if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
 			}
 
 			// wait for master channel list and personalization data to load then see how many devices were found
@@ -746,7 +743,6 @@ class stbPlatform {
 				this.log.debug('Session refreshToken:', this.session.refreshToken);
 				this.log.debug('Session refreshTokenExpiry:', this.session.refreshTokenExpiry);
 				this.log('Session created');
-				this.sessionType = sessionType.WS_MQTT // set the flag, we need it to know what session type we have
 				currentSessionState = sessionState.CONNECTED;
 				this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
 				this.log('Session state:', sessionStateName[currentSessionState]);
@@ -1398,10 +1394,11 @@ class stbPlatform {
 		url = url + '&personalised=true' // personalised
 		url = url + '&sort=channelNumber' // sort
 		//url = 'https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH'
-		url = 'https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels'
+		url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v2/channels'
 		url = url + '?cityId=' + this.customer.cityId //+ this.customer.cityId // cityId needed to get user-specific list
 		url = url + '&language=en' // language
 		url = url + '&productClass=Orion-DASH' // productClass
+		url = url + '&includeNotEntitled=false' // includeNotEntitled testing to see if this parameter is accepted
 		//this.log('For checking the cityId: this.customer:',this.customer);
 
 		if (this.config.debugLevel > 2) {
@@ -1429,7 +1426,10 @@ class stbPlatform {
 				"x-oesp-username": this.session.username,
 				// Shared Profile: b198cb46-dda8-46c7-8bf1-93c6f73fc81e
 				// Test: 8f57e0e7-4893-4340-9944-6681e2d16793"
-				"x-profile": "8f57e0e7-4893-4340-9944-6681e2d16793", // this is the current profile id
+				//"x-profile":"8f57e0e7-4893-4340-9944-6681e2d16793", // this is the current profile id, ok to omit?
+				//this.customer.assignedDevices[0].deviceId // holds the deviceId for index 0
+				//this.customer.assignedDevices[0].defaultProfileId // holds the default profile id for index 0
+			  
 				"x-tracking-id": "42196225bcbef0f2d78383f5da43555b75182e6c53df5808b067c55846edf566" // not sure which id should be here
 			}
 		};
@@ -1495,6 +1495,7 @@ class stbPlatform {
 
 		// This function needs to be re-written for the new endpoint as per 13.10.2022
 		// load the channel list with a dummy list of 2 channels so we have some homekit data
+		/*
 		this.masterChannelList = [];
 		for(let i=0; i<2; i++) {
 			this.masterChannelList.push({
@@ -1503,6 +1504,7 @@ class stbPlatform {
 				channelName: 'Channel ' + i
 			});
 		}
+		*/
 
 		// exit immediately if channel list has not expired
 		if (this.masterChannelListExpiryDate > Date.now()) {
