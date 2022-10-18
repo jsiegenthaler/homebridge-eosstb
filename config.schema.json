@@ -165,9 +165,9 @@
                     
 
                     "profile": {
-                        "title": "Profile Name",
+                        "title": "Profile Name DEPRECATED",
                         "type": "string",
-                        "description": "Use a profile to control what channels are displayed in the Home app. Default: Shared Profile",
+                        "description": "Use a profile to control what channels are displayed in the Home app. Default: Shared Profile DEPRECATED, NOW USES CURRENT PROFILE FROM SETTOP BOX",
                         "maxLength": 10
                     },
                     "showChannelNumbers": {
