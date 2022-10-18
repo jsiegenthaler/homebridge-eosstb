@@ -27,7 +27,7 @@ See below
 
 
 
-## 2.0.0-alpha.7 (2022-10-18)
+## 2.0.0-alpha.8 (2022-10-18)
 * Fixed masterChannelListExpiryDate in refreshMasterChannelList and cleaned up code
 * Adapted code to load the default profile as configured on box
 * Removed subscription to mqtt recordingStatus topic as endpoints not known
