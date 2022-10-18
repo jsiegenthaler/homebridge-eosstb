@@ -126,10 +126,10 @@ const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=
 const NO_INPUT_ID = 99; // an input id that does not exist. Must be > 0 as a uint32 is expected
 const NO_CHANNEL_ID = 'NO_ID'; // id for a channel not in the channel list
 const NO_CHANNEL_NAME = 'UNKNOWN'; // name for a channel not in the channel list
-const MAX_INPUT_SOURCES = 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
+const MAX_INPUT_SOURCES = 65; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
 const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in millisec. Default = 15000 (15s)
 const MQTT_WATCHDOG_INTERVAL_MS = 10000; // mqtt watchdog interval in millisec. Default = 10000 (10s)
-const MASTER_CHANNEL_LIST_VALID_FOR_S = 87600; // master channel list starts valid for 24 hours from last refresh
+const MASTER_CHANNEL_LIST_VALID_FOR_S = 86400; // master channel list starts valid for 24 hours from last refresh = 86400 seconds
 const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 3600; // master channel list refresh check interval, in seconds. Default = 3600 (1hr) (increased from 600)
 const RECORDING_STATE_ONGOING = 1; // Custom characteristic
 const SETTOPBOX_NAME_MINLEN = 3; // min len of the set-top box name
@@ -620,12 +620,12 @@ class stbPlatform {
 						// a stbDevice contains various data: HomeKit accessory, EOS platform, EOS device, EOS profile
 						let foundStbDevice = this.stbDevices.find(stbDevice => (stbDevice.accessory || {}).UUID === uuid)
 						if (!foundStbDevice) {
-							this.log("Device not found in cache, creating new accessory for %s", this.devices[i].deviceId);
+							this.log("Device %s: Not found in cache, creating new accessory for %s", i+1, this.devices[i].deviceId);
 
 							// create the accessory
-							// constructor(log, config, api, device, platform) {
+							// constructor(log, config, api, device, customer, platform) {
 							this.log("Setting up device %s of %s: %s", i+1, this.devices.length, deviceName);
-							let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this);
+							let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this.customer, this);
 							this.stbDevices.push(newStbDevice);
 
 						} else {
@@ -1364,14 +1364,12 @@ class stbPlatform {
 		// exit immediately if the session does not exist
 		if (currentSessionState != sessionState.CONNECTED) { 
 			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not exist, exiting'); }
-			return;
+			return false;
 		}
 
 		// exit immediately if channel list has not expired
 		if (this.masterChannelListExpiryDate > Date.now()) {
-			if (this.config.debugLevel > 1) {
-				this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString());
-			}
+			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString()); }
 			return false;
 		}
 
@@ -1387,63 +1385,34 @@ class stbPlatform {
 		// syntax:
 		// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/channels?byLocationId=41043&includeInvisible=true&includeNotEntitled=true&personalised=true&sort=channelNumber
 		// https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH
+		/*
 		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/channels';
 		url = url + '?byLocationId=' + this.session.locationId // locationId needed to get user-specific list
 		url = url + '&includeInvisible=true' // includeInvisible
 		url = url + '&includeNotEntitled=true' // includeNotEntitled
 		url = url + '&personalised=true' // personalised
 		url = url + '&sort=channelNumber' // sort
+		*/
 		//url = 'https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH'
-		url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v2/channels'
-		url = url + '?cityId=' + this.customer.cityId //+ this.customer.cityId // cityId needed to get user-specific list
-		url = url + '&language=en' // language
-		url = url + '&productClass=Orion-DASH' // productClass
-		url = url + '&includeNotEntitled=false' // includeNotEntitled testing to see if this parameter is accepted
-		//this.log('For checking the cityId: this.customer:',this.customer);
-
-		if (this.config.debugLevel > 2) {
-			this.log.warn('refreshMasterChannelList: loading inputs from',url);
-		}
+		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v2/channels';
+		url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
+		url = url + '&language=en'; // language
+		url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
+		//url = url + '&includeNotEntitled=false' // includeNotEntitled testing to see if this parameter is accepted
+		if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: loading inputs from',url); }
 
 		// call the webservice to get all available channels
 		const axiosConfig = {
 			method: 'GET',
-			url: url,
-			headers: {
-				//'X-OESP-Token': this.session.accessToken,		
-				//'X-OESP-Username': this.session.username
-				"accept": "*/*",
-				"accept-language": "en-GB,en;q=0.9",
-				"cache-control": "max-age=0",
-				"if-modified-since": "1970-01-01 00:00:00",
-				"sec-ch-ua": "\"Chromium\";v=\"106\", \"Google Chrome\";v=\"106\", \"Not;A=Brand\";v=\"99\"",
-				"sec-ch-ua-mobile": "?0",
-				"sec-ch-ua-platform": "\"Windows\"",
-				"sec-fetch-dest": "empty",
-				"sec-fetch-mode": "cors",
-				"sec-fetch-site": "same-site",
-				"x-go-dev": "8e264b4e-3ad2-40fe-b23d-b380a911ac81", // not sure what this is
-				"x-oesp-username": this.session.username,
-				// Shared Profile: b198cb46-dda8-46c7-8bf1-93c6f73fc81e
-				// Test: 8f57e0e7-4893-4340-9944-6681e2d16793"
-				//"x-profile":"8f57e0e7-4893-4340-9944-6681e2d16793", // this is the current profile id, ok to omit?
-				//this.customer.assignedDevices[0].deviceId // holds the deviceId for index 0
-				//this.customer.assignedDevices[0].defaultProfileId // holds the default profile id for index 0
-			  
-				"x-tracking-id": "42196225bcbef0f2d78383f5da43555b75182e6c53df5808b067c55846edf566" // not sure which id should be here
-			}
+			url: url
 		};
 		axiosWS(axiosConfig)
 			.then(response => {
 				//this.log(response.data);
+				if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.length); }
 
-				if (this.config.debugLevel > 2) {
-					this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.length);
-				}
-
-				// set the masterChannelListExpiryDate to now + MASTER_CHANNEL_LIST_VALID_FOR_S
-				var now = new Date();
-				this.masterChannelListExpiryDate = now.setSeconds(now.getSeconds() + MASTER_CHANNEL_LIST_VALID_FOR_S);
+				// set the masterChannelListExpiryDate to expire at now + MASTER_CHANNEL_LIST_VALID_FOR_S
+				this.masterChannelListExpiryDate =new Date(new Date().getTime() + (MASTER_CHANNEL_LIST_VALID_FOR_S * 1000));
 				this.log('MasterChannelList valid until',this.masterChannelListExpiryDate.toLocaleString())
 			
 				// load the channel list with all channels found
@@ -1452,17 +1421,20 @@ class stbPlatform {
 				this.log('Channels to process:',channels.length);
 				for(let i=0; i<channels.length; i++) {
 					const channel = channels[i];
-					this.log('Loading channel:',i,channel.logicalChannelNumber,channel.id, channel.name);
+					//this.log('Loading channel:',i,channel.logicalChannelNumber,channel.id, channel.name); // for debug purposes
+					// log the detail of logicalChannelNumber 60 nicktoons, for which I have no subscription, as a test of entitlements
+					if (this.config.debugLevel > 0) {
+						if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); }
+					}
 					this.masterChannelList.push({
 						channelId: channel.id, 
 						channelNumber: channel.logicalChannelNumber, 
-						channelName: cleanNameForHomeKit(channel.name)
+						channelName: cleanNameForHomeKit(channel.name)						
 					});
 				}
 					
 				if (this.config.debugLevel > 0) {
-					//this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', this.masterChannelList.length, this.masterChannelListExpiryDate.toLocaleString());
-					this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels', this.masterChannelList.length);
+					this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', this.masterChannelList.length, this.masterChannelListExpiryDate.toLocaleString());
 				}
 				return true;
 
@@ -1481,108 +1453,6 @@ class stbPlatform {
 			});
 	}
 
-
-	// load all available TV channels at regular intervals into an array
-	async refreshMasterChannelListOld(callback) {
-		// called by refreshMasterChannelList (state handler), thus runs at polling interval
-
-		// exit immediately if the session does not exist
-		if (currentSessionState != sessionState.CONNECTED) { 
-			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not exist, exiting'); }
-			return;
-		}
-
-
-		// This function needs to be re-written for the new endpoint as per 13.10.2022
-		// load the channel list with a dummy list of 2 channels so we have some homekit data
-		/*
-		this.masterChannelList = [];
-		for(let i=0; i<2; i++) {
-			this.masterChannelList.push({
-				channelId: 'CH' + i, 
-				channelNumber: i+1, 
-				channelName: 'Channel ' + i
-			});
-		}
-		*/
-
-		// exit immediately if channel list has not expired
-		if (this.masterChannelListExpiryDate > Date.now()) {
-			if (this.config.debugLevel > 1) {
-				this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString());
-			}
-			return false;
-		}
-
-		if (this.config.debugLevel > 1) {
-			this.log.warn('refreshMasterChannelList: Refreshing master channel list...');
-		}
-
-		// only continue if a session was created. If the internet conection is down then we have no session
-		//if (currentSessionState != sessionState.CONNECTED) { return; }
-		
-		// channels can be retrieved for the country without having a mqtt session going  but then the list is not relevant for the user's locationId
-		// so you should add the user's locationId as a parameter, and this needs the accessToken
-		// syntax:
-		// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/channels?byLocationId=41043&includeInvisible=true&includeNotEntitled=true&personalised=true&sort=channelNumber
-		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/channels';
-		url = url + '?byLocationId=' + this.session.locationId // locationId needed to get user-specific list
-		url = url + '&includeInvisible=true' // includeInvisible
-		url = url + '&includeNotEntitled=true' // includeNotEntitled
-		url = url + '&personalised=true' // personalised
-		url = url + '&sort=channelNumber' // sort
-		if (this.config.debugLevel > 2) {
-			this.log.warn('refreshMasterChannelList: loading inputs from',url);
-		}
-
-		// call the webservice to get all available channels
-		const axiosConfig = {
-			method: 'GET',
-			url: url,
-			headers: {
-				'X-OESP-Token': this.session.accessToken,		
-				'X-OESP-Username': this.session.username
-			}
-		};
-		axiosWS(axiosConfig)
-			.then(response => {
-				if (this.config.debugLevel > 2) {
-					this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.totalResults);
-				}
-				this.masterChannelListExpiryDate = new Date(response.data.expires);
-			
-				// load the channel list with all channels found
-				this.masterChannelList = [];
-				const channels = response.data.channels;
-				for(let i=0; i<channels.length; i++) {
-					const channel = channels[i];
-					this.masterChannelList.push({
-						channelId: channel.stationSchedules[0].station.serviceId, 
-						channelNumber: channel.channelNumber, 
-						channelName: cleanNameForHomeKit(channel.title)
-						//channelListIndex: i
-					});
-				}
-					
-				if (this.config.debugLevel > 0) {
-					this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', response.data.totalResults, this.masterChannelListExpiryDate.toLocaleString());
-				}
-				return true;
-
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'Failed to refresh the master channel list - check your internet connection:'
-				if (error.isAxiosError) { 
-					errReason = error.code + ': ' + (error.hostname || ''); 
-					// if no connection then set session to disconnected to force a session reconnect
-					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
-				}
-				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug(`refreshMasterChannelList error:`, error);
-				return error;
-			});
-	}
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// END session handler (web)
@@ -1692,8 +1562,10 @@ class stbPlatform {
 				parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
 
 				// experimental support
-				parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus'); // not needed
-				parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction'); // not needed
+				// recording status commented out 18.10.2022 as endpoint url is unknown
+				// so we don't need to subscribe to these topics
+				//parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus'); // not needed
+				//parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction'); // not needed
 				/*
 				// the next 2 are not needed
 				parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService'); // not needed
@@ -2765,7 +2637,7 @@ class stbPlatform {
 				});
 				
 
-				// profiles are an array named profiles
+				// profiles are an array named profiles, store entire array in this.profiles
 				this.profiles = response.data.profiles; // set this.profiles to the profile data we just received
 
 				// for every profiles data update, update all devices as closedCaptions may have changed
@@ -2869,11 +2741,12 @@ class stbPlatform {
 
 class stbDevice {
 	// build the device
-	constructor(log, config, api, device, platform) {
+	constructor(log, config, api, device, customer, platform) {
 		this.log = log;
 		this.config = config;
 		this.api = api;
 		this.device = device;
+		this.customer = customer;
 		this.platform = platform;
 
 		this.deviceId = this.device.deviceId
@@ -2932,7 +2805,7 @@ class stbDevice {
 
 
 		// do an initial accessory channel update, required to configure the accessory
-		this.refreshChannelList(this.deviceId); // async function
+		this.refreshDeviceChannelList(this.deviceId); // async function
 
 		// plugin setup done, session and channels loaded, can load 
 
@@ -3690,7 +3563,7 @@ class stbDevice {
 				// check for change of profile
 				if (this.profileDataChanged) {
 					this.log('%s: Profile data changed', this.name);
-					this.refreshChannelList();
+					this.refreshDeviceChannelList();
 					
 				}
 
@@ -3714,22 +3587,22 @@ class stbDevice {
 
 
 	// refresh the channel list that shows in the Home app
-	async refreshChannelList(callback) {
+	async refreshDeviceChannelList(callback) {
 		try {
-			if (this.config.debugLevel > 1) { this.log.warn('%s: refreshChannelList', this.name); }
+			if (this.config.debugLevel > 1) { this.log.warn('%s: refreshDeviceChannelList', this.name); }
 			this.log("%s: Refreshing channel list...", this.name);
 			//this.log("%s: Refreshing channel list: CURRENTLY DISABLED AS MASTER CHANNEL LIST NOT YET BUILT", this.name);
 			//return;
 			
 			// exit if no session exists
 			if (currentSessionState != sessionState.CONNECTED) { 
-				this.log.warn('%s: refreshChannelList: Session not yet created, exiting', this.name);
+				this.log.warn('%s: refreshDeviceChannelList: Session not yet created, exiting', this.name);
 				return; 
 			}
 
 			// exit if no master channel list loaded yet (on platform level)
 			if (!this.platform.masterChannelList) { 
-				this.log.warn('%s: refreshChannelList: master channel list not yet loaded, exiting', this.name);
+				this.log.warn('%s: refreshDeviceChannelList: master channel list not yet loaded, exiting', this.name);
 				return; 
 			}
 
@@ -3743,15 +3616,26 @@ class stbDevice {
 			this.log("%s: config.devices: %s", this.name, this.config.devices);
 			this.log("%s: looking for: %s", this.name, this.device.deviceId);
 			*/
+			//this.log.warn('=====PROFILE ID SELECTION======');
+			//this.log.warn('this.customer.profiles', this.customer.profiles);
+			const activeProfile = this.customer.profiles.find(profile => profile.profileId === this.device.defaultProfileId);
+			this.profileId = activeProfile.profileId
+			this.log.warn("%s: Loading channels from profile %s", this.name, activeProfile.name); 
 
-			if (this.config.debugLevel > 1) { this.log.warn("%s: Getting profile data from config", this.name); }
+
+			// old code
+			//if (this.config.debugLevel > 1) { this.log.warn("%s: Getting profile data from config", this.name); }
 			var chIds = [];
 			var configDevice = {};
+			/* deprecated
 			if (this.config.devices) {
 				configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
 				if (configDevice) {
 					// homebridge config for this device was found, get the profile item (=profile name) if it exists in the published profiles
+					// from V2, we use the defaultProfileId found in this.devices
+					//this.log.warn('checking the profile data', this.defaultProfileId);
 					var foundProfileId = this.platform.profiles.findIndex(profile => profile.name === configDevice.profile);
+					//var foundProfileId = this.platform.profiles.findIndex(profile => profile.deviceId === this.deviceId);
 					if (foundProfileId > -1) {
 						if (this.config.debugLevel > 1) { this.log.warn("%s: Valid profile found in config: '%s'", this.name, configDevice.profile); }
 						this.profileId = foundProfileId;
@@ -3760,16 +3644,20 @@ class stbDevice {
 					maxSources = Math.min(configDevice.maxChannels || maxSources, maxSources);
 				}
 			}
+			*/
 
 
 
 			// if no configured profile found (config item does not exist or name not found)
 			// or the selected profile has zero channels added to the "Profile channels list" 
-			// then build a clean, sorted, subscribed channel list
+			// build a clean, sorted, subscribed channel list
+			// as some of the channels in the current list may have no entitlements
 			var subscribedChList = [];
 			if (this.config.debugLevel > 1) { this.log.warn("%s: Using profileId %s", this.name, this.profileId); }
 			if (this.config.debugLevel > 1) { this.log.warn("%s: Checking if subscribed channel list is needed", this.name); }
-			if (this.profileId <= 0 || this.platform.profiles[this.profileId].favoriteChannels.length == 0 ) {
+			//this.log.warn("%s: this.customer.profiles", this.name, this.customer.profiles); 
+			//activeProfile = this.customer.profiles.find(profile => profile.profileId === this.device.defaultProfileId);
+			if (this.profileId <= 0 || activeProfile.favoriteChannels.length == 0 ) {
 				if (this.config.debugLevel > 1) { this.log.warn("%s: Building subscribed channel list", this.name); }
 				// get a clean list of entitled channels (will not be in correct order)
 				// some entitlements are not in the masterchannelList, these must be ignored
@@ -3817,7 +3705,6 @@ class stbDevice {
 					this.log.warn("%s: Sorted chids created with %s entries", this.name, chIds.length); 
 				}
 
-
 			}
 
 
@@ -3828,6 +3715,7 @@ class stbDevice {
 			// if the subscribed channel list fits  (>0 and <=maxSources), use it
 			// otherwise, use the first found profile channel list that fits
 			// always default to the subscribedChList if nothing else fits
+			/*
 			if (this.profileId == -1) {
 				this.log("%s: No valid profile found in config. Selecting best-fitting profile", this.name);
 				if (subscribedChList.length > 0 && subscribedChList.length <= maxSources) {
@@ -3849,36 +3737,30 @@ class stbDevice {
 					}
 				}
 			}
+			*/
 
-
-			// if no profile can be found, default to SharedProfile 0
-			// ensures choice is 0, or >0, but never -1
-			this.profileId = Math.max(this.profileId,0); 
-			this.log("%s: Using profile %s '%s'", this.name, this.profileId, this.platform.profiles[this.profileId].name);
-
-		
 
 
 			// determine what channel list we need to load: "Profiles channels list" or master list
-			// profile can have zero channels in it, this is OK, but if so load the master channel list
+			// profile can have zero favoriteChannels in it, this is OK, but if so load the master channel list
 			var channelsLoadedFromProfileName;
 			if (this.profileId == 0) {
 				// subscribed channels in Shared Profile, already loaded to chIds
-				channelsLoadedFromProfileName = this.platform.profiles[this.profileId].name;
+				channelsLoadedFromProfileName = activeProfile.name;
 				this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
-			} else if ( this.platform.profiles[this.profileId].favoriteChannels.length > 0 ) {
-				chIds = this.platform.profiles[this.profileId].favoriteChannels;
-				channelsLoadedFromProfileName = this.platform.profiles[this.profileId].name;
+			} else if ( activeProfile.favoriteChannels.length > 0 ) {
+				chIds = activeProfile.favoriteChannels;
+				channelsLoadedFromProfileName = activeProfile.name;
 				this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
 			} else {	
 				// Default subscribed channels in Shared Profile, already loaded to chIds
-				channelsLoadedFromProfileName = this.platform.profiles[0].name;
-				this.log("%s: Profile '%s' contains 0 channels. Channel list will be loaded from profile '%s'", this.name, this.platform.profiles[this.profileId].name, channelsLoadedFromProfileName);
+				channelsLoadedFromProfileName = this.customer.profiles[0].name;
+				this.log("%s: Profile '%s' contains 0 channels. Channel list will be loaded from profile '%s'", this.name, activeProfile.name, channelsLoadedFromProfileName);
 			}
 
 			// recently viewed apps
 			if (this.config.debugLevel > 1) { 
-				this.log.warn("%s: refreshChannelList: recentlyUsedApps", this.name, this.platform.profiles[this.profileId].recentlyUsedApps);
+				this.log.warn("%s: refreshDeviceChannelList: recentlyUsedApps", this.name, activeProfile.recentlyUsedApps);
 			}
 
 
@@ -3893,7 +3775,7 @@ class stbDevice {
 				currentChannelName = this.inputServices[currentActiveIdentifier].getCharacteristic(Characteristic.ConfiguredName).value;
 			}
 			if (this.config.debugLevel > 0) { 
-				this.log.warn("%s: refreshChannelList: before channel refresh: this.currentChannelId %s currentActiveIdentifier %s currentChannelName %s", this.name, this.currentChannelId, currentActiveIdentifier, currentChannelName);
+				this.log.warn("%s: refreshDeviceChannelList: before channel refresh: this.currentChannelId %s currentActiveIdentifier %s currentChannelName %s", this.name, this.currentChannelId, currentActiveIdentifier, currentChannelName);
 			}
 			*/
 
@@ -4088,7 +3970,7 @@ class stbDevice {
 			return false;
 
 		} catch (err) {
-			this.log.error("Error trapped in refreshChannelList:", err.message);
+			this.log.error("Error trapped in refreshDeviceChannelList:", err.message);
 			this.log.error(err);
 		}		
 	}
