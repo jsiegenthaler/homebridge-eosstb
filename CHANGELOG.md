@@ -19,13 +19,18 @@ Please report all bugs and problems.
 See below
 
 ## Major Reworks TO-DO (in rough order of priority):
-* Finish refreshMasterChannelList: needs fine tuning, not currently using any profile
-* Adapt refreshChannelList to follow the selected profile from the box as we now know the profile data
+* Adapt refreshDeviceChannelList to take entitlements into account. Test with empty channels.
 * Implement refreshToken capabilities
 * Rework getRecordingState: currently disabled, new endpoint not yet known
 * Rework setPersonalizationDataForDevice: currently disabled, new endpoint not yet known
 * Update axios to 1.1.x (this is not a simple dependency update, breaks many things)
 
+
+
+## 2.0.0-alpha.7 (2022-10-18)
+* Fixed masterChannelListExpiryDate in refreshMasterChannelList and cleaned up code
+* Adapted code to load the default profile as configured on box
+* Removed subscription to mqtt recordingStatus topic as endpoints not known
 
 
 ## 2.0.0-alpha.6 (2022-10-17)
