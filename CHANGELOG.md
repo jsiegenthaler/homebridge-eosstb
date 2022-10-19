@@ -5,10 +5,10 @@ Please restart Homebridge after every plugin update.
 
 # IMPORTANT NOTICE
 This is a major update due to the change in endpoints in the backend systems that occured on 13.10.2022.
-I've managed to get the MQTT back up and running, which will allow HomeKit to know the box status again.
-MQTT control is working again: Power control, and Remote Control are working properly.
-Channel list is working again, you can change channels. Currently being populated with the first 95 channels.
-Detection of correct Profile not yet working
+MQTT control is working again: Power, Remote Control and Channel Control are working properly.
+
+Currently doing work on entitlements, lots of debug logging, this is jst to help verify functionality.
+
 This is alpha code, and I'm currently testing on my own system.
 Please report all bugs and problems.
 
@@ -19,12 +19,18 @@ Please report all bugs and problems.
 See below
 
 ## Major Reworks TO-DO (in rough order of priority):
-* Adapt refreshDeviceChannelList to take entitlements into account. Test with empty channels.
 * Implement refreshToken capabilities
 * Rework getRecordingState: currently disabled, new endpoint not yet known
 * Rework setPersonalizationDataForDevice: currently disabled, new endpoint not yet known
 * Update axios to 1.1.x (this is not a simple dependency update, breaks many things)
+* Readme needs updating to reflect all changes
 
+
+## 2.0.0-alpha.9 (2022-10-19)
+* Added handling of entitlements with lots of debug code running
+* Adapted subscribedChannelList to handle default profile only (removed profile options, was too complex)
+* Updated default firmeware version on config.schema to current firmware version 4.43
+* Improved handling of config.schema maxChannels
 
 
 ## 2.0.0-alpha.8 (2022-10-18)
