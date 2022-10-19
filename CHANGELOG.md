@@ -29,7 +29,7 @@ See below
 ## 2.0.0-alpha.9 (2022-10-19)
 * Added handling of entitlements with lots of debug code running
 * Adapted subscribedChannelList to handle default profile only (removed profile options, was too complex)
-* Updated default firmeware version on config.schema to current firmware version 4.43
+* Updated default firmware version on config.schema to current firmware version 4.43
 * Improved handling of config.schema maxChannels
 
 
