@@ -7,7 +7,7 @@ Please restart Homebridge after every plugin update.
 This is a major update due to the change in endpoints in the backend systems that occured on 13.10.2022.
 MQTT control is working again: Power, Remote Control and Channel Control are working properly.
 
-Currently doing work on entitlements, lots of debug logging, this is jst to help verify functionality.
+Currently doing work on entitlements, lots of debug logging, this is just to help verify functionality.
 
 This is alpha code, and I'm currently testing on my own system.
 Please report all bugs and problems.
