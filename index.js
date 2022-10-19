@@ -3587,7 +3587,7 @@ class stbDevice {
 			// limit the amount of max channels to load as Apple HomeKit is limited to 100 services per accessory.
 			// if a config exists for this device, read the users configured maxSources, if it exists
 			var maxSources = MAX_INPUT_SOURCES;
-			const configDevice = {};
+			var configDevice = {};
 			if (this.config.devices) {
 				configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
 				if (configDevice) {
