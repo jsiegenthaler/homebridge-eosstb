@@ -26,6 +26,10 @@ See below
 * Readme needs updating to reflect all changes
 
 
+## 2.0.0-alpha.11 (2022-10-19)
+* Fixed bug with assignment to const
+
+
 ## 2.0.0-alpha.10 (2022-10-19)
 * Added handling of entitlements with lots of debug code running
 * Adapted subscribedChannelList to handle default profile only (removed profile options, was too complex)
