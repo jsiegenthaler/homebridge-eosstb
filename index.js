@@ -80,7 +80,7 @@ const mqttUrlArray = {
     'be-fr':  	'wss://obomsg.prod.be.horizon.tv/mqtt',
     'be-nl': 	'wss://obomsg.prod.be.horizon.tv/mqtt',
     'ch': 		'wss://obomsg.prod.ch.horizon.tv/mqtt',
-	'cz':		'wss://obomsg.prod.cz.horizon.tv/mqtt',
+	'cz':		'wss://obosg.prod.cz.horizon.tv/mqtt',
 	'de':		'wss://obomsg.prod.de.horizon.tv/mqtt',
     'gb':       'wss://obomsg.prod.gb.horizon.tv/mqtt',
 	'hu':		'wss://obomsg.prod.hu.horizon.tv/mqtt',
@@ -126,7 +126,7 @@ const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=
 const NO_INPUT_ID = 99; // an input id that does not exist. Must be > 0 as a uint32 is expected
 const NO_CHANNEL_ID = 'NO_ID'; // id for a channel not in the channel list
 const NO_CHANNEL_NAME = 'UNKNOWN'; // name for a channel not in the channel list
-const MAX_INPUT_SOURCES = 65; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
+const MAX_INPUT_SOURCES = 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
 const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in millisec. Default = 15000 (15s)
 const MQTT_WATCHDOG_INTERVAL_MS = 10000; // mqtt watchdog interval in millisec. Default = 10000 (10s)
 const MASTER_CHANNEL_LIST_VALID_FOR_S = 86400; // master channel list starts valid for 24 hours from last refresh = 86400 seconds
@@ -551,10 +551,12 @@ class stbPlatform {
 				// call the function to get the 
 				this.log('Calling getPersonalizationData');
 				this.getPersonalizationData(this.session.householdId); // async function
+				this.getEntitlements(this.session.householdId); // async function
 				if (this.config.debugLevel > 2) { 
 					this.log.warn('Session data: %s', this.session); 
 					this.log.warn('Session data assignedDevices: %s', this.session.assignedDevices); 
 					this.log.warn('Session data profiles: %s', this.session.profiles); 
+					this.log.warn('Entitlements: %s', this.customer.entitlements); 
 				}
 				if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
 			}
@@ -623,9 +625,9 @@ class stbPlatform {
 							this.log("Device %s: Not found in cache, creating new accessory for %s", i+1, this.devices[i].deviceId);
 
 							// create the accessory
-							// constructor(log, config, api, device, customer, platform) {
+							// 	constructor(log, config, api, device, customer, entitlements, platform) {
 							this.log("Setting up device %s of %s: %s", i+1, this.devices.length, deviceName);
-							let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this.customer, this);
+							let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this.customer, this.entitlements, this);
 							this.stbDevices.push(newStbDevice);
 
 						} else {
@@ -1429,7 +1431,11 @@ class stbPlatform {
 					this.masterChannelList.push({
 						channelId: channel.id, 
 						channelNumber: channel.logicalChannelNumber, 
-						channelName: cleanNameForHomeKit(channel.name)						
+						channelName: cleanNameForHomeKit(channel.name),
+						id: channel.id, 
+						logicalChannelNumber: channel.logicalChannelNumber, 
+						name: cleanNameForHomeKit(channel.name),
+						linearProducts: channel.linearProducts				
 					});
 				}
 					
@@ -1482,6 +1488,9 @@ class stbPlatform {
 			this.log.warn('Cannot get JWT token: accessToken not set');
 			return false;
 		}
+
+		//this.log.warn('getJwtToken disabled while I build channel list');
+		//return false;
 
 		const jwtAxiosConfig = {
 			method: 'GET',
@@ -1772,8 +1781,8 @@ class stbPlatform {
 										currChannelId = playerState.source.channelId || NO_CHANNEL_ID; // must be a string
 										if (parent.config.debugLevel > 0 && parent.masterChannelList) {
 											let currentChannelName; // let is scoped to the current {} block
-											let curChannel = parent.masterChannelList.find(channel => channel.channelId === currChannelId); 
-											if (curChannel) { currentChannelName = curChannel.channelName; }
+											let curChannel = parent.masterChannelList.find(channel => channel.id === currChannelId); 
+											if (curChannel) { currentChannelName = curChannel.name; }
 											parent.log.warn('mqttClient: Detected mqtt channelId: %s [%s]', currChannelId, currentChannelName);
 										}
 									} else {
@@ -1804,7 +1813,7 @@ class stbPlatform {
 										default:
 											// check if the app channel exists in the master channel list, if not, push it, using the user-defined name if one exists
 											currChannelId = cpeUiStatus.appsState.id;
-											var foundIndex = parent.masterChannelList.findIndex(channel => channel.channelId === currChannelId); 
+											var foundIndex = parent.masterChannelList.findIndex(channel => channel.id === currChannelId); 
 											if (foundIndex == -1 ) {
 												parent.log("App %s detected. Adding to the master channel list at index %s with channelId %s", cpeUiStatus.appsState.appName, parent.masterChannelList.length, currChannelId);
 												// for easy identification, make the channelNumber app10000 + the index number
@@ -2089,7 +2098,7 @@ class stbPlatform {
 				let keyArray = keySequence.trim().split(' ');
 				if (keyArray.length > 1) { this.log('sendKeyHTTP: processing keySequence %s for %s %s', keySequence, deviceName, deviceId); }
 				// supported key1 key2 key3 wait() wait(100)
-				for (let i = 0; i < keyArray.length; i++) {
+				for (let i=0; i < keyArray.length; i++) {
 					const keyName = keyArray[i].trim();
 					this.log('sendKeyHTTP: processing key %s of %s: %s', i+1, keyArray.length, keyName);
 					
@@ -2524,82 +2533,6 @@ class stbPlatform {
 	}
 
 
-	// get the Personalization Data via web request GET
-	// this was for the endpoints available before 13.10.2022. The end points no longer exist
-	async getPersonalizationDataOld(requestType, callback) {
-		this.log("Refreshing personalization data for %s", requestType);
-		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataOld requestType:', requestType); }
-
-		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
-		const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
-		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataOld: GET %s', url); }
-		// this.log('getPersonalizationDataOld: GET %s', url);
-		axiosWS.get(url, config)
-			.then(response => {	
-				if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationDataOld: %s: response: %s %s', requestType, response.status, response.statusText); }
-				if (this.config.debugLevel > 2) { 
-					this.log.warn('getPersonalizationDataOld: %s: response data:', requestType);
-					this.log.warn(response.data);
-				}
-				if (requestType.includes('profiles')) { 
-					this.profiles = response.data; // set this.profiles to the profile data we just received
-
-					// for every profiles data update, update all devices as closedCaptions may have changed
-					// but only if stbDevices has been created...
-					if (this.stbDevices.length > 0) {
-						this.devices.forEach((device) => {
-							device.profiles = this.profiles; // update the device with the profiles array
-							// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault) {
-							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT );
-						});
-					}
-
-				}
-				else if (requestType.includes('devices')) { 
-					// devices can be an array or a single device
-					if (Array.isArray(response.data)) {
-						this.devices = response.data; // store the entire device array at platform level
-			
-						// update all the devices in the array. Don't trust the index order in the Personalization Data message
-						this.devices.forEach((device) => {
-							const deviceId = device.deviceId;
-							const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
-							if (deviceIndex > -1 && this.stbDevices[deviceIndex]) { 
-								this.stbDevices[deviceIndex].device = device;
-								this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, null, Characteristic.StatusFault.NO_FAULT ); // update one device
-							}
-						});
-
-					} else {
-						// data for a single device, find and update the device
-						const deviceId = response.data.deviceId;
-						const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
-						if (deviceIndex > -1) { 
-							this.stbDevices[deviceIndex].device = response.data; 
-							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, null, Characteristic.StatusFault.NO_FAULT ); // update one device
-						}
-				
-					}
-
-				}
-				return false;
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'Failed to refresh personalization data for ' + requestType + ' - check your internet connection:'
-				if (error.isAxiosError) { 
-					errReason = error.code + ': ' + (error.hostname || ''); 
-					// if no connection then set session to disconnected to force a session reconnect
-					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
-				}
-				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug(`getPersonalizationDataOld error:`, error);
-				return false, error;
-			});		
-		return false;
-	}
-
-
 	// get the Personalization Data V2 via web request GET
 	// this is for the web session type as of 13.10.2022
 	async getPersonalizationData(householdId, callback) {
@@ -2695,6 +2628,50 @@ class stbPlatform {
 		return false;
 	}
 
+
+	// get the entitlements for the householdId
+	// this is for the web session type as of 13.10.2022
+	async getEntitlements(householdId, callback) {
+		this.log("Refreshing entitlements for householdId %s", householdId);
+
+		//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
+		//const url='https://prod.spark.sunrisetv.ch/eng/web/purchase-service/v2/customers/1076582_ch/entitlements?enableDaypass=true'
+		const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
+		//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
+		const config = {headers: {
+			"x-cus": householdId,
+			"x-oesp-username": this.session.username
+		}};
+		if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: GET %s', url); }
+		// this.log('getPersonalizationDataOld: GET %s', url);
+		axiosWS.get(url, config)
+			.then(response => {	
+				if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: %s: response: %s %s', householdId, response.status, response.statusText); }
+				if (this.config.debugLevel > 0) { 
+					this.log.warn('getEntitlements: %s: response data:', householdId);
+					this.log.warn(response.data);
+				}
+
+				this.log.warn('getEntitlements: storing in this.entitlements');
+				this.entitlements = response.data; // store the entire entitlements data for future use in this.customer.entitlements
+				this.log.warn('getEntitlements: entitlements found:', this.entitlements.entitlements.length);
+
+				return false;
+			})
+			.catch(error => {
+				let errText, errReason;
+				errText = 'Failed to refresh entitlements data for ' + householdId + ' - check your internet connection:'
+				if (error.isAxiosError) { 
+					errReason = error.code + ': ' + (error.hostname || ''); 
+					// if no connection then set session to disconnected to force a session reconnect
+					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+				}
+				this.log('%s %s', errText, (errReason || ''));
+				this.log.debug(`getEntitlements error:`, error);
+				return false, error;
+			});		
+		return false;
+	}	
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// END session handler mqtt
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2741,12 +2718,13 @@ class stbPlatform {
 
 class stbDevice {
 	// build the device
-	constructor(log, config, api, device, customer, platform) {
+	constructor(log, config, api, device, customer, entitlements, platform) {
 		this.log = log;
 		this.config = config;
 		this.api = api;
 		this.device = device;
 		this.customer = customer;
+		this.entitlements = entitlements;
 		this.platform = platform;
 
 		this.deviceId = this.device.deviceId
@@ -3128,7 +3106,7 @@ class stbDevice {
 		this.displayOrder = [];
 
 		// index 0 is identifier 1, etc, needed for displayOrder
-		for (let i = 1; i <= maxSources; i++) {
+		for (let i=1; i<=maxSources; i++) {
 			if (this.config.debugLevel > 2) {
 				this.log.warn('prepareInputSourceServices Adding service',i, (this.channelList[i-1] || {}).channelName);
 			}
@@ -3309,8 +3287,8 @@ class stbDevice {
 			if (this.config.debugLevel > 0) {
 				let curChannel, currentChannelName;
 				if (this.platform.masterChannelList) {
-					curChannel = this.platform.masterChannelList.find(channel => channel.channelId === this.currentChannelId ); 
-					if (curChannel) { currentChannelName = curChannel.channelName; }
+					curChannel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId ); 
+					if (curChannel) { currentChannelName = curChannel.name; }
 				}
 				this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentRecordingState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s], currentPictureMode %s [%s], profileDataChanged %s, currentStatusFault %s [%s], currentProgramMode %s [%s], currentStatusActive %s', 
 					this.name, 
@@ -3497,7 +3475,7 @@ class stbDevice {
 						// the current channel is an app, eg Netflix
 						this.log("This channel is an app, looking for this app in the masterChannelList: ", searchChannelId)
 						// get the name from the master channel list
-						var masterChannelApp = this.platform.masterChannelList.find(channel => channel.channelId === searchChannelId ); 
+						var masterChannelApp = this.platform.masterChannelList.find(channel => channel.id === searchChannelId ); 
 						//this.log("found masterChannelApp", masterChannelApp)
 						// now look again in the master channel list to find this channel with the same name but not an app id
 						if (masterChannelApp) {
@@ -3505,9 +3483,9 @@ class stbDevice {
 							//var masterChannelByName = this.platform.masterChannelList.find(channel => channel.channelName == masterChannelApp.channelName ); 
 							//this.log("found masterChannel", masterChannelByName)
 							//this.log("looking for channel with same name but different channelId in the masterChannelList: looking for %s where channelId is not %s", masterChannelApp.channelName, masterChannelApp.channelId)
-							var masterChannel = this.platform.masterChannelList.find(channel => channel.channelName == masterChannelApp.channelName && channel.channelId != masterChannelApp.channelId ); 
+							var masterChannel = this.platform.masterChannelList.find(channel => channel.name == masterChannelApp.name && channel.id != masterChannelApp.id ); 
 							if (masterChannel) {
-								searchChannelId = masterChannel.channelId;
+								searchChannelId = masterChannel.id;
 							}
 						}
 					}
@@ -3607,160 +3585,93 @@ class stbDevice {
 			}
 
 			// limit the amount of max channels to load as Apple HomeKit is limited to 100 services per accessory.
+			// if a config exists for this device, read the users configured maxSources, if it exists
 			var maxSources = MAX_INPUT_SOURCES;
-
-			//this.profileId = this.platform.profiles.findIndex(profile => profile.name === this.config.profile);
-			/*
-			this.log("%s: Loading profile: %s", this.name, this.config.profile);
-			this.log("%s: config: %s", this.name, this.config);
-			this.log("%s: config.devices: %s", this.name, this.config.devices);
-			this.log("%s: looking for: %s", this.name, this.device.deviceId);
-			*/
-			//this.log.warn('=====PROFILE ID SELECTION======');
-			//this.log.warn('this.customer.profiles', this.customer.profiles);
-			const activeProfile = this.customer.profiles.find(profile => profile.profileId === this.device.defaultProfileId);
-			this.profileId = activeProfile.profileId
-			this.log.warn("%s: Loading channels from profile %s", this.name, activeProfile.name); 
-
-
-			// old code
-			//if (this.config.debugLevel > 1) { this.log.warn("%s: Getting profile data from config", this.name); }
-			var chIds = [];
-			var configDevice = {};
-			/* deprecated
+			const configDevice = {};
 			if (this.config.devices) {
 				configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
 				if (configDevice) {
-					// homebridge config for this device was found, get the profile item (=profile name) if it exists in the published profiles
-					// from V2, we use the defaultProfileId found in this.devices
-					//this.log.warn('checking the profile data', this.defaultProfileId);
-					var foundProfileId = this.platform.profiles.findIndex(profile => profile.name === configDevice.profile);
-					//var foundProfileId = this.platform.profiles.findIndex(profile => profile.deviceId === this.deviceId);
-					if (foundProfileId > -1) {
-						if (this.config.debugLevel > 1) { this.log.warn("%s: Valid profile found in config: '%s'", this.name, configDevice.profile); }
-						this.profileId = foundProfileId;
-					}
-					// get any custom maxChannels, set per device. Caution: maxChannels may not exist!
+					// homebridge config for this device exists, read maxSources (if exists)
 					maxSources = Math.min(configDevice.maxChannels || maxSources, maxSources);
 				}
 			}
-			*/
+			this.log("%s: Setting maxSources to %s", this.name, maxSources);
+
+
+			//this.log.warn('this.customer.profiles', this.customer.profiles);
+			// get the default profile configured on the stb
+			const defaultProfile = this.customer.profiles.find(profile => profile.profileId === this.device.defaultProfileId);
+			this.profileId = defaultProfile.profileId
+			this.log.warn("%s: Loading channels from profile %s", this.name, defaultProfile.name); 
+
+
+			// load the chId array from the favoriteChannels of the defaultProfile, in the order shown
+			// Note: favoriteChannels is allowed to be empty!
+			// Note: the shared profile contains no favorites
+			this.log("%s: Profile '%s' contains %s favorite channels", this.name, defaultProfile.name, defaultProfile.favoriteChannels.length);
+			var chIds = []; //
+			var subscribedChIds = []; // an array of channelIds: SV00302, SV09091, etc
+			if (defaultProfile.favoriteChannels.length > 0){
+				this.log.warn("%s: Loading channels from profile '%s' into the subscribedChIds", this.name, defaultProfile.name)
+				defaultProfile.favoriteChannels.forEach((channel) => {
+					this.log.warn("%s: Loading channel %s", this.name, channel)
+					subscribedChIds.push( channel ); 
+				});
+			}
+			this.log.warn("%s: subscribedChIds.length: %s", this.name, subscribedChIds.length)
+			this.log.warn("%s: subscribedChIds %s", this.name, subscribedChIds)
+			this.log.warn("%s: subscribedChIds.length", this.name, subscribedChIds.length)
 
 
 
-			// if no configured profile found (config item does not exist or name not found)
-			// or the selected profile has zero channels added to the "Profile channels list" 
-			// build a clean, sorted, subscribed channel list
-			// as some of the channels in the current list may have no entitlements
-			var subscribedChList = [];
-			if (this.config.debugLevel > 1) { this.log.warn("%s: Using profileId %s", this.name, this.profileId); }
+			// if the subscribedChIds is empty, load the channels from the master channel list
+			// sorted by logicalChannelNumber, including only entitled channels
 			if (this.config.debugLevel > 1) { this.log.warn("%s: Checking if subscribed channel list is needed", this.name); }
 			//this.log.warn("%s: this.customer.profiles", this.name, this.customer.profiles); 
-			//activeProfile = this.customer.profiles.find(profile => profile.profileId === this.device.defaultProfileId);
-			if (this.profileId <= 0 || activeProfile.favoriteChannels.length == 0 ) {
-				if (this.config.debugLevel > 1) { this.log.warn("%s: Building subscribed channel list", this.name); }
+			//defaultProfile = this.customer.profiles.find(profile => profile.profileId === this.device.defaultProfileId);
+			if (subscribedChIds.length == 0 ) {
+				this.log("%s: Profile '%s' contains 0 favorite channels. Channel list will be loaded from master channel list", this.name, defaultProfile.name);
+				if (this.config.debugLevel > 1) { this.log.warn("%s: Building subscribed channel list from masterChannelList", this.name); }
 				// get a clean list of entitled channels (will not be in correct order)
 				// some entitlements are not in the masterchannelList, these must be ignored
 				//if (this.config.debugLevel > 1) { this.log.warn("%s: Checking %s entitlements within %s channels in the master channel list", this.name, this.platform.session.entitlements.length, this.platform.masterChannelList.length); }
 
 				// entitlements needs to be reworked, currently load everything
-				this.log.warn("%s: Loading all channels into the subscribedChList", this.name)
+				this.log.warn("%s: Loading all channels into the subscribedChIds", this.name)
+				this.log.warn("%s: masterChannelList.length", this.name, this.platform.masterChannelList.length)
+				this.log.warn("%s: this.entitlements %s", this.name, this.entitlements)
+				this.log.warn("%s: this.platform.entitlements.entitlements %s", this.name, this.platform.entitlements.entitlements)
 				this.platform.masterChannelList.forEach((channel) => {
-					subscribedChList.push( channel.channelId ); 
-				});
-
-				/*
-				this.platform.session.entitlements.forEach((chId) => {
-					// chId can be crid:~~2F~~2Fupcch.tv~~2FSV09170, so split at ~~2F to get SV09170
-					// channels can exist multiple times in the entitlements
-					const chIdParts = chId.split("~~2F");
-					chId = chIdParts[chIdParts.length-1];
-					if (this.config.debugLevel > 2) { 
-						this.log.warn("%s: Checking entitlements ", this.name, chId); 
+					// check entitlements of this channel
+					// channel.linearProducts is an array of entitlement codes assigned to a channel, each channel can have multiple entitlement codes
+					// linearProducts: [ '601007005' ],
+					// this.platform.entitlements.entitlements is an array of entitlement codes that the household has subscribed to
+					// [{ casIndicator: 0, id: '600000001' }, { casIndicator: 0, id: '600000080' }, { casIndicator: 1, id: '600000070' }, { casIndicator: 1, id: '600000300' }]
+					// control channel: SV09038 SRF 1 HD (entitled), with "linearProducts": [ '100000000', '100000001', '600000300'	],
+					// control channel: SV06321 Nicktoons (not entitled), with linearProducts: [ '601007005' ],
+					var isEntitled = false;
+					this.log.warn("%s: checking entitlements for %s %s", this.name, channel.id, channel.name)
+					this.log.debug("%s: channel.linearProducts %s", this.name, channel.linearProducts)
+					this.platform.entitlements.entitlements.forEach((subscribedlEntitlement) => {
+						if (channel.linearProducts.includes(subscribedlEntitlement.id)){
+							this.log.debug("%s: channel channelId %s, linearProducts includes subscribedlEntitlement.id %s, channel is entitled", this.name, channel.id, subscribedlEntitlement.id)
+							isEntitled = true;
 					}
-					// see if we can find this in the masterChannelList, but not in the subscribedChList
-					// if exists in masterChannelList, and not in subscribedChList, add to subscribedChList
-					var masterChListIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === chId);
-					var subsChListIndex = subscribedChList.findIndex(subsChId => subsChId === chId);
-					if ( masterChListIndex > -1 && subsChListIndex == -1 ) { 
-						if (this.config.debugLevel > 2) { 
-							this.log.warn("%s: entitlement channelId does not exist in unsorted subscribedChList, adding %s at index %s", this.name, chId, subscribedChList.length); 
-						}
-						subscribedChList.push( chId ); 
-					}
-				});
-				*/
-
-				// the channels are not in the right sort order, so sort correctly in same order as masterChannelList
-				this.platform.masterChannelList.forEach((channel) => {
-					var foundIndex = subscribedChList.findIndex(chId => chId === channel.channelId);
-					if ( foundIndex > -1 ) { 
-						if (this.config.debugLevel > 2) { 
-							this.log.warn("%s: channelId does not exist in sorted chIds, adding %s %s at index %s", this.name, channel.channelId, channel.channelName, chIds.length); 
-						}
-						chIds.push( channel.channelId ); 
-					} 
-				});
-				if (this.config.debugLevel > 2) { 
-					this.log.warn("%s: Sorted chids created with %s entries", this.name, chIds.length); 
+					});
+					if (isEntitled){
+						subscribedChIds.push( channel.id ); 
+						this.log.warn("%s: channel %s %s is entitled, pushed to subscribedChIds, subscribedChIds.length now %s", this.name, channel.id, channel.name, subscribedChIds.length)
 				}
-
+				});
+				this.log.warn("%s: subscribedChIds.length", this.name, subscribedChIds.length)
 			}
 
 
 
-			// smart default channel list selection
-			// a profile can contain zero channels, this is OK
-			// load from profile channels list if one exists, otherwise from the subscribed channel list
-			// if the subscribed channel list fits  (>0 and <=maxSources), use it
-			// otherwise, use the first found profile channel list that fits
-			// always default to the subscribedChList if nothing else fits
-			/*
-			if (this.profileId == -1) {
-				this.log("%s: No valid profile found in config. Selecting best-fitting profile", this.name);
-				if (subscribedChList.length > 0 && subscribedChList.length <= maxSources) {
-					// the subscribed channel list fits, use it
-					if (this.config.debugLevel > 1) { this.log.warn("%s: Selecting full subscribed channel list", this.name); }
-					this.profileId = 0; // default channel list
-				} else {
-					// otherwise, use the first found profile channel list theat fits
-					// check all available profiles and choose the first found with <90 channels
-					if (this.config.debugLevel > 1) { this.log.warn("%s: Looking for best fit profile channel list within %s user profiles", this.name, this.platform.profiles.length-1); }
-					for(let i=1; i<this.platform.profiles.length; i++) {
-						if (this.config.debugLevel > 1) { this.log.warn("%s: Checking profile %s '%s' containing %s channels", this.name, i, this.platform.profiles[i].name, this.platform.profiles[i].favoriteChannels.length); }
-						if (this.platform.profiles[i].favoriteChannels.length > 0 && this.platform.profiles[i].favoriteChannels.length <= maxSources) {
-							// found a profile that can be used
-							if (this.config.debugLevel > 1) { this.log.warn("%s: Selecting profile '%s' with %s channels", this.name, this.platform.profiles[i].name, this.platform.profiles[i].favoriteChannels.length); }
-							this.profileId = i;
-							break;
-						}
-					}
-				}
-			}
-			*/
-
-
-
-			// determine what channel list we need to load: "Profiles channels list" or master list
-			// profile can have zero favoriteChannels in it, this is OK, but if so load the master channel list
-			var channelsLoadedFromProfileName;
-			if (this.profileId == 0) {
-				// subscribed channels in Shared Profile, already loaded to chIds
-				channelsLoadedFromProfileName = activeProfile.name;
-				this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
-			} else if ( activeProfile.favoriteChannels.length > 0 ) {
-				chIds = activeProfile.favoriteChannels;
-				channelsLoadedFromProfileName = activeProfile.name;
-				this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
-			} else {	
-				// Default subscribed channels in Shared Profile, already loaded to chIds
-				channelsLoadedFromProfileName = this.customer.profiles[0].name;
-				this.log("%s: Profile '%s' contains 0 channels. Channel list will be loaded from profile '%s'", this.name, activeProfile.name, channelsLoadedFromProfileName);
-			}
 
 			// recently viewed apps
 			if (this.config.debugLevel > 1) { 
-				this.log.warn("%s: refreshDeviceChannelList: recentlyUsedApps", this.name, activeProfile.recentlyUsedApps);
+				this.log.warn("%s: refreshDeviceChannelList: recentlyUsedApps", this.name, defaultProfile.recentlyUsedApps);
 			}
 
 
@@ -3784,26 +3695,25 @@ class stbDevice {
 			//this.log("Found before channel load: this.currentChannelId %s found at currentInpIndex %s", this.currentChannelId, currentInpIndex);
 
 
+			////////////////////////////////////////////////////////
+			// load the input list
+			////////////////////////////////////////////////////////
+
 			// clear the array
 			this.channelList = [];
+			this.maxChsLoaded = 0;
 
 			// limit the amount to load
-			const chs = Math.min(chIds.length, maxSources);
-			this.log("%s: Refreshing channels 1 to %s", this.name, chs);
-			if (chs < maxSources) {
-				this.log("%s: Hiding     channels %s to %s", this.name, chs + 1, maxSources);
+			const maxChs = Math.min(subscribedChIds.length, maxSources);
+			this.log("%s: Refreshing channels 1 to %s", this.name, maxChs);
+			if (maxChs < maxSources) {
+				this.log("%s: Hiding     channels %s to %s", this.name, maxChs + 1, maxSources);
 			}
 
 
-			// loop and load all channels from the chIds in the order defined by the array
-			chIds.forEach((chId, i) => {
-				//this.log("In for-each loop, processing index %s %s", i, chId)
-				// normalise the chId
-				// can be "crid:~~2F~~2Fupcch.tv~~2FSV09170" or just "SVO9170" so split at ~~2F
-				const oldChId = chId;
-				const chIdParts = chId.split("~~2F");
-				chId = chIdParts[chIdParts.length-1];
-				if (oldChId.includes("~~2F")) { this.log("chId %s modified to chId %s", oldChId, chId); }
+			// loop and load all channels from the subscribedChIds in the order defined by the array
+			subscribedChIds.forEach((subscribedChId, i) => {
+				this.log("In forEach loop, processing index %s %s", i, subscribedChId)
 
 				// find the channel to load.
 				var channel = {};
@@ -3811,40 +3721,43 @@ class stbDevice {
 				
 				// first look in the config channels list for any user-defined custom channel name
 				if (this.config.channels) {
-					customChannel = this.config.channels.find(channel => channel.channelId === chId);
+					customChannel = this.config.channels.find(channel => channel.channelId === subscribedChId);
 					if ((customChannel || {}).channelName) { 
 						customChannel.channelName = cleanNameForHomeKit(customChannel.channelName)
-						this.log("%s: Found %s in config channels, setting name to %s", this.name, chId, customChannel.channelName);
+						this.log("%s: Found %s in config channels, setting name to %s", this.name, subscribedChId, customChannel.channelName);
 					} else {					
 						customChannel = {}; 
 					}
 				}
 
-				// check if the chId exists in the master channel list, if not, push it, using the user-defined name if one exists, and channelNumber >10000
-				this.log.debug("%s: Index %s: Finding chId %s in master channel list", this.name, i, chId);
-				channel = this.platform.masterChannelList.find(channel => channel.channelId === chId); 
+				// check if the subscribedChId exists in the master channel list, if not, push it, using the user-defined name if one exists, and channelNumber >10000
+				this.log.warn("%s: Index %s: Finding %s in master channel list", this.name, i, subscribedChId);
+				channel = this.platform.masterChannelList.find(channel => channel.id === subscribedChId); 
 				if (!channel) {
-					const newChName = customChannel.channelName || "Channel " + chId; 
-					this.log("%s: Unknown channel %s [%s] discovered. Adding to the master channel list", this.name, chId, newChName);
+					const newChName = customChannel.channelName || "Channel " + subscribedChId; 
+					this.log("%s: Unknown channel %s [%s] discovered. Adding to the master channel list", this.name, subscribedChId, newChName);
 					this.platform.masterChannelList.push({
-						channelId: chId, 
+						channelId: subscribedChId, 
 						channelNumber: 10000 + this.platform.masterChannelList.length, 
-						channelName: newChName
+						channelName: newChName,
+						id: subscribedChId, 
+						name: newChName
 						//channelListIndex: this.platform.masterChannelList.length
 					});
 					// refresh channel as the not found channel will now be in the masterChannelList
-					channel = this.platform.masterChannelList.find(channel => channel.channelId === chId); 
+					channel = this.platform.masterChannelList.find(channel => channel.id === subscribedChId); 
 				} else {
 					// show some useful debug data
-					this.log.debug("%s: Index %s: Found %s in master channel list", this.name, i, chId);
+					this.log.warn("%s: Index %s: Found %s %s in master channel list", this.name, i, channel.id, channel.name);
 				}
 
 				// load this channel as an input
 				//this.log("loading input %s of %s", i + 1, maxSources)
+				this.log.warn("%s: Index %s: Checking if %s %s can be loaded", this.name, i, channel.id, channel.name);
 				if (i < maxSources) {
 
 					// add the user-defined name if one exists
-					if (customChannel && customChannel.channelName) { channel.channelName = customChannel.channelName; }
+					if (customChannel && customChannel.channelName) { channel.name = customChannel.channelName; }
 
 					// show channel number if user chose to do so
 					// must only happen once!
@@ -3853,10 +3766,10 @@ class stbDevice {
 						const chPrefix = ('0' + (i + 1)).slice(-2) + " ";
 						if (!channel.channelConfiguredName || channel.channelConfiguredName.slice(0, 3) != chPrefix) {
 							//this.log("Adding prefix to configured name", chPrefix)
-							channel.channelConfiguredName = chPrefix + channel.channelName;
+							channel.channelConfiguredName = chPrefix + channel.name;
 						}
 					} else {
-						channel.channelConfiguredName = channel.channelName;
+						channel.channelConfiguredName = channel.name;
 					}
 
 					// add channel visibility and configured name, these don't exist on the master channel list
@@ -3865,16 +3778,16 @@ class stbDevice {
 
 					// show debug and add to array
 					//this.log.debug("%s: Index %s: Refreshing channel %s: [%s] %s", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
-					this.log.debug("%s: Index %s: Refreshing channel %s: %s [%s]", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
+					this.log.warn("%s: Index %s: Refreshing channel %s: %s [%s]", this.name, i, ('0' + (i + 1)).slice(-2), channel.id, channel.name);
 					this.channelList[i] = channel;
 
 					// update accesory only when configured
 					if (this.accessoryConfigured) { 
 						// update existing services
-						//this.log.debug("Adding %s %s to input index %s",channel.channelId, channel.channelName, i);
-						this.log.debug("Adding %s %s to input %s at index %s",channel.channelId, channel.channelName, i+1, i);
+						this.log.warn("Adding %s %s to input %s at index %s",channel.id, channel.name, i+1, i);
 						this.inputServices[i].name = channel.channelConfiguredName;
-						this.inputServices[i].subtype = 'input_' + channel.channelId;
+						this.inputServices[i].subtype = 'input_' + i+1;
+						this.maxChsLoaded = i+1;
 
 						// Name can only be set for SharedProfile where order can never be changed
 						if (this.profileid == 0) {
@@ -3943,7 +3856,9 @@ class stbDevice {
 			//this.log("channelList, filtering to first %s items", loadedChs);
 			//this.channelList = this.channelList.filter((channel, index) => index < loadedChs)
 			//this.log("channelList post filter:", this.channelList);
-			for(let i=chs; i<maxSources; i++) {
+			this.maxChsLoaded = maxSources; // for testing
+			this.log("channelList, setting hidden items from %s to %s", this.maxChsLoaded, maxSources);
+			for(let i=this.maxChsLoaded; i<maxSources; i++) {
 				//this.log.debug("Hiding channel", ('0' + (i + 1)).slice(-2));
 				this.log.debug("Hiding channel", ('0' + (i+1)).slice(-2));
 				// array must stay same size and have elements that can be queried, but channelId and channelListIndex must never match valid entries
@@ -3966,7 +3881,7 @@ class stbDevice {
 
 			}
 
-			this.log("%s: Channel list refreshed from profile '%s' with %s channels", this.name, channelsLoadedFromProfileName, Math.min(chIds.length, maxSources));
+			this.log("%s: Channel list refreshed with %s channels", this.name, Math.min(chIds.length, maxSources));
 			return false;
 
 		} catch (err) {
