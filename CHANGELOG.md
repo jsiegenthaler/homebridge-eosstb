@@ -6,8 +6,8 @@ Please restart Homebridge after every plugin update.
 # IMPORTANT NOTICE
 This is a major update due to the change in endpoints in the backend systems that occured on 13.10.2022.
 MQTT control is working again: Power, Remote Control and Channel Control are working properly.
-
-Currently doing work on entitlements, lots of debug logging, this is just to help verify functionality.
+Channel display is working again, and properly tracks channel changes on the box.
+Please check entitlements (aubscribed channels)
 
 This is alpha code, and I'm currently testing on my own system.
 Please report all bugs and problems.
@@ -19,11 +19,18 @@ Please report all bugs and problems.
 See below
 
 ## Major Reworks TO-DO (in rough order of priority):
+* Get BE logon working
 * Implement refreshToken capabilities
 * Rework getRecordingState: currently disabled, new endpoint not yet known
 * Rework setPersonalizationDataForDevice: currently disabled, new endpoint not yet known
 * Update axios to 1.1.x (this is not a simple dependency update, breaks many things)
 * Readme needs updating to reflect all changes
+
+
+## 2.0.0-alpha.12 (2022-10-21)
+* Cleaned up a lot of debug code and comments
+* Fixed bug in mqtt services where channel changes were not being subscribed to properly
+* Fixed bug in getInput where the subtype was not being detected properly and thus channel was not being displayed properly on refresh. This was an old bug from v1! 
 
 
 ## 2.0.0-alpha.11 (2022-10-19)
