@@ -16,6 +16,9 @@ Note that the Channel List is not yet working, and the BE logon sequence is not 
 Feel free to try out the new alpha and eventually beta versions, but please always read the [CHANGELOG.md](/CHANGELOG.md) to see what state the plugin is currently in.
 Please provide feedback via bug reports if anything is not working as expected.
 
+# IMPORTANT NOTICE: THIS README STILL NEEDS UPDATING TO REFLECT CHANGES IN V2
+Biggest changes: Profile handling. The plugin now loads the profile configured as startup profile. User profiles are deprecated. FAQ and WIKI need updating.
+
 
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![npm](https://badgen.net/npm/dm/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
