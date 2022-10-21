@@ -123,8 +123,8 @@ const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=
 
 
 // general constants
-const NO_INPUT_ID = 99; // an input id that does not exist. Must be > 0 as a uint32 is expected
-const NO_CHANNEL_ID = 'NO_ID'; // id for a channel not in the channel list
+const NO_INPUT_ID = 99; // an input id that does not exist. Must be > 0 as a uint32 is expected. inteder
+const NO_CHANNEL_ID = 'ID_UNKNOWN'; // id for a channel not in the channel list, string
 const NO_CHANNEL_NAME = 'UNKNOWN'; // name for a channel not in the channel list
 const MAX_INPUT_SOURCES = 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
 const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in millisec. Default = 15000 (15s)
@@ -1360,6 +1360,7 @@ class stbPlatform {
 
 	// load all available TV channels at regular intervals into an array
 	// new version using endpoints available from 13.10.2022
+	// the masterChannelList contains all possible channels, bith subscribed and non-subscribed channels
 	async refreshMasterChannelList(callback) {
 		// called by refreshMasterChannelList (state handler), thus runs at polling interval
 
@@ -1415,26 +1416,24 @@ class stbPlatform {
 
 				// set the masterChannelListExpiryDate to expire at now + MASTER_CHANNEL_LIST_VALID_FOR_S
 				this.masterChannelListExpiryDate =new Date(new Date().getTime() + (MASTER_CHANNEL_LIST_VALID_FOR_S * 1000));
-				this.log('MasterChannelList valid until',this.masterChannelListExpiryDate.toLocaleString())
+				//this.log('MasterChannelList valid until',this.masterChannelListExpiryDate.toLocaleString())
 			
 				// load the channel list with all channels found
 				this.masterChannelList = [];
 				const channels = response.data;
-				this.log('Channels to process:',channels.length);
+				this.log.debug('Channels to process:',channels.length);
 				for(let i=0; i<channels.length; i++) {
 					const channel = channels[i];
 					//this.log('Loading channel:',i,channel.logicalChannelNumber,channel.id, channel.name); // for debug purposes
 					// log the detail of logicalChannelNumber 60 nicktoons, for which I have no subscription, as a test of entitlements
-					if (this.config.debugLevel > 0) {
-						if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); }
-					}
+					//if (this.config.debugLevel > 0) { if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); } }
 					this.masterChannelList.push({
-						channelId: channel.id, 
-						channelNumber: channel.logicalChannelNumber, 
-						channelName: cleanNameForHomeKit(channel.name),
+						//channelId: channel.id, 
+						//channelNumber: channel.logicalChannelNumber, 
+						//channelName: cleanNameForHomeKit(channel.name),
 						id: channel.id, 
-						logicalChannelNumber: channel.logicalChannelNumber, 
 						name: cleanNameForHomeKit(channel.name),
+						logicalChannelNumber: channel.logicalChannelNumber, 
 						linearProducts: channel.linearProducts				
 					});
 				}
@@ -1570,28 +1569,29 @@ class stbPlatform {
 				// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
 				parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
 
-				// experimental support
+				// experimental support of recording status
 				// recording status commented out 18.10.2022 as endpoint url is unknown
 				// so we don't need to subscribe to these topics
-				//parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus'); // not needed
-				//parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction'); // not needed
-				/*
-				// the next 2 are not needed
-				parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService'); // not needed
-				parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService'); // not needed
-				*/
+				//parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus');
+				//parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction');
+				
+				// purchaseService and watchlistService are not needed, but add if desired if we want to monitor these services
+				//parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService');
+				//parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService');
+				
 
 				// initiate the EOS session by turning on the HGO platform
-				// From oct 2022, no longer needed as the HGO client is no longer the web client
-				//parent.mqttSetHgoOnlineRunning(mqttUsername, mqttClientId);
+				// I belive this is needed to trigger the backend to send us channel change messages when the channel is changed on the box
+				parent.mqttSetHgoOnlineRunning(mqttUsername, mqttClientId);
 
-				
+
+				// subscribe to all householdId messages
 				parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
 				parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status
 
-				// experimental support
-				parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings'); // not needed
-				parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings/capacity'); // not needed
+				// experimental support of recording status
+				parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings');
+				parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings/capacity');
 
 				// subscribe to all devices after the mqttSetHgoOnlineRunning is sent
 				parent.devices.forEach((device) => {
@@ -1604,6 +1604,7 @@ class stbPlatform {
 				});
 
 				// and request the UI status for each device
+				// hmm do we really need this now that HGO has been deprecated as web client?
 				parent.devices.forEach((device) => {
 					// send a getuiStatus request
 					parent.getUiStatus(device.deviceId, mqttClientId);
@@ -1775,7 +1776,7 @@ class stbPlatform {
 									}
 	
 
-									// get channelId (current playing channel) from linear TV
+									// get channelId (current playing channel eg SV09038) from linear TV
 									// Careful: source is not always present in the data
 									if (playerState.source) {
 										currChannelId = playerState.source.channelId || NO_CHANNEL_ID; // must be a string
@@ -1816,11 +1817,13 @@ class stbPlatform {
 											var foundIndex = parent.masterChannelList.findIndex(channel => channel.id === currChannelId); 
 											if (foundIndex == -1 ) {
 												parent.log("App %s detected. Adding to the master channel list at index %s with channelId %s", cpeUiStatus.appsState.appName, parent.masterChannelList.length, currChannelId);
-												// for easy identification, make the channelNumber app10000 + the index number
+												// for easy identification, make the logicalChannelNumber and channelNumber app10000 + the index number
 												parent.masterChannelList.push({
-													channelId: currChannelId, 
-													channelNumber: 'app' + (10000 + parent.masterChannelList.length), 
-													channelName: cleanNameForHomeKit(cpeUiStatus.appsState.appName)
+													id: currChannelId, 
+													name: cleanNameForHomeKit(cpeUiStatus.appsState.appName),
+													logicalChannelNumber: 10000 + parent.masterChannelList.length, // integer
+													linearProducts: this.platform.entitlements.entitlements[0].id // must be a valid entitlement id 
+													//channelNumber: 'app' + (10000 + parent.masterChannelList.length)
 												});
 											}
 									}
@@ -2743,7 +2746,7 @@ class stbDevice {
 		// ++++++++++++++++ plugin setup ++++++++++++++++
 		// setup arrays
 		this.debugLevel = this.config.debugLevel || 0; // debugLevel defaults to 0 (minimum)
-		this.channelList = [];	// loaded channels, as shown in the Home app. Limited to 96
+		this.channelList = [];			// subscribed channels, filtered from the masterchannelLust, to be loaded into the Home app. Limited to 96
 		this.inputServices = [];		// loaded input services, used by the accessory, as shown in the Home app. Limited to 96
 		this.configuredInputs = [];		// a list of inputs that have been renamed by the user. EXPERIMENTAL
 
@@ -2755,7 +2758,7 @@ class stbDevice {
 		// initial states. Will be updated by mqtt messages
 		this.currentPowerState = Characteristic.Active.INACTIVE;
 		this.previousPowerState = Characteristic.Active.INACTIVE;
-		this.currentChannelId = NO_CHANNEL_ID;
+		this.currentChannelId = NO_CHANNEL_ID; // string eg SV09038
 		this.currentClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		this.previousClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		this.currentMediaState = Characteristic.CurrentMediaState.STOP;
@@ -3089,7 +3092,7 @@ class stbDevice {
 		var maxSources = MAX_INPUT_SOURCES;
 		let configDevice;
 		if (this.config.devices) {
-			// get a custom configDevice if one exists, used for adding channelNumber
+			// get a custom configDevice if one exists
 			configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
 			 // update maxSources only if found
 			if (configDevice) { 
@@ -3108,7 +3111,7 @@ class stbDevice {
 		// index 0 is identifier 1, etc, needed for displayOrder
 		for (let i=1; i<=maxSources; i++) {
 			if (this.config.debugLevel > 2) {
-				this.log.warn('prepareInputSourceServices Adding service',i, (this.channelList[i-1] || {}).channelName);
+				this.log.warn('prepareInputSourceServices Adding service',i, (this.channelList[i-1] || {}).name);
 			}
 
 			// default values to hide the input if nothing exists in this.channelList
@@ -3123,9 +3126,9 @@ class stbDevice {
 			//this.log(this.channelList);
 			// index 0 = channel 1
 			if (i <= this.channelList.length && this.channelList[i-1]) {
-				chName = this.channelList[i-1].channelName;
-				chId = this.channelList[i-1].channelId;
-				visState = this.channelList[i-1].channelVisibilityState;
+				chName = this.channelList[i-1].name;
+				chId = this.channelList[i-1].id;
+				visState = this.channelList[i-1].visibilityState;
 				configState = Characteristic.IsConfigured.CONFIGURED;
 			}
 
@@ -3287,7 +3290,7 @@ class stbDevice {
 			if (this.config.debugLevel > 0) {
 				let curChannel, currentChannelName;
 				if (this.platform.masterChannelList) {
-					curChannel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId ); 
+					curChannel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId );  // this.currentChannelId is a string eg SV09038
 					if (curChannel) { currentChannelName = curChannel.name; }
 				}
 				this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentRecordingState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s], currentPictureMode %s [%s], profileDataChanged %s, currentStatusFault %s [%s], currentProgramMode %s [%s], currentStatusActive %s', 
@@ -3467,7 +3470,7 @@ class stbDevice {
 				// temporarily wrapped this in a try-catch to capture any errors
 				//this.log("Before error trap");
 				try {
-					var searchChannelId = this.currentChannelId;
+					var searchChannelId = this.currentChannelId; // this.currentChannelId is a string eg SV09038
 					//this.log("DEBUG: checking searchChannelId", searchChannelId);
 					var currentActiveIdentifier  = 0;
 					// if the current channel id is an app, search by channel name name, and not by channel id
@@ -3479,10 +3482,10 @@ class stbDevice {
 						//this.log("found masterChannelApp", masterChannelApp)
 						// now look again in the master channel list to find this channel with the same name but not an app id
 						if (masterChannelApp) {
-							//this.log("looking for channel with same name in the masterChannelList: looking for %s", masterChannelApp.channelName)
-							//var masterChannelByName = this.platform.masterChannelList.find(channel => channel.channelName == masterChannelApp.channelName ); 
+							//this.log("looking for channel with same name in the masterChannelList: looking for %s", masterChannelApp.name)
+							//var masterChannelByName = this.platform.masterChannelList.find(channel => channel.name == masterChannelApp.name ); 
 							//this.log("found masterChannel", masterChannelByName)
-							//this.log("looking for channel with same name but different channelId in the masterChannelList: looking for %s where channelId is not %s", masterChannelApp.channelName, masterChannelApp.channelId)
+							//this.log("looking for channel with same name but different channelId in the masterChannelList: looking for %s where channelId is not %s", masterChannelApp.name, masterChannelApp.id)
 							var masterChannel = this.platform.masterChannelList.find(channel => channel.name == masterChannelApp.name && channel.id != masterChannelApp.id ); 
 							if (masterChannel) {
 								searchChannelId = masterChannel.id;
@@ -3499,7 +3502,7 @@ class stbDevice {
 				}		
 				//this.log("After error trap. searchChannelId:", searchChannelId);
 
-				// search by subtype in the inputServices array, index 0 = input 1
+				// search by subtype in the inputServices array, index 0 = input 1, subtype: 'input_SV09038',
 				const oldActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
 				//this.log("updateDeviceState: oldActiveIdentifier %s, currentActiveIdentifier %s, searchChannelId %s", oldActiveIdentifier, currentActiveIdentifier, searchChannelId)
 				currentActiveIdentifier = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + searchChannelId ) + 1;
@@ -3512,11 +3515,11 @@ class stbDevice {
 					// what happens if the TV is changed to another profile?
 					var oldName = NO_CHANNEL_NAME, newName = oldName; // default to UNKNOWN
 					if (oldActiveIdentifier != NO_INPUT_ID && this.channelList[oldActiveIdentifier-1]) {
-						oldName = this.channelList[oldActiveIdentifier-1].channelName
+						oldName = this.channelList[oldActiveIdentifier-1].name
 					}
 
 					if (currentActiveIdentifier != NO_INPUT_ID) {
-						newName = this.channelList[currentActiveIdentifier-1].channelName
+						newName = this.channelList[currentActiveIdentifier-1].name
 					}
 					this.log('%s: Channel changed from %s [%s] to %s [%s]', 
 						this.name,
@@ -3626,21 +3629,20 @@ class stbDevice {
 
 			// if the subscribedChIds is empty, load the channels from the master channel list
 			// sorted by logicalChannelNumber, including only entitled channels
-			if (this.config.debugLevel > 1) { this.log.warn("%s: Checking if subscribed channel list is needed", this.name); }
+			//if (this.config.debugLevel > 1) { this.log.warn("%s: Checking if subscribed channel list is needed", this.name); }
 			//this.log.warn("%s: this.customer.profiles", this.name, this.customer.profiles); 
 			//defaultProfile = this.customer.profiles.find(profile => profile.profileId === this.device.defaultProfileId);
 			if (subscribedChIds.length == 0 ) {
-				this.log("%s: Profile '%s' contains 0 favorite channels. Channel list will be loaded from master channel list", this.name, defaultProfile.name);
-				if (this.config.debugLevel > 1) { this.log.warn("%s: Building subscribed channel list from masterChannelList", this.name); }
+				if (this.config.debugLevel > 1) { this.log("%s: Profile '%s' contains 0 favorite channels. Channel list will be loaded from master channel list", this.name, defaultProfile.name); }
 				// get a clean list of entitled channels (will not be in correct order)
 				// some entitlements are not in the masterchannelList, these must be ignored
 				//if (this.config.debugLevel > 1) { this.log.warn("%s: Checking %s entitlements within %s channels in the master channel list", this.name, this.platform.session.entitlements.length, this.platform.masterChannelList.length); }
 
 				// entitlements needs to be reworked, currently load everything
-				this.log.warn("%s: Loading all channels into the subscribedChIds", this.name)
-				this.log.warn("%s: masterChannelList.length", this.name, this.platform.masterChannelList.length)
-				this.log.warn("%s: this.entitlements %s", this.name, this.entitlements)
-				this.log.warn("%s: this.platform.entitlements.entitlements %s", this.name, this.platform.entitlements.entitlements)
+				//this.log.warn("%s: Loading all channels into the subscribedChIds", this.name)
+				//this.log.warn("%s: masterChannelList.length", this.name, this.platform.masterChannelList.length)
+				//this.log.warn("%s: this.entitlements %s", this.name, this.entitlements)
+				//this.log.warn("%s: this.platform.entitlements.entitlements %s", this.name, this.platform.entitlements.entitlements)
 				this.platform.masterChannelList.forEach((channel) => {
 					// check entitlements of this channel
 					// channel.linearProducts is an array of entitlement codes assigned to a channel, each channel can have multiple entitlement codes
@@ -3650,7 +3652,7 @@ class stbDevice {
 					// control channel: SV09038 SRF 1 HD (entitled), with "linearProducts": [ '100000000', '100000001', '600000300'	],
 					// control channel: SV06321 Nicktoons (not entitled), with linearProducts: [ '601007005' ],
 					var isEntitled = false;
-					this.log.warn("%s: checking entitlements for %s %s", this.name, channel.id, channel.name)
+					this.log.debug("%s: checking entitlements for %s %s", this.name, channel.id, channel.name)
 					this.log.debug("%s: channel.linearProducts %s", this.name, channel.linearProducts)
 					this.platform.entitlements.entitlements.forEach((subscribedlEntitlement) => {
 						if (channel.linearProducts.includes(subscribedlEntitlement.id)){
@@ -3660,11 +3662,12 @@ class stbDevice {
 					});
 					if (isEntitled){
 						subscribedChIds.push( channel.id ); 
-						this.log.warn("%s: channel %s %s is entitled, pushed to subscribedChIds, subscribedChIds.length now %s", this.name, channel.id, channel.name, subscribedChIds.length)
+						this.log.debug("%s: %s %s is entitled, pushed to subscribedChIds, subscribedChIds.length now %s", this.name, channel.id, channel.name, subscribedChIds.length)
 				}
 				});
-				this.log.warn("%s: subscribedChIds.length", this.name, subscribedChIds.length)
+				this.log.debug("%s: subscribedChIds.length", this.name, subscribedChIds.length)
 			}
+			this.log("%s: Subscribed channel list loaded with %s channels", this.name, subscribedChIds.length)
 
 
 
@@ -3712,8 +3715,9 @@ class stbDevice {
 
 
 			// loop and load all channels from the subscribedChIds in the order defined by the array
+			//this.log("Loading all subscribed channels")
 			subscribedChIds.forEach((subscribedChId, i) => {
-				this.log("In forEach loop, processing index %s %s", i, subscribedChId)
+				//this.log("In forEach loop, processing index %s %s", i, subscribedChId)
 
 				// find the channel to load.
 				var channel = {};
@@ -3721,79 +3725,79 @@ class stbDevice {
 				
 				// first look in the config channels list for any user-defined custom channel name
 				if (this.config.channels) {
-					customChannel = this.config.channels.find(channel => channel.channelId === subscribedChId);
-					if ((customChannel || {}).channelName) { 
-						customChannel.channelName = cleanNameForHomeKit(customChannel.channelName)
-						this.log("%s: Found %s in config channels, setting name to %s", this.name, subscribedChId, customChannel.channelName);
+					customChannel = this.config.channels.find(channel => channel.id === subscribedChId);
+					if ((customChannel || {}).name) { 
+						customChannel.name = cleanNameForHomeKit(customChannel.name)
+						this.log("%s: Found %s in config channels, setting name to %s", this.name, subscribedChId, customChannel.name);
 					} else {					
 						customChannel = {}; 
 					}
 				}
 
 				// check if the subscribedChId exists in the master channel list, if not, push it, using the user-defined name if one exists, and channelNumber >10000
-				this.log.warn("%s: Index %s: Finding %s in master channel list", this.name, i, subscribedChId);
+				this.log.debug("%s: Index %s: Finding %s in master channel list", this.name, i, subscribedChId);
 				channel = this.platform.masterChannelList.find(channel => channel.id === subscribedChId); 
 				if (!channel) {
-					const newChName = customChannel.channelName || "Channel " + subscribedChId; 
+					const newChName = customChannel.name || "Channel " + subscribedChId; 
 					this.log("%s: Unknown channel %s [%s] discovered. Adding to the master channel list", this.name, subscribedChId, newChName);
 					this.platform.masterChannelList.push({
-						channelId: subscribedChId, 
-						channelNumber: 10000 + this.platform.masterChannelList.length, 
-						channelName: newChName,
 						id: subscribedChId, 
-						name: newChName
-						//channelListIndex: this.platform.masterChannelList.length
+						name: newChName,
+						logicalChannelNumber: 10000 + this.platform.masterChannelList.length, // integer
+						linearProducts: this.platform.entitlements.entitlements[0].id, // must be a valid entitlement id 
 					});
 					// refresh channel as the not found channel will now be in the masterChannelList
 					channel = this.platform.masterChannelList.find(channel => channel.id === subscribedChId); 
 				} else {
 					// show some useful debug data
-					this.log.warn("%s: Index %s: Found %s %s in master channel list", this.name, i, channel.id, channel.name);
+					this.log.debug("%s: Index %s: Found %s %s in master channel list", this.name, i, channel.id, channel.name);
 				}
 
 				// load this channel as an input
 				//this.log("loading input %s of %s", i + 1, maxSources)
-				this.log.warn("%s: Index %s: Checking if %s %s can be loaded", this.name, i, channel.id, channel.name);
+				//this.log.warn("%s: Index %s: Checking if %s %s can be loaded", this.name, i, channel.id, channel.name);
 				if (i < maxSources) {
 
 					// add the user-defined name if one exists
-					if (customChannel && customChannel.channelName) { channel.name = customChannel.channelName; }
+					if (customChannel && customChannel.name) { channel.name = customChannel.name; }
 
 					// show channel number if user chose to do so
 					// must only happen once!
 					if ((configDevice || {}).showChannelNumbers) {
 						// a config exists. Add channel number prefix only if the prefix does not exist
 						const chPrefix = ('0' + (i + 1)).slice(-2) + " ";
-						if (!channel.channelConfiguredName || channel.channelConfiguredName.slice(0, 3) != chPrefix) {
+						if (!channel.configuredName || channel.configuredName.slice(0, 3) != chPrefix) {
 							//this.log("Adding prefix to configured name", chPrefix)
-							channel.channelConfiguredName = chPrefix + channel.name;
+							channel.configuredName = chPrefix + channel.name;
 						}
 					} else {
-						channel.channelConfiguredName = channel.name;
+						channel.configuredName = channel.name;
 					}
 
-					// add channel visibility and configured name, these don't exist on the master channel list
-					// these should be read from file...
-					channel.channelVisibilityState = Characteristic.CurrentVisibilityState.SHOWN;
+					// add channel visibilitystate, doesn't exist on the master channel list
+					// TODO these should be read from file...
+					channel.visibilityState = Characteristic.CurrentVisibilityState.SHOWN;
 
 					// show debug and add to array
-					//this.log.debug("%s: Index %s: Refreshing channel %s: [%s] %s", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
+					//this.log.debug("%s: Index %s: Refreshing channel %s: [%s] %s", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.name);
 					this.log.warn("%s: Index %s: Refreshing channel %s: %s [%s]", this.name, i, ('0' + (i + 1)).slice(-2), channel.id, channel.name);
 					this.channelList[i] = channel;
 
-					// update accesory only when configured
+					// update accesory only when configured, as this.inputServices[i] can only be updated when it exists
 					if (this.accessoryConfigured) { 
 						// update existing services
 						this.log.warn("Adding %s %s to input %s at index %s",channel.id, channel.name, i+1, i);
-						this.inputServices[i].name = channel.channelConfiguredName;
-						this.inputServices[i].subtype = 'input_' + i+1;
+						this.inputServices[i].name = channel.configuredName;
+						this.inputServices[i].subtype = 'input_' + channel.id; // string, input_SV09038 etc
+						//this.inputServices[i].subtype = 'input_' + i+1; // integer, generates input_1 for index 0
 						this.maxChsLoaded = i+1;
+						this.log.warn("DEBUG: input %s subtype set to %s %S",I+1, channel.id, this.inputServices[i].subtype);
 
 						// Name can only be set for SharedProfile where order can never be changed
 						if (this.profileid == 0) {
-							this.inputServices[i].updateCharacteristic(Characteristic.Name, channel.channelName); // stays unchanged at Input 01 etc
+							this.inputServices[i].updateCharacteristic(Characteristic.Name, channel.name); // stays unchanged at Input 01 etc
 						}
-						this.inputServices[i].updateCharacteristic(Characteristic.ConfiguredName, channel.channelConfiguredName);
+						this.inputServices[i].updateCharacteristic(Characteristic.ConfiguredName, channel.configuredName);
 						this.inputServices[i].updateCharacteristic(Characteristic.CurrentVisibilityState, channel.channelVisibilityState);
 						this.inputServices[i].updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
 						//inputService.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
@@ -3802,7 +3806,10 @@ class stbDevice {
 			});
 
 			// after loading all the channels, reset the ActiveIdentifier (uint32) to the right Identifier (uint32), as it may have moved slots
+			// subtype: 'input_SV09038',
 			const currentInput = this.inputServices.find(channel => channel.subtype == 'input_' + this.currentChannelId);
+			this.log("DEBUG: this.currentChannelId %s", this.currentChannelId)
+			this.log("DEBUG: currentInput %s", currentInput)
 			if (currentInput) { 
 				this.televisionService.updateCharacteristic(Characteristic.ActiveIdentifier, currentInput.getCharacteristic(Characteristic.Identifier).value);
 			} else {
@@ -3827,7 +3834,7 @@ class stbDevice {
 							this.log("loading app", i, appId);
 							if (i <= maxSources) {
 								// get the channel
-								var foundIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === appId);
+								var foundIndex = this.platform.masterChannelList.findIndex(channel => channel.id === appId);
 								//this.log("foundIndex", foundIndex);
 								if (foundIndex >= 0) {
 									var channel = this.platform.masterChannelList[foundIndex];
@@ -3837,7 +3844,7 @@ class stbDevice {
 
 									const inputService = this.inputServices[i];
 									inputService
-										.updateCharacteristic(Characteristic.ConfiguredName, channel.channelName)
+										.updateCharacteristic(Characteristic.ConfiguredName, channel.name)
 										.updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED)
 										.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.SHOWN)
 										.updateCharacteristic(Characteristic.TargetVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
@@ -3863,12 +3870,14 @@ class stbDevice {
 				this.log.debug("Hiding channel", ('0' + (i+1)).slice(-2));
 				// array must stay same size and have elements that can be queried, but channelId and channelListIndex must never match valid entries
 				this.channelList[i] = {
-					channelId: 'chId_' + i,  // channelid mjust be unique
-					channelNumber: 'none', 
-					channelName: 'HIDDEN', 
+					id: 'chId_' + i,  // channelid must be unique string, must be different from standard channel ids
+					name: 'HIDDEN', 
+					//channelNumber: 'none', 
+					logicalChannelNumber: null,
+					linearProducts: null,
 					//channelListIndex: 10000 + i,
-					channelVisibilityState: Characteristic.CurrentVisibilityState.HIDDEN,
-					channelConfiguredName: 'HIDDEN'
+					configuredName: 'HIDDEN',
+					visibilityState: Characteristic.CurrentVisibilityState.HIDDEN
 				}
 				
 				// get service and hide it if it exists
@@ -3912,7 +3921,7 @@ class stbDevice {
 	// get power state
 	async getPower(callback) {
 		// fired when the user clicks away from the Remote Control, regardless of which TV was selected
-		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
+		// fired when the Home app wants to refresh the TV tile. Refresh occurs when tile is displayed.
 		// this.currentPowerState is updated by the polling mechanisn
 		//this.log('getPowerState current power state:', this.currentPowerState);
 		if (this.config.debugLevel > 1) { 
@@ -3923,8 +3932,8 @@ class stbDevice {
 
 	// set power state
 	async setPower(targetPowerState, callback) {
-		// fired when the user clicks the power button in the TV accessory in HomeKit
-		// fired when the user clicks the TV tile in HomeKit
+		// fired when the user clicks the power button in the TV accessory in the Home app
+		// fired when the user clicks the TV tile in the Home app
 		// fired when the first key is pressed after opening the Remote Control
 		// wantedPowerState is the wanted power state: 0=off, 1=on
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setPower targetPowerState:', this.name, targetPowerState, powerStateName[targetPowerState]); }
@@ -4088,15 +4097,17 @@ class stbDevice {
 	// get input (TV channel)
 	async getInput(callback) {
 		// fired when the user clicks away from the iOS Device TV Remote Control, regardless of which TV was selected
-		// fired when the icon is clicked in HomeKit and HomeKit requests a refresh
+		// fired when the icon is clicked in the Home app and HomeKit requests a refresh
+		// fired when the Home app is opened
 		// this.currentChannelId is updated by the polling mechanisn
 		// must return a valid index, and must never return null
 		//if (this.config.debugLevel > 1) { this.log.warn('%s: getInput currentChannelId %s',this.name, this.currentChannelId); }
 
-		// find the this.currentChannelId in the accessory inputs and return the inputindex once found
+		// find the this.currentChannelId (eg SV09038) in the accessory inputs and return the inputindex once found
 		// this allows HomeKit to show the selected current channel
 		// as we cannot guarrantee the list order due to personalizationServices changing it at any time
 		// we must search by input_channelId within the current accessory InputSource.subtype
+		//this.log.warn('%s: getInput looking for this.currentChannelId %s in this.inputServices', this.name, this.currentChannelId);
 		var currentChannelName = NO_CHANNEL_NAME;
 		var currentInputIndex = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + this.currentChannelId );
 		if (currentInputIndex == -1) { currentInputIndex = NO_INPUT_ID-1 } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
@@ -4113,13 +4124,13 @@ class stbDevice {
 
 	// set input (change the TV channel)
 	async setInput(input, callback) {
-		if (this.config.debugLevel > 1) { this.log.warn('%s: setInput input %s %s',this.name, input.channelId, input.channelName); }
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setInput input %s %s',this.name, input.id, input.name); }
 		callback(null); // for rapid response
 		var currentChannelName = NO_CHANNEL_NAME;
-		const channel = this.platform.masterChannelList.find(channel => channel.channelId === this.currentChannelId);
-		if (channel) { currentChannelName = channel.channelName; }
-		this.log('%s: Change channel from %s [%s] to %s [%s]', this.name, this.currentChannelId, currentChannelName, input.channelId, input.channelName);
-		this.platform.switchChannel(this.deviceId, this.name, input.channelId, input.channelName);
+		const channel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId);
+		if (channel) { currentChannelName = channel.name; }
+		this.log('%s: Change channel from %s [%s] to %s [%s]', this.name, this.currentChannelId, currentChannelName, input.id, input.name);
+		this.platform.switchChannel(this.deviceId, this.name, input.id, input.name);
 	}
 
 
@@ -4132,7 +4143,7 @@ class stbDevice {
 		// need to read from stored cache, currently not implemented, TO-DO
 		var chName = NO_CHANNEL_NAME; // must have a value
 		if (this.channelList[inputId-1]) {
-			chName = this.channelList[inputId-1].channelConfiguredName;
+			chName = this.channelList[inputId-1].configuredName;
 		}
 		if (this.config.debugLevel > 1) { 
 			this.log.warn("%s: getInputName for input %s returning '%s'", this.name, inputId, chName);
@@ -4151,11 +4162,11 @@ class stbDevice {
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setInputName for input %s to inputName %s', this.name, inputId, newInputName); }
 
 		// store in channelList array and write to disk at every change
-		this.channelList[inputId-1].channelConfiguredName = newInputName;
+		this.channelList[inputId-1].configuredName = newInputName;
 		//not yet active
 		//this.platform.persistConfig(this.deviceId, this.channelList);
 
-		const oldInputName = this.channelList[inputId-1].channelName;
+		const oldInputName = this.channelList[inputId-1].name;
 		// maybe suppress 
 		if (this.config.debugLevel > 2) {
 			this.log('%s: Renamed channel %s from %s to %s (valid only for HomeKit)', this.name, inputId+1, oldInputName, newInputName);
@@ -4165,11 +4176,11 @@ class stbDevice {
 
 
 
-	// get input visibility state (of the TV channel in HomeKit)
+	// get input visibility state (of the TV channel in the accessory)
 	async getInputVisibilityState(inputId, callback) {
 		//if (this.config.debugLevel > 1) { this.log.warn('%s: getInputVisibilityState inputId %s', this.name, inputId); }
 		//var visibilityState = Characteristic.CurrentVisibilityState.SHOWN;
-		//if (this.channelList[inputId-1].channelName == 'HIDDEN') {
+		//if (this.channelList[inputId-1].name == 'HIDDEN') {
 		//	visibilityState = Characteristic.CurrentVisibilityState.HIDDEN;
 		// }
 		// from v1.1.7, index 0 is input 1 and so on
@@ -4188,7 +4199,7 @@ class stbDevice {
 		this.inputServices[inputId-1].getCharacteristic(Characteristic.CurrentVisibilityState).updateValue(visibilityState);
 
 		// store in channelList array and write to disk at every change
-		this.channelList[inputId-1].channelVisibilityState = visibilityState;
+		this.channelList[inputId-1].visibilityState = visibilityState;
 		//not yet active
 		//this.platform.persistConfig(this.deviceId, this.channelList);
 
@@ -4198,7 +4209,7 @@ class stbDevice {
 
 	// get closed captions state
 	async getClosedCaptions(callback) {
-		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
+		// fired when the Home app wants to refresh the TV tile. Refresh occurs when tile is displayed.
 		if (this.config.debugLevel > 1) { 
 			this.log.warn('%s: getClosedCaptions returning %s [%s]', this.name, this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]); 
 		}
@@ -4219,7 +4230,7 @@ class stbDevice {
 
 	// get picture mode state
 	async getPictureMode(callback) {
-		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
+		// fired when the Home app wants to refresh the TV tile. Refresh occurs when tile is displayed.
 		if (this.config.debugLevel > 1) { 
 			//this.log.warn('%s: getPictureMode', this.name); 
 			// get the config for the device, needed for a few status checks
@@ -4238,7 +4249,7 @@ class stbDevice {
 
 	// set picture mode state
 	async setPictureMode(targetPictureMode, callback) {
-		// fired when ??
+		// The current Home app (iOS 16.0) does not support setting this characteristic, thus is never fired
 		// targetClosedCaptionsState is the wanted state
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setPictureMode targetPictureMode:', this.name, targetPictureMode, pictureModeName[targetPictureMode]); }
 		if(this.customPictureMode !== targetPictureMode){
@@ -4252,7 +4263,7 @@ class stbDevice {
 
 	// set power mode selection (View TV Settings menu option)
 	async setPowerModeSelection(state, callback) {
-		// fired by the View TV Settings command in the HomeKit TV accessory Settings
+		// fired by the View TV Settings command in the Home app TV accessory Settings
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setPowerModeSelection state:',this.name, state); }
 		callback(false); // for rapid response
 		this.log('Menu command: View TV Settings');
@@ -4267,7 +4278,7 @@ class stbDevice {
 
 	// get current media state
 	async getCurrentMediaState(callback) {
-		// fired by ??
+		// The current Home app (iOS 16.0) does not support setting this characteristic, thus is never fired
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		if (this.config.debugLevel > 1) { 
 			this.log.warn('%s: getCurrentMediaState returning %s [%s]', this.name, this.currentMediaState, mediaStateName[this.currentMediaState]);
@@ -4277,7 +4288,7 @@ class stbDevice {
 
 	// get target media state
 	async getTargetMediaState(callback) {
-		// fired by ??
+		// The current Home app (iOS 16.0) does not support getting this characteristic, thus is never fired
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		// must never return null, so send STOP as default value
 		if (this.config.debugLevel > 1) {
@@ -4288,7 +4299,7 @@ class stbDevice {
 
 	// set target media state
 	async setTargetMediaState(targetState, callback) {
-		// fired by ??
+		// The current Home app (iOS 16.0) does not support setting this characteristic, thus is never fired
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setTargetMediaState this.targetMediaState:',this.name, targetState, mediaStateName[targetState]); }
 		callback(null); // for rapid response
@@ -4312,7 +4323,7 @@ class stbDevice {
 	// get display order
 	async getDisplayOrder(callback) {
 		// fired when the user clicks away from the iOS Device TV Remote Control, regardless of which TV was selected
-		// fired when the icon is clicked in HomeKit and HomeKit requests a refresh
+		// fired when the icon is clicked in the Home app and the Home app requests a refresh
 
 		// log the display order
 		let dispOrder = this.televisionService.getCharacteristic(Characteristic.DisplayOrder).value;
@@ -4324,7 +4335,7 @@ class stbDevice {
 	// set display order
 	async setDisplayOrder(displayOrder, callback) {
 		// fired when the user clicks away from the iOS Device TV Remote Control, regardless of which TV was selected
-		// fired when the icon is clicked in HomeKit and HomeKit requests a refresh
+		// fired when the icon is clicked in the Home app and the Home app requests a refresh
 		// this.currentChannelId is updated by the polling mechanisn
 		// must return a valid index, and must never return null
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setDisplayOrder displayOrder',this.name, displayOrder); }
@@ -4344,7 +4355,7 @@ class stbDevice {
 	// get in use
 	async getInUse(callback) {
 		// useful in Shortcuts and Automations
-		// log the in use value
+		// log the inUse value
 		if (this.config.debugLevel > 1) { 
 			this.log.warn('%s: getInUse returning %s [%s]', this.name, this.currentInUse, inUseName[this.currentInUse]);
 		}
@@ -4354,7 +4365,7 @@ class stbDevice {
 	// get program mode (recording scheduled, not scheduled)
 	async getProgramMode(callback) {
 		// useful in Shortcuts and Automations
-		// log the program mode value 
+		// log the programMode value 
 		if (this.config.debugLevel > 1) { 
 			this.log.warn('%s: getProgramMode returning %s [%s]', this.name, this.currentProgramMode, programModeName[this.currentProgramMode]);
 		}
