@@ -27,6 +27,10 @@ See below
 * Readme needs updating to reflect all changes
 
 
+## 2.0.0-alpha.14 (2022-10-23)
+* Tracking down error in line 4003 TypeError: Cannot set properties of undefined (setting 'configuredName')
+
+
 ## 2.0.0-alpha.13 (2022-10-23)
 * Fixed bug preventing display of active channel immediately after Homebridge restart 
 * Tuned mqtt messages to reduce message flooding
