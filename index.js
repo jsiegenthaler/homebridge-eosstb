@@ -3997,14 +3997,19 @@ class stbDevice {
 		// channel 3 renamed from BBC Four/Cbeebies HD to BBC Four Cbeebies HD (valid only for HomeKit)
 
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setInputName for input %s to inputName %s', this.name, inputId, newInputName); }
-		this.log('%s: DEBUG setInputName this.channelList.length %s', this.name, this.channelList.length);
+		this.log('%s: DEBUG setInputName inputId %s, this.channelList.length %s', this.name, inputId, this.channelList.length);
 
 		// store in channelList array and write to disk at every change
-		this.channelList[inputId-1].configuredName = newInputName;
+		if (inputId < this.channelList.length){
+			this.log('%s: DEBUG inputId < this.channelList.length', this.name);
+			this.channelList[inputId-1].configuredName = newInputName;
+			const oldInputName = this.channelList[inputId-1].name;
+		} else {
+			this.log('%s: DEBUG inputId >= this.channelList.length', this.name);
+		}
 		//not yet active
 		//this.platform.persistConfig(this.deviceId, this.channelList);
 
-		const oldInputName = this.channelList[inputId-1].name;
 		// maybe suppress 
 		if (this.config.debugLevel > 2) {
 			this.log('%s: Renamed channel %s from %s to %s (valid only for HomeKit)', this.name, inputId+1, oldInputName, newInputName);
