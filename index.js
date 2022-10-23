@@ -4000,14 +4000,12 @@ class stbDevice {
 
 		// store in channelList array and write to disk at every change
 		// ensure that this.channelList bounds are not exceeded!
-		if (this.config.debugLevel > 1) { this.log('%s: DEBUG setInputName inputId %s, this.channelList.length %s', this.name, inputId, this.channelList.length);	}
+		//if (this.config.debugLevel > 1) { this.log('%s: DEBUG setInputName inputId %s, this.channelList.length %s', this.name, inputId, this.channelList.length);	}
 		if (inputId <= this.channelList.length){
-			//this.log.warn('%s: DEBUG inputId <= this.channelList.length', this.name);
 			this.channelList[inputId-1].configuredName = newInputName;
 			const oldInputName = this.channelList[inputId-1].name;
-		//} else {
-		//	this.log.warn('%s: DEBUG inputId > this.channelList.length', this.name);
 		}
+
 		//not yet active
 		//this.platform.persistConfig(this.deviceId, this.channelList);
 
