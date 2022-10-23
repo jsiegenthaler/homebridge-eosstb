@@ -27,6 +27,9 @@ See below
 * Readme needs updating to reflect all changes
 
 
+## 2.0.0-alpha.15 (2022-10-23)
+* Fixed bug in setInputName where the this.channelList bounds might be exceeded 
+
 ## 2.0.0-alpha.14 (2022-10-23)
 * Tracking down error in line 4003 TypeError: Cannot set properties of undefined (setting 'configuredName')
 
