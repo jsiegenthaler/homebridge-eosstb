@@ -27,6 +27,10 @@ See below
 * Readme needs updating to reflect all changes
 
 
+## 2.0.0-alpha.16 (2022-10-23)
+* Removed some debug code
+
+
 ## 2.0.0-alpha.15 (2022-10-23)
 * Fixed bug in setInputName where the this.channelList bounds might be exceeded 
 
