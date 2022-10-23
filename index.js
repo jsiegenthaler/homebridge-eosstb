@@ -206,6 +206,29 @@ function makeId(length) {
 };
 
 
+// format an id to conform with the web client ids
+// 32 char, lower case, formatted as follows:
+// "d3e9aa58-6ddc-4c1a-b6a4-8fc1526c6f19"
+//  12345678-9012-3456-7890-123456789012
+//  1------8 9-12-1316-1720-21--------32
+function makeFormattedId(length) {
+	let id	= '';
+	let result	= '';
+	let characters	= 'abcdefghijklmnopqrstuvwxyz0123456789';
+	let charactersLength = characters.length;
+	for ( let i = 0; i < length; i++ ) {
+		id += characters.charAt(Math.floor(Math.random() * charactersLength));
+	}
+	// expects 32 char id length
+	result = result + id.substring(0, 8) + '-';
+	result = result + id.substring(8, 12) + '-';
+	result = result + id.substring(12, 16) + '-';
+	result = result + id.substring(16, 20) + '-';
+	result = result + id.substring(20, id.length);
+	return result;
+};
+
+
 // get unix timestamp in seconds
 function getTimestampInSeconds() {
 	return Math.floor(Date.now() / 1000)
@@ -1543,7 +1566,10 @@ class stbPlatform {
 		}
 
 		// make a new mqttClientId on every session start, much robuster, then connect
-		mqttClientId = makeId(30).toLowerCase();
+		//mqttClientId = makeId(32);
+		mqttClientId = makeFormattedId(32);
+		this.log.warn('startMqttClient: Creating mqttClient object with username %s, password %s', mqttUsername ,mqttPassword ); 
+
 		mqttClient = mqtt.connect(mqttUrl, {
 			connectTimeout: 10*1000, //10 seconds
 			clientId: mqttClientId,
@@ -1581,19 +1607,20 @@ class stbPlatform {
 				
 
 				// initiate the EOS session by turning on the HGO platform
-				// I belive this is needed to trigger the backend to send us channel change messages when the channel is changed on the box
-				parent.mqttSetHgoOnlineRunning(mqttUsername, mqttClientId);
-
+				// this is needed to trigger the backend to send us channel change messages when the channel is changed on the box
+				parent.setHgoOnlineRunning(mqttUsername, mqttClientId);
+				parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId); // subscribe to mqttClientId to get channel data
 
 				// subscribe to all householdId messages
 				parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
+				parent.mqttSubscribeToTopic(mqttUsername + '/status'); // experiment, may not be needed
 				parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status
 
 				// experimental support of recording status
 				parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings');
 				parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings/capacity');
 
-				// subscribe to all devices after the mqttSetHgoOnlineRunning is sent
+				// subscribe to all devices after the setHgoOnlineRunning is sent
 				parent.devices.forEach((device) => {
 					// subscribe to our own generated unique householdId/mqttClientId and everything for our box
 					//parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId); // not needed from Oct 2022 due to change in web client
@@ -1603,7 +1630,7 @@ class stbPlatform {
 					parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/status');
 				});
 
-				// and request the UI status for each device
+				// and request the initial UI status for each device
 				// hmm do we really need this now that HGO has been deprecated as web client?
 				parent.devices.forEach((device) => {
 					// send a getuiStatus request
@@ -1611,7 +1638,8 @@ class stbPlatform {
 				});
 
 				// and request current recordingState
-				parent.getRecordingState();  // async function
+				// disabled as we cannot handle this yet in v2
+				//parent.getRecordingState();  // async function
 
 				// ++++++++++++++++++++ mqttConnected +++++++++++++++++++++
 			
@@ -1634,12 +1662,11 @@ class stbPlatform {
 
 						// and request the UI status for each device
 						// 14.03.2021 does not respond, disabling for now...
-						/*
-						parent.devices.forEach((device) => {
+						// need to poll at regular intervals maybe?
+						//parent.devices.forEach((device) => {
 							// send a getuiStatus request
-							parent.getUiStatus(device.deviceId, mqttClientId);
-						});
-						*/
+							//parent.getUiStatus(device.deviceId, mqttClientId);
+						//});
 
 						// handle personalizationService messages
 						// Topic: Topic: 107xxxx_ch/personalizationService
@@ -1952,6 +1979,7 @@ class stbPlatform {
 
 
 	// handle the state change of the device, calling the updateDeviceState of the relevant device
+	// handles multiple devices by deviceId, should the user have more than one device
 	mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType) {
 		try {
 			if (this.config.debugLevel > 1) { 
@@ -1993,19 +2021,20 @@ class stbPlatform {
 		});
 	}
 
-	// start the HGO session
-	mqttSetHgoOnlineRunning(mqttUsername, mqttClientId) {
+	// start the HGO session (switch on)
+	setHgoOnlineRunning(mqttUsername, mqttClientId) {
 		try {
-			if (this.config.debugLevel > 0) { this.log.warn('mqttSetHgoOnlineRunning'); }
+			if (this.config.debugLevel > 0) { this.log.warn('setHgoOnlineRunning'); }
 			if (mqttUsername) {
 				this.mqttPublishMessage(
+					// {"source":"fd29b575-5f2b-49a0-8efe-62a844ac2b40","state":"ONLINE_RUNNING","deviceType":"HGO","mac":"","ipAddress":""}
 					mqttUsername + '/' + mqttClientId + '/status', 
-					'{"source":"' +  mqttClientId + '","state":"ONLINE_RUNNING","deviceType":"HGO"}',
+					'{"source":"' +  mqttClientId + '","state":"ONLINE_RUNNING","deviceType":"HGO","mac":"","ipAddress":""}',
 					'{"qos":1,"retain":"true"}'
 				);
 			}
 		} catch (err) {
-			this.log.error("Error trapped in mqttSetHgoOnlineRunning:", err.message);
+			this.log.error("Error trapped in setHgoOnlineRunning:", err.message);
 			this.log.error(err);
 		}
 	}
@@ -2018,7 +2047,7 @@ class stbPlatform {
 			if (mqttUsername) {
 				this.mqttPublishMessage(
 					mqttUsername + '/' + deviceId, 
-					'{"id":"' + makeId(10) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
+					'{"id":"' + makeFormattedId(32) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
 					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
 					+ channelId + '"},"relativePosition":0,"speed":1}}',
 					'{"qos":0}'
@@ -2039,7 +2068,7 @@ class stbPlatform {
 			if (mqttUsername) {
 				this.mqttPublishMessage(
 					mqttUsername + '/' + this.device.deviceId, 
-					'{"id":"' + makeId(10) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
+					'{"id":"' + makeFormattedId(32) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
 					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
 					+ channelId + '"},"relativePosition":0,"speed":' + speed + '}}',
 					'{"qos":0}'
@@ -2062,205 +2091,13 @@ class stbPlatform {
 			if (mqttUsername) {
 				this.mqttPublishMessage(
 				mqttUsername + '/' + deviceId, 
-				'{"id":"' + makeId(10) + '","type":"CPE.setPlayerPosition","source":{"clientId":"' + mqttClientId 
+				'{"id":"' + makeFormattedId(32) + '","type":"CPE.setPlayerPosition","source":{"clientId":"' + mqttClientId 
 				+ '","status":{"relativePosition":' + relativePosition + '}}"' ,
 				'{"qos":0}'
 				);
 			}
 		} catch (err) {
 			this.log.error("Error trapped in setPlayerPosition:", err.message);
-			this.log.error(err);
-		}
-	}
-
-
-	// return to live TV
-	returnToLiveTv(deviceId, deviceName) {
-		try {
-			if (this.config.debugLevel > 0) { this.log.warn('returnToLiveTv'); }
-			if (mqttUsername) {
-				this.mqttPublishMessage(
-				mqttUsername + '/' + deviceId, 
-				'{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + mqttClientId 
-				+ '","status":{"w3cKey":"TV","eventType":"keyDownUp"}}',
-				'{"qos":0}'
-				);
-			}
-		} catch (err) {
-			this.log.error("Error trapped in returnToLiveTv:", err.message);
-			this.log.error(err);
-		}
-	}
-
-	// send a remote control keySequence to the settopbox via http GET
-	async sendKeyHTTP(deviceId, deviceName, keySequence) {
-		try {
-			if (this.config.debugLevel > 0) { this.log.warn('sendKeyHTTP: keySequence %s, deviceName %s, deviceId %s', keySequence, deviceName, deviceId); }
-			if (1==1) {
-
-				let keyArray = keySequence.trim().split(' ');
-				if (keyArray.length > 1) { this.log('sendKeyHTTP: processing keySequence %s for %s %s', keySequence, deviceName, deviceId); }
-				// supported key1 key2 key3 wait() wait(100)
-				for (let i=0; i < keyArray.length; i++) {
-					const keyName = keyArray[i].trim();
-					this.log('sendKeyHTTP: processing key %s of %s: %s', i+1, keyArray.length, keyName);
-					
-					// if a wait appears, use it
-					let waitDelay; // default
-					if (keyName.toLowerCase().startsWith('wait(')) {
-						this.log.debug('sendKeyHTTP: reading delay from %s', keyName);
-						waitDelay = keyName.toLowerCase().replace('wait(', '').replace(')','');
-						if (waitDelay == ''){ waitDelay = 100; } // default 100ms
-						this.log.debug('sendKeyHTTP: delay read as %s', waitDelay);
-					}
-					// else if not first key and previous key was not wait, and next key is not wait, then set a default delay of 100 ms
-					 else if (i>0 && i<keyArray.length-1 && !(keyArray[i-1] || '').toLowerCase().startsWith('wait(') && !(keyArray[i+1] || '').toLowerCase().startsWith('wait(')) {
-						this.log.debug('sendKeyHTTP: not first key and neiher previous key %s nor next key %s is wait(). Setting default wait of 100 ms', keyArray[i-1], keyArray[i+1]);
-						waitDelay = 100;
-					} 
-		
-					// add a wait if waitDelay is defined
-					if (waitDelay) {
-						this.log('sendKeyHTTP: waiting %s ms', waitDelay);
-						await waitprom(waitDelay);
-						this.log.debug('sendKeyHTTP: wait %s done', waitDelay);
-					}
-		
-					// send the key if not a wait()
-					if (!keyName.toLowerCase().startsWith('wait(')) {
-						this.log('sendKeyHTTP: sending key %s to %s %s', keyName, deviceName, deviceId);
-
-						// form the url
-						var stburl = 'https://upc.d2.sc.omtrdc.net/b/ss/upchorizontvonline/0?';
-						stburl = stburl + 'c.stb.key=Play%2FPause';
-						stburl = stburl + '&c.action.origin=Companion+Device+%28full+view%29';
-						// stb id is the hashedCPEId:"44860df59331eede16960bf8188f2e9b008875d5fe6b06a129ccf194352ebd40"
-						stburl = stburl + '&c.stb.id=44860df59331eede16960bf8188f2e9b008875d5fe6b06a129ccf194352ebd40';
-						//stburl = stburl + '&c.app.display=browser';
-						//stburl = stburl + '&c.stb.mainboxtype=EOS';
-						
-						// entire url as per browser, for testing
-						stburl='https://upc.d2.sc.omtrdc.net/b/ss/upchorizontvonline/0?c.stb.key=Play%2FPause&c.action.origin=Companion+Device+%28full+view%29'
-						stburl = stburl + '&c.page.channel=Saved%2FRented&c.entity.contentId=crid%3A~~2F~~2Fgn.tv~~2F7818268~~2FSH019019910000~~2F141743702%2Cimi%3A97643094efa3b797ac5bb7a0d000b943dbec149e&c.entity.type=Replay'
-						stburl = stburl + '&c.stb.id=44860df59331eede16960bf8188f2e9b008875d5fe6b06a129ccf194352ebd40&c.app.display=browser&c.stb.mainboxtype=EOS&c.visitor.idhash=42196225bcbef0f2d78383f5da43555b75182e6c53df5808b067c55846edf566'
-						stburl = stburl + '&c.profile.id=45a24a08c6c9c456993c225049da3264aff2b46647a335ed16fabad042cd3190&c.visitor.segment=3799&c.visitor.type=normal&c.visitor.country=CH&c.app.mode=online&c.action.name=stb.keypress&c.a.OSVersion=Unknown'
-						stburl = stburl + '&c.a.DeviceName=Unknown&c.a.TimeSinceLaunch=6736&c.a.RunMode=Application&c.a.AppID=web%2FSunrise+TV%2F4.42.5016%2F1795+&c.a.Resolution=1858x1301&bh=1301&bw=1858&k=Y&v=N&j=1.6&ch=Saved%2FRented'
-						stburl = stburl + '&pageName=Saved%2FRented&s=1858x1301'
-						//stburl = stburl + '&ts=1665676514'
-						this.log('timestamp:', getTimestampInSeconds());
-						stburl = stburl + '&ts=' + getTimestampInSeconds()
-						stburl = stburl + '&t=00%2F00%2F0000+00%3A00%3A00+0+-120&vid=42196225bcbef0f2d78383f5da43555b75182e6c53df5808b067c55846edf566&aamlh=6&cp=1&pev2=stb.keypress&pe=o';
-
-						
-						/*
-						c.stb.key: Play/Pause
-						c.action.origin: Companion Device (full view)
-						c.page.channel: Home
-						c.entity.contentId: crid:~~2F~~2Fgn.tv~~2F7818268~~2FSH019019910000~~2F141743702,imi:97643094efa3b797ac5bb7a0d000b943dbec149e
-						c.entity.type: Live
-						c.stb.id: 44860df59331eede16960bf8188f2e9b008875d5fe6b06a129ccf194352ebd40
-						c.app.display: browser
-						c.stb.mainboxtype: EOS
-						c.visitor.idhash: 42196225bcbef0f2d78383f5da43555b75182e6c53df5808b067c55846edf566
-						c.profile.id: 45a24a08c6c9c456993c225049da3264aff2b46647a335ed16fabad042cd3190
-						c.visitor.segment: 3799
-						c.visitor.type: normal
-						c.visitor.country: CH
-						c.app.mode: online
-						c.action.name: stb.keypress
-						c.a.OSVersion: Unknown
-						c.a.DeviceName: Unknown
-						c.a.TimeSinceLaunch: 3900
-						c.a.RunMode: Application
-						c.a.AppID: web/Sunrise TV/4.42.5016/1795 
-						c.a.Resolution: 1858x1301
-						bh: 1301
-						bw: 1858
-						k: Y
-						v: N
-						j: 1.6
-						ch: Home
-						pageName: Home
-						s: 1858x1301
-						ts: 1665673678
-						t: 00/00/0000 00:00:00 0 -120
-						vid: 42196225bcbef0f2d78383f5da43555b75182e6c53df5808b067c55846edf566
-						aamlh: 6
-						cp: 1
-						pev2: stb.keypress
-						pe: o
-						*/
-
-
-						// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-						// axios interceptors to log request and response for debugging
-						// works on all following requests in this sub
-						axiosWS.interceptors.request.use(req => {
-							this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
-							'\nMethod:',req.method, '\nURL:', req.url, 
-							'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,  
-							//'\nParams:', req.params, '\nData:', req.data
-							);
-							this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
-							return req; // must return request
-						});
-						axiosWS.interceptors.response.use(res => {
-							this.log.warn('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
-							'\nHeaders:', res.headers, 
-							'\nData:', res.data, 
-							//'\nLast Request:', res.request
-							);
-							//this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
-							return res; // must return response
-						});
-						// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-						// do the http call here
-						const axiosConfig = {
-							method: 'GET',
-							url: stburl,
-							headers: {
-								// these are all the headers, I've commented out what is not mandatory
-								"accept": "*/*",
-								"accept-language": "en-GB,en;q=0.9",
-								"sec-ch-ua": "\"Chromium\";v=\"106\", \"Google Chrome\";v=\"106\", \"Not;A=Brand\";v=\"99\"",
-								"sec-ch-ua-mobile": "?0",
-								"sec-ch-ua-platform": "\"Windows\"",
-								"sec-fetch-dest": "empty",
-								"sec-fetch-mode": "cors",
-								"sec-fetch-site": "cross-site",
-								"Referer": "https://www.sunrisetv.ch/",
-								"Referrer-Policy": "strict-origin-when-cross-origin"
-							}, 
-							body: null
-							//jar: cookieJar,
-						};
-				
-						this.log('Sending PlayPause keypress');
-						this.log('url:', stburl);
-						axiosWS(axiosConfig)
-							.then(response => {	
-								this.log('response:',response.status, response.statusText);
-								//this.log('response data',response.data);
-								this.session = response.data;
-				
-								return true;
-							})
-							.catch(error => {
-								this.log.warn('getSession: error:', error);
-								return false;
-							});	
-						this.log.debug('sendKeyHTTP: send %s done', keyName);
-						return false;						
-
-
-					}
-		
-				} // end for loop
-
-			}
-		} catch (err) {
-			this.log.error("Error trapped in sendKeyHTTP:", err.message);
 			this.log.error(err);
 		}
 	}
@@ -2305,7 +2142,7 @@ class stbPlatform {
 
 						this.mqttPublishMessage(
 							mqttUsername + '/' + deviceId, 
-							'{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}',
+							'{"id":"' + makeFormattedId(32) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}',
 							'{"qos":0}'
 						);
 						this.log.debug('sendKey: send %s done', keyName);
@@ -2330,11 +2167,12 @@ class stbPlatform {
 				this.log.warn('getUiStatus deviceId %s', deviceId);
 			}
 			if (mqttUsername) {
-				var mqttTopic = mqttUsername + '/' + deviceId;
-				var mqttMessage =  '{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + mqttClientId + '"}';
+				//var mqttTopic = mqttUsername + '/' + deviceId;
+				//var mqttMessage =  '{"id":"' + makeFormattedId(32) + '","type":"CPE.getUiStatus","source":"' + mqttClientId + '"}';
 				this.mqttPublishMessage(
 					mqttUsername + '/' + deviceId,
-					'{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + mqttClientId + '"}',
+					// added ,"runtimeType":"getUiStatus" to try to get ui status after reboot
+					'{"source":"' + mqttClientId + '","id":"' + makeFormattedId(32) + '","type":"CPE.getUiStatus","runtimeType":"getUiStatus"}',
 					'{"qos":1,"retain":"true"}'
 				);
 			}
@@ -3471,8 +3309,7 @@ class stbDevice {
 				//this.log("Before error trap");
 				try {
 					var searchChannelId = this.currentChannelId; // this.currentChannelId is a string eg SV09038
-					//this.log("DEBUG: checking searchChannelId", searchChannelId);
-					var currentActiveIdentifier  = 0;
+					var currentActiveIdentifier  = NO_INPUT_ID;
 					// if the current channel id is an app, search by channel name name, and not by channel id
 					if (searchChannelId && searchChannelId.includes('.app.')) {
 						// the current channel is an app, eg Netflix
@@ -3506,10 +3343,10 @@ class stbDevice {
 				const oldActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
 				//this.log("updateDeviceState: oldActiveIdentifier %s, currentActiveIdentifier %s, searchChannelId %s", oldActiveIdentifier, currentActiveIdentifier, searchChannelId)
 				currentActiveIdentifier = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + searchChannelId ) + 1;
+				//this.log("found searchChannelId %s at currentActiveIdentifier %s", 'input_' + searchChannelId , currentActiveIdentifier)
+				if (currentActiveIdentifier <= 0) { currentActiveIdentifier = NO_INPUT_ID; } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
 				//this.log("found searchChannelId at currentActiveIdentifier ", currentActiveIdentifier)
 
-
-				if (currentActiveIdentifier <= 0) { currentActiveIdentifier = NO_INPUT_ID; } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
 				if (oldActiveIdentifier !== currentActiveIdentifier) {
 					// get names from loaded channel list. Using Ch Up/Ch Down buttons on the remote rolls around the profile channel list
 					// what happens if the TV is changed to another profile?
@@ -3605,7 +3442,7 @@ class stbDevice {
 			// get the default profile configured on the stb
 			const defaultProfile = this.customer.profiles.find(profile => profile.profileId === this.device.defaultProfileId);
 			this.profileId = defaultProfile.profileId
-			this.log.warn("%s: Loading channels from profile %s", this.name, defaultProfile.name); 
+			this.log.warn("%s: Loading channels from profile '%s'", this.name, defaultProfile.name); 
 
 
 			// load the chId array from the favoriteChannels of the defaultProfile, in the order shown
@@ -4160,6 +3997,7 @@ class stbDevice {
 		// channel 3 renamed from BBC Four/Cbeebies HD to BBC Four Cbeebies HD (valid only for HomeKit)
 
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setInputName for input %s to inputName %s', this.name, inputId, newInputName); }
+		this.log('%s: DEBUG setInputName this.channelList.length %s', this.name, this.channelList.length);
 
 		// store in channelList array and write to disk at every change
 		this.channelList[inputId-1].configuredName = newInputName;
