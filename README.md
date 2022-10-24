@@ -106,15 +106,19 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Synchronised Current Channel**: Changing the channel on the set-top box changes the displayed channel in the Home app in real time, and vice-versa.
 
-* **Synchronised Channel List Order**: Changing the order of channels in a profile on your set-top box changes the channel list order in the Home app in real time. No reboot required. Note that the Shared Profile channel list order cannot be changed.
+* **Selectable Channel List Order**: Choose between different channel orders: Most-Watched will keep your most watched channels at the top of the channel list. Of course, you can choose a standard channel order if desired. IMPROVE THIS TEXT.
 
-* **Master Channel List Refreshed Regularly**: The master channel list is refreshed at the correct intervals requested by the TV provider, minimising network traffic.
+* **Synchronised Channel List Order**: Changing the order of channels in a profile on your set-top box changes the standard channel list order in the Home app in real time. No reboot required. Note that the Shared Profile channel list order cannot be changed.
+
+* **Master Channel List Refreshed Daily**: The master channel list is refreshed daily, ensuring it is always up to date.
 
 * **Ignores Not-Subscribed Channels**: Only the channels you subscribe to are shown in the Home app, saving you valuable slots in the limited Home app channel list.
 
 * **Optional Channel Numbers**: If you wish, you can display a channel number before the channel name. As this consumes some space on the Home app tile, it is off by default.
 
-* **Intelligent Profile Support**: If the master channel list is too large for the Home app, then the plugin will choose the best fitting profile, should you have any user profiles stored on your set-top box. The best fitting user profile is the first user profile found that fits fully within the available channel list space. Of course, you can specify your own profile which overrides this intelligent selection.
+* **Intelligent Profile Support**: The default profile on start-up is used for the channel list IMPROVE THIS TEXT.
+
+* **Intelligent Profile Support DEPRECATED IN V2**: If the master channel list is too large for the Home app, then the plugin will choose the best fitting profile, should you have any user profiles stored on your set-top box. The best fitting user profile is the first user profile found that fits fully within the available channel list space. Of course, you can specify your own profile which overrides this intelligent selection.
 
 * **Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute (TV dependent). The triple-press timing is configurable.
 
