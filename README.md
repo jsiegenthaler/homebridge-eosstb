@@ -449,7 +449,7 @@ See the Wiki for [details on how to read and control the set-top box in the Shor
 
 * [ziggonext-python by Rudolf Offereins](https://pypi.org/project/ziggonext/#description) Rudolf is the best!
 
-* My helpers in Belgium: [Wesley Liekens](https://www.facebook.com/deliekes) and [Anthony Dekimpe](https://www.facebook.com/anthony.dekimpe) for helping me get the session code working for Telenet
+* My helpers in Belgium: [Wesley Liekens† (RIP)](https://www.facebook.com/deliekes) and [Anthony Dekimpe](https://www.facebook.com/anthony.dekimpe) for helping me get the session code working for Telenet
 
 * My helpers in Great Britain and Ireland (you know who you are) for helping me get the session code working for Virgin Media
 
