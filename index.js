@@ -571,8 +571,10 @@ class stbPlatform {
 				this.log('Failed to find customer data. The backend systems may be down')
 			} else {
 				this.log('Found customer data: %s', this.session.householdId);
-				// call the function to get the 
-				this.log('Calling getPersonalizationData');
+
+				// after session is created, get the Personalization Data and entitlements, but only if this.session.householdId  exists
+				// refreshMasterChannelList happens inside getPersonalizationData, as cityid must be known
+				this.log('Loading personalization data and entitlements')
 				this.getPersonalizationData(this.session.householdId); // async function
 				this.getEntitlements(this.session.householdId); // async function
 				if (this.config.debugLevel > 2) { 
@@ -689,8 +691,8 @@ class stbPlatform {
 	async createSession(country) {
 		this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
 		switch(country) {
-			case 'be-nl': case 'be-fr':
-				this.getSessionBE(); break;
+			//case 'be-nl': case 'be-fr':
+			//	this.getSessionBE(); break;
 			case 'gb':
 				this.getSessionGB(); break;
 			default: // ch, nl, ie, at
@@ -1383,7 +1385,7 @@ class stbPlatform {
 
 	// load all available TV channels at regular intervals into an array
 	// new version using endpoints available from 13.10.2022
-	// the masterChannelList contains all possible channels, bith subscribed and non-subscribed channels
+	// the masterChannelList contains all possible channels, both subscribed and non-subscribed channels
 	async refreshMasterChannelList(callback) {
 		// called by refreshMasterChannelList (state handler), thus runs at polling interval
 
@@ -1403,8 +1405,6 @@ class stbPlatform {
 			this.log.warn('refreshMasterChannelList: Refreshing master channel list...');
 		}
 
-		// only continue if a session was created. If the internet conection is down then we have no session
-		//if (currentSessionState != sessionState.CONNECTED) { return; }
 		
 		// channels can be retrieved for the country without having a mqtt session going  but then the list is not relevant for the user's locationId
 		// so you should add the user's locationId as a parameter, and this needs the accessToken
@@ -1451,9 +1451,6 @@ class stbPlatform {
 					// log the detail of logicalChannelNumber 60 nicktoons, for which I have no subscription, as a test of entitlements
 					//if (this.config.debugLevel > 0) { if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); } }
 					this.masterChannelList.push({
-						//channelId: channel.id, 
-						//channelNumber: channel.logicalChannelNumber, 
-						//channelName: cleanNameForHomeKit(channel.name),
 						id: channel.id, 
 						name: cleanNameForHomeKit(channel.name),
 						logicalChannelNumber: channel.logicalChannelNumber, 
@@ -1480,6 +1477,151 @@ class stbPlatform {
 				return error;
 			});
 	}
+
+	// load all available TV channels at regular intervals into an array
+	// new version using endpoints available from 13.10.2022
+	// the masterChannelList contains all possible channels, bith subscribed and non-subscribed channels
+	async refreshMasterChannelListPrev(callback) {
+		// called by refreshMasterChannelList (state handler), thus runs at polling interval
+
+		// exit immediately if the session does not exist
+		if (currentSessionState != sessionState.CONNECTED) { 
+			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not exist, exiting'); }
+			return false;
+		}
+
+		// exit immediately if channel list has not expired
+		if (this.masterChannelListExpiryDate > Date.now()) {
+			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString()); }
+			return false;
+		}
+
+		if (this.config.debugLevel > 1) {
+			this.log.warn('refreshMasterChannelList: Refreshing master channel list...');
+		}
+
+		// only continue if a session was created. If the internet conection is down then we have no session
+		//if (currentSessionState != sessionState.CONNECTED) { return; }
+		
+		// channels can be retrieved for the country without having a mqtt session going  but then the list is not relevant for the user's locationId
+		// so you should add the user's locationId as a parameter, and this needs the accessToken
+		// syntax:
+		// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/channels?byLocationId=41043&includeInvisible=true&includeNotEntitled=true&personalised=true&sort=channelNumber
+		// https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH
+		/*
+		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/channels';
+		url = url + '?byLocationId=' + this.session.locationId // locationId needed to get user-specific list
+		url = url + '&includeInvisible=true' // includeInvisible
+		url = url + '&includeNotEntitled=true' // includeNotEntitled
+		url = url + '&personalised=true' // personalised
+		url = url + '&sort=channelNumber' // sort
+		*/
+		//url = 'https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH'
+		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v2/channels';
+		url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
+		url = url + '&language=en'; // language
+		url = url + '&entitled=true'; // testing! 760 with all, 
+		url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
+		//url = url + '&includeNotEntitled=false' // includeNotEntitled testing to see if this parameter is accepted
+		if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: loading inputs from',url); }
+
+		// call the webservice to get all available channels
+		const axiosConfig = {
+			method: 'GET',
+			url: url
+		};
+		axiosWS(axiosConfig)
+			.then(response => {
+				//this.log(response.data);
+				if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.length); }
+
+				// set the masterChannelListExpiryDate to expire at now + MASTER_CHANNEL_LIST_VALID_FOR_S
+				this.masterChannelListExpiryDate =new Date(new Date().getTime() + (MASTER_CHANNEL_LIST_VALID_FOR_S * 1000));
+				//this.log('MasterChannelList valid until',this.masterChannelListExpiryDate.toLocaleString())
+			
+				// load the channel list with all channels found
+				this.masterChannelList = [];
+				const channels = response.data;
+				this.log.debug('Channels to process:',channels.length);
+				for(let i=0; i<channels.length; i++) {
+					const channel = channels[i];
+					//this.log('Loading channel:',i,channel.logicalChannelNumber,channel.id, channel.name); // for debug purposes
+					// log the detail of logicalChannelNumber 60 nicktoons, for which I have no subscription, as a test of entitlements
+					//if (this.config.debugLevel > 0) { if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); } }
+					this.masterChannelList.push({
+						id: channel.id, 
+						name: cleanNameForHomeKit(channel.name),
+						logicalChannelNumber: channel.logicalChannelNumber, 
+						linearProducts: channel.linearProducts				
+					});
+				}
+					
+				if (this.config.debugLevel > 0) {
+					this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', this.masterChannelList.length, this.masterChannelListExpiryDate.toLocaleString());
+				}
+				return true;
+
+			})
+			.catch(error => {
+				let errText, errReason;
+				errText = 'Failed to refresh the master channel list - check your internet connection:'
+				if (error.isAxiosError) { 
+					errReason = error.code + ': ' + (error.hostname || ''); 
+					// if no connection then set session to disconnected to force a session reconnect
+					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+				}
+				this.log('%s %s', errText, (errReason || ''));
+				this.log.warn(`refreshMasterChannelList error:`, error);
+				return error;
+			});
+	}
+
+
+
+	// get the entitlements for the householdId
+	// this is for the web session type as of 13.10.2022
+	async getEntitlements(householdId, callback) {
+		this.log("Refreshing entitlements for householdId %s", householdId);
+
+		//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
+		//const url='https://prod.spark.sunrisetv.ch/eng/web/purchase-service/v2/customers/1076582_ch/entitlements?enableDaypass=true'
+		const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
+		//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
+		const config = {headers: {
+			"x-cus": householdId,
+			"x-oesp-username": this.session.username
+		}};
+		if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: GET %s', url); }
+		// this.log('getPersonalizationDataOld: GET %s', url);
+		axiosWS.get(url, config)
+			.then(response => {	
+				if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: %s: response: %s %s', householdId, response.status, response.statusText); }
+				if (this.config.debugLevel > 0) { 
+					this.log.warn('getEntitlements: %s: response data:', householdId);
+					this.log.warn(response.data);
+				}
+
+				this.log.warn('getEntitlements: storing in this.entitlements');
+				this.entitlements = response.data; // store the entire entitlements data for future use in this.customer.entitlements
+				this.log.warn('getEntitlements: entitlements found:', this.entitlements.entitlements.length);
+
+				return false;
+			})
+			.catch(error => {
+				let errText, errReason;
+				errText = 'Failed to refresh entitlements data for ' + householdId + ' - check your internet connection:'
+				if (error.isAxiosError) { 
+					errReason = error.code + ': ' + (error.hostname || ''); 
+					// if no connection then set session to disconnected to force a session reconnect
+					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+				}
+				this.log('%s %s', errText, (errReason || ''));
+				this.log.debug(`getEntitlements error:`, error);
+				return false, error;
+			});		
+		return false;
+	}
+
 
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1613,7 +1755,7 @@ class stbPlatform {
 
 				// subscribe to all householdId messages
 				parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
-				parent.mqttSubscribeToTopic(mqttUsername + '/status'); // experiment, may not be needed
+				//parent.mqttSubscribeToTopic(mqttUsername + '/status'); // experiment, may not be needed
 				parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status
 
 				// experimental support of recording status
@@ -2010,12 +2152,23 @@ class stbPlatform {
 		}
 	}
 
-	// subscribe to an mqtt message, with logging, to help in debugging
+	// subscribe to an mqtt topic, with logging, to help in debugging
 	mqttSubscribeToTopic(Topic, Qos) {
 		if (this.config.debugLevel > 0) { this.log.warn('mqttSubscribeToTopic: Subscribe to topic:', Topic); }
 		mqttClient.subscribe(Topic, function (err) {
 			if(err){
 				//this.log('mqttClient connect: subscribe to %s Error %s:', Topic, err);
+				return true;
+			}
+		});
+	}
+
+	// unsubscribe to an mqtt topic, with logging, to help in debugging
+	mqttUnsubscribeToTopic(Topic, Qos) {
+		if (this.config.debugLevel > 0) { this.log.warn('mqttUnsubscribeToTopic: Unsubscribe to topic:', Topic); }
+		mqttClient.unsubscribe(Topic, function (err) {
+			if(err){
+				//this.log('mqttClient connect: unsubscribe to %s Error %s:', Topic, err);
 				return true;
 			}
 		});
@@ -2470,49 +2623,6 @@ class stbPlatform {
 	}
 
 
-	// get the entitlements for the householdId
-	// this is for the web session type as of 13.10.2022
-	async getEntitlements(householdId, callback) {
-		this.log("Refreshing entitlements for householdId %s", householdId);
-
-		//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
-		//const url='https://prod.spark.sunrisetv.ch/eng/web/purchase-service/v2/customers/1076582_ch/entitlements?enableDaypass=true'
-		const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
-		//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
-		const config = {headers: {
-			"x-cus": householdId,
-			"x-oesp-username": this.session.username
-		}};
-		if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: GET %s', url); }
-		// this.log('getPersonalizationDataOld: GET %s', url);
-		axiosWS.get(url, config)
-			.then(response => {	
-				if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: %s: response: %s %s', householdId, response.status, response.statusText); }
-				if (this.config.debugLevel > 0) { 
-					this.log.warn('getEntitlements: %s: response data:', householdId);
-					this.log.warn(response.data);
-				}
-
-				this.log.warn('getEntitlements: storing in this.entitlements');
-				this.entitlements = response.data; // store the entire entitlements data for future use in this.customer.entitlements
-				this.log.warn('getEntitlements: entitlements found:', this.entitlements.entitlements.length);
-
-				return false;
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'Failed to refresh entitlements data for ' + householdId + ' - check your internet connection:'
-				if (error.isAxiosError) { 
-					errReason = error.code + ': ' + (error.hostname || ''); 
-					// if no connection then set session to disconnected to force a session reconnect
-					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
-				}
-				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug(`getEntitlements error:`, error);
-				return false, error;
-			});		
-		return false;
-	}	
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// END session handler mqtt
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2623,8 +2733,16 @@ class stbDevice {
 		this.lastVolDownKeyPress = [];  // holds the time value of the last button press for the volume down button
 
 
-		// do an initial accessory channel update, required to configure the accessory
-		this.refreshDeviceChannelList(this.deviceId); // async function
+		// do an initial accessory channel list update, required to configure the accessory
+		this.log('%s: Calling refreshDeviceMostWatchedChannels', this.name);
+		this.refreshDeviceMostWatchedChannels(this.device.defaultProfileId); // async function
+
+		// wait 1s for the refreshDeviceMostWatchedChannels to complete then continue
+		wait(1*1000).then(() => { 
+			this.refreshDeviceChannelList(this.deviceId); // async function
+			this.log('%s: refreshDeviceChannelList done', this.name);
+		})
+		
 
 		// plugin setup done, session and channels loaded, can load 
 
@@ -3381,8 +3499,8 @@ class stbDevice {
 				// check for change of profile
 				if (this.profileDataChanged) {
 					this.log('%s: Profile data changed', this.name);
+					this.refreshDeviceMostWatchedChannels(this.device.defaultProfileId);
 					this.refreshDeviceChannelList();
-					
 				}
 
 
@@ -3453,10 +3571,30 @@ class stbDevice {
 			var subscribedChIds = []; // an array of channelIds: SV00302, SV09091, etc
 			if (defaultProfile.favoriteChannels.length > 0){
 				this.log.warn("%s: Loading channels from profile '%s' into the subscribedChIds", this.name, defaultProfile.name)
-				defaultProfile.favoriteChannels.forEach((channel) => {
-					this.log.warn("%s: Loading channel %s", this.name, channel)
-					subscribedChIds.push( channel ); 
-				});
+				this.log.warn("%s: Most watched list length", this.name, (this.mostWatched || []).length)
+				if (configDevice.channelOrder == 'mostWatched' && (this.mostWatched || []).length > 0) {
+					// load by mostWatched sort order
+					this.log.warn("%s: Loading channel using most watched sort order", this.name)
+					this.mostWatched.forEach((mostWatchedChannelId) => {
+						//this.log.warn("%s: Loading channel using most watched sort order. Looking for channel %s", this.name, mostWatchedChannelId)
+						// channel is just the channelId eg SV09322
+						defaultProfile.favoriteChannels.forEach((channel) => {
+							//this.log.warn("%s: checking channel", this.name, channel)
+							if (channel == mostWatchedChannelId) {
+								this.log.warn("%s: Loading channel using most watched sort order. Channel %s found, loading at index %s", this.name, channel, subscribedChIds.length)
+								subscribedChIds.push( channel ); 
+							}
+						});
+					});
+				} else {
+					// load by standard sort order
+					this.log.warn("%s: Loading channel using standard sort order", this.name)
+					defaultProfile.favoriteChannels.forEach((channel) => {
+						this.log.warn("%s: Loading channel using standard sort order %s", this.name, channel)
+						this.log.warn("%s: Loading channel using standard sort order. Channel %s found, loading at index %s", this.name, channel, subscribedChIds.length)
+						subscribedChIds.push( channel ); 
+					});
+				}
 			}
 			this.log.warn("%s: subscribedChIds.length: %s", this.name, subscribedChIds.length)
 			this.log.warn("%s: subscribedChIds %s", this.name, subscribedChIds)
@@ -3735,6 +3873,55 @@ class stbDevice {
 			this.log.error(err);
 		}		
 	}
+
+	// get the most watched channels for the deviceId profileId
+	// this is for the web session type as of 13.10.2022
+	async refreshDeviceMostWatchedChannels(profileId, callback) {
+		const profile = this.customer.profiles.find(profile => profile.profileId === profileId);
+		this.log("%s: Refreshing most watched channels for profile %s", this.name, profile.name);
+
+		// 	https://prod.spark.sunrisetv.ch/eng/web/linear-service/v1/mostWatchedChannels?cityId=401&productClass=Orion-DASH"
+		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v1/mostWatchedChannels';
+		// add url standard parameters
+		url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
+		url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
+		if (this.config.debugLevel > 2) { this.log.warn('refreshDeviceMostWatchedChannels: loading from',url); }
+
+		const config = {headers: {
+			"x-oesp-username": this.platform.session.username, // not sure if needed
+			"x-profile": profile.profileId
+		}};
+		if (this.config.debugLevel > 0) { this.log.warn('refreshDeviceMostWatchedChannels: GET %s', url); }
+		// this.log('getMostWatchedChannels: GET %s', url);
+		axiosWS.get(url, config)
+			.then(response => {	
+				if (this.config.debugLevel > 0) { this.log.warn('refreshDeviceMostWatchedChannels: %s: response: %s %s', profile.name, response.status, response.statusText); }
+				if (this.config.debugLevel > -1) { 
+					this.log.warn('refreshDeviceMostWatchedChannels: %s: response data:', profile.name);
+					this.log.warn(response.data);
+				}
+
+				this.log.warn('refreshDeviceMostWatchedChannels: storing in this.mostWatched');
+				this.mostWatched = response.data; // store the entire mostWatched data for future use in this.mostWatched
+				this.log("%s: MostWatched list refreshed with %s channels", this.name, this.mostWatched.length);
+
+				return false;
+			})
+			.catch(error => {
+				let errText, errReason;
+				errText = 'Failed to refresh most watched channel data for ' + profileId + ' ' + profile.name + ' - check your internet connection:'
+				if (error.isAxiosError) { 
+					errReason = error.code + ': ' + (error.hostname || ''); 
+					// if no connection then set session to disconnected to force a session reconnect
+					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+				}
+				this.log('%s %s', errText, (errReason || ''));
+				this.log.debug(`refreshDeviceMostWatchedChannels error:`, error);
+				return false, error;
+			});		
+		return false;
+	}
+			
 
 	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// END regular device update functions
