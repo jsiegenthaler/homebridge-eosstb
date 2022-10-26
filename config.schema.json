@@ -52,6 +52,7 @@
           "placeholder": "yourTvProviderPassword",
           "required": true
         },
+
         "doublePressTime": {
             "title": "Double-Press Time",
             "type": "integer",
@@ -170,18 +171,29 @@
                         "description": "Use a profile to control what channels are displayed in the Home app. Default: Shared Profile DEPRECATED, NOW USES CURRENT PROFILE FROM SETTOP BOX",
                         "maxLength": 10
                     },
+                    "channelOrder": {
+                        "title": "Channel Sort By",
+                        "type": "string",
+                        "description": "Select how the channels should be sorted in the channel list. Max Channels limits the quantity loaded. Default: Most Watched",
+                        "default": "mostWatched",
+                        "required": false,
+                        "oneOf": [
+                            { "title": "Most Watched", "enum": ["mostWatched"] },
+                            { "title": "Channel Order", "enum": ["channelOrder"] }
+                        ]
+                    },
+                    "maxChannels": {
+                        "title": "Max Channels",
+                        "type": "integer",
+                        "description": "Limit the maximum channels to load in the channel list. Default: 95",
+                        "default": 95,
+                        "maximum": 95
+                    },
                     "showChannelNumbers": {
                         "title": "Show Channel Numbers",
                         "type": "boolean",
                         "description": "Show or hide channel numbers in the channel list. Default: false",
                         "default": false
-                    },
-                    "maxChannels": {
-                        "title": "Max Channels",
-                        "type": "integer",
-                        "description": "Limit the maximum channels to load in the Home app. Default: 95",
-                        "default": 95,
-                        "maximum": 95
                     },
 
                     "arrowUpButton": {
@@ -837,6 +849,7 @@
             "expanded": false,
             "items": [
                 "name",
+                "channelOrder",
                 "doublePressTime",
                 "doublePressDelayTime",
                 "debugLevel"
@@ -886,8 +899,9 @@
                             "expandable": true,
                             "items": [
                                 "devices[].profile",
-                                "devices[].showChannelNumbers",
-                                "devices[].maxChannels"
+                                "devices[].channelOrder",
+                                "devices[].maxChannels",
+                                "devices[].showChannelNumbers"
                             ]
                         },
                         {
