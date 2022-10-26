@@ -19,12 +19,19 @@ Please report all bugs and problems.
 See below
 
 ## Major Reworks TO-DO (in rough order of priority):
-* Get BE logon working
+* IN PROGRESS: Get BE logon working
+* Fix problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
 * Rework getRecordingState: currently disabled, new endpoint not yet known
 * Rework setPersonalizationDataForDevice: currently disabled, new endpoint not yet known
 * Update axios to 1.1.x (this is not a simple dependency update, breaks many things)
 * Readme needs updating to reflect all changes
+
+
+## 2.0.0-alpha.17 (2022-10-26)
+* Trials of BE sessions started: please test
+* Added channelOrder config, allowing sort by mostWatched or by standard channel order. This provides for more efficient use of the limited channel list. I'd like feedback!
+* Bumped dependencies (homebridge, node)
 
 
 ## 2.0.0-alpha.16 (2022-10-23)
