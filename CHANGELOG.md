@@ -32,6 +32,7 @@ See below
 * Trials of BE sessions started: please test
 * Added channelOrder config, allowing sort by mostWatched or by standard channel order. This provides for more efficient use of the limited channel list. I'd like feedback!
 * Bumped dependencies (homebridge, node)
+* Updated README.md to reflect latest iOS 16.1 and Homebridge 1.5.1 releases
 
 
 ## 2.0.0-alpha.16 (2022-10-23)
