@@ -4148,13 +4148,19 @@ class stbDevice {
 
 	// set input (change the TV channel)
 	async setInput(input, callback) {
+		input = input ?? {} // ensure input is never null or undefined
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setInput input %s %s',this.name, input.id, input.name); }
 		callback(null); // for rapid response
 		var currentChannelName = NO_CHANNEL_NAME;
 		const channel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId);
 		if (channel) { currentChannelName = channel.name; }
-		this.log('%s: Change channel from %s [%s] to %s [%s]', this.name, this.currentChannelId, currentChannelName, input.id, input.name);
-		this.platform.switchChannel(this.deviceId, this.name, input.id, input.name);
+		// robustness: only try to switch channel if an input.id exists
+		if (input.id){
+			this.log('%s: Change channel from %s [%s] to %s [%s]', this.name, this.currentChannelId, currentChannelName, input.id, input.name);
+			this.platform.switchChannel(this.deviceId, this.name, input.id, input.name);
+		} else {
+			this.log.warn('%s: setInput called with no input.id!', this.name);
+		}
 	}
 
 
