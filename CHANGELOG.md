@@ -20,12 +20,17 @@ See below
 
 ## Major Reworks TO-DO (in rough order of priority):
 * IN PROGRESS: Get BE logon working
+* Add back the Profile setting for channels, but together with Channel order
 * Fix problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
 * Rework getRecordingState: currently disabled, new endpoint not yet known
 * Rework setPersonalizationDataForDevice: currently disabled, new endpoint not yet known
 * Update axios to 1.1.x (this is not a simple dependency update, breaks many things)
 * Readme needs updating to reflect all changes
+
+
+## 2.0.0-alpha.18 (2022-10-27)
+* Improved robustness and prevented crash of setInput in case the input is not found in the channel list
 
 
 ## 2.0.0-alpha.17 (2022-10-26)
