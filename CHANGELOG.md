@@ -20,13 +20,21 @@ See below
 
 ## Major Reworks TO-DO (in rough order of priority):
 * IN PROGRESS: Get BE logon working
-* Add back the Profile setting for channels, but together with Channel order
 * Fix problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
 * Rework getRecordingState: currently disabled, new endpoint not yet known
 * Rework setPersonalizationDataForDevice: currently disabled, new endpoint not yet known
 * Update axios to 1.1.x (this is not a simple dependency update, breaks many things)
 * Readme needs updating to reflect all changes
+
+
+## 2.0.0-alpha.19 (2022-10-31)
+* Added back user profiles, allowing users to set a profile of their choice, same as in v1
+* Improved ability to respond to profile changes initiated by the box
+* Fixed bug in setInputName where it could try to set name of out of bounds index
+* Fixed bug in sessionWatchdog: Error TypeError: Cannot read properties of undefined (reading 'entitlements'), line 584
+* Fixed bug in refreshDeviceChannelList: Cannot read properties of undefined (reading 'channelOrder'), line 2742
+* Fixed bug in refreshDeviceChannelList: The first hidden channel was not correctly marked as hidden
 
 
 ## 2.0.0-alpha.18 (2022-10-27)
