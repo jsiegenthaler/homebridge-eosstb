@@ -3704,7 +3704,6 @@ class stbDevice {
 
 			// clear the array
 			this.channelList = [];
-			this.maxChsLoaded = 0;
 
 			// limit the amount to load
 			const maxChs = Math.min(subscribedChIds.length, maxSources);
@@ -3791,7 +3790,6 @@ class stbDevice {
 						this.inputServices[i].name = channel.configuredName;
 						this.inputServices[i].subtype = 'input_' + channel.id; // string, input_SV09038 etc
 						//this.inputServices[i].subtype = 'input_' + i+1; // integer, generates input_1 for index 0
-						this.maxChsLoaded = i+1;
 						this.log.warn("DEBUG: input %s subtype set to %s %S",I+1, channel.id, this.inputServices[i].subtype);
 
 						// Name can only be set for SharedProfile where order can never be changed
@@ -3864,18 +3862,16 @@ class stbDevice {
 			//this.log("channelList, filtering to first %s items", loadedChs);
 			//this.channelList = this.channelList.filter((channel, index) => index < loadedChs)
 			//this.log("channelList post filter:", this.channelList);
-			this.maxChsLoaded = maxSources; // for testing
-			this.log("channelList, setting hidden items from %s to %s", maxChs + 1, maxSources);
+			//this.log.debug("channelList, setting hidden items from %s to %s", maxChs + 1, maxSources);
 			for(let i=maxChs; i<maxSources; i++) {
 				//this.log.debug("Hiding channel", ('0' + (i + 1)).slice(-2));
 				this.log.debug("Hiding channel %s of %s", ('0' + (i+1)).slice(-2), maxSources);
-				// array must stay same size and have elements that can be queried, but channelId and channelListIndex must never match valid entries
+				// array must stay same size and have elements that can be queried, but channelId must never match valid entries
 				this.channelList[i] = {
 					id: 'hiddenChId_' + i,  // channelid must be unique string, must be different from standard channel ids
 					name: 'HIDDEN', 
 					logicalChannelNumber: null,
 					linearProducts: null,
-					//channelListIndex: 10000 + i,
 					configuredName: 'HIDDEN',
 					visibilityState: Characteristic.CurrentVisibilityState.HIDDEN
 				}
@@ -3890,7 +3886,7 @@ class stbDevice {
 
 			}
 
-			this.log("%s: Channel list refreshed with %s channels", this.name, Math.min(chIds.length, maxSources));
+			this.log("%s: Channel list refreshed with %s channels", this.name, Math.min(maxChs, maxSources));
 			return false;
 
 		} catch (err) {
