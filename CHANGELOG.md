@@ -20,12 +20,18 @@ See below
 
 ## Major Reworks TO-DO (in rough order of priority):
 * IN PROGRESS: Get BE logon working
+* Check adding/removing/reordering of a profile channel list works properly
 * Fix problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
 * Rework getRecordingState: currently disabled, new endpoint not yet known
 * Rework setPersonalizationDataForDevice: currently disabled, new endpoint not yet known
 * Update axios to 1.1.x (this is not a simple dependency update, breaks many things)
 * Readme needs updating to reflect all changes
+
+
+## 2.0.0-alpha.20 (2022-10-31)
+* Fixed logging bug in refreshDeviceChannelList
+* Cleaned up some debug code
 
 
 ## 2.0.0-alpha.19 (2022-10-31)
