@@ -1589,16 +1589,15 @@ class stbPlatform {
 		// this.log('getPersonalizationDataOld: GET %s', url);
 		axiosWS.get(url, config)
 			.then(response => {	
-				if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: %s: response: %s %s', householdId, response.status, response.statusText); }
-				if (this.config.debugLevel > 0) { 
+				if (this.config.debugLevel > 1) { this.log.warn('getEntitlements: %s: response: %s %s', householdId, response.status, response.statusText); }
+				if (this.config.debugLevel > 1) { 
 					this.log.warn('getEntitlements: %s: response data:', householdId);
 					this.log.warn(response.data);
 				}
-
-				this.log.warn('getEntitlements: storing in this.entitlements');
 				this.entitlements = response.data; // store the entire entitlements data for future use in this.customer.entitlements
-				this.log.warn('getEntitlements: entitlements found:', this.entitlements.entitlements.length);
-
+				if (this.config.debugLevel > 1) { 
+					this.log.warn('getEntitlements: entitlements found:', this.entitlements.entitlements.length);
+				}
 				return false;
 			})
 			.catch(error => {
@@ -1704,7 +1703,6 @@ class stbPlatform {
 		// make a new mqttClientId on every session start, much robuster, then connect
 		//mqttClientId = makeId(32);
 		mqttClientId = makeFormattedId(32);
-		this.log.warn('startMqttClient: Creating mqttClient object with username %s, password %s', mqttUsername ,mqttPassword ); 
 
 		mqttClient = mqtt.connect(mqttUrl, {
 			connectTimeout: 10*1000, //10 seconds
@@ -1968,7 +1966,7 @@ class stbPlatform {
 									switch (cpeUiStatus.appsState.id) {
 				
 										case 'com.bbc.app.launcher': case 'com.bbc.app.crb':
-											// ignore the following apps to ensure shannel name is not overridden:
+											// ignore the following apps to ensure channel name is not overridden:
 											// com.bbc.app.launcher 	button launcher app??
 											// com.bbc.app.crb 			Connected Red Button app, this is the Red Button special control on the remote
 											currChannelId = null; 
@@ -1981,12 +1979,13 @@ class stbPlatform {
 											var foundIndex = parent.masterChannelList.findIndex(channel => channel.id === currChannelId); 
 											if (foundIndex == -1 ) {
 												parent.log("App %s detected. Adding to the master channel list at index %s with channelId %s", cpeUiStatus.appsState.appName, parent.masterChannelList.length, currChannelId);
+												const entitlementId = parent.entitlements.entitlements[0].id;
 												// for easy identification, make the logicalChannelNumber and channelNumber app10000 + the index number
 												parent.masterChannelList.push({
 													id: currChannelId, 
 													name: cleanNameForHomeKit(cpeUiStatus.appsState.appName),
 													logicalChannelNumber: 10000 + parent.masterChannelList.length, // integer
-													linearProducts: this.platform.entitlements.entitlements[0].id // must be a valid entitlement id 
+													linearProducts: entitlementId // must be a valid entitlement id 
 													//channelNumber: 'app' + (10000 + parent.masterChannelList.length)
 												});
 											}
@@ -2020,8 +2019,6 @@ class stbPlatform {
 						// catch all mqtt errors
 						parent.log.error("Error trapped in mqttClient message event:", err.message);
 						parent.log.error(err);
-						parent.log.error("mqttmessage:");
-						parent.log.error(mqttMessage);
 					}
 				
 				}); // end of mqtt client event: message received
@@ -2737,11 +2734,9 @@ class stbDevice {
 
 		// wait 1s for the refreshDeviceMostWatchedChannels to complete then continue
 		this.refreshDeviceChannelList(this.deviceId); // async function
-		this.log('%s: refreshDeviceChannelList done', this.name);
-		
+	
 
 		// plugin setup done, session and channels loaded, can load 
-
 		// wait 5s for the accessory channel list to load then continue
 		wait(3*1000).then(() => { 
 			this.accessoryConfigured = false;
@@ -3565,13 +3560,12 @@ class stbDevice {
 			if (!wantedProfile) {
 				// no profile found, use the default profile
 				wantedProfile = this.customer.profiles.find(profile => profile.profileId === this.device.defaultProfileId);
-				this.log.warn("%s: Configured profile not found, reverting to default profile: '%s'", this.name, wantedProfile.name)
+				if (this.config.debugLevel > 1) {this.log.warn("%s: No user-configured profile found, reverting to default profile: '%s'", this.name, wantedProfile.name) }
 			}
-			this.log.warn("%s: Using profile %s", this.name, wantedProfile.name)
+			//this.log("%s: Using profile %s", this.name, wantedProfile.name)
 
 			
 			// now load the mostWatched list for this profile
-			this.log.warn("%s: loading most-watched channel list for profile '%s'", this.name, wantedProfile.name)
 			this.refreshDeviceMostWatchedChannels(wantedProfile.profileId); // async function
 			// wait 1s for the refreshDeviceMostWatchedChannels to complete then continue
 			wait(1*1000).then(() => { 
@@ -3580,11 +3574,9 @@ class stbDevice {
 			})
 
 
-			//this.log.warn('this.customer.profiles', this.customer.profiles);
 			// get the wanted profile configured on the stb
-			//var wantedProfile = this.customer.profiles.find(profile => profile.profileId === this.device.defaultProfileId);
 			this.profileId = wantedProfile.profileId
-			this.log.warn("%s: Loading channels from profile '%s'", this.name, wantedProfile.name); 
+			//this.log.warn("%s: Loading channels from profile '%s'", this.name, wantedProfile.name); 
 
 
 			// load the chId array from the favoriteChannels of the wantedProfile, in the order shown
@@ -3593,38 +3585,49 @@ class stbDevice {
 			this.log("%s: Profile '%s' contains %s channels", this.name, wantedProfile.name, wantedProfile.favoriteChannels.length);
 			var subscribedChIds = []; // an array of channelIds: SV00302, SV09091, etc
 			if (wantedProfile.favoriteChannels.length > 0){
-				this.log.warn("%s: Loading channels from profile '%s' into the subscribedChIds", this.name, wantedProfile.name)
-				this.log.warn("%s: Most watched list length", this.name, (this.mostWatched || []).length)
+				if (this.config.debugLevel > 2) { 
+					this.log.warn("%s: Loading channels from profile '%s' into the subscribedChIds", this.name, wantedProfile.name)
+					this.log.warn("%s: Most watched list length", this.name, (this.mostWatched || []).length) 
+				}
 				// check channelOrder: new config item added in v2, config item may not exist for older users.
 				//let debugChannelorder = (configDevice.channelOrder || 'channelOrder')
 				//this.log.warn("%s: DEBUG debugChannelorder", this.name, debugChannelorder)
 				if ((((configDevice || {}).channelOrder) || 'channelOrder') == 'mostWatched' && (this.mostWatched || []).length > 0) {
-						// load by mostWatched sort order
-					this.log.warn("%s: Loading channel using most watched sort order", this.name)
+					// load by mostWatched sort order
+					if (this.config.debugLevel > 2) { 
+						this.log.warn("%s: Loading channel using most watched sort order", this.name)
+					}
 					this.mostWatched.forEach((mostWatchedChannelId) => {
 						//this.log.warn("%s: Loading channel using most watched sort order. Looking for channel %s", this.name, mostWatchedChannelId)
 						// channel is just the channelId eg SV09322
 						wantedProfile.favoriteChannels.forEach((channel) => {
 							//this.log.warn("%s: checking channel", this.name, channel)
 							if (channel == mostWatchedChannelId) {
-								this.log.warn("%s: Loading channel using most watched sort order. Channel %s found, loading at index %s", this.name, channel, subscribedChIds.length)
+								if (this.config.debugLevel > 2) { 
+									this.log.warn("%s: Loading channel using most watched sort order. Channel %s found, loading at index %s", this.name, channel, subscribedChIds.length)
+								}
 								subscribedChIds.push( channel ); 
 							}
 						});
 					});
 				} else {
 					// load by standard sort order
-					this.log.warn("%s: Loading channel using standard sort order", this.name)
+					if (this.config.debugLevel > 2) { 
+						this.log.warn("%s: Loading channel using standard sort order", this.name)
+					}
 					wantedProfile.favoriteChannels.forEach((channel) => {
-						this.log.warn("%s: Loading channel using standard sort order %s", this.name, channel)
-						this.log.warn("%s: Loading channel using standard sort order. Channel %s found, loading at index %s", this.name, channel, subscribedChIds.length)
+						if (this.config.debugLevel > 2) { 
+							this.log.warn("%s: Loading channel using standard sort order. Channel %s found, loading at index %s", this.name, channel, subscribedChIds.length)
+						}
 						subscribedChIds.push( channel ); 
 					});
 				}
 			}
-			this.log.warn("%s: subscribedChIds.length: %s", this.name, subscribedChIds.length)
-			this.log.warn("%s: subscribedChIds %s", this.name, subscribedChIds)
-			this.log.warn("%s: subscribedChIds.length", this.name, subscribedChIds.length)
+			if (this.config.debugLevel > 2) {
+				this.log.warn("%s: subscribedChIds.length: %s", this.name, subscribedChIds.length)
+				this.log.warn("%s: subscribedChIds %s", this.name, subscribedChIds)
+				this.log.warn("%s: subscribedChIds.length", this.name, subscribedChIds.length)
+			}
 
 
 
@@ -3780,18 +3783,19 @@ class stbDevice {
 					channel.visibilityState = Characteristic.CurrentVisibilityState.SHOWN;
 
 					// show debug and add to array
-					//this.log.debug("%s: Index %s: Refreshing channel %s: [%s] %s", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.name);
-					this.log.warn("%s: Index %s: Refreshing channel %s: %s [%s]", this.name, i, ('0' + (i + 1)).slice(-2), channel.id, channel.name);
+					this.log.debug("%s: Index %s: Refreshing channel %s: %s [%s]", this.name, i, ('0' + (i + 1)).slice(-2), channel.id, channel.name);
 					this.channelList[i] = channel;
 
 					// update accesory only when configured, as this.inputServices[i] can only be updated when it exists
 					if (this.accessoryConfigured) { 
 						// update existing services
-						this.log.warn("Adding %s %s to input %s at index %s",channel.id, channel.name, i+1, i);
+						if (this.config.debugLevel > 2) { 
+							this.log.warn("Adding %s %s to input %s at index %s",channel.id, channel.name, i+1, i);
+						}
 						this.inputServices[i].name = channel.configuredName;
 						this.inputServices[i].subtype = 'input_' + channel.id; // string, input_SV09038 etc
 						//this.inputServices[i].subtype = 'input_' + i+1; // integer, generates input_1 for index 0
-						this.log.warn("DEBUG: input %s subtype set to %s %S",I+1, channel.id, this.inputServices[i].subtype);
+						this.log.warn("DEBUG: input %s subtype set to %s %S",i+1, channel.id, this.inputServices[i].subtype);
 
 						// Name can only be set for SharedProfile where order can never be changed
 						if (this.profileid == 0) {
@@ -3808,8 +3812,8 @@ class stbDevice {
 			// after loading all the channels, reset the ActiveIdentifier (uint32) to the right Identifier (uint32), as it may have moved slots
 			// subtype: 'input_SV09038',
 			const currentInput = this.inputServices.find(channel => channel.subtype == 'input_' + this.currentChannelId);
-			this.log("DEBUG: this.currentChannelId %s", this.currentChannelId)
-			this.log("DEBUG: currentInput %s", currentInput)
+			//this.log("DEBUG: this.currentChannelId %s", this.currentChannelId)
+			//this.log("DEBUG: currentInput %s", currentInput)
 			if (currentInput) { 
 				this.televisionService.updateCharacteristic(Characteristic.ActiveIdentifier, currentInput.getCharacteristic(Characteristic.Identifier).value);
 			} else {
@@ -3899,9 +3903,8 @@ class stbDevice {
 	// get the most watched channels for the deviceId profileId
 	// this is for the web session type as of 13.10.2022
 	async refreshDeviceMostWatchedChannels(profileId, callback) {
-		this.log("%s: refreshDeviceMostWatchedChannels started with %s", this.name, profileId);
+		if (this.config.debugLevel > 1) { this.log("%s: refreshDeviceMostWatchedChannels started with %s", this.name, profileId); }
 		const profile = this.customer.profiles.find(profile => profile.profileId === profileId);
-		this.log("%s: refreshDeviceMostWatchedChannels profile", this.name, profile);
 		this.log("%s: Refreshing most watched channels for profile %s", this.name, (profile || {}).name);
 
 		// 	https://prod.spark.sunrisetv.ch/eng/web/linear-service/v1/mostWatchedChannels?cityId=401&productClass=Orion-DASH"
@@ -3919,13 +3922,11 @@ class stbDevice {
 		// this.log('getMostWatchedChannels: GET %s', url);
 		axiosWS.get(url, config)
 			.then(response => {	
-				if (this.config.debugLevel > 0) { this.log.warn('refreshDeviceMostWatchedChannels: %s: response: %s %s', profile.name, response.status, response.statusText); }
-				if (this.config.debugLevel > -1) { 
+				if (this.config.debugLevel > 2) { this.log.warn('refreshDeviceMostWatchedChannels: %s: response: %s %s', profile.name, response.status, response.statusText); }
+				if (this.config.debugLevel > 2) { 
 					this.log.warn('refreshDeviceMostWatchedChannels: %s: response data:', profile.name);
 					this.log.warn(response.data);
 				}
-
-				this.log.warn('refreshDeviceMostWatchedChannels: storing in this.mostWatched');
 				this.mostWatched = response.data; // store the entire mostWatched data for future use in this.mostWatched
 				this.log("%s: MostWatched list refreshed with %s channels", this.name, this.mostWatched.length);
 
