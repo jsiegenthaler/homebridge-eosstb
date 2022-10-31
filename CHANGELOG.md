@@ -29,7 +29,7 @@ See below
 * Readme needs updating to reflect all changes
 
 
-## 2.0.0-alpha.23 (2022-10-31)
+## 2.0.0-alpha.24 (2022-10-31)
 * Fixed crash when switching to Netflix
 * Cleaned up some logging
 
