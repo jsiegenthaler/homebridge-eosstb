@@ -29,7 +29,7 @@ See below
 * Readme needs updating to reflect all changes
 
 
-## 2.0.0-alpha.20 (2022-10-31)
+## 2.0.0-alpha.21 (2022-10-31)
 * Fixed logging bug in refreshDeviceChannelList
 * Cleaned up some debug code
 
