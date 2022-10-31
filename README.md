@@ -116,9 +116,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Optional Channel Numbers**: If you wish, you can display a channel number before the channel name. As this consumes some space on the Home app tile, it is off by default.
 
-* **Intelligent Profile Support**: The default profile on start-up is used for the channel list IMPROVE THIS TEXT.
-
-* **Intelligent Profile Support DEPRECATED IN V2**: If the master channel list is too large for the Home app, then the plugin will choose the best fitting profile, should you have any user profiles stored on your set-top box. The best fitting user profile is the first user profile found that fits fully within the available channel list space. Of course, you can specify your own profile which overrides this intelligent selection.
+* **Default Profile Support**: The default profile on start-up is used for the channel list if no other profile is configured for the plugin.
 
 * **Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute (TV dependent). The triple-press timing is configurable.
 
@@ -322,11 +320,11 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 ##### Channel Display
 
-* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the Shared Profile. If using the Shared Profile, the device loads the first 95 channels found. Most TV providers offer many more than 95 channels: my provider has 483, of which I am entitled to 287. To ensure you have a useful channel list on your Home app, create a profile on your set-top box, and enter the profile name in the config. The channels will then be loaded from the profile. If your profile is changed to the set-top box, the changes will be pushed to HomeKit.
-
-* **showChannelNumbers**: Shows or hides the channel numbers in the channel selector in HomeKit. Values: true or false (default). If channel numbers are displayed, there is less room for the channel name. Optional, defaults to false.
+* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the default profile on startup, as configured on the set-top box. The plugin loads the first 95 channels found, which is a limitation of HomeKit. To manage your favourte channels within the constraint of 95 channels, create a profile on your set-top box, and use the profile name in the plugin config. If your profile is changed to the set-top box, the changes will be pushed to HomeKit. Channels should stay in a consistent channel order as the channel number is used in HomeKit scenes, not the channel name.
 
 * **maxChannels**: The maximum number of channels to load. Optional, defaults to 95. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
+
+* **showChannelNumbers**: Shows or hides the channel numbers in the channel selector in HomeKit. Values: true or false (default). If channel numbers are displayed, there is less room for the channel name. Optional, defaults to false.
 
 
 ##### Remote Control Button Mapping
