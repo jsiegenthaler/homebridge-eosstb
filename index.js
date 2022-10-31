@@ -3591,13 +3591,14 @@ class stbDevice {
 			// Note: favoriteChannels is allowed to be empty!
 			// Note: the shared profile contains no favorites
 			this.log("%s: Profile '%s' contains %s channels", this.name, wantedProfile.name, wantedProfile.favoriteChannels.length);
-			var chIds = []; //
 			var subscribedChIds = []; // an array of channelIds: SV00302, SV09091, etc
 			if (wantedProfile.favoriteChannels.length > 0){
 				this.log.warn("%s: Loading channels from profile '%s' into the subscribedChIds", this.name, wantedProfile.name)
 				this.log.warn("%s: Most watched list length", this.name, (this.mostWatched || []).length)
 				// check channelOrder: new config item added in v2, config item may not exist for older users.
-				if ((configDevice.channelOrder || 'channelOrder') == 'mostWatched' && (this.mostWatched || []).length > 0) {
+				//let debugChannelorder = (configDevice.channelOrder || 'channelOrder')
+				//this.log.warn("%s: DEBUG debugChannelorder", this.name, debugChannelorder)
+				if ((((configDevice || {}).channelOrder) || 'channelOrder') == 'mostWatched' && (this.mostWatched || []).length > 0) {
 						// load by mostWatched sort order
 					this.log.warn("%s: Loading channel using most watched sort order", this.name)
 					this.mostWatched.forEach((mostWatchedChannelId) => {
