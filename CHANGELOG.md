@@ -29,6 +29,10 @@ See below
 * Readme needs updating to reflect all changes
 
 
+## 2.0.0-alpha.22 (2022-10-31)
+* Made refreshDeviceChannelList more robust to handle potential missing config item channelOrder
+
+
 ## 2.0.0-alpha.21 (2022-10-31)
 * Fixed logging bug in refreshDeviceChannelList
 * Cleaned up some debug code
