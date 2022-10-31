@@ -29,6 +29,11 @@ See below
 * Readme needs updating to reflect all changes
 
 
+## 2.0.0-alpha.23 (2022-10-31)
+* Fixed crash when switching to Netflix
+* Cleaned up some logging
+
+
 ## 2.0.0-alpha.22 (2022-10-31)
 * Made refreshDeviceChannelList more robust to handle potential missing config item channelOrder
 
