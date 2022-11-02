@@ -369,7 +369,9 @@ class stbPlatform {
 		});
 
 		this.api.on('shutdown', () => {
-			this.log.warn('API event: shutdown');
+			if (this.config.debugLevel > 2) { this.log.warn('API event: shutdown'); }
+			this.endMqttClient();
+			this.log('Goodbye');
 		});		
 
 	}
@@ -2111,6 +2113,17 @@ class stbPlatform {
 		}); // end of mqttClient.on('connect'... event
 
 	} // end of startMqttClient
+
+
+	// end the mqtt client cleanly
+	endMqttClient() {
+		this.log('Shutting down mqttClient...'); 
+		if (this.config.debugLevel > -1) { 
+			this.log('Shutting down mqttClient...'); 
+		}
+		// mqtt.Client#end([force], [options], [callback])
+		mqttClient.end(true)
+	}
 
 
 	// handle the state change of the device, calling the updateDeviceState of the relevant device
