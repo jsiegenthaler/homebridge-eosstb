@@ -189,6 +189,7 @@ let mqttClientId = '';
 let mqttUsername;
 //let mqttPassword;
 let currentSessionState;
+let isShuttingDown = false; // to handle reboots cleanly
 
 let Accessory, Characteristic, Service, Categories, UUID;
 
@@ -370,6 +371,7 @@ class stbPlatform {
 
 		this.api.on('shutdown', () => {
 			if (this.config.debugLevel > 2) { this.log.warn('API event: shutdown'); }
+			isShuttingDown = true;
 			this.endMqttClient();
 			this.log('Goodbye');
 		});		
@@ -2035,7 +2037,9 @@ class stbPlatform {
 						parent.currentMqttState = mqttState.closed;
 						parent.log('mqttClient: Connection closed');
 						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
-						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+						if (!isShuttingDown) {
+							parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+						}
 					} catch (err) {
 						parent.log.error("Error trapped in mqttClient close event:", err.message);
 						parent.log.error(err);
@@ -2117,7 +2121,6 @@ class stbPlatform {
 
 	// end the mqtt client cleanly
 	endMqttClient() {
-		this.log('Shutting down mqttClient...'); 
 		if (this.config.debugLevel > -1) { 
 			this.log('Shutting down mqttClient...'); 
 		}
