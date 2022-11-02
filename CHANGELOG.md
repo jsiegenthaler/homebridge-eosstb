@@ -29,6 +29,10 @@ See below
 * Readme needs updating to reflect all changes
 
 
+## 2.0.0-alpha.26 (2022-11-02)
+* Improved handling of Homebridge shutdown events to end the mqtt client, this is under test
+
+
 ## 2.0.0-alpha.25 (2022-11-02)
 * Added handling of Homebridge shutdown events to end the mqtt client, this is under test
 
