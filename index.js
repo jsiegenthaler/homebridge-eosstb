@@ -55,8 +55,8 @@ axiosCookieJarSupport(axiosWS);
 // without any trailing /
 const countryBaseUrlArray = {
 	'at': 		'https://prod.spark.magentatv.at/',
-    'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/fr/web',
-    'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/nld/web',
+	'be-fr':	'https://prod.spark.telenet.tv',
+	'be-nl':	'https://prod.spark.telenet.tv',	
     'ch': 		'https://prod.spark.sunrisetv.ch',
 	'cz':		'https://web-api-pepper.horizon.tv/oesp/v4/CZ/ces/web/', // v2, v3 and v4 work
 	'de':		'https://web-api-pepper.horizon.tv/oesp/v4/DE/deu/web', // v2, v3 and v4 work
