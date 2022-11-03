@@ -7,10 +7,10 @@
 </p>
 
 # homebridge-eosstb
-# IMPORTANT NOTICE: CURRENTLY DISABLED FOR ALL COUNTRIES DUE TO BACKEND CHANGES
-It appears that the system backend has changed. First noted on Thursday 13 October 2022.
-Unfortunately this means the plugin will no longer work, I have disabled it in the code to prevent flooding the server and the Homebridge logs with connection attempts.
-The author is investigating, stay tuned.
+# IMPORTANT NOTICE: V1 HAS BEEN REPLACED BY V2, CURRENTLY IN BETA TEST.
+Due to backend system changes on Thursday 13 October 2022, this plugin had to be re-written as v2. The v1 plugin has been disabled as it no longer works.
+The new version is v2, currently in beta test, and reported working well.
+Feel free to try out the beta.
 
 
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
