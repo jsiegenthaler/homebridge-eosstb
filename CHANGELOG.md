@@ -15,13 +15,19 @@ Please report all bugs and problems.
 See below
 
 ## Major Reworks TO-DO (in rough order of priority):
-* IN PROGRESS: BE logon should be working. I need testers.
 * Check adding/removing/reordering of a profile channel list works properly
 * Fix problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
 * Rework getRecordingState: currently disabled, new endpoint not yet known
 * Update axios to 1.1.x (this is not a simple dependency update, breaks many things)
 * Readme needs updating to reflect all changes
+
+
+## 2.0.0-beta.4 (2022-11-03)
+* BE logon confirmed working
+* Improved shutdown process to inhibit reconnect during shutdown
+* Fixed logging bug in refreshDeviceChannelList in message "DEBUG: input 17 subtype set to SV06077 %S input_SV06077"
+* Fixed bug in refreshDeviceChannelList causing "This plugin generated a warning from the characteristic 'Current Visibility State'"
 
 
 ## 2.0.0-beta.3 (2022-11-03)
