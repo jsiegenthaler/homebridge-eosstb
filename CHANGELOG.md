@@ -24,6 +24,10 @@ See below
 * Readme needs updating to reflect all changes
 
 
+## 2.0.0-beta.3 (2022-11-03)
+* Fixed incorrect country urls for BE
+
+
 ## 2.0.0-beta.2 (2022-11-03)
 * Adapted BE logon sequence (thanks KrisSevenants)
 
