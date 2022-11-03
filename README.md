@@ -7,17 +7,17 @@
 </p>
 
 # homebridge-eosstb
-# IMPORTANT NOTICE: THIS IS AN ALPHA RELEASE DUE TO BACKEND CHANGES
+# IMPORTANT NOTICE: THIS IS AN BETA RELEASE DUE TO BACKEND CHANGES
 The system backend changed, first noted on Thursday 13 October 2022, requiring a rewrite of many parts of this plugin.
-The new release is contained in this branch and is currently in alpha testing.
-I have box status and control working again, so CH, NL, IE and AT users can once again control their box.
-Note that the Channel List is not yet working, and the BE logon sequence is not yet working. I need a BE user to help in testing.
+The new release is contained in this branch and is currently in beta testing.
+I have logon and box status and control working again, so CH, NL, IE, BE and AT users can once again control their box.
+For GB I need some test users willing to help.
 
-Feel free to try out the new alpha and eventually beta versions, but please always read the [CHANGELOG.md](/CHANGELOG.md) to see what state the plugin is currently in.
+Feel free to try out the new beta version, but please always read the [CHANGELOG.md](/CHANGELOG.md) to see what state the plugin is currently in.
 Please provide feedback via bug reports if anything is not working as expected.
 
 # IMPORTANT NOTICE: THIS README STILL NEEDS UPDATING TO REFLECT CHANGES IN V2
-Biggest changes: Profile handling. The plugin now loads the profile configured as startup profile. User profiles are deprecated. FAQ and WIKI need updating.
+Biggest changes: Profile handling. The plugin now loads the profile configured as startup profile. User profiles are still supported. Sorting by most watched is supported. FAQ and WIKI need updating. Recordign status is deprecated due to unknown endpoints.
 
 
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
@@ -56,7 +56,7 @@ As UPC (the operator of the Horizon TV platform) operates in multiple countries 
 | ------- | ----------- | ------- | -------- | ------------- |
 | BE | [Telenet](https://www2.telenet.be/) | [Telenet TV](https://www.telenettv.be/nl.html) | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/) | Fully Working |
 | CH | [Sunrise](https://www.sunrise.ch/en/) | [Sunrise TV](https://www.sunrisetv.ch/en.html) | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription)* | Fully Working |
-| GB | [Virgin Media](https://www.virginmedia.com/) | [Virgin TV GO](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | Fully Working |
+| GB | [Virgin Media](https://www.virginmedia.com/) | [Virgin TV GO](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | Needs testing due to backend changes |
 | IE | [Virgin Media](https://www.virginmedia.ie/) | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/) | Fully Working |
 | NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo Go](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | Fully Working |
 | ------- | ----------- | ------- | -------- | ------------- |
