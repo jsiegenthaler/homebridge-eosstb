@@ -475,6 +475,12 @@ class stbPlatform {
 			statusOverview = statusOverview + ' sessionWatchdogRunning=' + this.sessionWatchdogRunning
 		}
 
+		// exit if shutting down
+		if (isShuttingDown) { 
+			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Homebridge is shutting down, exiting %s without action', watchdogInstance); }
+			return;
+		}
+
 		// exit if a previous session is still running
 		if (this.sessionWatchdogRunning) { 
 			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Previous sessionWatchdog still working, exiting %s without action', watchdogInstance); }
@@ -3785,14 +3791,14 @@ class stbDevice {
 						this.inputServices[i].name = channel.configuredName;
 						this.inputServices[i].subtype = 'input_' + channel.id; // string, input_SV09038 etc
 						//this.inputServices[i].subtype = 'input_' + i+1; // integer, generates input_1 for index 0
-						this.log.warn("DEBUG: input %s subtype set to %s %S",i+1, channel.id, this.inputServices[i].subtype);
+						this.log.warn("DEBUG: input %s subtype set to %s %s",i+1, channel.id, this.inputServices[i].subtype);
 
 						// Name can only be set for SharedProfile where order can never be changed
 						if (this.profileid == 0) {
 							this.inputServices[i].updateCharacteristic(Characteristic.Name, channel.name); // stays unchanged at Input 01 etc
 						}
 						this.inputServices[i].updateCharacteristic(Characteristic.ConfiguredName, channel.configuredName);
-						this.inputServices[i].updateCharacteristic(Characteristic.CurrentVisibilityState, channel.channelVisibilityState);
+						this.inputServices[i].updateCharacteristic(Characteristic.CurrentVisibilityState, channel.visibilityState);
 						this.inputServices[i].updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
 						//inputService.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
 					}
