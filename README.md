@@ -50,22 +50,19 @@ If you like this plugin, consider making a donation or buying me a coffee!<br>
 Due to the adding of features and functions, this Readme applies from v1.1.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
 
 # Works in Your Country (If you are with Magenta / Sunrise / Telenet / Virgin Media / Vodafone / Ziggo)
-As UPC (the operator of the Horizon TV platform) operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 or HUMAX 2008C-STB-TN set-top box are:
+As [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) (the operator of the Horizon TV platform) operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 or HUMAX 2008C-STB-TN set-top box are:
 
 | Country | TV Provider | Web App | Box Name | Plugin Status |
 | ------- | ----------- | ------- | -------- | ------------- |
 | BE | [Telenet](https://www2.telenet.be/) | [Telenet TV](https://www.telenettv.be/nl.html) | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/) | Fully Working |
 | CH | [Sunrise](https://www.sunrise.ch/en/) | [Sunrise TV](https://www.sunrisetv.ch/en.html) | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription)* | Fully Working |
-| GB | [Virgin Media](https://www.virginmedia.com/) | [Virgin TV GO](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | Needs testing due to backend changes |
+| GB | [Virgin Media](https://www.virginmedia.com/) | [Virgin TV GO](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | _Needs testing due to backend changes_ |
 | IE | [Virgin Media](https://www.virginmedia.ie/) | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/) | Fully Working |
 | NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo Go](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | Fully Working |
 | ------- | ----------- | ------- | -------- | ------------- |
 | AT | [Magenta](https://www.magenta.at/) | [Magenta TV](https://www.magentatv.at/de.html) | [Entertain Box 4K](https://www.magenta.at/entertain-box) | _Testers Wanted_ |
-| CZ | [Vodafone CZ](https://www.vodafone.cz/) | [Horizon Go](https://www.horizon.tv/cs_cz.html) | Vodafone TV | _Testers Wanted_ |
 | DE | [Vodafone DE](https://zuhauseplus.vodafone.de/digital-fernsehen/) | [Horizon Go](https://www.horizon.tv/de_de.html) | [GigaTV Cable Box](https://zuhauseplus.vodafone.de/digital-fernsehen/tv-endgeraete/) | _Testers Wanted_ |
-| HU | [Vodafone Hungary](https://www.upc.hu/) | [Horizon Go](https://www.horizon.tv/hu_hu.html) | ?? | _Testers Wanted_ |
-| PL | [UPC PL](https://www.upc.pl/) | [Horizon Go](https://www.horizon.tv/pl_pl.html) | Horizon decoder | _Testers Wanted_ |
-| RO | [Vodafone Romania](https://www.vodafone.ro/) | [Horizon Go](https://www.horizon.tv/ro_ro.html) | Vodafone TV | _Testers Wanted_ |
+| PL | [UPC PL](https://www.upc.pl/) | [UPC TV GO](https://www.upctv.pl/pl/home) | Horizon decoder | _Testers Wanted_ |
 | SK | [UPC Broadband Slovakia](https://www.upc.sk/) | [Horizon Go](https://www.horizon.tv/sk_sk.html) | Horizon TV | _Testers Wanted_ |
 
 
@@ -82,7 +79,7 @@ I tried to find a good common name that works for this plugin for all countries.
 In March 2022, a newer version of the set-top box has started to appear in Telenet in Belgium: a HUMAX 2008C-STB-TN, which identifies itself as EOS2STB. However, I will keep the plugin name unchanged at EOSSTB. 
 
 ## Disclaimer (The Legal Stuff)
-This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or Ziggo any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. UPC can change their systems at any time and that might break this plugin. But I hope not.
+This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or Ziggo any other affiliate of [UPC](https://en.wikipedia.org/wiki/UPC_Broadband). It is neither endorsed nor supported nor developed by [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) or any affiliates. [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
 * An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1...16.1, earlier versions not tested.
