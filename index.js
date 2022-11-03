@@ -689,8 +689,8 @@ class stbPlatform {
 	async createSession(country) {
 		this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
 		switch(country) {
-			//case 'be-nl': case 'be-fr':
-			//	this.getSessionBE(); break;
+			case 'be-nl': case 'be-fr':
+				this.getSessionBE(); break;
 			case 'gb':
 				this.getSessionGB(); break;
 			default: // ch, nl, ie, at
@@ -859,7 +859,6 @@ class stbPlatform {
 	async getSessionBE() {
 		// only for be-nl and be-fr users, as the session logon using openid is different
 		// looks like also for gb users:
-		// https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
 		this.log('Creating %s BE session...',PLATFORM_NAME);
 		currentSessionState = sessionState.LOADING;
 
@@ -895,22 +894,22 @@ class stbPlatform {
 
 
 		// Step 1: # get authentication details
-		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/authorization';
-		this.log('Step 1 of 7: get authentication details');
-		this.log.debug('Step 1 of 7: get authentication details from',apiAuthorizationUrl);
+		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/sso/authorization';
+		this.log('Step 1 of 6: get authentication details');
+		this.log.debug('Step 1 of 6: get authentication details from',apiAuthorizationUrl);
 		axiosWS.get(apiAuthorizationUrl)
 			.then(response => {	
-				this.log('Step 1 of 7: response:',response.status, response.statusText);
+				this.log('Step 1 of 6: response:',response.status, response.statusText);
 				
 				// get the data we need for further steps
 				let auth = response.data;
-				let authState = auth.session.state;
-				let authAuthorizationUri = auth.session.authorizationUri;
-				let authValidtyToken = auth.session.validityToken;
+				let authState = auth.state;
+				let authAuthorizationUri = auth.authorizationUri;
+				let authValidtyToken = auth.validityToken;
 
 				// Step 2: # follow authorizationUri to get AUTH cookie
-				this.log('Step 2 of 7: get AUTH cookie');
-				this.log.debug('Step 2 of 7: get AUTH cookie from',authAuthorizationUri);
+				this.log('Step 2 of 6: get AUTH cookie');
+				this.log.debug('Step 2 of 6: get AUTH cookie from',authAuthorizationUri);
 				axiosWS.get(authAuthorizationUri, {
 						jar: cookieJar,
 						// unsure what minimum headers will here
@@ -919,19 +918,19 @@ class stbPlatform {
 						},
 					})
 					.then(response => {	
-						this.log('Step 2 of 7: response:',response.status, response.statusText);
+						this.log('Step 2 of 6: response:',response.status, response.statusText);
 		
 						// Step 3: # login
-						this.log('Step 3 of 7: logging in with username %s', this.config.username);
-						this.log.debug('Step 3 of 7: post login to auth url:',BE_AUTH_URL);
-						this.log.debug('Step 3 of 7: Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
+						this.log('Step 3 of 6: logging in with username %s', this.config.username);
+						this.log.debug('Step 3 of 6: post login to auth url:',BE_AUTH_URL);
+						this.log.debug('Step 3 of 6: Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
 						currentSessionState = sessionState.LOGGING_IN;
 						var payload = qs.stringify({
 							j_username: this.config.username,
 							j_password: this.config.password,
 							rememberme: 'true'
 						});
-						this.log.debug('Step 3 of 7: using payload',payload);
+						this.log.debug('Step 3 of 6: using payload',payload);
 						axiosWS.post(BE_AUTH_URL,payload,{
 							jar: cookieJar,
 							maxRedirects: 0, // do not follow redirects
@@ -940,7 +939,7 @@ class stbPlatform {
 								},
 							})
 							.then(response => {	
-								this.log('Step 3 of 7: response:',response.status, response.statusText);
+								this.log('Step 3 of 6: response:',response.status, response.statusText);
 								this.log.debug('Step 3 response.headers.location:',response.headers.location); 
 								this.log.debug('Step 3 response.headers:',response.headers);
 								var url = response.headers.location;
@@ -950,22 +949,23 @@ class stbPlatform {
 									return false;						
 								}
 
+								// locations unsure after change of login method in october 2022
 								//location is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
 								//location is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
 								//location is https://login.prd.telenet.be/openid/login?error=session_expired if session has expired
 								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
-									this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
+									this.log.warn('Step 3 of 6: Unable to login: wrong credentials');
 									currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 								} else if (url.indexOf('error=session_expired') > 0 ) {
-									this.log.warn('Step 3 of 7: Unable to login: session expired');
+									this.log.warn('Step 3 of 6: Unable to login: session expired');
 									cookieJar.removeAllCookies();	// remove all the locally cached cookies
 									currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 								} else {
 
 									// Step 4: # follow redirect url
-									this.log('Step 4 of 7: follow redirect url');
+									this.log('Step 4 of 6: follow redirect url');
 									//this.log('Cookies for the redirect url:',cookieJar.getCookies(url));
 									axiosWS.get(url,{
 										jar: cookieJar,
@@ -975,34 +975,34 @@ class stbPlatform {
 											},
 										})
 										.then(response => {	
-											this.log('Step 4 of 7: response:',response.status, response.statusText);
+											this.log('Step 4 of 6: response:',response.status, response.statusText);
 											//this.log('Step 4 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
 											//this.log('Step 4 response.headers:',response.headers);
 											url = response.headers.location;
 											if (!url) {		// robustness: fail if url missing
-												this.log.warn('Step 4 of 7: location url empty!');
+												this.log.warn('Step 4 of 6: location url empty!');
 												currentSessionState = sessionState.DISCONNECTED;
 												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 												return false;						
 											}
 
-											// look for login_success?code=
-											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
-												this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
+											// look for login_success.html?code=
+											if (url.indexOf('login_success.html?code=') < 0 ) { // <0 if not found
+												this.log.warn('Step 4 of 6: Unable to login: wrong credentials');
 												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 											} else if (url.indexOf('error=session_expired') > 0 ) {
-												this.log.warn('Step 4 of 7: Unable to login: session expired');
+												this.log.warn('Step 4 of 6: Unable to login: session expired');
 												cookieJar.removeAllCookies();	// remove all the locally cached cookies
 												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
 												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 											} else {
 
 												// Step 5: # obtain authorizationCode
-												this.log('Step 5 of 7: extract authorizationCode');
+												this.log('Step 5 of 6: extract authorizationCode');
 												url = response.headers.location;
 												if (!url) {		// robustness: fail if url missing
-													this.log.warn('Step 5 of 7: location url empty!');
+													this.log.warn('Step 5 of 6: location url empty!');
 													currentSessionState = sessionState.DISCONNECTED;
 													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 													return false;						
@@ -1011,14 +1011,14 @@ class stbPlatform {
 												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
 												var authorizationCode = codeMatches[1];
 												if (codeMatches.length !== 2 ) { // length must be 2 if code found
-													this.log.warn('Step 5 of 7: Unable to extract authorizationCode');
+													this.log.warn('Step 5 of 6: Unable to extract authorizationCode');
 												} else {
-													this.log('Step 5 of 7: authorizationCode OK');
-													this.log.debug('Step 5 of 7: authorizationCode:',authorizationCode);
+													this.log('Step 5 of 6: authorizationCode OK');
+													this.log.debug('Step 5 of 6: authorizationCode:',authorizationCode);
 
 													// Step 6: # authorize again
-													this.log('Step 6 of 7: post auth data');
-													this.log.debug('Step 6 of 7: post auth data to',apiAuthorizationUrl);
+													this.log('Step 6 of 6: post auth data');
+													this.log.debug('Step 6 of 6: post auth data to',apiAuthorizationUrl);
 													currentSessionState = sessionState.AUTHENTICATING;
 													payload = {'authorizationGrant':{
 														'authorizationCode':authorizationCode,
@@ -1028,45 +1028,19 @@ class stbPlatform {
 													//this.log('Cookies for the session:',cookieJar.getCookies(apiAuthorizationUrl));
 													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
 														.then(response => {	
-															this.log('Step 6 of 7: response:',response.status, response.statusText);
+															this.log('Step 6 of 6: response:',response.status, response.statusText);
 																
-															auth = response.data;
-															//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
-															//this.log('Step 6 refreshToken:',auth.refreshToken);
-
-															// Step 7: # get OESP code
-															this.log('Step 7 of 7: post refreshToken request');
-															this.log.debug('Step 7 of 7: post refreshToken request to',apiAuthorizationUrl);
-															payload = {'refreshToken':auth.refreshToken,'username':auth.username};
-															var sessionUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/session';
-															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
-																.then(response => {	
-																	this.log('Step 7 of 7: response:',response.status, response.statusText);
-																	currentSessionState = sessionState.VERIFYING;
-																		
-																	//this.log('Step 7 response.headers:',response.headers); 
-																	//this.log('Step 7 response.data:',response.data); 
-																	//this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
-
-																	// get device data from the session
-																	this.session = response.data;
-																	this.log('Session created');
-																	currentSessionState = sessionState.CONNECTED;
-																	this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-																	return true;
-																})
-																// Step 7 http errors
-																.catch(error => {
-																	this.log.warn("Step 7 of 7: Unable to get OESP token:", error.response.status, error.response.statusText);
-																	this.log.debug("Step 7 of 7: Unable to get OESP token:",error);
-																	currentSessionState = sessionState.DISCONNECTED;
-																	this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-																});
+															// get device data from the session
+															this.session = response.data;
+															this.log('Session created');
+															currentSessionState = sessionState.CONNECTED;
+															this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+															return true;
 														})
 														// Step 6 http errors
 														.catch(error => {
-															this.log.warn("Step 6 of 7: Unable to authorize with oauth code:", error.response.status, error.response.statusText);
-															this.log.debug("Step 6 of 7: Unable to authorize with oauth code:",error);
+															this.log.warn("Step 6 of 6: Unable to authorize with oauth code:", error.response.status, error.response.statusText);
+															this.log.debug("Step 6 of 6: Unable to authorize with oauth code:",error);
 															currentSessionState = sessionState.DISCONNECTED;
 															this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 														});	
@@ -1075,8 +1049,8 @@ class stbPlatform {
 										})
 										// Step 4 http errors
 										.catch(error => {
-											this.log.warn("Step 4 of 7: Unable to oauth authorize:", error.response.status, error.response.statusText);
-											this.log.debug("Step 4 of 7: Unable to oauth authorize:",error);
+											this.log.warn("Step 4 of 6: Unable to oauth authorize:", error.response.status, error.response.statusText);
+											this.log.debug("Step 4 of 6: Unable to oauth authorize:",error);
 											currentSessionState = sessionState.DISCONNECTED;
 											this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 										});
@@ -1084,16 +1058,16 @@ class stbPlatform {
 							})
 							// Step 3 http errors
 							.catch(error => {
-								this.log.warn("Step 3 of 7: Unable to login:", error.response.status, error.response.statusText);
-								this.log.debug("Step 3 of 7: Unable to login:",error);
+								this.log.warn("Step 3 of 6: Unable to login:", error.response.status, error.response.statusText);
+								this.log.debug("Step 3 of 6: Unable to login:",error);
 								currentSessionState = sessionState.DISCONNECTED;
 								this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 							});
 					})
 					// Step 2 http errors
 					.catch(error => {
-						this.log.warn("Step 2 of 7: Could not get authorizationUri", error.response.status, error.response.statusText);
-						this.log.debug("Step 2 of 7: Could not get authorizationUri:",error);
+						this.log.warn("Step 2 of 6: Could not get authorizationUri", error.response.status, error.response.statusText);
+						this.log.debug("Step 2 of 6: Could not get authorizationUri:",error);
 						currentSessionState = sessionState.DISCONNECTED;
 						this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 					});
@@ -1101,11 +1075,11 @@ class stbPlatform {
 			// Step 1 http errors
 			.catch(error => {
 				if (!error.response) {
-					this.log('Step 1 of 7: Failed to create BE session - check your internet connection.');
+					this.log('Step 1 of 6: Failed to create BE session - check your internet connection.');
 				} else {
-					this.log('Step 1 of 7: Failed to create BE session: %s', error.response.status, error.response.statusText);
+					this.log('Step 1 of 6: Failed to create BE session: %s', error.response.status, error.response.statusText);
 				}
-				this.log.debug('Step 1 of 7: getSessionBE: error:', error);
+				this.log.debug('Step 1 of 6: getSessionBE: error:', error);
 				currentSessionState = sessionState.DISCONNECTED;
 				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 			});
