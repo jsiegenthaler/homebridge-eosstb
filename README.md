@@ -103,7 +103,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Synchronised Current Channel**: Changing the channel on the set-top box changes the displayed channel in the Home app in real time, and vice-versa.
 
-* **Selectable Channel List Order**: Choose between different channel orders: Most-Watched will keep your most watched channels at the top of the channel list. Of course, you can choose a standard channel order if desired. IMPROVE THIS TEXT.
+* **Selectable Channel Sort By**: Channels in the Home app channel list can be listed in the same order as shown on the TV, or by Most Watched.
 
 * **Synchronised Channel List Order**: Changing the order of channels in a profile on your set-top box changes the standard channel list order in the Home app in real time. No reboot required. Note that the Shared Profile channel list order cannot be changed.
 
@@ -123,7 +123,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
-* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 16.0). Hopefully, Apple will add support for these features in the future. You can however use this data in the Shortcuts app.
+* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 16.1). Hopefully, Apple will add support for these features in the future. You can however use this data in the Shortcuts app.
 
 
 
@@ -187,11 +187,15 @@ The volume controls do not control the set-top box directly, as the set-top box 
 ## Using Profiles to better manage your Channel List
 Many TV providers provide hundreds of TV channels. The Home app is limited to 95 channels, and the plugin will load the first 95 subscribed channels found, ignoring non-subscribed channels. 
 
-If the channels you wish to have in the Home app are not within the first 95 subscribed channels, then you can create a Profile on the set-top box, and configure the profile with the channels you want, in the order you want. Enter the same profile name in the plugin config, and the plugin will load the channels from that profile.
+If the channels you wish to have in the Home app are not within the first 95 subscribed channels, then you can create a profile on the set-top box, and configure the profile with the channels you want, in the order you want. Enter the same profile name in the plugin config **Profile Name**, and the plugin will load the channels from that profile.
 
 Any changes in the profile on the set-top box will automatically be reflected in the plugin. As the Home app does not expect channels to change in the channel list, you may need to force-close the Home app and reopen it to force a refresh of the displayed channels after a change is made on your set-top box.
 
 The profile used by the plugin does not have to be the same as the set-top box's start-up profile. It is OK to configure a profile that is dedicated to the plugin, if you so wish.
+
+
+## Sorting the Channel list
+The config item **Channel Sort By** allows the channels to be sorted by **Channel Order** (the standard channel order as shown on the TV) or by **Most Watched**. Most Watched is reported by the backend systems and is profile-based. It is not clear how often this list is updated, however for a TV subscription with many channels, this may be a preferable option to show your most watched channels at the top of the channel list.
 
 
 ## Limitations
@@ -209,11 +213,11 @@ The eosstb plugin emulates the TV service web app. If the web app is started on 
 ### Media State (Play/Pause) Limitations
 The eosstb plugin can detect the current and target media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 16.1) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
-### Recording State Limitations
-The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but a eosstb config option **customPictureMode** allows you to use the PictureMode to read the recording state in  Shortcuts or Automations.
+### Recording State Limitations (INACTIVE IN V2)
+The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but a eosstb config option **customPictureMode** allows you to use the PictureMode to read the recording state in Shortcuts or Automations. THIS OPTION IS NOT WORKING YET IN V2 DUE TO CHANGED AND UNKNOWN ENDPOINTS.
 
 ### Closed Captions Limitations
-The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 16.0) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
+The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 16.1) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ## Configuration
 Add a new platform to the platforms section of your homebridge `config.json`.
@@ -249,6 +253,7 @@ Example extended configuration as used on the author with his Samsung TV (where 
                     "name": "Sunrise TV",
                     "syncName": true,
                     "profile": "Dad",
+                    "channelOrder": "mostWatched",
                     "accessoryCategory": "settopbox",
                     "playPauseButton": "MediaPlayPause",
                     "backButton": "Escape",
@@ -328,7 +333,10 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 ##### Channel Display
 
-* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the default profile on startup, as configured on the set-top box. The plugin loads the first 95 channels found, which is a limitation of HomeKit. To manage your favourte channels within the constraint of 95 channels, create a profile on your set-top box, and use the profile name in the plugin config. If your profile is changed to the set-top box, the changes will be pushed to HomeKit. Channels should stay in a consistent channel order as the channel number is used in HomeKit scenes, not the channel name.
+* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the default profile on startup, as configured on the set-top box. The plugin loads the first 95 subscribed channels found, which is a limitation of HomeKit. To manage your favourte channels within the constraint of 95 channels, create a profile on your set-top box, and use the profile name in the plugin config. If your profile is changed to the set-top box, the changes will be pushed to HomeKit. Channels should stay in a consistent channel order as the channel number is used in HomeKit scenes, not the channel name.
+
+* **channelOrder**: The method to sort the channels in the channel list in the Home app. Available values are: Channel order = "channelOrder", Most Watched = "mostWatched". Case sensitive. Optional, defaults to channelOrder.
+
 
 * **maxChannels**: The maximum number of channels to load. Optional, defaults to 95. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
 
@@ -358,7 +366,7 @@ If you want to configure your devices differently, do so here. Multiple devices 
 ##### Extra Functions
 
 * **customPictureMode**: Allows the customisation of Picture Mode. Optional, defaults to normal Picture Mode if not found. Possible values are:
-recordingState: The Picture Mode reflects the recording state of the set-top box. Values are: 0 = Idle (not recording), 1 = Ongoing nDVR (network digital video recording), 2 = Ongoing localDVR (local hard-drive based digital video recording). It can be useful to know if the set-top box is currently recording to the hard drive for users want to control the power to the set-top box, so that they do not switch it off when a local recording is in progress.
+recordingState: The Picture Mode reflects the recording state of the set-top box. Values are: 0 = Idle (not recording), 1 = Ongoing nDVR (network digital video recording), 2 = Ongoing localDVR (local hard-drive based digital video recording). It can be useful to know if the set-top box is currently recording to the hard drive for users want to control the power to the set-top box, so that they do not switch it off when a local recording is in progress. NOT AVAILABLE IN V2 DUE TO CHANGED ENDPOINTS.
 
 
 
