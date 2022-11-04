@@ -175,7 +175,7 @@
                         "title": "Channel Sort By",
                         "type": "string",
                         "description": "Select how the channels should be sorted in the channel list. Default: Most Watched",
-                        "default": "mostWatched",
+                        "default": "channelOrder",
                         "required": false,
                         "oneOf": [
                             { "title": "Most Watched", "enum": ["mostWatched"] },
