@@ -19,7 +19,7 @@ See below
 * Fix problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
 * Rework getRecordingState: currently disabled, new endpoint not yet known
-* Update axios to 1.1.x (this is not a simple dependency update, breaks many things)
+* Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs)
 * Readme needs updating to reflect all changes
 
 
