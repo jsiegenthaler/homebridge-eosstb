@@ -183,6 +183,17 @@ The table shows the default key mappings. You can map any Apple TV Remote button
 
 The volume controls do not control the set-top box directly, as the set-top box has no volume capability. The set-top box physical remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
 
+
+## Using Profiles to better manage your Channel List
+Many TV providers provide hundreds of TV channels. The Home app is limited to 95 channels, and the plugin will load the first 95 subscribed channels found, ignoring non-subscribed channels. 
+
+If the channels you wish to have in the Home app are not within the first 95 subscribed channels, then you can create a Profile on the set-top box, and configure the profile with the channels you want, in the order you want. Enter the same profile name in the plugin config, and the plugin will load the channels from that profile.
+
+Any changes in the profile on the set-top box will automatically be reflected in the plugin. As the Home app does not expect channels to change in the channel list, you may need to force-close the Home app and reopen it to force a refresh of the displayed channels after a change is made on your set-top box.
+
+The profile used by the plugin does not have to be the same as the set-top box's start-up profile. It is OK to configure a profile that is dedicated to the plugin, if you so wish.
+
+
 ## Limitations
 ### Channel Count
 Due to HomeKit limitations, the maximum services for a single accessory are 100. Over this value the Home app will no longer respond. 
