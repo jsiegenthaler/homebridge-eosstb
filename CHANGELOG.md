@@ -15,11 +15,16 @@ Please report all bugs and problems.
 See below
 
 ## Major Reworks TO-DO (in rough order of priority):
-* Check adding/removing/reordering of a profile channel list works properly
 * Fix problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
 * Work on ideas for showing radio channels and using them
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs)
+
+
+## 2.0.0-beta.9 (2022-11-05)
+* Fixed refresh bug with live channel list handling
+* Adapted base url array for GB and other countries to new syntax
+* GB sessions are under test
 
 
 ## 2.0.0-beta.8 (2022-11-05)
