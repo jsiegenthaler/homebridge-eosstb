@@ -16,11 +16,18 @@ See below
 
 ## Major Reworks TO-DO (in rough order of priority):
 * Check adding/removing/reordering of a profile channel list works properly
+* setPersonalizationDataForDevice not yet working, box name cannot be changed yet from the plugin
 * Fix problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
-* Rework getRecordingState: currently disabled, new endpoint not yet known
+* Work on ideas for showing radio channels and using them
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs)
-* Readme needs updating to reflect all changes
+
+
+## 2.0.0-beta.5 (2022-11-05)
+* Added recording state capabilities. Recording to local HDD not yet detectable, testers in GB wanted. Still needs adapting for series recordings.
+* Disabled support for customPictureMode, is is handled by the inUse characteristic
+* Updated Readme
+* testing function: setPersonalizationDataForDevice
 
 
 ## 2.0.0-beta.4 (2022-11-03)
