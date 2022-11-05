@@ -1077,22 +1077,6 @@
                                 "devices[].volDownCommand",
                                 "devices[].muteCommand"
                             ]
-                        },
-                        {
-                            "key": "devices[]",
-                            "type": "section",
-                            "title": "Extra Functions",
-                            "expandable": true,
-                            "items": [
-                                {
-                                    "type": "flex",
-                                    "flex-flow": "row wrap",
-                                    "title": "See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md\">README</a> for a full description.",
-                                    "items": [
-                                        "devices[].customPictureMode"
-                                    ]
-                                } 
-                            ]
                         }
                     ]
                   }
