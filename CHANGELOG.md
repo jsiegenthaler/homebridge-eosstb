@@ -16,7 +16,6 @@ See below
 
 ## Major Reworks TO-DO (in rough order of priority):
 * Check adding/removing/reordering of a profile channel list works properly
-* setPersonalizationDataForDevice not yet working, box name cannot be changed yet from the plugin
 * Fix problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
 * Work on ideas for showing radio channels and using them
@@ -24,7 +23,7 @@ See below
 
 
 ## 2.0.0-beta.6 (2022-11-05)
-* Fixed bug in setPersonalizationDataForDevice
+* Fixed bug in setPersonalizationDataForDevice, now working properly
 
 
 ## 2.0.0-beta.5 (2022-11-05)
