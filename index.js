@@ -106,6 +106,7 @@ const personalizationServiceUrlArray = {
 const BE_AUTH_URL = 'https://login.prd.telenet.be/openid/login.do';
 
 // oidc logon url used in VirginMedia for gb sessions
+// still in use after logon session changes on 13.10.2022 for other countries
 // https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true
 // const GB_AUTH_URL = 'https://id.virginmedia.com/sign-in/?protocol=oidc';
 const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
