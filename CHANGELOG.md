@@ -22,6 +22,9 @@ See below
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs)
 
 
+## 2.0.0-beta.8 (2022-11-05)
+* Fixed bug in updateDeviceState
+
 ## 2.0.0-beta.7 (2022-11-05)
 * Removed configs for CZ, HU, and RO as these countries are no longer supported by UPC
 * Fixed baseurl for IT and IE
