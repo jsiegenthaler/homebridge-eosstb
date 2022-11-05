@@ -2634,10 +2634,9 @@ class stbPlatform {
 
 	// set the Personalization Data for the current device via web request PUT
 	async setPersonalizationDataForDevice(deviceId, deviceSettings, callback) {
-		this.log.warn('setPersonalizationDataForDevice: this function is currently disabled');
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: deviceSettings:', deviceSettings); }
 		// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/1012345_ch/devices/3C36E4-EOSSTB-003656123456
-		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
+		const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
 		const data = {"settings": deviceSettings};
 		//const config = {headers: {"x-cus": accessToken, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
 		const config = {headers: {"x-oesp-username": this.session.username}};
