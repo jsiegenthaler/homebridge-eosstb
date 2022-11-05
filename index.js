@@ -955,7 +955,7 @@ class stbPlatform {
 									return false;						
 								}
 
-								// locations unsure after change of login method in october 2022
+								// locations unsure after change of login method in October 2022
 								//location is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
 								//location is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
 								//location is https://login.prd.telenet.be/openid/login?error=session_expired if session has expired
@@ -1713,16 +1713,13 @@ class stbPlatform {
 				// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
 				parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
 
-				// experimental support of recording status
-				// recording status commented out 18.10.2022 as endpoint url is unknown
-				// so we don't need to subscribe to these topics
-				//parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus');
-				//parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction');
+				// subscribe to recording status, used to update the accessory charateristics
+				parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus');
+				parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction');
 				
 				// purchaseService and watchlistService are not needed, but add if desired if we want to monitor these services
 				//parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService');
 				//parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService');
-				
 
 				// initiate the EOS session by turning on the HGO platform
 				// this is needed to trigger the backend to send us channel change messages when the channel is changed on the box
@@ -1740,8 +1737,6 @@ class stbPlatform {
 
 				// subscribe to all devices after the setHgoOnlineRunning is sent
 				parent.devices.forEach((device) => {
-					// subscribe to our own generated unique householdId/mqttClientId and everything for our box
-					//parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId); // not needed from Oct 2022 due to change in web client
 					// subscribe to our householdId/deviceId
 					parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId);
 					// subscribe to our householdId/deviceId/status
@@ -1756,8 +1751,7 @@ class stbPlatform {
 				});
 
 				// and request current recordingState
-				// disabled as we cannot handle this yet in v2
-				//parent.getRecordingState();  // async function
+				parent.getRecordingState();  // async function
 
 				// ++++++++++++++++++++ mqttConnected +++++++++++++++++++++
 			
@@ -2328,38 +2322,83 @@ class stbPlatform {
 
 
 	// get the recording state via web request GET
+	// new endpoint as of October 2022
 	async getRecordingState(callback) {
-		this.log.warn('getRecordingState: this function is currently disabled');
-		return false;
 		try {
 			this.log("Refreshing recording state");
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState'); }
 
 			// headers for the connection
-			const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
+			const config = {
+					headers: {
+						"x-cus": this.session.householdId, 
+						//"x-oesp-token": this.session.accessToken,  // no longer needed
+						"x-oesp-username": this.session.username
+					}
+				};
 
 			// get all planned recordings. We only need to know if any results exist. 
 			// 0 results = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED
 			// >0 results = Characteristic.ProgramMode.PROGRAM_SCHEDULED
+			// old:
 			// https://obo-prod.oesp.sunrisetv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?plannedOnly=true&range=1-20
+			// from october 2022:
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/recordings/state?channelIds=SV09039
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/recordings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=desc&profileId=4eb38207-d869-4367-8973-9467a42cad74&language=en
 			//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
 			var currProgramMode = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED; // default
-			var url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?plannedOnly=true&range=1-20'; // limit to 20 recordings for performance
+			// parameter plannedOnly=false did not work
+			var url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + this.session.householdId + '/recordings/state'; // limit to 20 recordings for performance
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: planned recordings: GET %s', url); }
 			axiosWS.get(url, config)
 				.then(response => {	
 					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: planned recordings response: %s %s', response.status, response.statusText); }
 					if (this.config.debugLevel > 2) { 
-						this.log.warn('getRecordingState: planned recordings response data:');
+						this.log.warn('getRecordingState: recordings state response data:');
 						this.log.warn(response.data);
 					}
-					//this.log.warn('getRecordingState: planned recordings totalResults:', response.data.totalResults);
-					if (response.data.totalResults > 0) { 
+					// get array of planned recordings, ensure output is always an array
+					// cannot support local hdd at the moment, I need a tester with hdd
+					// recordingState: one of 'planned', 'ongoing', 'recorded',
+					var recType, recState;
+					let plannedRecordings = [].concat(response.data.data.find(recording => recording.recordingState == 'planned') ?? []);
+					if (plannedRecordings.length > 0) { 
 						currProgramMode = Characteristic.ProgramMode.PROGRAM_SCHEDULED;
 					} else {
 						currProgramMode = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED;
 					}
-					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: planned recordings %s, currProgramMode set to %s [%s]', response.data.recordings.length, currProgramMode, programModeName[currProgramMode]); }
+					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: planned recordings %s, currProgramMode set to %s [%s]', plannedRecordings.length, currProgramMode, programModeName[currProgramMode]); }
+
+
+					// determine if anything is ongoing!
+					// currently only possible for network recordings until I see an example for a local HDD recording
+					let ongoingRecordings = [].concat(response.data.data.find(recording => recording.recordingState == 'ongoing') ?? []);
+					if (ongoingRecordings.length > 0) { 
+						recType = 'nDVR';
+					} else {
+						recType = 'idle';
+					}
+					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: ongoing recordings %s', ongoingRecordings.length ); }
+
+
+
+					// set recording state for each device
+					// GB: only the main device can have a HDD and thus should receive the ONGOING_LOCALDVR state
+					// loop through all devices, handling devices with HDDs and devices without HDDs
+					this.devices.forEach((device) => {
+						if (recType == 'localDVR' || recType == 'LDVR') { 
+							recState = recordingState.ONGOING_LOCALDVR;
+						} else if (recType == 'nDVR') { 
+							recState = recordingState.ONGOING_NDVR;
+						} else {
+							recState = recordingState.IDLE;
+						}
+						// update the device state. Set StatusFault to nofault as connection is working
+						if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Updating device state for %s to recState %s %s", device.deviceId, recState, recType); }
+						//mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode) {
+						this.mqttDeviceStateHandler(device.deviceId, null, null, recState, null, null, null, Characteristic.StatusFault.NO_FAULT, currProgramMode );
+					})				
+
 				})
 				.catch(error => {
 					let errText, errReason;
@@ -2375,11 +2414,13 @@ class stbPlatform {
 					this.log.debug(`getRecordingState get planned recordings error:`, error);
 				});	
 
+			return false;
 
-			// get all saved recordings
-			// https://obo-prod.oesp.sunrisetv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20
+			// get all booked series recordings:
+			// I need a test user to get me the html endpoints for local HDD recording state
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/bookings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=asc&language=en
 			//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
-			url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?plannedOnly=false&range=1-20'; // works
+			url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + this.session.householdId + '/bookings?limit=100&sort=time&sortOrder=asc'; // limit to 20 recordings for performance
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: GET %s', url); }
 			axiosWS.get(url, config)
 				.then(response => {	
@@ -2516,9 +2557,10 @@ class stbPlatform {
 			this.log.error(err);
 		}
 	}
+	
 
 
-	// get the Personalization Data V2 via web request GET
+	// get Personalization Data via web request GET
 	// this is for the web session type as of 13.10.2022
 	async getPersonalizationData(householdId, callback) {
 		this.log("Refreshing personalization data for householdId %s", householdId);
@@ -2589,15 +2631,17 @@ class stbPlatform {
 		return false;
 	}
 
+
 	// set the Personalization Data for the current device via web request PUT
-	// Not tested yet following backend changes 13.10.2022
 	async setPersonalizationDataForDevice(deviceId, deviceSettings, callback) {
 		this.log.warn('setPersonalizationDataForDevice: this function is currently disabled');
-		/*
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: deviceSettings:', deviceSettings); }
-		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/devices/' + deviceId;
+		// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/1076582_ch/devices/3C36E4-EOSSTB-003656579806
+
+		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
 		const data = {"settings": deviceSettings};
-		const config = {headers: {"x-cus": accessToken, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
+		//const config = {headers: {"x-cus": accessToken, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
+		const config = {headers: {"x-oesp-username": this.session.username}};
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: PUT %s', url); }
 		axiosWS.put(url, data, config)
 			.then(response => {	
@@ -2609,7 +2653,6 @@ class stbPlatform {
 				this.log.debug('setPersonalizationDataForDevice: error:', error);
 				return true, error;
 			});		
-		*/
 		return false;
 	}
 
@@ -3211,9 +3254,9 @@ class stbDevice {
 			
 			
 			// set the inUse state as a combination of power state and recording state. Added from v1.2.1
-			// 1 (IN_USE) when box is on or is recording 
-			// 0 (NOT_IN_USE) when box is off and not recording
-			if ((this.currentPowerState == Characteristic.Active.ACTIVE) || (this.currentRecordingState == 2)) {  // 2=ONGOING_LOCALDVR
+			// 1 (IN_USE) when box is on or is recording to local HDD
+			// 0 (NOT_IN_USE) when box is off and not recording to local HDD
+			if ((this.currentPowerState == Characteristic.Active.ACTIVE) || (this.currentRecordingState == recordingState.ONGOING_LOCALDVR)) {
 				this.currentInUse = Characteristic.InUse.IN_USE;
 			} else {
 				this.currentInUse = Characteristic.InUse.NOT_IN_USE;
@@ -3222,7 +3265,6 @@ class stbDevice {
 
 			// profile data is stored on the platform
 			// get the currentClosedCaptionsState from the currently selected profile (stored in this.profileid)
-			//var configDevice = {};
 			if ( this.platform.profiles[this.profileId] && this.platform.profiles[this.profileId].options.showSubtitles ) {
 				this.currentClosedCaptionsState = Characteristic.ClosedCaptions.ENABLED;
 			} else {
@@ -3342,7 +3384,9 @@ class stbDevice {
 
 
 				// check for change of picture mode or recordingState (both stored in picture mode)
-				if ((configDevice || {}).customPictureMode == 'recordingState') {
+				// customPictureMode deprecated from v2.0.0 and removed from config.json, as its function is handled by inUse.
+				// Nov 2022: disabled code, will remove in a future version
+				if ((configDevice || {}).customPictureMode == 'recordingState' && 1==0) {
 					// PictureMode is used for recordingState function, this is a custom characteristic, not supported by HomeKit. we can use values 0...7
 					//this.log("previousRecordingState", this.previousRecordingState);
 					//this.log("currentRecordingState", this.currentRecordingState);
