@@ -213,8 +213,8 @@ The eosstb plugin emulates the TV service web app. If the web app is started on 
 ### Media State (Play/Pause) Limitations
 The eosstb plugin can detect the current and target media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 16.1) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
-### Recording State Limitations (INACTIVE IN V2)
-The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but a eosstb config option **customPictureMode** allows you to use the PictureMode to read the recording state in Shortcuts or Automations. THIS OPTION IS NOT WORKING YET IN V2 DUE TO CHANGED AND UNKNOWN ENDPOINTS.
+### Recording State Limitations
+The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but the eosstb plugin uses it to set the inUse charateristic if the set-top box is turned on or is recording to the local HDD. This is useful in Shortcuts or Automations. **STATUS OF LOCAL HDD RECORDINGS CURRENTLY NOT WORKING IN V2 DUE TO CHANGED AND UNKNOWN ENDPOINTS. TESTERS NEEDED.**
 
 ### Closed Captions Limitations
 The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 16.1) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
@@ -362,11 +362,6 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 * **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple iOS remote, I have integrated it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
 
-
-##### Extra Functions
-
-* **customPictureMode**: Allows the customisation of Picture Mode. Optional, defaults to normal Picture Mode if not found. Possible values are:
-recordingState: The Picture Mode reflects the recording state of the set-top box. Values are: 0 = Idle (not recording), 1 = Ongoing nDVR (network digital video recording), 2 = Ongoing localDVR (local hard-drive based digital video recording). It can be useful to know if the set-top box is currently recording to the hard drive for users want to control the power to the set-top box, so that they do not switch it off when a local recording is in progress. NOT AVAILABLE IN V2 DUE TO CHANGED ENDPOINTS.
 
 
 
