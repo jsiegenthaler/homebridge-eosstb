@@ -363,11 +363,6 @@ If you want to configure your devices differently, do so here. Multiple devices 
 * **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple iOS remote, I have integrated it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
 
 
-##### Extra Functions
-
-* **customPictureMode**: Allows the customisation of Picture Mode. Optional, defaults to normal Picture Mode if not found. Possible values are:
-recordingState: The Picture Mode reflects the recording state of the set-top box. Values are: 0 = Idle (not recording), 1 = Ongoing nDVR (network digital video recording), 2 = Ongoing localDVR (local hard-drive based digital video recording). It can be useful to know if the set-top box is currently recording to the hard drive for users want to control the power to the set-top box, so that they do not switch it off when a local recording is in progress. NOT AVAILABLE IN V2 DUE TO CHANGED ENDPOINTS.
-
 
 
 ### Channel Config Items
