@@ -23,6 +23,10 @@ See below
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs)
 
 
+## 2.0.0-beta.6 (2022-11-05)
+* Fixed bug in setPersonalizationDataForDevice
+
+
 ## 2.0.0-beta.5 (2022-11-05)
 * Added recording state capabilities. Recording to local HDD not yet detectable, testers in GB wanted. Still needs adapting for series recordings.
 * Disabled support for customPictureMode, is is handled by the inUse characteristic
