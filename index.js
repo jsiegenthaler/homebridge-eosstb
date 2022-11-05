@@ -53,22 +53,27 @@ axiosCookieJarSupport(axiosWS);
 
 // base url varies by country
 // without any trailing /
+// refer https://github.com/Sholofly/lghorizon-python/blob/features/telenet/lghorizon/const.py
 const countryBaseUrlArray = {
 	'at': 		'https://prod.spark.magentatv.at',
 	'be-fr':	'https://prod.spark.telenet.tv',
 	'be-nl':	'https://prod.spark.telenet.tv',	
     'ch': 		'https://prod.spark.sunrisetv.ch',
-	'de':		'https://web-api-pepper.horizon.tv/oesp/v4/DE/deu/web', // v2, v3 and v4 work
-    'gb':       'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web',
+	'de':		'https://prod.spark.upctv.de',
+    'gb':       'https://prod.spark.virginmedia.com',
 	'ie':       'https://prod.spark.virginmediatv.ie',
     'nl': 		'https://prod.spark.ziggogo.tv',
-	'pl':		'https://web-api-pepper.horizon.tv/oesp/v4/PL/pol/web', // v2, v3 and v4 work
-	'sk':		'https://web-api-pepper.horizon.tv/oesp/v4/SK/slk/web', // v2, v3 and v4 work
+	'pl':		'https://prod.spark.unknown.pl',
+	'sk':		'https://prod.spark.upctv.sk',
 	// old endpoints:
-    //'at': 		'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web', // v3 and v4 works old
-    //'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v2, v3 and v4 work old
-    //'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web', // old
-	//'ie':       'https://prod.oesp.virginmediatv.ie/oesp/v4/IE/eng/web/', // old
+    //'at': 	'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web', // v3 and v4 works old
+    //'ch': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v2, v3 and v4 work old
+	//'de':		'https://web-api-pepper.horizon.tv/oesp/v4/DE/deu/web', // v2, v3 and v4 work
+    //'gb':     'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web',
+    //'nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web', // old
+	//'pl':		'https://web-api-pepper.horizon.tv/oesp/v4/PL/pol/web', // v2, v3 and v4 work
+	//'ie':     'https://prod.oesp.virginmediatv.ie/oesp/v4/IE/eng/web/', // old
+	//'sk':		'https://web-api-pepper.horizon.tv/oesp/v4/SK/slk/web', // v2, v3 and v4 work
 };
 
 // mqtt endpoints varies by country, unchanged after backend change on 13.10.2022
@@ -88,6 +93,8 @@ const mqttUrlArray = {
 // profile url endpoints varies by country
 // https://prod.spark.sunrisetv.ch/deu/web/personalization-service/v1/customer/{household_id}/devices
 // without terminating / 
+// no longer needed in v2
+/*
 const personalizationServiceUrlArray = {
     'at':		'https://prod.spark.magentatv.at/deu/web/personalization-service/v1/customer/{householdId}',
     'be-fr':  	'https://prod.spark.telenettv.be/fr/web/personalization-service/v1/customer/{householdId}',
@@ -99,7 +106,7 @@ const personalizationServiceUrlArray = {
     'nl': 		'https://prod.spark.ziggogo.tv/nld/web/personalization-service/v1/customer/{householdId}',
     'pl': 		'https://prod.spark.unknown.pl/pol/web/personalization-service/v1/customer/{householdId}'
 };
-
+*/
 
 
 // openid logon url used in Telenet.be Belgium for be-nl and be-fr sessions
@@ -119,10 +126,8 @@ const NO_CHANNEL_ID = 'ID_UNKNOWN'; // id for a channel not in the channel list,
 const NO_CHANNEL_NAME = 'UNKNOWN'; // name for a channel not in the channel list
 const MAX_INPUT_SOURCES = 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
 const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in millisec. Default = 15000 (15s)
-const MQTT_WATCHDOG_INTERVAL_MS = 10000; // mqtt watchdog interval in millisec. Default = 10000 (10s)
 const MASTER_CHANNEL_LIST_VALID_FOR_S = 86400; // master channel list starts valid for 24 hours from last refresh = 86400 seconds
 const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 3600; // master channel list refresh check interval, in seconds. Default = 3600 (1hr) (increased from 600)
-const RECORDING_STATE_ONGOING = 1; // Custom characteristic
 const SETTOPBOX_NAME_MINLEN = 3; // min len of the set-top box name
 const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
 
@@ -647,7 +652,9 @@ class stbPlatform {
 							// create the accessory
 							// 	constructor(log, config, api, device, customer, entitlements, platform) {
 							this.log("Setting up device %s of %s: %s", i+1, this.devices.length, deviceName);
-							let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this.customer, this.entitlements, this);
+							//let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this.customer, this.entitlements, this);
+							// simplified the call by removing customer and entitlements as they are part of platform anyway
+							let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this);
 							this.stbDevices.push(newStbDevice);
 
 						} else {
@@ -1561,11 +1568,11 @@ class stbPlatform {
 			"x-oesp-username": this.session.username
 		}};
 		if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: GET %s', url); }
-		// this.log('getPersonalizationDataOld: GET %s', url);
+		// this.log('getEntitlements: GET %s', url);
 		axiosWS.get(url, config)
 			.then(response => {	
 				if (this.config.debugLevel > 1) { this.log.warn('getEntitlements: %s: response: %s %s', householdId, response.status, response.statusText); }
-				if (this.config.debugLevel > 1) { 
+				if (this.config.debugLevel > 2) { 
 					this.log.warn('getEntitlements: %s: response data:', householdId);
 					this.log.warn(response.data);
 				}
@@ -1777,14 +1784,8 @@ class stbPlatform {
 						// Message: { action: 'OPS.getDeviceUpdate', source: '3C36E4-EOSSTB-00365657xxxx', deviceId: '3C36E4-EOSSTB-00365657xxxx' }
 						if (topic.includes(mqttUsername + '/personalizationService')) {
 							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s: action', mqttMessage.action); }
-							if (mqttMessage.action == 'OPS.getProfilesUpdate') {
-								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData for profiles', mqttMessage.action); }
-								deviceId = mqttMessage.source;
-								profileDataChanged = true;
-								parent.getPersonalizationData(parent.session.householdId); // async function
-
-							} else if (mqttMessage.action == 'OPS.getDeviceUpdate') {
-								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData for devices', mqttMessage.action); }
+							if (mqttMessage.action == 'OPS.getProfilesUpdate' || mqttMessage.action == 'OPS.getDeviceUpdate') {
+								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData', mqttMessage.action); }
 								deviceId = mqttMessage.source;
 								profileDataChanged = true;
 								parent.getPersonalizationData(parent.session.householdId); // async function
@@ -2568,7 +2569,7 @@ class stbPlatform {
 		axiosWS.get(url, config)
 			.then(response => {	
 				if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: %s: response: %s %s', householdId, response.status, response.statusText); }
-				if (this.config.debugLevel > 2) { 
+				if (this.config.debugLevel > 2) { // DEBUG
 					this.log.warn('getPersonalizationData: %s: response data:', householdId);
 					this.log.warn(response.data);
 				}
@@ -2578,29 +2579,47 @@ class stbPlatform {
 				this.devices = response.data.assignedDevices; // store the entire device array at platform level
 			
 				// update all the devices in the array. Don't trust the index order in the Personalization Data message
+				//this.log('getPersonalizationData: this.stbDevices.length:', this.stbDevices.length)
 				this.devices.forEach((device) => {
 					const deviceId = device.deviceId;
 					const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
 					if (deviceIndex > -1 && this.stbDevices[deviceIndex]) { 
 						this.stbDevices[deviceIndex].device = device;
-						//this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, null, Characteristic.StatusFault.NO_FAULT ); // update one device
+						this.stbDevices[deviceIndex].customer = this.customer; // store entire customer object
+
+						// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault) {
+						this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT ); // update this device
 					}
 				});
 				
 
 				// profiles are an array named profiles, store entire array in this.profiles
-				this.profiles = response.data.profiles; // set this.profiles to the profile data we just received
-
-				// for every profiles data update, update all devices as closedCaptions may have changed
+				//this.profiles = response.data.profiles; // set this.profiles to the profile data we just received
+				//this.log('getPersonalizationData: this.profiles:')
+				//this.log(this.profiles)
+				///let testProfile1 = this.profiles.find(profile => profile.name === 'Test');
+				//this.log("getPersonalizationData: freshly stored profile data: Profile '%s' last modified at %s", testProfile1.name, testProfile1.lastModified); 
+				//this.log(testProfile1)
+/*
+				// for every personalization data update, update all devices device.customer per device with the new this.customer data
 				// but only if stbDevices has been created...
+				this.log('getPersonalizationData: this.stbDevices.length:', this.stbDevices.length)
 				if (this.stbDevices.length > 0) {
 					this.devices.forEach((device) => {
-						device.profiles = this.profiles; // update the device with the profiles array
+						device.customer = this.customer; // update the device with the refreshed customer data, including the profiles array
+						this.log('getPersonalizationData: new customer data stored in device.customer:')
+						//this.log(device.profiles)
+						let testProfile = device.customer.profiles.find(profile => profile.name === 'Test');
+						this.log("getPersonalizationData: Profile '%s' last modified at %s", testProfile.name, testProfile.lastModified); 
+						this.log(testProfile)
+
+
 						// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault) {
-						//this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT );
+						this.log('about to call mqttDeviceStateHandler')
+						this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT );
 					});
 				}
-
+*/
 				// now we have the cityId data, load the MasterChannelList
 				this.refreshMasterChannelList(); // async function, processing continues, must load after customer data is loaded
 
@@ -2693,14 +2712,17 @@ class stbPlatform {
 
 class stbDevice {
 	// build the device
-	constructor(log, config, api, device, customer, entitlements, platform) {
+	// called using
+	// let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this.customer, this.entitlements, this);
+	//constructor(log, config, api, device, customer, entitlements, platform) {
+	constructor(log, config, api, device, platform) {
 		this.log = log;
 		this.config = config;
 		this.api = api;
 		this.device = device;
-		this.customer = customer;
-		this.entitlements = entitlements;
 		this.platform = platform;
+		this.customer = this.platform.customer;
+		this.entitlements = this.platform.entitlements;
 
 		this.deviceId = this.device.deviceId
 		this.profileId = -1; // default -1
@@ -3092,7 +3114,7 @@ class stbDevice {
 
 			// default values to hide the input if nothing exists in this.channelList
 			var chFixedName = `Input ${i < 10 ? `0${i}` : i}`; // fixed if not profile 0
-			var chName = 'HIDDEN';
+			var chName = 'HIDDEN_' + ('0' + (i+1)).slice(-2);
 			var chId = 'HIDDEN_' + i;
 			var visState = Characteristic.CurrentVisibilityState.HIDDEN;
 			var configState = Characteristic.IsConfigured.NOT_CONFIGURED;
@@ -3109,7 +3131,7 @@ class stbDevice {
 			}
 
 			// some channels are deliberately hidden, so assign a fictional channelId and disable them
-			if (chName == 'HIDDEN' || chName == ('0' + i).slice(-2) + " HIDDEN") {
+			if (chName.includes('HIDDEN_')) { // name contaisn 'HIDDEN_'
 				chId = 'HIDDEN_' + i;
 				visState = Characteristic.CurrentVisibilityState.HIDDEN;
 				configState = Characteristic.IsConfigured.NOT_CONFIGURED;
@@ -3255,7 +3277,7 @@ class stbDevice {
 
 			// profile data is stored on the platform
 			// get the currentClosedCaptionsState from the currently selected profile (stored in this.profileid)
-			if ( this.platform.profiles[this.profileId] && this.platform.profiles[this.profileId].options.showSubtitles ) {
+			if ( this.customer.profiles[this.profileId] && this.customer.profiles[this.profileId].options.showSubtitles ) {
 				this.currentClosedCaptionsState = Characteristic.ClosedCaptions.ENABLED;
 			} else {
 				this.currentClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
@@ -3593,6 +3615,8 @@ class stbDevice {
 				if (this.config.debugLevel > 1) {this.log.warn("%s: No user-configured profile found, reverting to default profile: '%s'", this.name, wantedProfile.name) }
 			}
 			//this.log("%s: Using profile %s", this.name, wantedProfile.name)
+			//this.log("%s: profile dump:", this.name)
+			//this.log(wantedProfile)
 
 			
 			// now load the mostWatched list for this profile
@@ -3606,16 +3630,17 @@ class stbDevice {
 
 			// get the wanted profile configured on the stb
 			this.profileId = wantedProfile.profileId
-			//this.log.warn("%s: Loading channels from profile '%s'", this.name, wantedProfile.name); 
+			//this.log.warn("%s: Profile '%s' last modified at %s", this.name, wantedProfile.name, wantedProfile.lastModified); 
 
 
-			// load the chId array from the favoriteChannels of the wantedProfile, in the order shown
+			// load the subscribedChIds array from the favoriteChannels of the wantedProfile, in the order shown
 			// Note: favoriteChannels is allowed to be empty!
 			// Note: the shared profile contains no favorites
-			this.log("%s: Profile '%s' contains %s channels", this.name, wantedProfile.name, wantedProfile.favoriteChannels.length);
+			const lastModeDate = new Date(wantedProfile.lastModified);
+			this.log("%s: Profile '%s' contains %s channels, profile last modified at %s", this.name, wantedProfile.name, wantedProfile.favoriteChannels.length, lastModeDate.toLocaleString() );
 			var subscribedChIds = []; // an array of channelIds: SV00302, SV09091, etc
 			if (wantedProfile.favoriteChannels.length > 0){
-				if (this.config.debugLevel > 2) { 
+				if (this.config.debugLevel > 1) { 
 					this.log.warn("%s: Loading channels from profile '%s' into the subscribedChIds", this.name, wantedProfile.name)
 					this.log.warn("%s: Most watched list length", this.name, (this.mostWatched || []).length) 
 				}
@@ -3624,7 +3649,7 @@ class stbDevice {
 				//this.log.warn("%s: DEBUG debugChannelorder", this.name, debugChannelorder)
 				if ((((configDevice || {}).channelOrder) || 'channelOrder') == 'mostWatched' && (this.mostWatched || []).length > 0) {
 					// load by mostWatched sort order
-					if (this.config.debugLevel > 2) { 
+					if (this.config.debugLevel > 1) { 
 						this.log.warn("%s: Loading channel using most watched sort order", this.name)
 					}
 					this.mostWatched.forEach((mostWatchedChannelId) => {
@@ -3642,18 +3667,18 @@ class stbDevice {
 					});
 				} else {
 					// load by standard sort order
-					if (this.config.debugLevel > 2) { 
+					if (this.config.debugLevel > 1) { 
 						this.log.warn("%s: Loading channel using standard sort order", this.name)
 					}
 					wantedProfile.favoriteChannels.forEach((channel) => {
-						if (this.config.debugLevel > 2) { 
+						if (this.config.debugLevel > 1) { 
 							this.log.warn("%s: Loading channel using standard sort order. Channel %s found, loading at index %s", this.name, channel, subscribedChIds.length)
 						}
 						subscribedChIds.push( channel ); 
 					});
 				}
 			}
-			if (this.config.debugLevel > 2) {
+			if (this.config.debugLevel > 1) {
 				this.log.warn("%s: subscribedChIds.length: %s", this.name, subscribedChIds.length)
 				this.log.warn("%s: subscribedChIds %s", this.name, subscribedChIds)
 				this.log.warn("%s: subscribedChIds.length", this.name, subscribedChIds.length)
@@ -3690,18 +3715,20 @@ class stbDevice {
 					this.log.debug("%s: channel.linearProducts %s", this.name, channel.linearProducts)
 					this.platform.entitlements.entitlements.forEach((subscribedlEntitlement) => {
 						if (channel.linearProducts.includes(subscribedlEntitlement.id)){
-							this.log.debug("%s: channel channelId %s, linearProducts includes subscribedlEntitlement.id %s, channel is entitled", this.name, channel.id, subscribedlEntitlement.id)
+							this.log("%s: channel channelId %s, linearProducts includes subscribedlEntitlement.id %s, channel is entitled", this.name, channel.id, subscribedlEntitlement.id)
 							isEntitled = true;
 					}
 					});
 					if (isEntitled){
 						subscribedChIds.push( channel.id ); 
-						this.log.debug("%s: %s %s is entitled, pushed to subscribedChIds, subscribedChIds.length now %s", this.name, channel.id, channel.name, subscribedChIds.length)
+						this.log("%s: %s %s is entitled, pushed to subscribedChIds, subscribedChIds.length now %s", this.name, channel.id, channel.name, subscribedChIds.length)
 				}
 				});
-				this.log.debug("%s: subscribedChIds.length", this.name, subscribedChIds.length)
+				this.log("%s: subscribedChIds.length", this.name, subscribedChIds.length)
 			}
-			this.log("%s: Subscribed channel list loaded with %s channels", this.name, subscribedChIds.length)
+			if (this.config.debugLevel > 1) { 
+				this.log("%s: Subscribed channel list loaded with %s channels", this.name, subscribedChIds.length)
+			}
 
 
 
@@ -3825,7 +3852,7 @@ class stbDevice {
 						this.inputServices[i].name = channel.configuredName;
 						this.inputServices[i].subtype = 'input_' + channel.id; // string, input_SV09038 etc
 						//this.inputServices[i].subtype = 'input_' + i+1; // integer, generates input_1 for index 0
-						this.log.warn("DEBUG: input %s subtype set to %s %s",i+1, channel.id, this.inputServices[i].subtype);
+						//this.log.warn("DEBUG: input %s subtype set to %s %s",i+1, channel.id, this.inputServices[i].subtype);
 
 						// Name can only be set for SharedProfile where order can never be changed
 						if (this.profileid == 0) {
@@ -3904,10 +3931,10 @@ class stbDevice {
 				// array must stay same size and have elements that can be queried, but channelId must never match valid entries
 				this.channelList[i] = {
 					id: 'hiddenChId_' + i,  // channelid must be unique string, must be different from standard channel ids
-					name: 'HIDDEN', 
+					name: 'HIDDEN_' + ('0' + (i+1)).slice(-2), 
 					logicalChannelNumber: null,
 					linearProducts: null,
-					configuredName: 'HIDDEN',
+					configuredName: 'HIDDEN_' + ('0' + (i+1)).slice(-2),
 					visibilityState: Characteristic.CurrentVisibilityState.HIDDEN
 				}
 				
@@ -3935,7 +3962,7 @@ class stbDevice {
 	async refreshDeviceMostWatchedChannels(profileId, callback) {
 		if (this.config.debugLevel > 1) { this.log("%s: refreshDeviceMostWatchedChannels started with %s", this.name, profileId); }
 		const profile = this.customer.profiles.find(profile => profile.profileId === profileId);
-		this.log("%s: Refreshing most watched channels for profile %s", this.name, (profile || {}).name);
+		this.log("%s: Refreshing most watched channels for profile '%s'", this.name, (profile || {}).name);
 
 		// 	https://prod.spark.sunrisetv.ch/eng/web/linear-service/v1/mostWatchedChannels?cityId=401&productClass=Orion-DASH"
 		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v1/mostWatchedChannels';
