@@ -3245,7 +3245,7 @@ class stbDevice {
 			// set the inUse state as a combination of power state and recording state. Added from v1.2.1
 			// 1 (IN_USE) when box is on or is recording to local HDD
 			// 0 (NOT_IN_USE) when box is off and not recording to local HDD
-			if ((this.currentPowerState == Characteristic.Active.ACTIVE) || (this.currentRecordingState == recordingState.ONGOING_LOCALDVR)) {
+			if ((this.currentPowerState == Characteristic.Active.ACTIVE) || (this.currentRecordingState == 2)) { // 2 = ONGOING_LOCALDVR
 				this.currentInUse = Characteristic.InUse.IN_USE;
 			} else {
 				this.currentInUse = Characteristic.InUse.NOT_IN_USE;
