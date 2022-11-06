@@ -21,6 +21,12 @@ See below
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs)
 
 
+## 2.0.0-beta.10 (2022-11-06)
+* Improved startup sequence by properly using promises, startup is MUCH faster and more robust
+* Adapted base url array for GB again (hopefully this fixes GB)
+* GB sessions are under test
+
+
 ## 2.0.0-beta.9 (2022-11-05)
 * Fixed refresh bug with live channel list handling
 * Adapted base url array for GB and other countries to new syntax
