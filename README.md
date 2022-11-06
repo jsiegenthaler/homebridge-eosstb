@@ -345,22 +345,22 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 ##### Remote Control Button Mapping
 
-* **playPauseButton**: The command issued to the set-top box when the Play/Pause button (**> ||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
+* **playPauseButton**: The command issued to the set-top box when the Play/Pause button (**> ||**) in the Apple TV Remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
 
-* **backButton**: The command issued to the set-top box when the **BACK** button in the iOS remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
+* **backButton**: The command issued to the set-top box when the **BACK** button in the Apple TV Remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
 
-* **infoButton**: The command issued to the set-top box when the Info button (**i**) in the iOS remote is tapped. As the iOS remote has no Menu button, the Info button should be used to access the menu. This is why the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
+* **infoButton**: The command issued to the set-top box when the Info button (**i**) in the Apple TV Remote is tapped. As the Apple TV Remote has no Menu button, the Info button should be used to access the menu. This is why the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
 
 
 
 
 ##### Remote Control Volume Commands
 
-* **volUpCommand**: The bash command to increase the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Up button on your device. Optional.
+* **volUpCommand**: The bash command to increase the volume of the TV. This command is sent when the Apple TV Remote is open and you press the Volume Up button on your device. Optional.
 
-* **volDownCommand**: The bash command to decrease the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Down button on your device. Optional.
+* **volDownCommand**: The bash command to decrease the volume of the TV. This command is sent when the Apple TV Remote is open and you press the Volume Down button on your device. Optional.
 
-* **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple iOS remote, I have integrated it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
+* **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple Apple TV Remote, I have integrated it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
 
 
 
@@ -432,10 +432,10 @@ See the Wiki for [a collection of known key event commands that control the set-
 The volume and mute commands do not control the set-top box directly, but can be used to control the TV or Receiver volume (network remote control required).
 
 ### Volume
-* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS device volume controls can be used to control the volume of your TV. However, this is not done via the set-top box, but instead via a command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Home Theater HT-D5500 and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP, KEY_VOLDOWN and KEY_MUTE to be easily sent to the Samsung Home Theater. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scroll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
+* **VolumeUp** and **VolumeDown**: When the Apple TV Remote is displayed, the iOS device volume controls can be used to control the volume of your TV. However, this is not done via the set-top box, but instead via a command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Home Theater HT-D5500 and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP, KEY_VOLDOWN and KEY_MUTE to be easily sent to the Samsung Home Theater. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scroll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
 
 ### Mute
-* **Mute** is not supported natively by the iOS remote, but I have added it with a triple-press detection on the volume down button. Press the button three times within 800ms, and the Mute command will be sent using the command stored in the **muteCommand** config item.
+* **Mute** is not supported natively by the Apple TV Remote, but I have added it with a triple-press detection on the volume down button. Press the button three times within 800ms, and the Mute command will be sent using the command stored in the **muteCommand** config item.
 
 ### View TV Settings
 You can use **View TV Settings** to open the set-top box main menu at the **PROFILES** menu. Usage: in the Home app, tap-and-wait on the set-top box tile to open the channel changer, then tap on the cogwheel to open the settings for the accessory, and scroll down to **View TV Settings**. 
