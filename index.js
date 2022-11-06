@@ -116,6 +116,8 @@ const BE_AUTH_URL = 'https://login.prd.telenet.be/openid/login.do';
 // still in use after logon session changes on 13.10.2022 for other countries
 // https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true
 // const GB_AUTH_URL = 'https://id.virginmedia.com/sign-in/?protocol=oidc';
+// the url that worked in v1.7: 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web'
+const GB_AUTH_DETAILS_URL = 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web';
 const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
 
 
@@ -280,16 +282,17 @@ function cleanNameForHomeKit(name) {
 }
 
 // wait function
-const wait=ms=>new Promise(resolve => setTimeout(resolve, ms)); 
+const wait=ms => new Promise(resolve => setTimeout(resolve, ms)); 
 
 // wait function with promise
-function waitprom(ms) {
-	return new Promise((resolve, reject) => {
+async function waitprom(ms) {
+	return new Promise((resolve) => {
 	  setTimeout(() => {
 		resolve(ms)
 	  }, ms )
 	})
   }  
+
 
 
 // ++++++++++++++++++++++++++++++++++++++++++++
@@ -348,31 +351,51 @@ class stbPlatform {
 		this.devInfoFile = this.storagePath + '/' + 'devInfo_' + this.host.split('.').join('');
 		*/
 		
-		/**
+		/*
     	* Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
     	*/
-		this.api.on('didFinishLaunching', () => {
+		//this.api.on('didFinishLaunching', () => {
+		this.api.on('didFinishLaunching', async () => {
 			if (this.config.debugLevel > 2) { this.log.warn('API event: didFinishLaunching'); }
 			this.log('%s v%s', PLUGIN_NAME, PLUGIN_VERSION);
 
-			// call the session watchdog now to create the session
-			this.sessionWatchdog.bind(this);
+			// call the session watchdog to create the session
+			this.sessionWatchdog.bind(this)
 
-			// the session watchdog creates a session when none exists, and recreates one if the session ever fails due to internaet failure or anything else
+			// the session watchdog creates a session when none exists, and recreates one if the session ever fails due to internet failure or anything else
+			this.log('stbPlatform: starting regular session watchdog timer at %s ms', SESSION_WATCHDOG_INTERVAL_MS);
 			this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
-			
+
 			// check for a channel list update every MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S seconds
 			this.checkChannelListInterval = setInterval(this.refreshMasterChannelList.bind(this),MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S * 1000);
+
+			this.log.debug('stbPlatform: end of code block');
 		});
 
+
+		/*
+    	* "shutdown" event is fired when homebridge shuts down
+    	*/
 		this.api.on('shutdown', () => {
 			if (this.config.debugLevel > 2) { this.log.warn('API event: shutdown'); }
 			isShuttingDown = true;
-			this.endMqttClient();
-			this.log('Goodbye');
-		});		
+			this.log('before the end mqtt call')
+			this.endMqttClient()
+				.then(() => {
+					this.log('Goodbye');
+			});
+			this.log('after the end mqtt call')
+		});
+	} // end of constructor
 
-	}
+	// wait function with promise
+	async testprom() {
+		return new Promise((resolve, reject) => {
+			this.log('testprom: in the testprom async function')
+			resolve('testprom response: some success text in the class') // must have a resolve to return something
+		})
+	}    
+
 
 	/**
    	* REQUIRED - Homebridge will call the "configureAccessory" method once for every cached accessory restored
@@ -448,7 +471,7 @@ class stbPlatform {
 
 
 	// the awesome watchDog
-	async sessionWatchdog() {
+	async sessionWatchdog(callback) {
 		// the session watchdog creates a session when none exists, and creates stbDevices when none exist
 		// runs every few seconds. 
 		// If session exists or is still being connected: Exit immediately
@@ -456,6 +479,7 @@ class stbPlatform {
 		this.watchdogCounter++; // increment global counter by 1
 		let watchdogInstance = 'sessionWatchdog(' + this.watchdogCounter + ')'; // set a log prefix for this instance of the watchdog to allow differentiation in the logs
 		let statusOverview = watchdogInstance + ':';
+		callback = true;
 
 		//robustness: if session state ever gets disconnected due to session creation problems, ensure the mqtt status is always disconnected
 		if (currentSessionState == sessionState.DISCONNECTED) { 
@@ -517,14 +541,71 @@ class stbPlatform {
 		if ( this.api.user.customStoragePath.includes( 'jochen' ) ) { PLUGIN_ENV = ' DEV' }
 		if (PLUGIN_ENV) { this.log.warn('%s: %s running in %s environment with debugLevel %s', watchdogInstance, PLUGIN_NAME, PLUGIN_ENV.trim(), (this.config || {}).debugLevel || 0); }
 	
-		// Step 1: session does not exist, so create the session, passing the country value
+
+		// if session does not exist, create the session, passing the country value
 		if (currentSessionState == sessionState.DISCONNECTED ) { 
 			//this.log('Session is not connected');
 			if (this.config.debugLevel > 2) { this.log.warn('%s: attempting to create session', watchdogInstance); }
-			this.createSession(this.config.country.toLowerCase());
+
+			// asnyc startup sequence with chain of promises
+			this.log.debug('sessionWatchdog: ++++ step 1: calling createSession')
+			await this.createSession(this.config.country.toLowerCase()) // returns householdId
+				.then((sessionHouseholdId) => {
+					this.log.debug('sessionWatchdog: ++++++ step 2: session was created, connected to sessionHouseholdId %s', sessionHouseholdId)
+					this.log.debug('sessionWatchdog: ++++++ step 2: calling getPersonalizationData with sessionHouseholdId %s ',sessionHouseholdId)
+					this.log('Discovering platform...');
+					return this.getPersonalizationData(sessionHouseholdId) // returns customer object, with devices and profiles
+				})
+				// the results of the previous then is the customer object. This is passed on to the next then:
+				.then((objCustomer) => {
+					this.log.debug('sessionWatchdog: ++++++ step 3: personalization data was retrieved, customerId %s customerStatus %s',objCustomer.customerId, objCustomer.customerStatus)
+					this.log.debug('sessionWatchdog: ++++++ step 3: calling getEntitlements with customerId %s ',objCustomer.customerId)
+					return this.getEntitlements(objCustomer.customerId) // returns entitlements object
+				})
+				// the results of the previous then is the entitlements object. This is passed on to the next then:
+				.then((objEntitlements) => {
+					this.log.debug('sessionWatchdog: ++++++ step 4: entitlements data was retrieved, objEntitlements.token %s',objEntitlements.token)
+					this.log.debug('sessionWatchdog: ++++++ step 4: calling refreshMasterChannelList')
+					return this.refreshMasterChannelList() // returns entitlements object
+				})
+				// the results of the previous then is the channels object. This is passed on to the next then:
+				.then((objChannels) => {
+					this.log.debug('sessionWatchdog: ++++++ step 5: masterchannelList data was retrieved, channels found: %s',objChannels.length)
+					this.log.debug('sessionWatchdog: ++++++ step 5: calling discoverDevices')
+					return this.discoverDevices() // returns stbDevices object 
+				})				
+				// the results of the previous then is the devices object. This is passed on to the next then:
+				.then((objStbDevices) => {
+					this.log('Discovery completed');
+					this.log.debug('sessionWatchdog: ++++++ step 6: devices data was retrieved, devices found: %s',objStbDevices.length)
+					this.log.debug('sessionWatchdog: ++++++ step 6: calling getJwtToken')
+					return this.getJwtToken(this.session.username, this.session.accessToken, this.session.householdId);
+				})				
+				// the results of the previous then is the jwt token. This is passed on to the next then:
+				.then((jwToken) => {
+					this.log.debug('sessionWatchdog: ++++++ step 7: getJwtToken token was retrieved, token %s',jwToken)
+					this.log.debug('sessionWatchdog: ++++++ step 7: start mqtt client')
+					this.startMqttClient(this, this.session.householdId, jwToken);  // this starts the mqtt session, synchronous
+					return true // end the chain with a resolved promise
+				})				
+				.catch(errorReason => {
+					// log any errors and set the currentSessionState
+					this.log.warn('Failed to create session - %s', errorReason);
+					currentSessionState = sessionState.DISCONNECTED;
+					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+					return true
+				});	
+			this.log.debug('sessionWatchdog: ++++++ end of promise chain')
+			this.log.debug('sessionWatchdog: ++++ create session promise chain completed')
+
+
 		} else if (currentSessionState == sessionState.CONNECTED && !mqttClient.connected) { 
 			this.log('%s: session is still connected, but mqttCLient is disconnected, refreshing session and restarting mqttClient...', watchdogInstance);
 		}
+
+		this.log('Exiting sessionWatchdog')
+		this.sessionWatchdogRunning = false;
+		return true
 
 		// async wait a few seconds for the session to load, then continue
 		// should be 15s as GB takes 12s for some users
@@ -543,34 +624,6 @@ class stbPlatform {
 			// discovery devices at every session connection
 			this.log('Discovering platform and devices...');
 
-			// show feedback for customer data found
-			// original MQTT session type, retain for reference, disabled for now with 1=0, delete before release
-			if (1 == 0) {
-				if (!this.session.customer) {
-					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-					this.log('Failed to find customer data. The backend systems may be down')
-				} else {
-					this.log('Found customer data: %s %s %s', this.session.customer.customerId, (this.session.customer.givenName || ''), (this.session.customer.familyName || '') );
-					if (this.config.debugLevel > 2) { 
-						this.log.warn('Session data: %s', this.session); 
-						this.log.warn('Session data profileSettings: %s', this.session.profileSettings); 
-					}
-					if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
-				}
-
-				// Step 3: after session is created, get the masterChannelList get the Personalization Data, but only if this.session.customer.physicalDeviceId exists
-				if ((this.session.customer || {}).physicalDeviceId) {
-					this.log('Loading master channel list and personalization data')
-					this.refreshMasterChannelList(); // async function, processing continues
-					this.getPersonalizationDataOld('profiles'); // async function
-					this.getPersonalizationDataOld('devices'); // async function
-				} else {
-					// show warning if no physicalDeviceId found
-					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-					this.log('Failed to find physicalDeviceId in your customer data. Are you sure you have a compatible set-top box?')
-					if (this.config.country.toLowerCase() == 'gb') { this.log('You may have an older TiVo box. TiVo boxes are not supported by %s', PLUGIN_NAME); }
-				}
-			}
 
 			// new WS_MQTT session type, from 13.10.2022
 			// writing this as a separate IF first for ease of debugging
@@ -688,114 +741,209 @@ class stbPlatform {
 	}
 
 
+	// discover all devices
+	async discoverDevices() {
+		return new Promise((resolve, reject) => {
+			this.log('Discovering devices...');
+
+			// show feedback for devices found
+			if (!this.devices || !this.devices[0].settings) {
+				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+				this.log('Failed to find any devices. The backend systems may be down, or you have no supported devices on your customer account')
+				this.sessionWatchdogRunning = false;
+				if (this.config.debugLevel > 2) { this.log.warn('%s: session connected but no devices found. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+				return
+
+			} else {
+				// at least one device found
+				var logText = "Found %s device";
+				if (this.devices.length > 1) { logText = logText + "s"; }
+				this.log(logText, this.devices.length);
+
+
+				// user config tip showing all found devices
+				// display only when no config.devices not found
+				this.log.debug('Showing config tip...');
+				let tipText = '', deviceFoundInConfig = true;
+				for (let i = 0; i < this.devices.length; i++) {
+					if (!tipText == '') { tipText = tipText + ',\n'; }
+					tipText = tipText + ' {\n';
+					tipText = tipText + '   "deviceId": "' + this.devices[i].deviceId + '",\n';
+					tipText = tipText + '   "name": "' + this.devices[i].settings.deviceFriendlyName + '"\n';
+					tipText = tipText + ' }';
+					if (this.config.devices) {
+						let configDeviceIndex = this.config.devices.findIndex(devConfig => devConfig.deviceId == this.devices[i].deviceId);
+						if (configDeviceIndex == -1) {
+							this.log("Device not found in config: %s", this.devices[i].deviceId);
+							deviceFoundInConfig = false;
+						}
+					} else {
+						deviceFoundInConfig = false;
+					}
+				}
+				if (!deviceFoundInConfig) {
+					this.log('Config tip: Add these lines to your Homebridge ' + PLATFORM_NAME + ' config if you wish to customise your device config: \n"devices": [\n' + tipText + '\n]');
+				}
+
+
+				// setup/restore each device in turn as an accessory, as we can only setup the accessory after the session is created and the physicalDevices are retrieved
+				this.log.debug("Finding devices in cache...");
+				for (let i = 0; i < this.devices.length; i++) {
+
+					// setup each device (runs once per device)
+					const deviceName = this.devices[i].settings.deviceFriendlyName;
+					this.log("Device %s: %s %s", i+1, deviceName, this.devices[i].deviceId);
+
+					// generate a constant uuid that will never change over the life of the accessory
+					const uuid = this.api.hap.uuid.generate(this.devices[i].deviceId + PLUGIN_ENV);
+
+					// check if the accessory already exists, create if it does not
+					// a stbDevice contains various data: HomeKit accessory, EOS platform, EOS device, EOS profile
+					let foundStbDevice = this.stbDevices.find(stbDevice => (stbDevice.accessory || {}).UUID === uuid)
+					if (!foundStbDevice) {
+						this.log("Device %s: Not found in cache, creating new accessory for %s", i+1, this.devices[i].deviceId);
+
+						// create the accessory
+						// 	constructor(log, config, api, device, customer, entitlements, platform) {
+						this.log("Setting up device %s of %s: %s", i+1, this.devices.length, deviceName);
+						//let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this.customer, this.entitlements, this);
+						// simplified the call by removing customer and entitlements as they are part of platform anyway
+						let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this);
+						this.stbDevices.push(newStbDevice);
+
+					} else {
+						this.log("Device found in cache: [%s] %s", foundStbDevice.name, foundStbDevice.deviceId);
+					}	
+
+				};
+				resolve( this.stbDevices ); // resolve the promise with the stbDevices onject
+			}
+
+			this.log.debug('discoverDevices: end of code block')
+		})
+	}
+
+
 
 	// select the right session to create
 	async createSession(country) {
-		this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-		switch(country) {
-			case 'be-nl': case 'be-fr':
-				this.getSessionBE(); break;
-			case 'gb':
-				this.getSessionGB(); break;
-			default: // ch, nl, ie, at
-				this.getSession();
-			}
+		return new Promise((resolve, reject) => {
+			this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+			switch(country) {
+				case 'be-nl': case 'be-fr':
+					this.getSessionBE()
+						.then((getSessionResponse) => { resolve(getSessionResponse); }) // return the getSessionResponse for the promise
+						.catch(error => { reject(error); }); // on any error, reject the promise and pass back the error
+					break;
+				case 'gb':
+					this.getSessionGB()
+						.then((getSessionResponse) => { resolve(getSessionResponse); }) // return the getSessionResponse for the promise
+						.catch(error => { reject(error); }); // on any error, reject the promise and pass back the error
+					break;
+				default: // ch, nl, ie, at
+					this.getSession()
+						.then((getSessionResponse) => { resolve(getSessionResponse); }) // resolve with the getSessionResponse for the promise
+						.catch(error => { reject(error); }); // on any error, reject the promise and pass back the error
+				}
+			//this.log('createSession: end of code block')
+		})
 	}
 
 	// get session ch, nl, ie, at
 	// using new auth method, attempting as of 13.10.2022
 	async getSession() {
-		this.log('Creating %s session...', PLATFORM_NAME);
-		currentSessionState = sessionState.LOADING;
+		return new Promise((resolve, reject) => {
+			this.log('getSession: Creating %s session...', PLATFORM_NAME);
+			currentSessionState = sessionState.LOADING;
 
 
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		// axios interceptors to log request and response for debugging
-		// works on all following requests in this sub
-		/*
-		axiosWS.interceptors.request.use(req => {
-			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
-			'\nMethod:',req.method, '\nURL:', req.url, 
-			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,  
-			//'\nParams:', req.params, '\nData:', req.data
-			);
-			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
-			return req; // must return request
-		});
-		axiosWS.interceptors.response.use(res => {
-			this.log.warn('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
-			'\nHeaders:', res.headers, 
-			'\nData:', res.data, 
-			//'\nLast Request:', res.request
-			);
-			//this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
-			return res; // must return response
-		});
-		*/
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// axios interceptors to log request and response for debugging
+			// works on all following requests in this sub
+			/*
+			axiosWS.interceptors.request.use(req => {
+				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
+				'\nMethod:',req.method, '\nURL:', req.url, 
+				'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,  
+				//'\nParams:', req.params, '\nData:', req.data
+				);
+				this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
+				return req; // must return request
+			});
+			axiosWS.interceptors.response.use(res => {
+				this.log.warn('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
+				'\nHeaders:', res.headers, 
+				'\nData:', res.data, 
+				//'\nLast Request:', res.request
+				);
+				//this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
+				return res; // must return response
+			});
+			*/
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-		const axiosConfig = {
-			method: 'POST',
-			url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/authorization',
-			headers: {
-				"x-device-code": "web" // mandatory
-			}, 
-			jar: cookieJar,
-			data: {
-				username: this.config.username,
-				password: this.config.password,
-				stayLoggedIn: false // could alos set to true
-			}
-		};
-
-		// robustness: fail if url missing
-		if (!axiosConfig.url) {
-			this.log.warn('getSession: axiosConfig.url empty!');
-			currentSessionState = sessionState.DISCONNECTED;
-			this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-			return false;						
-		}
-		
-		this.log('Step 1 of 1: logging in with username %s', this.config.username);
-		this.log.debug('Step 1 of 1: post login to',axiosConfig.url);
-		axiosWS(axiosConfig)
-			.then(response => {	
-				this.log('Step 1 of 1: response:',response.status, response.statusText);
-				//this.log('response data',response.data);
-				this.session = response.data;
-				// check if householdId exists, if so, we have authenticated ok
-				if (this.session.householdId) { currentSessionState = sessionState.AUTHENTICATED; }
-				this.log.debug('Session username:', this.session.username);
-				this.log.debug('Session householdId:', this.session.householdId);
-				this.log.debug('Session accessToken:', this.session.accessToken);
-				this.log.debug('Session refreshToken:', this.session.refreshToken);
-				this.log.debug('Session refreshTokenExpiry:', this.session.refreshTokenExpiry);
-				this.log('Session created');
-				currentSessionState = sessionState.CONNECTED;
-				this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-				this.log('Session state:', sessionStateName[currentSessionState]);
-				return true;
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'Failed to create session'
-				if (error.response && error.response.status >= 400 && error.response.status < 500) {
-					errReason = '- check your ' + PLATFORM_NAME + ' username and password: ' + error.response.status + ' ' + (error.response.statusText || '');
-				} else if (error.response && error.response.status >= 500 && error.response.status < 600) {
-					errReason = '- try again later: ' + error.response.status + ' ' + (error.response.statusText || '');
-				} else if (error.response && error.response.status) {
-					errReason = '- check your internet connection: ' + error.response.status + ' ' + (error.response.statusText || '');
-				} else {
-					errReason = '- check your internet connection: ' + error.code + ' ' + (error.hostname || '');
+			const axiosConfig = {
+				method: 'POST',
+				url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/authorization',
+				headers: {
+					"x-device-code": "web" // mandatory
+				}, 
+				jar: cookieJar,
+				data: {
+					username: this.config.username,
+					password: this.config.password,
+					stayLoggedIn: false // could alos set to true
 				}
-				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug('getSession: error:', error);
+			};
+
+			// robustness: fail if url missing
+			if (!axiosConfig.url) {
+				this.log.warn('getSession: axiosConfig.url empty!');
 				currentSessionState = sessionState.DISCONNECTED;
 				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-				return false;
-			});	
-		return false;
+				return false;						
+			}
+			
+			this.log('Step 1 of 1: logging in with username %s', this.config.username);
+			if (this.config.debugLevel > 1) { this.log.warn('Step 1 of 1: post login to',axiosConfig.url); }
+			axiosWS(axiosConfig)
+				.then(response => {	
+					this.log('Step 1 of 1: response:',response.status, response.statusText);
+					//this.log('response data',response.data);
+					this.session = response.data;
+					// check if householdId exists, if so, we have authenticated ok
+					if (this.session.householdId) { currentSessionState = sessionState.AUTHENTICATED; }
+					this.log.debug('Session username:', this.session.username);
+					this.log.debug('Session householdId:', this.session.householdId);
+					this.log.debug('Session accessToken:', this.session.accessToken);
+					this.log.debug('Session refreshToken:', this.session.refreshToken);
+					this.log.debug('Session refreshTokenExpiry:', this.session.refreshTokenExpiry);
+					this.log('Session created');
+					currentSessionState = sessionState.CONNECTED;
+					this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+					this.log('Session state:', sessionStateName[currentSessionState]);
+					resolve(this.session.householdId) // resolve the promise with the householdId
+				})
+				.catch(error => {
+					let errText, errReason;
+					errText = 'Failed to create session'
+					if (error.response && error.response.status >= 400 && error.response.status < 500) {
+						errReason = 'check your ' + PLATFORM_NAME + ' username and password: ' + error.response.status + ' ' + (error.response.statusText || '');
+					} else if (error.response && error.response.status >= 500 && error.response.status < 600) {
+						errReason = 'try again later: ' + error.response.status + ' ' + (error.response.statusText || '');
+					} else if (error.response && error.response.status) {
+						errReason = 'check your internet connection: ' + error.response.status + ' ' + (error.response.statusText || '');
+					} else {
+						errReason = 'check your internet connection: ' + error.code + ' ' + (error.hostname || '');
+					}
+					//this.log('%s %s', errText, (errReason || ''));
+					this.log.debug('getSession: error:', error);
+					//currentSessionState = sessionState.DISCONNECTED;
+					//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+					reject(errReason); // reject the promise and return the error
+				});
+		})
 	}
 
 
@@ -861,501 +1009,524 @@ class stbPlatform {
 
 	// get session for BE only (special logon sequence)
 	async getSessionBE() {
-		// only for be-nl and be-fr users, as the session logon using openid is different
-		// looks like also for gb users:
-		this.log('Creating %s BE session...',PLATFORM_NAME);
-		currentSessionState = sessionState.LOADING;
+		return new Promise((resolve, reject) => {
+			// only for be-nl and be-fr users, as the session logon using openid is different
+			// looks like also for gb users:
+			this.log('Creating %s BE session...',PLATFORM_NAME);
+			currentSessionState = sessionState.LOADING;
 
 
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		// axios interceptors to log request and response for debugging
-		// works on all following requests in this sub
-		/*
-		axiosWS.interceptors.request.use(req => {
-			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
-			'\nMethod:',req.method, '\nURL:', req.url, 
-			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,  
-			//'\nParams:', req.params, '\nData:', req.data
-			);
-			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
-			return req; // must return request
-		});
-		axiosWS.interceptors.response.use(res => {
-			this.log('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
-			'\nHeaders:', res.headers, 
-			//'\nData:', res.data, 
-			//'\nLast Request:', res.request
-			);
-			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
-			return res; // must return response
-		});
-		*/
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// axios interceptors to log request and response for debugging
+			// works on all following requests in this sub
+			/*
+			axiosWS.interceptors.request.use(req => {
+				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
+				'\nMethod:',req.method, '\nURL:', req.url, 
+				'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,  
+				//'\nParams:', req.params, '\nData:', req.data
+				);
+				this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
+				return req; // must return request
+			});
+			axiosWS.interceptors.response.use(res => {
+				this.log('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
+				'\nHeaders:', res.headers, 
+				//'\nData:', res.data, 
+				//'\nLast Request:', res.request
+				);
+				this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
+				return res; // must return response
+			});
+			*/
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-		// ensure the required POST header is set
-		axiosWS.defaults.headers.post = { 'Content-Type': 'application/x-www-form-urlencoded' }; // needed for axios-cookiejar-support v2.0.x
+			// ensure the required POST header is set
+			axiosWS.defaults.headers.post = { 'Content-Type': 'application/x-www-form-urlencoded' }; // needed for axios-cookiejar-support v2.0.x
 
 
-		// Step 1: # get authentication details
-		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/sso/authorization';
-		this.log('Step 1 of 6: get authentication details');
-		this.log.debug('Step 1 of 6: get authentication details from',apiAuthorizationUrl);
-		axiosWS.get(apiAuthorizationUrl)
-			.then(response => {	
-				this.log('Step 1 of 6: response:',response.status, response.statusText);
-				
-				// get the data we need for further steps
-				let auth = response.data;
-				let authState = auth.state;
-				let authAuthorizationUri = auth.authorizationUri;
-				let authValidtyToken = auth.validityToken;
+			// Step 1: # get authentication details
+			let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/sso/authorization';
+			this.log('Step 1 of 6: get authentication details');
+			if (this.config.debugLevel > 1) { this.log.warn('Step 1 of 6: get authentication details from',apiAuthorizationUrl); }
+			axiosWS.get(apiAuthorizationUrl)
+				.then(response => {	
+					this.log('Step 1 of 6: response:',response.status, response.statusText);
+					
+					// get the data we need for further steps
+					let auth = response.data;
+					let authState = auth.state;
+					let authAuthorizationUri = auth.authorizationUri;
+					let authValidtyToken = auth.validityToken;
 
-				// Step 2: # follow authorizationUri to get AUTH cookie
-				this.log('Step 2 of 6: get AUTH cookie');
-				this.log.debug('Step 2 of 6: get AUTH cookie from',authAuthorizationUri);
-				axiosWS.get(authAuthorizationUri, {
-						jar: cookieJar,
-						// unsure what minimum headers will here
-						headers: {
-							Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-						},
-					})
-					.then(response => {	
-						this.log('Step 2 of 6: response:',response.status, response.statusText);
-		
-						// Step 3: # login
-						this.log('Step 3 of 6: logging in with username %s', this.config.username);
-						this.log.debug('Step 3 of 6: post login to auth url:',BE_AUTH_URL);
-						this.log.debug('Step 3 of 6: Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
-						currentSessionState = sessionState.LOGGING_IN;
-						var payload = qs.stringify({
-							j_username: this.config.username,
-							j_password: this.config.password,
-							rememberme: 'true'
-						});
-						this.log.debug('Step 3 of 6: using payload',payload);
-						axiosWS.post(BE_AUTH_URL,payload,{
+					// Step 2: # follow authorizationUri to get AUTH cookie
+					this.log('Step 2 of 6: get AUTH cookie');
+					this.log.debug('Step 2 of 6: get AUTH cookie from',authAuthorizationUri);
+					axiosWS.get(authAuthorizationUri, {
 							jar: cookieJar,
-							maxRedirects: 0, // do not follow redirects
-							validateStatus: function (status) {
-								return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
-								},
-							})
-							.then(response => {	
-								this.log('Step 3 of 6: response:',response.status, response.statusText);
-								this.log.debug('Step 3 response.headers.location:',response.headers.location); 
-								this.log.debug('Step 3 response.headers:',response.headers);
-								var url = response.headers.location;
-								if (!url) {		// robustness: fail if url missing
-									this.log.warn('getSessionBE: Step 3: location url empty!');
-									currentSessionState = sessionState.DISCONNECTED;
-									return false;						
-								}
+							// unsure what minimum headers will here
+							headers: {
+								Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+							},
+						})
+						.then(response => {	
+							this.log('Step 2 of 6: response:',response.status, response.statusText);
+			
+							// Step 3: # login
+							this.log('Step 3 of 6: logging in with username %s', this.config.username);
+							this.log.debug('Step 3 of 6: post login to auth url:',BE_AUTH_URL);
+							this.log.debug('Step 3 of 6: Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
+							currentSessionState = sessionState.LOGGING_IN;
+							var payload = qs.stringify({
+								j_username: this.config.username,
+								j_password: this.config.password,
+								rememberme: 'true'
+							});
+							this.log.debug('Step 3 of 6: using payload',payload);
+							axiosWS.post(BE_AUTH_URL,payload,{
+								jar: cookieJar,
+								maxRedirects: 0, // do not follow redirects
+								validateStatus: function (status) {
+									return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
+									},
+								})
+								.then(response => {	
+									this.log('Step 3 of 6: response:',response.status, response.statusText);
+									this.log.debug('Step 3 response.headers.location:',response.headers.location); 
+									this.log.debug('Step 3 response.headers:',response.headers);
+									var url = response.headers.location;
+									if (!url) {		// robustness: fail if url missing
+										this.log.warn('getSessionBE: Step 3: location url empty!');
+										currentSessionState = sessionState.DISCONNECTED;
+										return false;						
+									}
 
-								// locations unsure after change of login method in October 2022
-								//location is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
-								//location is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
-								//location is https://login.prd.telenet.be/openid/login?error=session_expired if session has expired
-								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
-									this.log.warn('Step 3 of 6: Unable to login: wrong credentials');
-									currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-								} else if (url.indexOf('error=session_expired') > 0 ) {
-									this.log.warn('Step 3 of 6: Unable to login: session expired');
-									cookieJar.removeAllCookies();	// remove all the locally cached cookies
-									currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-								} else {
+									// locations unsure after change of login method in October 2022
+									//location is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
+									//location is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
+									//location is https://login.prd.telenet.be/openid/login?error=session_expired if session has expired
+									if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
+										//this.log.warn('Step 3 of 6: Unable to login: wrong credentials');
+										reject("Step 3 of 6: Unable to login: wrong credentials"); // reject the promise and return the error
+										//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+										//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+									} else if (url.indexOf('error=session_expired') > 0 ) {
+										//this.log.warn('Step 3 of 6: Unable to login: session expired');
+										cookieJar.removeAllCookies();	// remove all the locally cached cookies
+										reject("Step 3 of 6: Unable to login: session expired"); // reject the promise and return the error
+										//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+										//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+									} else {
 
-									// Step 4: # follow redirect url
-									this.log('Step 4 of 6: follow redirect url');
-									//this.log('Cookies for the redirect url:',cookieJar.getCookies(url));
-									axiosWS.get(url,{
-										jar: cookieJar,
-										maxRedirects: 0, // do not follow redirects
-										validateStatus: function (status) {
-											return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
-											},
-										})
-										.then(response => {	
-											this.log('Step 4 of 6: response:',response.status, response.statusText);
-											//this.log('Step 4 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
-											//this.log('Step 4 response.headers:',response.headers);
-											url = response.headers.location;
-											if (!url) {		// robustness: fail if url missing
-												this.log.warn('Step 4 of 6: location url empty!');
-												currentSessionState = sessionState.DISCONNECTED;
-												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-												return false;						
-											}
-
-											// look for login_success.html?code=
-											if (url.indexOf('login_success.html?code=') < 0 ) { // <0 if not found
-												this.log.warn('Step 4 of 6: Unable to login: wrong credentials');
-												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-											} else if (url.indexOf('error=session_expired') > 0 ) {
-												this.log.warn('Step 4 of 6: Unable to login: session expired');
-												cookieJar.removeAllCookies();	// remove all the locally cached cookies
-												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-											} else {
-
-												// Step 5: # obtain authorizationCode
-												this.log('Step 5 of 6: extract authorizationCode');
+										// Step 4: # follow redirect url
+										this.log('Step 4 of 6: follow redirect url');
+										//this.log('Cookies for the redirect url:',cookieJar.getCookies(url));
+										axiosWS.get(url,{
+											jar: cookieJar,
+											maxRedirects: 0, // do not follow redirects
+											validateStatus: function (status) {
+												return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
+												},
+											})
+											.then(response => {	
+												this.log('Step 4 of 6: response:',response.status, response.statusText);
+												//this.log('Step 4 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
+												//this.log('Step 4 response.headers:',response.headers);
 												url = response.headers.location;
 												if (!url) {		// robustness: fail if url missing
-													this.log.warn('Step 5 of 6: location url empty!');
-													currentSessionState = sessionState.DISCONNECTED;
-													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-													return false;						
+													t//his.log.warn('Step 4 of 6: location url empty!');
+													reject("Step 4 of 6: location url empty!"); // reject the promise and return the error
+													//currentSessionState = sessionState.DISCONNECTED;
+													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+													//return false;						
 												}
-	
-												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
-												var authorizationCode = codeMatches[1];
-												if (codeMatches.length !== 2 ) { // length must be 2 if code found
-													this.log.warn('Step 5 of 6: Unable to extract authorizationCode');
+
+												// look for login_success.html?code=
+												if (url.indexOf('login_success.html?code=') < 0 ) { // <0 if not found
+													//this.log.warn('Step 4 of 6: Unable to login: wrong credentials');
+													reject("Step 4 of 6: Unable to login: wrong credentials"); // reject the promise and return the error
+													//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+												} else if (url.indexOf('error=session_expired') > 0 ) {
+													//this.log.warn('Step 4 of 6: Unable to login: session expired');
+													cookieJar.removeAllCookies();	// remove all the locally cached cookies
+													reject("Step 4 of 6: Unable to login: session expired"); // reject the promise and return the error
+													//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 												} else {
-													this.log('Step 5 of 6: authorizationCode OK');
-													this.log.debug('Step 5 of 6: authorizationCode:',authorizationCode);
 
-													// Step 6: # authorize again
-													this.log('Step 6 of 6: post auth data');
-													this.log.debug('Step 6 of 6: post auth data to',apiAuthorizationUrl);
-													currentSessionState = sessionState.AUTHENTICATING;
-													payload = {'authorizationGrant':{
-														'authorizationCode':authorizationCode,
-														'validityToken':authValidtyToken,
-														'state':authState
-													}};
-													//this.log('Cookies for the session:',cookieJar.getCookies(apiAuthorizationUrl));
-													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
-														.then(response => {	
-															this.log('Step 6 of 6: response:',response.status, response.statusText);
-																
-															// get device data from the session
-															this.session = response.data;
-															this.log('Session created');
-															currentSessionState = sessionState.CONNECTED;
-															this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-															return true;
-														})
-														// Step 6 http errors
-														.catch(error => {
-															this.log.warn("Step 6 of 6: Unable to authorize with oauth code:", error.response.status, error.response.statusText);
-															this.log.debug("Step 6 of 6: Unable to authorize with oauth code:",error);
-															currentSessionState = sessionState.DISCONNECTED;
-															this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-														});	
+													// Step 5: # obtain authorizationCode
+													this.log('Step 5 of 6: extract authorizationCode');
+													url = response.headers.location;
+													if (!url) {		// robustness: fail if url missing
+														//this.log.warn('Step 5 of 6: location url empty!');
+														reject("Step 5 of 6: location url empty!"); // reject the promise and return the error
+														//currentSessionState = sessionState.DISCONNECTED;
+														//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+														//return false;						
+													}
+		
+													var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
+													var authorizationCode = codeMatches[1];
+													if (codeMatches.length !== 2 ) { // length must be 2 if code found
+														//this.log.warn('Step 5 of 6: Unable to extract authorizationCode');
+														reject("Step 5 of 6: Unable to extract authorizationCode"); // reject the promise and return the error
+													} else {
+														this.log('Step 5 of 6: authorizationCode OK');
+														this.log.debug('Step 5 of 6: authorizationCode:',authorizationCode);
+
+														// Step 6: # authorize again
+														this.log('Step 6 of 6: post auth data');
+														this.log.debug('Step 6 of 6: post auth data to',apiAuthorizationUrl);
+														currentSessionState = sessionState.AUTHENTICATING;
+														payload = {'authorizationGrant':{
+															'authorizationCode':authorizationCode,
+															'validityToken':authValidtyToken,
+															'state':authState
+														}};
+														//this.log('Cookies for the session:',cookieJar.getCookies(apiAuthorizationUrl));
+														axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
+															.then(response => {	
+																this.log('Step 6 of 6: response:',response.status, response.statusText);
+																	
+																// get device data from the session
+																this.session = response.data;
+																this.log('Session created');
+																currentSessionState = sessionState.CONNECTED;
+																this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+																resolve(this.session.householdId) // resolve the promise with the householdId
+															})
+															// Step 6 http errors
+															.catch(error => {
+																//this.log.warn("Step 6 of 6: Unable to authorize with oauth code:", error.response.status, error.response.statusText);
+																this.log.debug("Step 6 of 6: Unable to authorize with oauth code:",error);
+																reject("Step 6 of 6: Step 6 of 6: Unable to authorize with oauth code: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+																//currentSessionState = sessionState.DISCONNECTED;
+																//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+															});	
+														};
 													};
-												};
-										})
-										// Step 4 http errors
-										.catch(error => {
-											this.log.warn("Step 4 of 6: Unable to oauth authorize:", error.response.status, error.response.statusText);
-											this.log.debug("Step 4 of 6: Unable to oauth authorize:",error);
-											currentSessionState = sessionState.DISCONNECTED;
-											this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-										});
-								};
-							})
-							// Step 3 http errors
-							.catch(error => {
-								this.log.warn("Step 3 of 6: Unable to login:", error.response.status, error.response.statusText);
-								this.log.debug("Step 3 of 6: Unable to login:",error);
-								currentSessionState = sessionState.DISCONNECTED;
-								this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-							});
-					})
-					// Step 2 http errors
-					.catch(error => {
-						this.log.warn("Step 2 of 6: Could not get authorizationUri", error.response.status, error.response.statusText);
-						this.log.debug("Step 2 of 6: Could not get authorizationUri:",error);
-						currentSessionState = sessionState.DISCONNECTED;
-						this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-					});
-			})
-			// Step 1 http errors
-			.catch(error => {
-				if (!error.response) {
-					this.log('Step 1 of 6: Failed to create BE session - check your internet connection.');
-				} else {
-					this.log('Step 1 of 6: Failed to create BE session: %s', error.response.status, error.response.statusText);
-				}
-				this.log.debug('Step 1 of 6: getSessionBE: error:', error);
-				currentSessionState = sessionState.DISCONNECTED;
-				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-			});
+											})
+											// Step 4 http errors
+											.catch(error => {
+												//this.log.warn("Step 4 of 6: Unable to oauth authorize:", error.response.status, error.response.statusText);
+												this.log.debug("Step 4 of 6: Unable to oauth authorize:",error);
+												reject("Step 2 of 6: Step 4 of 6: Unable to oauth authorize: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+												//currentSessionState = sessionState.DISCONNECTED;
+												//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+											});
+									};
+								})
+								// Step 3 http errors
+								.catch(error => {
+									this.log.debug("Step 3 of 6: Unable to login:",error);
+									this.log("Step 3 of 6: Unable to login:",error);
+									reject("Step 3 of 6: Unable to login: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+									//this.log.warn("Step 3 of 6: Unable to login:", error.response.status, error.response.statusText);
+									//currentSessionState = sessionState.DISCONNECTED;
+									//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+								});
+						})
+						// Step 2 http errors
+						.catch(error => {
+							this.log.debug("Step 2 of 6: Could not get authorizationUri:",error);
+							//this.log.warn("Step 2 of 6: Could not get authorizationUri", error.response.status, error.response.statusText);
+							reject("Step 2 of 6: Could not get authorizationUri: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+							//currentSessionState = sessionState.DISCONNECTED;
+							//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+						});
+				})
+				// Step 1 http errors
+				.catch(error => {
+					if (!error.response) {
+						this.log('Step 1 of 6: Failed to create BE session - check your internet connection.');
+					} else {
+						this.log('Step 1 of 6: Failed to create BE session: %s', error.response.status, error.response.statusText);
+					}
+					this.log.debug('Step 1 of 6: getSessionBE: error:', error);
+					reject("Step 1 of 6: Failed to create BE session: check your internet connection"); // reject the promise and return the error
+					//currentSessionState = sessionState.DISCONNECTED;
+					//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+				});
 
-		currentSessionState = sessionState.DISCONNECTED;
-		this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+			currentSessionState = sessionState.DISCONNECTED;
+			this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+		})
 	}
 
 
 	// get session for GB only (special logon sequence)
 	getSessionGB() {
-		// this code is a copy of the be session code, adapted for gb
-		this.log('Creating %s GB session...',PLATFORM_NAME);
-		currentSessionState = sessionState.LOADING;
+		return new Promise((resolve, reject) => {
+			// this code is a copy of the be session code, adapted for gb
+			this.log('Creating %s GB session...',PLATFORM_NAME);
+			currentSessionState = sessionState.LOADING;
 
-		//var cookieJarGB = new cookieJar();
+			//var cookieJarGB = new cookieJar();
 
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		// axios interceptors to log request and response for debugging
-		// works on all following requests in this sub
-		/*
-		axiosWS.interceptors.request.use(req => {
-			this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
-			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
-			'\nMethod:',req.method, '\nURL:', req.url, 
-			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,
-			//'\nParams:', req.params, '\nData:', req.data
-			);
-			return req; // must return request
-		});
-		axiosWS.interceptors.response.use(res => {
-			this.log('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
-			'\nHeaders:', res.headers, 
-			//'\nData:', res.data, 
-			//'\nLast Request:', res.request
-			);
-			this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
-			return res; // must return response
-		});
-		*/
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// axios interceptors to log request and response for debugging
+			// works on all following requests in this sub
+			/*
+			axiosWS.interceptors.request.use(req => {
+				this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
+				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
+				'\nMethod:',req.method, '\nURL:', req.url, 
+				'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,
+				//'\nParams:', req.params, '\nData:', req.data
+				);
+				return req; // must return request
+			});
+			axiosWS.interceptors.response.use(res => {
+				this.log('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
+				'\nHeaders:', res.headers, 
+				//'\nData:', res.data, 
+				//'\nLast Request:', res.request
+				);
+				this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
+				return res; // must return response
+			});
+			*/
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-		// Step 1: # get authentication details
-		// https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
-		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/authorization';
-		this.log('Step 1 of 7: get authentication details');
-		this.log.debug('Step 1 of 7: get authentication details from',apiAuthorizationUrl);
-		axiosWS.get(apiAuthorizationUrl)
-			.then(response => {	
-				this.log('Step 1 of 7 response:',response.status, response.statusText);
-				this.log.debug('Step 1 of 7 response.data',response.data);
-				
-				// get the data we need for further steps
-				let auth = response.data;
-				let authState = auth.session.state;
-				let authAuthorizationUri = auth.session.authorizationUri;
-				let authValidtyToken = auth.session.validityToken;
-				this.log.debug('Step 1 of 7: results: authState',authState);
-				this.log.debug('Step 1 of 7: results: authAuthorizationUri',authAuthorizationUri);
-				this.log.debug('Step 1 of 7: results: authValidtyToken',authValidtyToken);
+			// Step 1: # get authentication details
+			// https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
+			let apiAuthorizationUrl = GB_AUTH_DETAILS_URL + '/authorization';
+			this.log('Step 1 of 7: get authentication details');
+			if (this.config.debugLevel > 1) { this.log.warn('Step 1 of 7: get authentication details from',apiAuthorizationUrl); }
+			axiosWS.get(apiAuthorizationUrl)
+				.then(response => {	
+					this.log('Step 1 of 7: response:',response.status, response.statusText);
+					this.log.debug('Step 1 of :7 response.data',response.data);
+					
+					// get the data we need for further steps
+					let auth = response.data;
+					let authState = auth.session.state;
+					let authAuthorizationUri = auth.session.authorizationUri;
+					let authValidtyToken = auth.session.validityToken;
+					this.log.debug('Step 1 of 7: results: authState',authState);
+					this.log.debug('Step 1 of 7: results: authAuthorizationUri',authAuthorizationUri);
+					this.log.debug('Step 1 of 7: results: authValidtyToken',authValidtyToken);
 
-				// Step 2: # follow authorizationUri to get AUTH cookie (ULM-JSESSIONID)
-				this.log('Step 2 of 7: get AUTH cookie');
-				this.log.debug('Step 2 of 7: get AUTH cookie from',authAuthorizationUri);
-				axiosWS.get(authAuthorizationUri, {
-						jar: cookieJar
-						// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-						//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
-					})
-					.then(response => {	
-						this.log('Step 2 of 7: response:',response.status, response.statusText);
-						//this.log.warn('Step 2 of 7 response.data',response.data); // an html logon page
-		
-						// Step 3: # login
-						this.log('Step 3 of 7: logging in with username %s', this.config.username);
-						//this.log('Cookies for the auth url:',cookieJar.getCookies(GB_AUTH_URL));
-						currentSessionState = sessionState.LOGGING_IN;
-
-						// we just want to POST to 
-						// 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
-						const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
-						this.log.debug('Step 3 of 7: POST request will contain this data: {"username":"' + this.config.username + '","credential":"' + this.config.password + '"}');
-						axiosWS(GB_AUTH_URL,{
-						//axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
-							jar: cookieJar,
+					// Step 2: # follow authorizationUri to get AUTH cookie (ULM-JSESSIONID)
+					this.log('Step 2 of 7: get AUTH cookie');
+					this.log.debug('Step 2 of 7: get AUTH cookie from',authAuthorizationUri);
+					axiosWS.get(authAuthorizationUri, {
+							jar: cookieJar
 							// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 							//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
-							data: '{"username":"' + this.config.username + '","credential":"' + this.config.password + '"}',
-							method: "POST",
-							// minimum headers are "accept": "*/*",
-							headers: {
-								"accept": "application/json; charset=UTF-8, */*",
-							},
-							maxRedirects: 0, // do not follow redirects
-							validateStatus: function (status) {
-								return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK. GB returns 200
-							},
-							})
-							.then(response => {	
-								this.log('Step 3 of 7: response:',response.status, response.statusText);
-								this.log.debug('Step 3 of 7: response.headers:',response.headers); 
-								this.log.debug('Step 3 of 7: response.data:',response.data);
-
-								//this.log('Step 3 of 7 response.headers:',response.headers);
-								var url = response.headers['x-redirect-location']
-								if (!url) {		// robustness: fail if url missing
-									this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
-									currentSessionState = sessionState.DISCONNECTED;
-									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-									return false;						
-								}								
-								//location is h??=... if success
-								//location is https?? if not authorised
-								//location is https:... error=session_expired if session has expired
-								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
-									this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
-								} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
-									this.log.warn('Step 3 of 7: Unable to login: session expired');
-									cookieJar.removeAllCookies();	// remove all the locally cached cookies
-									currentSessionState = sessionState.DISCONNECTED;	// flag the session as dead
-									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-								} else {
-									this.log.debug('Step 3 of 7: login successful');
-
-									// Step 4: # follow redirect url
-									this.log('Step 4 of 7: follow redirect url');
-									axiosWS.get(url,{
-										jar: cookieJar,
-										maxRedirects: 0, // do not follow redirects
-										validateStatus: function (status) {
-											return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
-											},
-										})
-										.then(response => {	
-											this.log('Step 4 of 7 response:',response.status, response.statusText);
-											this.log.debug('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
-											this.log.debug('Step 4 of 7: response.data:',response.data);
-											//this.log('Step 4 response.headers:',response.headers);
-											url = response.headers.location;
-											if (!url) {		// robustness: fail if url missing
-												this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
-												currentSessionState = sessionState.DISCONNECTED;
-												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-												return false;						
-											}								
+						})
+						.then(response => {	
+							this.log('Step 2 of 7: response:',response.status, response.statusText);
+							//this.log.warn('Step 2 of 7 response.data',response.data); // an html logon page
 			
-											// look for login_success?code=
-											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
-												this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
-												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-											} else if (url.indexOf('error=session_expired') > 0 ) {
-												this.log.warn('Step 4 of 7: Unable to login: session expired');
-												cookieJar.removeAllCookies();	// remove all the locally cached cookies
-												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-											} else {
+							// Step 3: # login
+							this.log('Step 3 of 7: logging in with username %s', this.config.username);
+							//this.log('Cookies for the auth url:',cookieJar.getCookies(GB_AUTH_URL));
+							currentSessionState = sessionState.LOGGING_IN;
 
-												// Step 5: # obtain authorizationCode
-												this.log('Step 5 of 7: extract authorizationCode');
+							// we just want to POST to 
+							// 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
+							const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
+							this.log.debug('Step 3 of 7: POST request will contain this data: {"username":"' + this.config.username + '","credential":"' + this.config.password + '"}');
+							axiosWS(GB_AUTH_URL,{
+							//axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
+								jar: cookieJar,
+								// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
+								//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
+								data: '{"username":"' + this.config.username + '","credential":"' + this.config.password + '"}',
+								method: "POST",
+								// minimum headers are "accept": "*/*",
+								headers: {
+									"accept": "application/json; charset=UTF-8, */*",
+								},
+								maxRedirects: 0, // do not follow redirects
+								validateStatus: function (status) {
+									return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK. GB returns 200
+								},
+								})
+								.then(response => {	
+									this.log('Step 3 of 7: response:',response.status, response.statusText);
+									this.log.debug('Step 3 of 7: response.headers:',response.headers); 
+									this.log.debug('Step 3 of 7: response.data:',response.data);
+
+									//this.log('Step 3 of 7 response.headers:',response.headers);
+									var url = response.headers['x-redirect-location']
+									if (!url) {		// robustness: fail if url missing
+										this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
+										currentSessionState = sessionState.DISCONNECTED;
+										this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+										return false;						
+									}								
+									//location is h??=... if success
+									//location is https?? if not authorised
+									//location is https:... error=session_expired if session has expired
+									if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
+										this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
+									} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
+										this.log.warn('Step 3 of 7: Unable to login: session expired');
+										cookieJar.removeAllCookies();	// remove all the locally cached cookies
+										//currentSessionState = sessionState.DISCONNECTED;	// flag the session as dead
+										//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+									} else {
+										this.log.debug('Step 3 of 7: login successful');
+
+										// Step 4: # follow redirect url
+										this.log('Step 4 of 7: follow redirect url');
+										axiosWS.get(url,{
+											jar: cookieJar,
+											maxRedirects: 0, // do not follow redirects
+											validateStatus: function (status) {
+												return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
+												},
+											})
+											.then(response => {	
+												this.log('Step 4 of 7 response:',response.status, response.statusText);
+												this.log.debug('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
+												this.log.debug('Step 4 of 7: response.data:',response.data);
+												//this.log('Step 4 response.headers:',response.headers);
 												url = response.headers.location;
 												if (!url) {		// robustness: fail if url missing
-													this.log.warn('getSessionGB: Step 5: location url empty!');
+													this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
 													currentSessionState = sessionState.DISCONNECTED;
 													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 													return false;						
 												}								
 				
-												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
-												var authorizationCode = codeMatches[1];
-												if (codeMatches.length !== 2 ) { // length must be 2 if code found
-													this.log.warn('Step 5 of 7: Unable to extract authorizationCode');
+												// look for login_success?code=
+												if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
+													this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
+													currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+												} else if (url.indexOf('error=session_expired') > 0 ) {
+													this.log.warn('Step 4 of 7: Unable to login: session expired');
+													cookieJar.removeAllCookies();	// remove all the locally cached cookies
+													currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 												} else {
-													this.log('Step 5 of 7: authorizationCode OK');
-													this.log.debug('Step 5 of 7: authorizationCode:',authorizationCode);
 
-													// Step 6: # authorize again
-													this.log('Step 6 of 7: post auth data with valid code');
-													this.log.debug('Step 6 of 7: post auth data with valid code to',apiAuthorizationUrl);
-													currentSessionState = sessionState.AUTHENTICATING;
-													var payload = {'authorizationGrant':{
-														'authorizationCode':authorizationCode,
-														'validityToken':authValidtyToken,
-														'state':authState
-													}};
-													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
-														.then(response => {	
-															this.log('Step 6 of 7: response:',response.status, response.statusText);
-															this.log.debug('Step 6 of 7: response.data:',response.data);
-															
-															auth = response.data;
-															//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
-															this.log.debug('Step 6 of 7: refreshToken:',auth.refreshToken);
+													// Step 5: # obtain authorizationCode
+													this.log('Step 5 of 7: extract authorizationCode');
+													url = response.headers.location;
+													if (!url) {		// robustness: fail if url missing
+														this.log.warn('getSessionGB: Step 5: location url empty!');
+														currentSessionState = sessionState.DISCONNECTED;
+														this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+														return false;						
+													}								
+					
+													var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
+													var authorizationCode = codeMatches[1];
+													if (codeMatches.length !== 2 ) { // length must be 2 if code found
+														this.log.warn('Step 5 of 7: Unable to extract authorizationCode');
+													} else {
+														this.log('Step 5 of 7: authorizationCode OK');
+														this.log.debug('Step 5 of 7: authorizationCode:',authorizationCode);
 
-															// Step 7: # get OESP code
-															this.log('Step 7 of 7: post refreshToken request');
-															this.log.debug('Step 7 of 7: post refreshToken request to',apiAuthorizationUrl);
-															payload = {'refreshToken':auth.refreshToken,'username':auth.username};
-															var sessionUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/session';
-															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
-																.then(response => {	
-																	this.log('Step 7 of 7: response:',response.status, response.statusText);
-																	currentSessionState = sessionState.VERIFYING;
-																	
-																	this.log.debug('Step 7 of 7: response.headers:',response.headers); 
-																	this.log.debug('Step 7 of 7: response.data:',response.data); 
-																	this.log.debug('Cookies for the session:',cookieJar.getCookies(sessionUrl));
+														// Step 6: # authorize again
+														this.log('Step 6 of 7: post auth data with valid code');
+														this.log.debug('Step 6 of 7: post auth data with valid code to',apiAuthorizationUrl);
+														currentSessionState = sessionState.AUTHENTICATING;
+														var payload = {'authorizationGrant':{
+															'authorizationCode':authorizationCode,
+															'validityToken':authValidtyToken,
+															'state':authState
+														}};
+														axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
+															.then(response => {	
+																this.log('Step 6 of 7: response:',response.status, response.statusText);
+																this.log.debug('Step 6 of 7: response.data:',response.data);
+																
+																auth = response.data;
+																//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
+																this.log.debug('Step 6 of 7: refreshToken:',auth.refreshToken);
 
-																	// get device data from the session
-																	this.session = response.data;
-																	
-																	// get device data from the session
-																	this.session = response.data;
-																	currentSessionState = sessionState.CONNECTED;
-																	this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-																	this.log('Session created');
-																	return true;
-																})
-																// Step 7 http errors
-																.catch(error => {
-																	this.log.warn("Step 7 of 7: Unable to get OESP token:",error.response.status, error.response.statusText);
-																	this.log.debug("Step 7 of 7: error:",error);
-																	currentSessionState = sessionState.DISCONNECTED;
-																	this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-																});
-														})
-														// Step 6 http errors
-														.catch(error => {
-															this.log.warn("Step 6 of 7: Unable to authorize with oauth code, http error:",error);
-															currentSessionState = sessionState.DISCONNECTED;
-															this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-														});	
+																// Step 7: # get OESP code
+																this.log('Step 7 of 7: post refreshToken request');
+																this.log.debug('Step 7 of 7: post refreshToken request to',apiAuthorizationUrl);
+																payload = {'refreshToken':auth.refreshToken,'username':auth.username};
+																var sessionUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/session';
+																axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
+																	.then(response => {	
+																		this.log('Step 7 of 7: response:',response.status, response.statusText);
+																		currentSessionState = sessionState.VERIFYING;
+																		
+																		this.log.debug('Step 7 of 7: response.headers:',response.headers); 
+																		this.log.debug('Step 7 of 7: response.data:',response.data); 
+																		this.log.debug('Cookies for the session:',cookieJar.getCookies(sessionUrl));
+
+																		// get device data from the session
+																		this.session = response.data;
+																		
+																		// get device data from the session
+																		this.session = response.data;
+																		currentSessionState = sessionState.CONNECTED;
+																		this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+																		this.log('Session created');
+																		resolve(this.session.householdId) // resolve the promise with the householdId
+																	})
+																	// Step 7 http errors
+																	.catch(error => {
+																		//this.log.warn("Step 7 of 7: Unable to get OESP token:",error.response.status, error.response.statusText);
+																		this.log.debug("Step 7 of 7: error:",error);
+																		reject("Step 7 of 7: Unable to get OESP token: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+																		//currentSessionState = sessionState.DISCONNECTED;
+																		//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+																	});
+															})
+															// Step 6 http errors
+															.catch(error => {
+																//this.log.warn("Step 6 of 7: Unable to authorize with oauth code, http error:",error);
+																reject("Step 6 of 7: Unable to authorize with oauth code, http error: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+																//currentSessionState = sessionState.DISCONNECTED;
+																//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+															});	
+													};
 												};
-											};
-										})
-										// Step 4 http errors
-										.catch(error => {
-											this.log.warn("Step 4 of 7: Unable to oauth authorize:",error.response.status, error.response.statusText);
-											this.log.debug("Step 4 of 7: error:",error);
-											currentSessionState = sessionState.DISCONNECTED;
-											this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-										});
-								};
-							})
-							// Step 3 http errors
-							.catch(error => {
-								this.log.warn("Step 3 of 7: Unable to login:",error.response.status, error.response.statusText);
-								this.log.debug("Step 3 of 7: error:",error);
-								currentSessionState = sessionState.DISCONNECTED;
-								this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-							});
-					})
-					// Step 2 http errors
-					.catch(error => {
-						this.log.warn("Step 2 of 7: Unable to get authorizationUri:",error.response.status, error.response.statusText);
-						this.log.debug("Step 2 of 7: error:",error);
-						currentSessionState = sessionState.DISCONNECTED;
-						this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-					});
-			})
-			// Step 1 http errors
-			.catch(error => {
-				this.log('Failed to create GB session - check your internet connection');
-				this.log.warn("Step 1 of 7: Could not get apiAuthorizationUrl:",error.response.status, error.response.statusText);
-				this.log.debug("Step 1 of 7: error:",error);
-				currentSessionState = sessionState.DISCONNECTED;
-				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-			});
+											})
+											// Step 4 http errors
+											.catch(error => {
+												//this.log.warn("Step 4 of 7: Unable to oauth authorize:",error.response.status, error.response.statusText);
+												this.log.debug("Step 4 of 7: error:",error);
+												reject("Step 4 of 7: Unable to oauth authorize: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+												//currentSessionState = sessionState.DISCONNECTED;
+												//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+											});
+									};
+								})
+								// Step 3 http errors
+								.catch(error => {
+									//this.log.warn("Step 3 of 7: Unable to login:",error.response.status, error.response.statusText);
+									this.log.debug("Step 3 of 7: error:",error);
+									reject("Step 3 of 7: Unable to login: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+									//currentSessionState = sessionState.DISCONNECTED;
+									//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+								});
+						})
+						// Step 2 http errors
+						.catch(error => {
+							//this.log.warn("Step 2 of 7: Unable to get authorizationUri:",error.response.status, error.response.statusText);
+							this.log.debug("Step 2 of 7: error:",error);
+							reject("Step 2 of 7: Could not get authorizationUri: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+							//currentSessionState = sessionState.DISCONNECTED;
+							//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+						});
+				})
+				// Step 1 http errors
+				.catch(error => {
+					//this.log('Failed to create GB session - check your internet connection');
+					//this.log.warn("Step 1 of 7: Could not get apiAuthorizationUrl:",error.response.status, error.response.statusText);
+					this.log.debug("Step 1 of 7: error:",error);
+					reject("Step 1 of 7: Failed to create GB session - check your internet connection"); // reject the promise and return the error
+					//currentSessionState = sessionState.DISCONNECTED;
+					//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+				});
 
-		currentSessionState = sessionState.DISCONNECTED;
-		this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+			currentSessionState = sessionState.DISCONNECTED;
+			this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+		})
 	}
 
 
@@ -1363,95 +1534,95 @@ class stbPlatform {
 	// new version using endpoints available from 13.10.2022
 	// the masterChannelList contains all possible channels, both subscribed and non-subscribed channels
 	async refreshMasterChannelList(callback) {
-		// called by refreshMasterChannelList (state handler), thus runs at polling interval
+		return new Promise((resolve, reject) => {
+			// called by refreshMasterChannelList (state handler), thus runs at polling interval
 
-		// exit immediately if the session does not exist
-		if (currentSessionState != sessionState.CONNECTED) { 
-			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not exist, exiting'); }
-			return false;
-		}
+			// exit immediately if the session does not exist
+			if (currentSessionState != sessionState.CONNECTED) { 
+				if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not exist, exiting'); }
+				return false;
+			}
 
-		// exit immediately if channel list has not expired
-		if (this.masterChannelListExpiryDate > Date.now()) {
-			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString()); }
-			return false;
-		}
+			// exit immediately if channel list has not expired
+			if (this.masterChannelListExpiryDate > Date.now()) {
+				if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString()); }
+				return false;
+			}
 
-		if (this.config.debugLevel > 1) {
-			this.log.warn('refreshMasterChannelList: Refreshing master channel list...');
-		}
+			this.log('Refreshing master channel list');
 
-		
-		// channels can be retrieved for the country without having a mqtt session going  but then the list is not relevant for the user's locationId
-		// so you should add the user's locationId as a parameter, and this needs the accessToken
-		// syntax:
-		// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/channels?byLocationId=41043&includeInvisible=true&includeNotEntitled=true&personalised=true&sort=channelNumber
-		// https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH
-		/*
-		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/channels';
-		url = url + '?byLocationId=' + this.session.locationId // locationId needed to get user-specific list
-		url = url + '&includeInvisible=true' // includeInvisible
-		url = url + '&includeNotEntitled=true' // includeNotEntitled
-		url = url + '&personalised=true' // personalised
-		url = url + '&sort=channelNumber' // sort
-		*/
-		//url = 'https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH'
-		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v2/channels';
-		url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
-		url = url + '&language=en'; // language
-		url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
-		//url = url + '&includeNotEntitled=false' // includeNotEntitled testing to see if this parameter is accepted
-		if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: loading inputs from',url); }
-
-		// call the webservice to get all available channels
-		const axiosConfig = {
-			method: 'GET',
-			url: url
-		};
-		axiosWS(axiosConfig)
-			.then(response => {
-				//this.log(response.data);
-				if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.length); }
-
-				// set the masterChannelListExpiryDate to expire at now + MASTER_CHANNEL_LIST_VALID_FOR_S
-				this.masterChannelListExpiryDate =new Date(new Date().getTime() + (MASTER_CHANNEL_LIST_VALID_FOR_S * 1000));
-				//this.log('MasterChannelList valid until',this.masterChannelListExpiryDate.toLocaleString())
 			
-				// load the channel list with all channels found
-				this.masterChannelList = [];
-				const channels = response.data;
-				this.log.debug('Channels to process:',channels.length);
-				for(let i=0; i<channels.length; i++) {
-					const channel = channels[i];
-					//this.log('Loading channel:',i,channel.logicalChannelNumber,channel.id, channel.name); // for debug purposes
-					// log the detail of logicalChannelNumber 60 nicktoons, for which I have no subscription, as a test of entitlements
-					//if (this.config.debugLevel > 0) { if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); } }
-					this.masterChannelList.push({
-						id: channel.id, 
-						name: cleanNameForHomeKit(channel.name),
-						logicalChannelNumber: channel.logicalChannelNumber, 
-						linearProducts: channel.linearProducts				
-					});
-				}
-					
-				if (this.config.debugLevel > 0) {
-					this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', this.masterChannelList.length, this.masterChannelListExpiryDate.toLocaleString());
-				}
-				return true;
+			// channels can be retrieved for the country without having a mqtt session going  but then the list is not relevant for the user's locationId
+			// so you should add the user's locationId as a parameter, and this needs the accessToken
+			// syntax:
+			// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/channels?byLocationId=41043&includeInvisible=true&includeNotEntitled=true&personalised=true&sort=channelNumber
+			// https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH
+			/*
+			let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/channels';
+			url = url + '?byLocationId=' + this.session.locationId // locationId needed to get user-specific list
+			url = url + '&includeInvisible=true' // includeInvisible
+			url = url + '&includeNotEntitled=true' // includeNotEntitled
+			url = url + '&personalised=true' // personalised
+			url = url + '&sort=channelNumber' // sort
+			*/
+			//url = 'https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH'
+			let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v2/channels';
+			url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
+			url = url + '&language=en'; // language
+			url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
+			//url = url + '&includeNotEntitled=false' // includeNotEntitled testing to see if this parameter is accepted
+			if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: loading inputs from',url); }
 
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'Failed to refresh the master channel list - check your internet connection:'
-				if (error.isAxiosError) { 
-					errReason = error.code + ': ' + (error.hostname || ''); 
-					// if no connection then set session to disconnected to force a session reconnect
-					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
-				}
-				this.log('%s %s', errText, (errReason || ''));
-				this.log.warn(`refreshMasterChannelList error:`, error);
-				return error;
-			});
+			// call the webservice to get all available channels
+			const axiosConfig = {
+				method: 'GET',
+				url: url
+			};
+			axiosWS(axiosConfig)
+				.then(response => {
+					//this.log(response.data);
+					if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.length); }
+
+					// set the masterChannelListExpiryDate to expire at now + MASTER_CHANNEL_LIST_VALID_FOR_S
+					this.masterChannelListExpiryDate =new Date(new Date().getTime() + (MASTER_CHANNEL_LIST_VALID_FOR_S * 1000));
+					//this.log('MasterChannelList valid until',this.masterChannelListExpiryDate.toLocaleString())
+				
+					// load the channel list with all channels found
+					this.masterChannelList = [];
+					const channels = response.data;
+					this.log.debug('Channels to process:',channels.length);
+					for(let i=0; i<channels.length; i++) {
+						const channel = channels[i];
+						//this.log('Loading channel:',i,channel.logicalChannelNumber,channel.id, channel.name); // for debug purposes
+						// log the detail of logicalChannelNumber 60 nicktoons, for which I have no subscription, as a test of entitlements
+						//if (this.config.debugLevel > 0) { if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); } }
+						this.masterChannelList.push({
+							id: channel.id, 
+							name: cleanNameForHomeKit(channel.name),
+							logicalChannelNumber: channel.logicalChannelNumber, 
+							linearProducts: channel.linearProducts				
+						});
+					}
+						
+					if (this.config.debugLevel > 0) {
+						this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', this.masterChannelList.length, this.masterChannelListExpiryDate.toLocaleString());
+					}
+					resolve( this.masterChannelList ); // resolve the promise with the masterChannelList object
+
+				})
+				.catch(error => {
+					let errText, errReason;
+					errText = 'Failed to refresh the master channel list - check your internet connection:'
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+						// if no connection then set session to disconnected to force a session reconnect
+						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+					}
+					this.log('%s %s', errText, (errReason || ''));
+					this.log.warn(`refreshMasterChannelList error:`, error);
+					return error;
+				});
+		})
 	}
 
 	// load all available TV channels at regular intervals into an array
@@ -1553,48 +1724,164 @@ class stbPlatform {
 	}
 
 
+	// get Personalization Data via web request GET
+	// this is for the web session type as of 13.10.2022
+	async getPersonalizationData(householdId, callback) {
+		return new Promise((resolve, reject) => {
+			this.log("Refreshing personalization data for householdId %s", householdId);
+			
+			//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
+			//const url='https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
+			const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
+			//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
+			const config = {headers: {
+				"x-oesp-username": this.session.username
+			}};
+			if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: GET %s', url); }
+			// this.log('getPersonalizationDataOld: GET %s', url);
+			axiosWS.get(url, config)
+				.then(response => {	
+					if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: %s: response: %s %s', householdId, response.status, response.statusText); }
+					if (this.config.debugLevel > 2) { // DEBUG
+						this.log.warn('getPersonalizationData: %s: response data:', householdId);
+						this.log.warn(response.data);
+					}
+
+					// devices are an array named assignedDevices
+					this.customer = response.data; // store the entire personalization data for future use in this.customer
+					this.devices = response.data.assignedDevices; // store the entire device array at platform level
+				
+					// update all the devices in the array. Don't trust the index order in the Personalization Data message
+					//this.log('getPersonalizationData: this.stbDevices.length:', this.stbDevices.length)
+					this.devices.forEach((device) => {
+						const deviceId = device.deviceId;
+						const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
+						if (deviceIndex > -1 && this.stbDevices[deviceIndex]) { 
+							this.stbDevices[deviceIndex].device = device;
+							this.stbDevices[deviceIndex].customer = this.customer; // store entire customer object
+
+							// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault) {
+							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT ); // update this device
+						}
+					});
+					
+
+					// profiles are an array named profiles, store entire array in this.profiles
+					//this.profiles = response.data.profiles; // set this.profiles to the profile data we just received
+					//this.log('getPersonalizationData: this.profiles:')
+					//this.log(this.profiles)
+					///let testProfile1 = this.profiles.find(profile => profile.name === 'Test');
+					//this.log("getPersonalizationData: freshly stored profile data: Profile '%s' last modified at %s", testProfile1.name, testProfile1.lastModified); 
+					//this.log(testProfile1)
+					/*
+					// for every personalization data update, update all devices device.customer per device with the new this.customer data
+					// but only if stbDevices has been created...
+					this.log('getPersonalizationData: this.stbDevices.length:', this.stbDevices.length)
+					if (this.stbDevices.length > 0) {
+						this.devices.forEach((device) => {
+							device.customer = this.customer; // update the device with the refreshed customer data, including the profiles array
+							this.log('getPersonalizationData: new customer data stored in device.customer:')
+							//this.log(device.profiles)
+							let testProfile = device.customer.profiles.find(profile => profile.name === 'Test');
+							this.log("getPersonalizationData: Profile '%s' last modified at %s", testProfile.name, testProfile.lastModified); 
+							this.log(testProfile)
+
+
+							// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault) {
+							this.log('about to call mqttDeviceStateHandler')
+							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT );
+						});
+					}
+					*/
+					// now we have the cityId data, load the MasterChannelList
+					//this.refreshMasterChannelList(); // async function, processing continues, must load after customer data is loaded
+
+					//this.log.warn('getPersonalizationData: all done, returnng customerStatus: %s', this.customer.customerStatus);
+					resolve( this.customer ); // resolve the promise with the customer object
+				})
+				.catch(error => {
+					let errText, errReason;
+					errText = 'Failed to refresh personalization data for ' + householdId + ' - check your internet connection:'
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+						// if no connection then set session to disconnected to force a session reconnect
+						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+					}
+					this.log('%s %s', errText, (errReason || ''));
+					this.log.debug(`getPersonalizationData error:`, error);
+					return false, error;
+				});
+		})
+	}
+
+
+	// set the Personalization Data for the current device via web request PUT
+	async setPersonalizationDataForDevice(deviceId, deviceSettings, callback) {
+		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: deviceSettings:', deviceSettings); }
+		// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/1012345_ch/devices/3C36E4-EOSSTB-003656123456
+		const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
+		const data = {"settings": deviceSettings};
+		//const config = {headers: {"x-cus": accessToken, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
+		const config = {headers: {"x-oesp-username": this.session.username}};
+		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: PUT %s', url); }
+		axiosWS.put(url, data, config)
+			.then(response => {	
+				// returns 204 No Content when succesfull
+				if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: response: %s %s', response.status, response.statusText); }
+				return false;
+			})
+			.catch(error => {
+				this.log.warn('setPersonalizationDataForDevice failed: %s %s', error.response.status, error.response.statusText);
+				this.log.debug('setPersonalizationDataForDevice: error:', error);
+				return true, error;
+			});		
+		return false;
+	}
+
 
 	// get the entitlements for the householdId
 	// this is for the web session type as of 13.10.2022
 	async getEntitlements(householdId, callback) {
-		this.log("Refreshing entitlements for householdId %s", householdId);
+		return new Promise((resolve, reject) => {
+			this.log("Refreshing entitlements for householdId %s", householdId);
 
-		//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
-		//const url='https://prod.spark.sunrisetv.ch/eng/web/purchase-service/v2/customers/1076582_ch/entitlements?enableDaypass=true'
-		const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
-		//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
-		const config = {headers: {
-			"x-cus": householdId,
-			"x-oesp-username": this.session.username
-		}};
-		if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: GET %s', url); }
-		// this.log('getEntitlements: GET %s', url);
-		axiosWS.get(url, config)
-			.then(response => {	
-				if (this.config.debugLevel > 1) { this.log.warn('getEntitlements: %s: response: %s %s', householdId, response.status, response.statusText); }
-				if (this.config.debugLevel > 2) { 
-					this.log.warn('getEntitlements: %s: response data:', householdId);
-					this.log.warn(response.data);
-				}
-				this.entitlements = response.data; // store the entire entitlements data for future use in this.customer.entitlements
-				if (this.config.debugLevel > 1) { 
-					this.log.warn('getEntitlements: entitlements found:', this.entitlements.entitlements.length);
-				}
-				return false;
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'Failed to refresh entitlements data for ' + householdId + ' - check your internet connection:'
-				if (error.isAxiosError) { 
-					errReason = error.code + ': ' + (error.hostname || ''); 
-					// if no connection then set session to disconnected to force a session reconnect
-					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
-				}
-				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug(`getEntitlements error:`, error);
-				return false, error;
-			});		
-		return false;
+			//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
+			//const url='https://prod.spark.sunrisetv.ch/eng/web/purchase-service/v2/customers/1076582_ch/entitlements?enableDaypass=true'
+			const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
+			//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
+			const config = {headers: {
+				"x-cus": householdId,
+				"x-oesp-username": this.session.username
+			}};
+			if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: GET %s', url); }
+			// this.log('getEntitlements: GET %s', url);
+			axiosWS.get(url, config)
+				.then(response => {	
+					if (this.config.debugLevel > 1) { this.log.warn('getEntitlements: %s: response: %s %s', householdId, response.status, response.statusText); }
+					if (this.config.debugLevel > 2) { 
+						this.log.warn('getEntitlements: %s: response data:', householdId);
+						this.log.warn(response.data);
+					}
+					this.entitlements = response.data; // store the entire entitlements data for future use in this.customer.entitlements
+					if (this.config.debugLevel > 1) { 
+						this.log.warn('getEntitlements: entitlements found:', this.entitlements.entitlements.length);
+					}
+					//his.log('getEntitlements: returning entitlements object');
+					resolve( this.entitlements ); // resolve the promise with the customer object
+				})
+				.catch(error => {
+					let errText, errReason;
+					errText = 'Failed to refresh entitlements data for ' + householdId + ' - check your internet connection:'
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+						// if no connection then set session to disconnected to force a session reconnect
+						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+					}
+					this.log('%s %s', errText, (errReason || ''));
+					this.log.debug(`getEntitlements error:`, error);
+					return false, error;
+				});		
+		})
 	}
 
 
@@ -1615,54 +1902,59 @@ class stbPlatform {
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// get a Json Web Token
-	getJwtToken(oespUsername, accessToken, householdId){
-		// get a JSON web token from the supplied accessToken and householdId
-		if (this.config.debugLevel > 1) { this.log.warn('getJwtToken'); }
-		// robustness checks
-		if (currentSessionState !== sessionState.CONNECTED) {
-			this.log.warn('Cannot get JWT token: currentSessionState incorrect:', currentSessionState);
-			return false;
-		}
-		if (!accessToken) {
-			this.log.warn('Cannot get JWT token: accessToken not set');
-			return false;
-		}
-
-		//this.log.warn('getJwtToken disabled while I build channel list');
-		//return false;
-
-		const jwtAxiosConfig = {
-			method: 'GET',
-			url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/tokens/jwt',
-			// examples of auth-service/v1/mqtt/token urls:
-			// https://prod.spark.ziggogo.tv/auth-service/v1/mqtt/token
-			// https://prod.spark.sunrisetv.ch/auth-service/v1/mqtt/token
-			url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/mqtt/token', // new from October 2022
-			headers: {
-				'X-OESP-Token': accessToken,
-				'X-OESP-Username': oespUsername, 
-			}
-		};
-		this.log.debug("getJwtToken: jwtAxiosConfig:", jwtAxiosConfig)
-		axiosWS(jwtAxiosConfig)
-			.then(response => {	
-				this.log.debug("getJwtToken: response.data:", response.data)
-				mqttUsername = householdId; // used in sendKey to ensure that mqtt is connected
-				if (this.config.debugLevel > 1) { this.log.warn('getJwtToken: calling startMqttClient'); }
-				this.startMqttClient(this, householdId, response.data.token);  // this starts the mqtt session
-				
-			})
-			.catch(error => {
-				this.log('Failed to get jwtToken: ', error.code + ' ' + (error.hostname || '') );
-				this.log.debug('getJwtToken error details:', error);
-				// set session flag to disconnected to force a session reconnect
-				currentSessionState = sessionState.DISCONNECTED;
+	async getJwtToken(oespUsername, accessToken, householdId){
+		return new Promise((resolve, reject) => {
+			this.log.debug("Getting jwt token for householdId %s", householdId);
+			// get a JSON web token from the supplied accessToken and householdId
+			if (this.config.debugLevel > 1) { this.log.warn('getJwtToken'); }
+			// robustness checks
+			if (currentSessionState !== sessionState.CONNECTED) {
+				this.log.warn('Cannot get JWT token: currentSessionState incorrect:', currentSessionState);
 				return false;
-			});			
+			}
+			if (!accessToken) {
+				this.log.warn('Cannot get JWT token: accessToken not set');
+				return false;
+			}
+
+			//this.log.warn('getJwtToken disabled while I build channel list');
+			//return false;
+
+			const jwtAxiosConfig = {
+				method: 'GET',
+				url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/tokens/jwt',
+				// examples of auth-service/v1/mqtt/token urls:
+				// https://prod.spark.ziggogo.tv/auth-service/v1/mqtt/token
+				// https://prod.spark.sunrisetv.ch/auth-service/v1/mqtt/token
+				url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/mqtt/token', // new from October 2022
+				headers: {
+					'X-OESP-Token': accessToken,
+					'X-OESP-Username': oespUsername, 
+				}
+			};
+			this.log.debug("getJwtToken: jwtAxiosConfig:", jwtAxiosConfig)
+			axiosWS(jwtAxiosConfig)
+				.then(response => {	
+					this.log.debug("getJwtToken: response.data:", response.data)
+					mqttUsername = householdId; // used in sendKey to ensure that mqtt is connected
+					if (this.config.debugLevel > 1) { this.log.warn('getJwtToken: calling startMqttClient'); }
+					resolve( response.data.token ); // resolve with the tokwn
+					//this.startMqttClient(this, householdId, response.data.token);  // this starts the mqtt session
+					
+				})
+				.catch(error => {
+					this.log('Failed to get jwtToken: ', error.code + ' ' + (error.hostname || '') );
+					this.log.debug('getJwtToken error details:', error);
+					// set session flag to disconnected to force a session reconnect
+					currentSessionState = sessionState.DISCONNECTED;
+					return false;
+				});			
+		})
 	}
 
 
 	// start the mqtt client and handle mqtt messages
+	// a sync procedure, no promise returned
 	startMqttClient(parent, mqttUsername, mqttPassword) {
 		if (this.config.debugLevel > 0) { 
 			this.log('Starting mqttClient...'); 
@@ -2552,118 +2844,6 @@ class stbPlatform {
 	
 
 
-	// get Personalization Data via web request GET
-	// this is for the web session type as of 13.10.2022
-	async getPersonalizationData(householdId, callback) {
-		this.log("Refreshing personalization data for householdId %s", householdId);
-
-		//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
-		//const url='https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
-		const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
-		//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
-		const config = {headers: {
-			"x-oesp-username": this.session.username
-		}};
-		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: GET %s', url); }
-		// this.log('getPersonalizationDataOld: GET %s', url);
-		axiosWS.get(url, config)
-			.then(response => {	
-				if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: %s: response: %s %s', householdId, response.status, response.statusText); }
-				if (this.config.debugLevel > 2) { // DEBUG
-					this.log.warn('getPersonalizationData: %s: response data:', householdId);
-					this.log.warn(response.data);
-				}
-
-				// devices are an array named assignedDevices
-				this.customer = response.data; // store the entire personalization data for future use in this.customer
-				this.devices = response.data.assignedDevices; // store the entire device array at platform level
-			
-				// update all the devices in the array. Don't trust the index order in the Personalization Data message
-				//this.log('getPersonalizationData: this.stbDevices.length:', this.stbDevices.length)
-				this.devices.forEach((device) => {
-					const deviceId = device.deviceId;
-					const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
-					if (deviceIndex > -1 && this.stbDevices[deviceIndex]) { 
-						this.stbDevices[deviceIndex].device = device;
-						this.stbDevices[deviceIndex].customer = this.customer; // store entire customer object
-
-						// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault) {
-						this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT ); // update this device
-					}
-				});
-				
-
-				// profiles are an array named profiles, store entire array in this.profiles
-				//this.profiles = response.data.profiles; // set this.profiles to the profile data we just received
-				//this.log('getPersonalizationData: this.profiles:')
-				//this.log(this.profiles)
-				///let testProfile1 = this.profiles.find(profile => profile.name === 'Test');
-				//this.log("getPersonalizationData: freshly stored profile data: Profile '%s' last modified at %s", testProfile1.name, testProfile1.lastModified); 
-				//this.log(testProfile1)
-/*
-				// for every personalization data update, update all devices device.customer per device with the new this.customer data
-				// but only if stbDevices has been created...
-				this.log('getPersonalizationData: this.stbDevices.length:', this.stbDevices.length)
-				if (this.stbDevices.length > 0) {
-					this.devices.forEach((device) => {
-						device.customer = this.customer; // update the device with the refreshed customer data, including the profiles array
-						this.log('getPersonalizationData: new customer data stored in device.customer:')
-						//this.log(device.profiles)
-						let testProfile = device.customer.profiles.find(profile => profile.name === 'Test');
-						this.log("getPersonalizationData: Profile '%s' last modified at %s", testProfile.name, testProfile.lastModified); 
-						this.log(testProfile)
-
-
-						// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault) {
-						this.log('about to call mqttDeviceStateHandler')
-						this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT );
-					});
-				}
-*/
-				// now we have the cityId data, load the MasterChannelList
-				this.refreshMasterChannelList(); // async function, processing continues, must load after customer data is loaded
-
-
-				return false;
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'Failed to refresh personalization data for ' + householdId + ' - check your internet connection:'
-				if (error.isAxiosError) { 
-					errReason = error.code + ': ' + (error.hostname || ''); 
-					// if no connection then set session to disconnected to force a session reconnect
-					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
-				}
-				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug(`getPersonalizationData error:`, error);
-				return false, error;
-			});		
-		return false;
-	}
-
-
-	// set the Personalization Data for the current device via web request PUT
-	async setPersonalizationDataForDevice(deviceId, deviceSettings, callback) {
-		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: deviceSettings:', deviceSettings); }
-		// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/1012345_ch/devices/3C36E4-EOSSTB-003656123456
-		const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
-		const data = {"settings": deviceSettings};
-		//const config = {headers: {"x-cus": accessToken, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
-		const config = {headers: {"x-oesp-username": this.session.username}};
-		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: PUT %s', url); }
-		axiosWS.put(url, data, config)
-			.then(response => {	
-				// returns 204 No Content when succesfull
-				if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: response: %s %s', response.status, response.statusText); }
-				return false;
-			})
-			.catch(error => {
-				this.log.warn('setPersonalizationDataForDevice failed: %s %s', error.response.status, error.response.statusText);
-				this.log.debug('setPersonalizationDataForDevice: error:', error);
-				return true, error;
-			});		
-		return false;
-	}
 
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3568,7 +3748,7 @@ class stbDevice {
 	async refreshDeviceChannelList(callback) {
 		try {
 			if (this.config.debugLevel > 1) { this.log.warn('%s: refreshDeviceChannelList', this.name); }
-			this.log("%s: Refreshing channel list...", this.name);
+			this.log("%s: Refreshing device channel list...", this.name);
 			//this.log("%s: Refreshing channel list: CURRENTLY DISABLED AS MASTER CHANNEL LIST NOT YET BUILT", this.name);
 			//return;
 			
@@ -3620,6 +3800,7 @@ class stbDevice {
 
 			
 			// now load the mostWatched list for this profile
+			//TODO MAKE THIS INTO A PROMISE
 			this.refreshDeviceMostWatchedChannels(wantedProfile.profileId); // async function
 			// wait 1s for the refreshDeviceMostWatchedChannels to complete then continue
 			wait(1*1000).then(() => { 
