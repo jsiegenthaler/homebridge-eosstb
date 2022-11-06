@@ -22,7 +22,7 @@ See below
 
 
 ## 2.0.0-beta.11 (2022-11-06)
-* ImprovedEnabled the interceptor to track down a GB logon issue
+* Enabled the interceptor to track down GB logon issues
 
 
 ## 2.0.0-beta.10 (2022-11-06)
