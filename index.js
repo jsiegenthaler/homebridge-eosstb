@@ -1273,17 +1273,19 @@ class stbPlatform {
 				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
 				'\nMethod:',req.method, '\nURL:', req.url, 
 				'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,
-				//'\nParams:', req.params, '\nData:', req.data
+				'\nParams:', req.params, '\nData:', req.data
 				);
 				return req; // must return request
 			});
 			axiosWS.interceptors.response.use(res => {
-				this.log('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
+				this.log.warn('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
 				'\nHeaders:', res.headers, 
+				'\nUrl:', res.url, 
 				//'\nData:', res.data, 
 				//'\nLast Request:', res.request
 				);
-				this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
+				//this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:'); 
+				//if (cookieJar) { this.log(cookieJar.getCookies(res.url)); }// watch out for empty cookieJar
 				return res; // must return response
 			});
 			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
