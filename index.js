@@ -61,6 +61,8 @@ const countryBaseUrlArray = {
     'ch': 		'https://prod.spark.sunrisetv.ch',
 	'de':		'https://prod.spark.upctv.de',
     'gb':       'https://prod.spark.virginmedia.com',
+	'gb':       'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web',
+	
 	'ie':       'https://prod.spark.virginmediatv.ie',
     'nl': 		'https://prod.spark.ziggogo.tv',
 	'pl':		'https://prod.spark.unknown.pl',
@@ -117,7 +119,7 @@ const BE_AUTH_URL = 'https://login.prd.telenet.be/openid/login.do';
 // https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true
 // const GB_AUTH_URL = 'https://id.virginmedia.com/sign-in/?protocol=oidc';
 // the url that worked in v1.7: 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web'
-const GB_AUTH_DETAILS_URL = 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web';
+const GB_AUTH_OESP_URL = 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web';
 const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
 
 
@@ -1293,7 +1295,7 @@ class stbPlatform {
 
 			// Step 1: # get authentication details
 			// https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
-			let apiAuthorizationUrl = GB_AUTH_DETAILS_URL + '/authorization';
+			let apiAuthorizationUrl = GB_AUTH_OESP_URL + '/authorization';
 			this.log('Step 1 of 7: get authentication details');
 			if (this.config.debugLevel > 1) { this.log.warn('Step 1 of 7: get authentication details from',apiAuthorizationUrl); }
 			axiosWS.get(apiAuthorizationUrl)
@@ -1451,7 +1453,9 @@ class stbPlatform {
 																this.log('Step 7 of 7: post refreshToken request');
 																this.log.debug('Step 7 of 7: post refreshToken request to',apiAuthorizationUrl);
 																payload = {'refreshToken':auth.refreshToken,'username':auth.username};
-																var sessionUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/session';
+																// must resolve to
+																// 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/session';',
+																var sessionUrl = GB_AUTH_OESP_URL + '/session';
 																axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
 																	.then(response => {	
 																		this.log('Step 7 of 7: response:',response.status, response.statusText);
