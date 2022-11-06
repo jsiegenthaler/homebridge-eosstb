@@ -1268,7 +1268,6 @@ class stbPlatform {
 			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 			// axios interceptors to log request and response for debugging
 			// works on all following requests in this sub
-			/*
 			axiosWS.interceptors.request.use(req => {
 				this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
 				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
@@ -1287,7 +1286,6 @@ class stbPlatform {
 				this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
 				return res; // must return response
 			});
-			*/
 			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -1364,10 +1362,12 @@ class stbPlatform {
 									//location is https?? if not authorised
 									//location is https:... error=session_expired if session has expired
 									if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
-										this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
+										//this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
+										reject('Step 3 of 7: Unable to login: wrong credentials'); // reject the promise and return the error
 									} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
-										this.log.warn('Step 3 of 7: Unable to login: session expired');
+										//this.log.warn('Step 3 of 7: Unable to login: session expired');
 										cookieJar.removeAllCookies();	// remove all the locally cached cookies
+										reject('Step 3 of 7: Unable to login: session expired'); // reject the promise and return the error
 										//currentSessionState = sessionState.DISCONNECTED;	// flag the session as dead
 										//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 									} else {
@@ -1397,14 +1397,16 @@ class stbPlatform {
 				
 												// look for login_success?code=
 												if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
-													this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
-													currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+													//this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
+													//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+													reject('Step 4 of 7: Unable to login: wrong credentials'); // reject the promise and return the error
 												} else if (url.indexOf('error=session_expired') > 0 ) {
-													this.log.warn('Step 4 of 7: Unable to login: session expired');
+													//this.log.warn('Step 4 of 7: Unable to login: session expired');
 													cookieJar.removeAllCookies();	// remove all the locally cached cookies
-													currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+													reject('Step 4 of 7: Unable to login: session expired'); // reject the promise and return the error
+													//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 												} else {
 
 													// Step 5: # obtain authorizationCode
