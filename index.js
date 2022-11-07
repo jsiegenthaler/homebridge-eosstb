@@ -61,8 +61,6 @@ const countryBaseUrlArray = {
     'ch': 		'https://prod.spark.sunrisetv.ch',
 	'de':		'https://prod.spark.upctv.de',
     'gb':       'https://prod.spark.virginmedia.com',
-	'gb':       'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web',
-	
 	'ie':       'https://prod.spark.virginmediatv.ie',
     'nl': 		'https://prod.spark.ziggogo.tv',
 	'pl':		'https://prod.spark.unknown.pl',
@@ -2065,6 +2063,7 @@ class stbPlatform {
 						let mqttMessage = JSON.parse(payload);
 						if (parent.config.debugLevel > 0) {
 							parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: \r\n%s', topic, mqttMessage);
+							parent.log.warn(mqttMessage);
 						}
 
 						// variables for just in this function
@@ -2270,6 +2269,8 @@ class stbPlatform {
 						// seen on VirginMedia connections in GB
 						// Topic: 10950xxxx_gb/qc76wses7wfqhox2uqqteoedbyqgtt
 						// Message: {	type: 'CPE.pushToTV.rsp',	source: '3C36E4-EOSSTB-003597101009',	id: 'TrgPON8eV8',	version: '1.3.12',	status: [Object]  }: 
+						// there's also a pullFromTV
+						// {"source":"7028f103-8494-4f79-9b76-beb67a2e5caa","type":"CPE.pullFromTV","runtimeType":"pull"}
 						if (mqttMessage.type == 'CPE.pushToTV.rsp') {
 							if (parent.config.debugLevel > 0) { 
 								parent.log.warn('mqttClient: CPE.pushToTV.rsp: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
@@ -2470,6 +2471,8 @@ class stbPlatform {
 	}
 
 	// send a channel change request to the settopbox via mqtt
+	// using the CPE.pushToTV message
+	// the friendlyDeviceName appears on the TV in a popup window
 	switchChannel(deviceId, deviceName, channelId, channelName) {
 		try {
 			if (this.config.debugLevel > 0) { this.log.warn('switchChannel: channelId %s %s on %s %s', channelId, channelName, deviceId, deviceName); }
