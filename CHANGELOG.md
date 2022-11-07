@@ -21,6 +21,9 @@ See below
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
 
 
+## 2.0.0-beta.16 (2022-11-07)
+* Bug fix in setInputName
+
 ## 2.0.0-beta.15 (2022-11-07)
 * Bug fix with GB getPersonalizationData
 
