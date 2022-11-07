@@ -378,13 +378,13 @@ class stbPlatform {
 		this.api.on('shutdown', () => {
 			if (this.config.debugLevel > 2) { this.log.warn('API event: shutdown'); }
 			isShuttingDown = true;
-			this.log('before the end mqtt call')
 			this.endMqttClient().then(() => { this.log('Goodbye'); });
-			this.log('after the end mqtt call')
 		});
+
 	} // end of constructor
 
-	// wait function with promise
+
+	// test wait function with promise
 	async testprom() {
 		return new Promise((resolve, reject) => {
 			this.log('testprom: in the testprom async function')
@@ -1735,12 +1735,23 @@ class stbPlatform {
 			//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
 			//const url='https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
 			const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
-			//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
-			const config = {headers: {
-				"x-oesp-username": this.session.username
-			}};
+			// headers are in the web client
+			let config={}
+			if (householdId.endsWith('gb')){
+				// gb needs x-cus, x-oesp-token and x-oesp-username
+				config = {headers: {
+					"x-cus": this.session.householdId,
+					"x-oesp-token": this.session.accessToken,
+					"x-oesp-username": this.session.username
+				}}
+			} else {
+				// other countries on new backend from Oct 2022 need just x-oesp-username
+				config = {headers: {
+					"x-oesp-username": this.session.username
+				}}
+			};
 			if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: GET %s', url); }
-			// this.log('getPersonalizationDataOld: GET %s', url);
+			// this.log('getPersonalizationData: GET %s', url);
 			axiosWS.get(url, config)
 				.then(response => {	
 					if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: %s: response: %s %s', householdId, response.status, response.statusText); }
@@ -1823,8 +1834,7 @@ class stbPlatform {
 		// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/1012345_ch/devices/3C36E4-EOSSTB-003656123456
 		const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
 		const data = {"settings": deviceSettings};
-		//const config = {headers: {"x-cus": accessToken, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
-		const config = {headers: {"x-oesp-username": this.session.username}};
+		const config = {headers: {"x-cus": accessToken, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: PUT %s', url); }
 		axiosWS.put(url, data, config)
 			.then(response => {	
