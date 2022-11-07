@@ -12,6 +12,11 @@ Due to backend system changes on Thursday 13 October 2022, this plugin had to be
 The new version is v2, currently in beta test, and reported working well.
 Feel free to try out the beta.
 
+# GB USERS PLEASE USER V1.7
+GB users can still use v1.7, it appears the backend has not changed for GB (yet)
+
+CH, NL, BE users can use v2.0 (currently in Beta)
+
 
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![npm](https://badgen.net/npm/dm/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
