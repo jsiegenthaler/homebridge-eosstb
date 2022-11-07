@@ -18,11 +18,15 @@ See below
 * Fix problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
 * Work on ideas for showing radio channels and using them
-* Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs)
+* Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
+
+
+## 2.0.0-beta.15 (2022-11-07)
+* Bug fix with GB getPersonalizationData
 
 
 ## 2.0.0-beta.14 (2022-11-07)
-* fixed a bug with the endMqttClient call on Homebridge shutdown
+* Bug fix with the endMqttClient call on Homebridge shutdown
 
 
 ## 2.0.0-beta.13 (2022-11-07)
