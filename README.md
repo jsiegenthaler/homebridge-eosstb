@@ -7,11 +7,10 @@
 </p>
 
 # homebridge-eosstb
-# IMPORTANT NOTICE: THIS IS AN BETA RELEASE DUE TO BACKEND CHANGES
+# IMPORTANT NOTICE: THIS IS A BETA RELEASE DUE TO BACKEND CHANGES
 The system backend changed, first noted on Thursday 13 October 2022, requiring a rewrite of many parts of this plugin.
 The new release is contained in this branch and is currently in beta testing.
-I have logon and box status and control working again, so CH, NL, IE, BE and AT users can once again control their box.
-For GB I need some test users willing to help.
+I have logon and box status and control working again, so AT, BE, CH, GB, IE, and NL users can once again control their box.
 
 Feel free to try out the new beta version, but please always read the [CHANGELOG.md](/CHANGELOG.md) to see what state the plugin is currently in.
 Please provide feedback via bug reports if anything is not working as expected.
@@ -56,7 +55,7 @@ As [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) (the operator of the Horiz
 | ------- | ----------- | ------- | -------- | ------------- |
 | BE | [Telenet](https://www2.telenet.be/) | [Telenet TV](https://www.telenettv.be/nl.html) | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/) | Fully Working |
 | CH | [Sunrise](https://www.sunrise.ch/en/) | [Sunrise TV](https://www.sunrisetv.ch/en.html) | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription)* | Fully Working |
-| GB | [Virgin Media](https://www.virginmedia.com/) | [Virgin TV GO](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | _Needs testing due to backend changes_ |
+| GB | [Virgin Media](https://www.virginmedia.com/) | [Virgin TV GO](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | Working, Under Test |
 | IE | [Virgin Media](https://www.virginmedia.ie/) | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/) | Fully Working |
 | NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo Go](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | Fully Working |
 | ------- | ----------- | ------- | -------- | ------------- |
