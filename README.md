@@ -9,13 +9,9 @@
 # homebridge-eosstb
 # IMPORTANT NOTICE: V1 HAS BEEN REPLACED BY V2, CURRENTLY IN BETA TEST.
 Due to backend system changes on Thursday 13 October 2022, this plugin had to be re-written as v2. The v1 plugin has been disabled as it no longer works.
-The new version is v2, currently in beta test, and reported working well.
+The new version is v2, currently in beta test, and reported working well for CH, NL. BE and GB users.
 Feel free to try out the beta.
 
-# GB USERS PLEASE USER V1.9
-GB users can still use v1.9, it appears the backend has not changed for GB (yet). 
-
-CH, NL, BE users can use v2.0 (currently in Beta)
 
 
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
