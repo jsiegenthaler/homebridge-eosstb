@@ -1263,6 +1263,7 @@ class stbPlatform {
 			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 			// axios interceptors to log request and response for debugging
 			// works on all following requests in this sub
+			/*
 			axiosWS.interceptors.request.use(req => {
 				this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
 				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
@@ -1283,6 +1284,7 @@ class stbPlatform {
 				//if (cookieJar) { this.log(cookieJar.getCookies(res.url)); }// watch out for empty cookieJar
 				return res; // must return response
 			});
+			*/
 			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -3085,15 +3087,22 @@ class stbDevice {
 		const deviceType = this.device.deviceId.split("-");
 
 		switch (deviceType[0]) {
-			// 000378-EOSSTB-003893xxxxxx Ireland
-			// 3C36E4-EOSSTB-003792xxxxxx  Belgium
-			// 000378-EOS2STB-008420xxxxxx Belgium
+			// 000378-EOSSTB-003893xxxxxx 	Ireland
+			// 3C36E4-EOSSTB-003792xxxxxx  	Belgium
+			// 3C36E4-EOSSTB-003713xxxxxx 	Great Britain with productType: 'TV360'
+			// 3C36E4-EOSSTB-003713xxxxxx 	Great Britain with productType: 'TV360',
+			// 000378-EOS2STB-008420xxxxxx 	Belgium
 			case '3C36E4': case '000378':
 				switch (deviceType[1]) {
 					case 'EOS2STB':
 						// new EOS2STB released March 2022 is a HUMAX 2008C-STB-TN
 						manufacturer = 'HUMAX [' + (this.device.platformType || '') + ']'; 
 						model = '2008C-STB-TN [' + (this.device.deviceType || '') + ']';
+						break;
+					case 'GATEWAY':
+						// GB devices have deviceType=GATEWAY and productType=TV360
+						manufacturer = 'ARRIS [' + (this.device.platformType || '') + ']'; 
+						model = 'DCX960 [' + (this.device.productType || '') + ']';
 						break;
 					case 'EOSSTB':
 					default:
@@ -3108,7 +3117,7 @@ class stbDevice {
 
 			default:
 				manufacturer = this.device.platformType || PLATFORM_NAME;
-				model = this.device.deviceType || PLUGIN_NAME;
+				model = this.device.deviceType || this.device.productType || PLUGIN_NAME;
 				serialnumber = this.device.deviceId; // same as shown on TV
 				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
 		}
