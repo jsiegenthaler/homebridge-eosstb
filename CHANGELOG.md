@@ -21,6 +21,10 @@ See below
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs)
 
 
+## 2.0.0-beta.13 (2022-11-07)
+* Bug fix to try and get GB session connected
+
+
 ## 2.0.0-beta.12 (2022-11-06)
 * Bug fix to try and get GB session connected
 
