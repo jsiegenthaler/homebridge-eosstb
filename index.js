@@ -115,6 +115,7 @@ const BE_AUTH_URL = 'https://login.prd.telenet.be/openid/login.do';
 // oidc logon url used in VirginMedia for gb sessions
 // still in use after logon session changes on 13.10.2022 for other countries
 // the url that worked in v1.7: 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web'
+// this may also work: https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/authorization
 const GB_AUTH_OESP_URL = 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web';
 // https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true
 const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
@@ -596,7 +597,7 @@ class stbPlatform {
 
 
 		} else if (currentSessionState == sessionState.CONNECTED && !mqttClient.connected) { 
-			this.log('%s: session is still connected, but mqttCLient is disconnected, refreshing session and restarting mqttClient...', watchdogInstance);
+			this.log('%s: session is still connected, but mqttClient is disconnected, refreshing session and restarting mqttClient...', watchdogInstance);
 		}
 
 		this.log('Exiting sessionWatchdog')
@@ -841,7 +842,6 @@ class stbPlatform {
 						.then((getSessionResponse) => { resolve(getSessionResponse); }) // resolve with the getSessionResponse for the promise
 						.catch(error => { reject(error); }); // on any error, reject the promise and pass back the error
 				}
-			//this.log('createSession: end of code block')
 		})
 	}
 
@@ -906,7 +906,7 @@ class stbPlatform {
 			axiosWS(axiosConfig)
 				.then(response => {	
 					this.log('Step 1 of 1: response:',response.status, response.statusText);
-					//this.log('response data',response.data);
+					if (this.config.debugLevel > 1) { this.log('response data',response.data); }
 					this.session = response.data;
 					// check if householdId exists, if so, we have authenticated ok
 					if (this.session.householdId) { currentSessionState = sessionState.AUTHENTICATED; }
@@ -922,8 +922,7 @@ class stbPlatform {
 					resolve(this.session.householdId) // resolve the promise with the householdId
 				})
 				.catch(error => {
-					let errText, errReason;
-					errText = 'Failed to create session'
+					let errReason;
 					if (error.response && error.response.status >= 400 && error.response.status < 500) {
 						errReason = 'check your ' + PLATFORM_NAME + ' username and password: ' + error.response.status + ' ' + (error.response.statusText || '');
 					} else if (error.response && error.response.status >= 500 && error.response.status < 600) {
@@ -1289,6 +1288,7 @@ class stbPlatform {
 
 			// Step 1: # get authentication details
 			// https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
+			// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/authorization
 			let apiAuthorizationUrl = GB_AUTH_OESP_URL + '/authorization';
 			this.log('Step 1 of 7: get authentication details');
 			if (this.config.debugLevel > 1) { this.log.warn('Step 1 of 7: get authentication details from',apiAuthorizationUrl); }
@@ -1728,6 +1728,7 @@ class stbPlatform {
 
 	// get Personalization Data via web request GET
 	// this is for the web session type as of 13.10.2022
+	// may not have the full data from GB...
 	async getPersonalizationData(householdId, callback) {
 		return new Promise((resolve, reject) => {
 			this.log("Refreshing personalization data for householdId %s", householdId);
@@ -4506,7 +4507,8 @@ class stbDevice {
 
 		// maybe suppress 
 		if (this.config.debugLevel > 2) {
-			this.log('%s: Renamed channel %s from %s to %s (valid only for HomeKit)', this.name, inputId+1, oldInputName, newInputName);
+			//this.log('%s: Renamed channel %s from %s to %s (valid only for HomeKit)', this.name, inputId+1, oldInputName, newInputName);
+			this.log('%s: Renamed channel %s to %s (valid only for HomeKit)', this.name, inputId+1, newInputName);
 		}
 		callback(null);
 	};
