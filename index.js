@@ -114,10 +114,9 @@ const BE_AUTH_URL = 'https://login.prd.telenet.be/openid/login.do';
 
 // oidc logon url used in VirginMedia for gb sessions
 // still in use after logon session changes on 13.10.2022 for other countries
-// https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true
-// const GB_AUTH_URL = 'https://id.virginmedia.com/sign-in/?protocol=oidc';
 // the url that worked in v1.7: 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web'
 const GB_AUTH_OESP_URL = 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web';
+// https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true
 const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
 
 
@@ -380,10 +379,7 @@ class stbPlatform {
 			if (this.config.debugLevel > 2) { this.log.warn('API event: shutdown'); }
 			isShuttingDown = true;
 			this.log('before the end mqtt call')
-			this.endMqttClient()
-				.then(() => {
-					this.log('Goodbye');
-			});
+			this.endMqttClient().then(() => { this.log('Goodbye'); });
 			this.log('after the end mqtt call')
 		});
 	} // end of constructor
@@ -2388,11 +2384,14 @@ class stbPlatform {
 
 	// end the mqtt client cleanly
 	endMqttClient() {
-		if (this.config.debugLevel > -1) { 
-			this.log('Shutting down mqttClient...'); 
-		}
-		// mqtt.Client#end([force], [options], [callback])
-		mqttClient.end(true)
+		return new Promise((resolve, reject) => {
+			if (this.config.debugLevel > -1) { 
+				this.log('Shutting down mqttClient...'); 
+			}
+			// mqtt.Client#end([force], [options], [callback])
+			mqttClient.end(true);
+			resolve(true);
+		})
 	}
 
 
