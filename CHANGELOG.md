@@ -23,6 +23,7 @@ See below
 
 ## 2.0.0-beta.18 (2022-11-08)
 * Improved general error handling
+* Code cleanup
 
 
 ## 2.0.0-beta.17 (2022-11-07)
