@@ -21,6 +21,10 @@ See below
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
 
 
+## 2.0.0-beta.18 (2022-11-08)
+* Improved general error handling
+
+
 ## 2.0.0-beta.17 (2022-11-07)
 * Adapted prepareAccessoryInformationService to detect productType for GB users
 * Disabled interceptor now that GB is working
