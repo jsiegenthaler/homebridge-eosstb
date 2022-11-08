@@ -287,9 +287,7 @@ const wait=ms => new Promise(resolve => setTimeout(resolve, ms));
 // wait function with promise
 async function waitprom(ms) {
 	return new Promise((resolve) => {
-	  setTimeout(() => {
-		resolve(ms)
-	  }, ms )
+	  setTimeout(() => { resolve(ms) }, ms )
 	})
   }  
 
@@ -363,7 +361,6 @@ class stbPlatform {
 			this.sessionWatchdog.bind(this)
 
 			// the session watchdog creates a session when none exists, and recreates one if the session ever fails due to internet failure or anything else
-			this.log('stbPlatform: starting regular session watchdog timer at %s ms', SESSION_WATCHDOG_INTERVAL_MS);
 			this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
 
 			// check for a channel list update every MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S seconds
@@ -438,35 +435,6 @@ class stbPlatform {
 	// START session handler (web)
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-	// demo of a async function with proper  try/catch/finally error handling
-	async runMe() {
-		try {
-			// do something here, errors are caught cleanly
-			this.log("This command worked");
-			
-			// generate an error
-			var text;
-			if (text.includes("abc")) {
-				this.log("should never log")
-			}
-
-			// It almost reads as synchronous code.  Just
-			//  make sure never to forget await when calling an async function (or a function that returns a promise).  
-			// I even created an async timeout(), so I can simply  await timeout(1000) to delay execution for 1 second.  And I make use of await events.once() a lot, to wait for a particular event.
-			//await thisThrows();
-
-		} catch (err) {
-			// some error occured, handle it nicely
-			this.log.error("runMe threw an error!")
-			this.log.error(err);
-
-		} finally {
-			// do any final cleanup here
-			this.log.warn('We do cleanup here. This is executed after the catch.');
-		}
-	}
-
-
 	// the awesome watchDog
 	async sessionWatchdog(callback) {
 		// the session watchdog creates a session when none exists, and creates stbDevices when none exist
@@ -540,17 +508,20 @@ class stbPlatform {
 	
 
 		// if session does not exist, create the session, passing the country value
+		let errorTitle;
 		if (currentSessionState == sessionState.DISCONNECTED ) { 
-			//this.log('Session is not connected');
+			this.log('Session %s. Starting session connection process', sessionStateName[currentSessionState]);
 			if (this.config.debugLevel > 2) { this.log.warn('%s: attempting to create session', watchdogInstance); }
 
 			// asnyc startup sequence with chain of promises
 			this.log.debug('sessionWatchdog: ++++ step 1: calling createSession')
+			errorTitle = 'Failed to create session';
 			await this.createSession(this.config.country.toLowerCase()) // returns householdId
 				.then((sessionHouseholdId) => {
 					this.log.debug('sessionWatchdog: ++++++ step 2: session was created, connected to sessionHouseholdId %s', sessionHouseholdId)
 					this.log.debug('sessionWatchdog: ++++++ step 2: calling getPersonalizationData with sessionHouseholdId %s ',sessionHouseholdId)
 					this.log('Discovering platform...');
+					errorTitle = 'Failed to discover platform';
 					return this.getPersonalizationData(sessionHouseholdId) // returns customer object, with devices and profiles
 				})
 				// the results of the previous then is the customer object. This is passed on to the next then:
@@ -569,6 +540,7 @@ class stbPlatform {
 				.then((objChannels) => {
 					this.log.debug('sessionWatchdog: ++++++ step 5: masterchannelList data was retrieved, channels found: %s',objChannels.length)
 					this.log.debug('sessionWatchdog: ++++++ step 5: calling discoverDevices')
+					errorTitle = 'Failed to discover devices';
 					return this.discoverDevices() // returns stbDevices object 
 				})				
 				// the results of the previous then is the devices object. This is passed on to the next then:
@@ -576,6 +548,7 @@ class stbPlatform {
 					this.log('Discovery completed');
 					this.log.debug('sessionWatchdog: ++++++ step 6: devices data was retrieved, devices found: %s',objStbDevices.length)
 					this.log.debug('sessionWatchdog: ++++++ step 6: calling getJwtToken')
+					errorTitle = 'Failed to start mqtt session';
 					return this.getJwtToken(this.session.username, this.session.accessToken, this.session.householdId);
 				})				
 				// the results of the previous then is the jwt token. This is passed on to the next then:
@@ -583,11 +556,12 @@ class stbPlatform {
 					this.log.debug('sessionWatchdog: ++++++ step 7: getJwtToken token was retrieved, token %s',jwToken)
 					this.log.debug('sessionWatchdog: ++++++ step 7: start mqtt client')
 					this.startMqttClient(this, this.session.householdId, jwToken);  // this starts the mqtt session, synchronous
+					errorTitle = 'General error';
 					return true // end the chain with a resolved promise
 				})				
 				.catch(errorReason => {
 					// log any errors and set the currentSessionState
-					this.log.warn('Failed to create session - %s', errorReason);
+					this.log.warn(errorTitle + ' - %s', errorReason);
 					currentSessionState = sessionState.DISCONNECTED;
 					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 					return true
@@ -604,6 +578,7 @@ class stbPlatform {
 		this.sessionWatchdogRunning = false;
 		return true
 
+		// old code still in place while I test error handling
 		// async wait a few seconds for the session to load, then continue
 		// should be 15s as GB takes 12s for some users
 		// increased to 30s on 30.08.2021 to help be-nl
@@ -746,10 +721,10 @@ class stbPlatform {
 			// show feedback for devices found
 			if (!this.devices || !this.devices[0].settings) {
 				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-				this.log('Failed to find any devices. The backend systems may be down, or you have no supported devices on your customer account')
 				this.sessionWatchdogRunning = false;
 				if (this.config.debugLevel > 2) { this.log.warn('%s: session connected but no devices found. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
-				return
+				//this.log('Failed to find any devices. The backend systems may be down, or you have no supported devices on your customer account')
+				reject('No devices found. The backend systems may be down, or you have no supported devices on your customer account')
 
 			} else {
 				// at least one device found
@@ -813,7 +788,7 @@ class stbPlatform {
 					}	
 
 				};
-				resolve( this.stbDevices ); // resolve the promise with the stbDevices onject
+				resolve( this.stbDevices ); // resolve the promise with the stbDevices object
 			}
 
 			this.log.debug('discoverDevices: end of code block')
@@ -849,7 +824,7 @@ class stbPlatform {
 	// using new auth method, attempting as of 13.10.2022
 	async getSession() {
 		return new Promise((resolve, reject) => {
-			this.log('getSession: Creating %s session...', PLATFORM_NAME);
+			this.log('Creating %s session...', PLATFORM_NAME);
 			currentSessionState = sessionState.LOADING;
 
 
@@ -915,10 +890,9 @@ class stbPlatform {
 					this.log.debug('Session accessToken:', this.session.accessToken);
 					this.log.debug('Session refreshToken:', this.session.refreshToken);
 					this.log.debug('Session refreshTokenExpiry:', this.session.refreshTokenExpiry);
-					this.log('Session created');
 					currentSessionState = sessionState.CONNECTED;
 					this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-					this.log('Session state:', sessionStateName[currentSessionState]);
+					this.log('Session %s', sessionStateName[currentSessionState]);
 					resolve(this.session.householdId) // resolve the promise with the householdId
 				})
 				.catch(error => {
@@ -1757,7 +1731,7 @@ class stbPlatform {
 			// this.log('getPersonalizationData: GET %s', url);
 			axiosWS.get(url, config)
 				.then(response => {	
-					if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: %s: response: %s %s', householdId, response.status, response.statusText); }
+					if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: response: %s %s', response.status, response.statusText); }
 					if (this.config.debugLevel > 2) { // DEBUG
 						this.log.warn('getPersonalizationData: %s: response data:', householdId);
 						this.log.warn(response.data);
@@ -1816,16 +1790,16 @@ class stbPlatform {
 					resolve( this.customer ); // resolve the promise with the customer object
 				})
 				.catch(error => {
-					let errText, errReason;
-					errText = 'Failed to refresh personalization data for ' + householdId + ' - check your internet connection:'
+					let errReason;
+					errReason = 'Could not refresh personalization data for ' + householdId + ' - check your internet connection'
 					if (error.isAxiosError) { 
 						errReason = error.code + ': ' + (error.hostname || ''); 
 						// if no connection then set session to disconnected to force a session reconnect
 						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
 					}
-					this.log('%s %s', errText, (errReason || ''));
+					//this.log('%s %s', errText, (errReason || ''));
 					this.log.debug(`getPersonalizationData error:`, error);
-					return false, error;
+					reject(error);
 				});
 		})
 	}
@@ -1866,35 +1840,35 @@ class stbPlatform {
 			//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
 			const config = {headers: {
 				"x-cus": householdId,
+				"x-oesp-token": this.session.accessToken,
 				"x-oesp-username": this.session.username
 			}};
 			if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: GET %s', url); }
 			// this.log('getEntitlements: GET %s', url);
 			axiosWS.get(url, config)
 				.then(response => {	
-					if (this.config.debugLevel > 1) { this.log.warn('getEntitlements: %s: response: %s %s', householdId, response.status, response.statusText); }
+					if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: response: %s %s', response.status, response.statusText); }
 					if (this.config.debugLevel > 2) { 
 						this.log.warn('getEntitlements: %s: response data:', householdId);
 						this.log.warn(response.data);
 					}
 					this.entitlements = response.data; // store the entire entitlements data for future use in this.customer.entitlements
-					if (this.config.debugLevel > 1) { 
+					if (this.config.debugLevel > 0) { 
 						this.log.warn('getEntitlements: entitlements found:', this.entitlements.entitlements.length);
 					}
 					//his.log('getEntitlements: returning entitlements object');
 					resolve( this.entitlements ); // resolve the promise with the customer object
 				})
 				.catch(error => {
-					let errText, errReason;
-					errText = 'Failed to refresh entitlements data for ' + householdId + ' - check your internet connection:'
+					let errReason;
+					errReason = 'Could not refresh entitlements data for ' + householdId + ' - check your internet connection'
 					if (error.isAxiosError) { 
 						errReason = error.code + ': ' + (error.hostname || ''); 
 						// if no connection then set session to disconnected to force a session reconnect
 						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
 					}
-					this.log('%s %s', errText, (errReason || ''));
 					this.log.debug(`getEntitlements error:`, error);
-					return false, error;
+					reject(errReason);
 				});		
 		})
 	}
@@ -1958,11 +1932,10 @@ class stbPlatform {
 					
 				})
 				.catch(error => {
-					this.log('Failed to get jwtToken: ', error.code + ' ' + (error.hostname || '') );
 					this.log.debug('getJwtToken error details:', error);
 					// set session flag to disconnected to force a session reconnect
 					currentSessionState = sessionState.DISCONNECTED;
-					return false;
+					reject('Failed to get jwtToken: ', error.code + ' ' + (error.hostname || ''));
 				});			
 		})
 	}
@@ -4453,6 +4426,7 @@ class stbDevice {
 		callback(null, currentActiveInput);
 	}
 
+	
 	// set input (change the TV channel)
 	async setInput(input, callback) {
 		input = input ?? {} // ensure input is never null or undefined
