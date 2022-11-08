@@ -1589,16 +1589,16 @@ class stbPlatform {
 
 				})
 				.catch(error => {
-					let errText, errReason;
-					errText = 'Failed to refresh the master channel list - check your internet connection:'
+					let errReason;
+					errReason = 'Failed to refresh the master channel list - check your internet connection:'
 					if (error.isAxiosError) { 
 						errReason = error.code + ': ' + (error.hostname || ''); 
 						// if no connection then set session to disconnected to force a session reconnect
 						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
 					}
-					this.log('%s %s', errText, (errReason || ''));
+					//this.log('%s %s', errText, (errReason || ''));
 					this.log.warn(`refreshMasterChannelList error:`, error);
-					return error;
+					reject(errReason);
 				});
 		})
 	}
