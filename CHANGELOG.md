@@ -15,16 +15,21 @@ Please report all bugs and problems.
 See below
 
 ## Major Reworks TO-DO (in rough order of priority):
+* Work on ideas for showing radio channels and using them -> STARTED
 * Fix problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
-* Work on ideas for showing radio channels and using them
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
+
+
+## 2.0.0-beta.21 (2022-11-09)
+* Started adding key macro support to the config file for a future release
+* Added more debug code to catch an mqtt problem
 
 
 ## 2.0.0-beta.20 (2022-11-09)
 * Improved detection of sourceType when playing radio stations
 * Cleaned some code
-* Tryng to trace an mqtt bug for one user
+* Trying to trace an mqtt bug for one user
 
 
 ## 2.0.0-beta.19 (2022-11-08)
