@@ -21,6 +21,10 @@ See below
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
 
 
+## 2.0.0-beta.22 (2022-11-09)
+* Adapted startMqttClient to return a promise to try and resolve a startup issue with node18
+
+
 ## 2.0.0-beta.21 (2022-11-09)
 * Started adding key macro support to the config file for a future release
 * Added more debug code to catch an mqtt problem
