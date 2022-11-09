@@ -556,9 +556,8 @@ class stbPlatform {
 				.then((jwToken) => {
 					this.log.debug('sessionWatchdog: ++++++ step 7: getJwtToken token was retrieved, token %s',jwToken)
 					this.log.debug('sessionWatchdog: ++++++ step 7: start mqtt client')
-					this.startMqttClient(this, this.session.householdId, jwToken);  // this starts the mqtt session, synchronous
-					errorTitle = 'General error';
-					return true // end the chain with a resolved promise
+					return this.startMqttClient(this, this.session.householdId, jwToken);  // returns true
+					//return true // end the chain with a resolved promise
 				})				
 				.catch(errorReason => {
 					// log any errors and set the currentSessionState
@@ -1987,7 +1986,8 @@ class stbPlatform {
 	// start the mqtt client and handle mqtt messages
 	// a sync procedure, no promise returned
 	startMqttClient(parent, mqttUsername, mqttPassword) {
-		if (this.config.debugLevel > 0) { 
+		return new Promise((resolve, reject) => {
+			if (this.config.debugLevel > 0) { 
 			this.log('Starting mqttClient...'); 
 		}
 		if (currentSessionState !== sessionState.CONNECTED) {
@@ -2428,8 +2428,8 @@ class stbPlatform {
 		if (this.config.debugLevel > 0) { 
 			this.log("mqttClient: end of code block");
 		}
-		return true;
-
+		resolve(true);
+	})
 	} // end of startMqttClient
 
 
