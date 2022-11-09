@@ -23,6 +23,8 @@ See below
 
 ## 2.0.0-beta.20 (2022-11-09)
 * Improved detection of sourceType when playing radio stations
+* Cleaned some code
+* Tryng to trace an mqtt bug for one user
 
 
 ## 2.0.0-beta.19 (2022-11-08)
