@@ -528,6 +528,7 @@ class stbPlatform {
 				.then((objCustomer) => {
 					this.log.debug('sessionWatchdog: ++++++ step 3: personalization data was retrieved, customerId %s customerStatus %s',objCustomer.customerId, objCustomer.customerStatus)
 					this.log.debug('sessionWatchdog: ++++++ step 3: calling getEntitlements with customerId %s ',objCustomer.customerId)
+					//this.getExperimentalEndpoint(objCustomer.customerId) // returns true
 					return this.getEntitlements(objCustomer.customerId) // returns entitlements object
 				})
 				// the results of the previous then is the entitlements object. This is passed on to the next then:
@@ -1571,7 +1572,7 @@ class stbPlatform {
 					this.log.debug('Channels to process:',channels.length);
 					for(let i=0; i<channels.length; i++) {
 						const channel = channels[i];
-						//this.log('Loading channel:',i,channel.logicalChannelNumber,channel.id, channel.name); // for debug purposes
+						if (this.config.debugLevel > 2) { this.log('Processing channel:',i,channel.logicalChannelNumber,channel.id, channel.name); } // for debug purposes
 						// log the detail of logicalChannelNumber 60 nicktoons, for which I have no subscription, as a test of entitlements
 						//if (this.config.debugLevel > 0) { if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); } }
 						this.masterChannelList.push({
@@ -1670,7 +1671,7 @@ class stbPlatform {
 				this.log.debug('Channels to process:',channels.length);
 				for(let i=0; i<channels.length; i++) {
 					const channel = channels[i];
-					//this.log('Loading channel:',i,channel.logicalChannelNumber,channel.id, channel.name); // for debug purposes
+					// if (this.config.debugLevel > 0) { this.log('Loading channel:',i,channel.logicalChannelNumber,channel.id, channel.name); } // for debug purposes
 					// log the detail of logicalChannelNumber 60 nicktoons, for which I have no subscription, as a test of entitlements
 					//if (this.config.debugLevel > 0) { if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); } }
 					this.masterChannelList.push({
@@ -1874,6 +1875,46 @@ class stbPlatform {
 	}
 
 
+	// get getExperimentalEndpoint for the householdId
+	async getExperimentalEndpoint(householdId, callback) {
+		//return new Promise((resolve, reject) => {
+			this.log("getExperimentalEndpoint: householdId %s", householdId);
+
+			//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
+			//const url='https://prod.spark.sunrisetv.ch/eng/web/purchase-service/v2/customers/1076582_ch/entitlements?enableDaypass=true'
+			// 'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web'
+			let url
+			//url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
+			//url='https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web/eng/session'
+			url='https://prod.spark.upctv.ch/ch/en/session-service'
+			const config = {headers: {
+				"x-cus": householdId,
+				"x-oesp-token": this.session.accessToken,
+				"x-oesp-username": this.session.username
+			}};
+			this.log.warn('getExperimentalEndpoint: GET %s', url);
+			// this.log('getEntitlements: GET %s', url);
+			axiosWS.get(url, config)
+				.then(response => {	
+					this.log.warn('getExperimentalEndpoint: response: %s %s', response.status, response.statusText);
+					this.log.warn(response.data);
+					return true
+					//resolve( true ); // resolve the promise with the customer object
+				})
+				.catch(error => {
+					let errReason;
+					errReason = 'Could not get experimental data for ' + householdId + ' - check your internet connection'
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+						// if no connection then set session to disconnected to force a session reconnect
+						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+					}
+					this.log.warn(`getExperimentalEndpoint error:`, error);
+					//reject(errReason);
+					return false;
+				});		
+		//})
+	}
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// END session handler (web)
@@ -1924,9 +1965,11 @@ class stbPlatform {
 			this.log.debug("getJwtToken: jwtAxiosConfig:", jwtAxiosConfig)
 			axiosWS(jwtAxiosConfig)
 				.then(response => {	
-					this.log.debug("getJwtToken: response.data:", response.data)
+					if (this.config.debugLevel > 0) { 
+						this.log.warn("getJwtToken: response.data:", response.data)
+					}
+					//this.jwtToken = response.data.token; // store the token
 					mqttUsername = householdId; // used in sendKey to ensure that mqtt is connected
-					if (this.config.debugLevel > 1) { this.log.warn('getJwtToken: calling startMqttClient'); }
 					resolve( response.data.token ); // resolve with the tokwn
 					//this.startMqttClient(this, householdId, response.data.token);  // this starts the mqtt session
 					
@@ -1955,16 +1998,17 @@ class stbPlatform {
 
 		// create mqtt client instance and connect to the mqttUrl
 		const mqttUrl = mqttUrlArray[this.config.country.toLowerCase()];
-		if (this.config.debugLevel > 2) { 
+		if (this.config.debugLevel > 0) { 
 			this.log.warn('startMqttClient: mqttUrl:', mqttUrl ); 
 		}
-		if (this.config.debugLevel > 2) { 
+		if (this.config.debugLevel > 0) { 
 			this.log.warn('startMqttClient: Creating mqttClient object with username %s, password %s', mqttUsername ,mqttPassword ); 
 		}
 
 		// make a new mqttClientId on every session start, much robuster, then connect
 		//mqttClientId = makeId(32);
-		mqttClientId = makeFormattedId(32);
+		//mqttClientId = makeFormattedId(32); // one ch user having trouble with the long id
+		mqttClientId = makeId(32);
 
 		mqttClient = mqtt.connect(mqttUrl, {
 			connectTimeout: 10*1000, //10 seconds
@@ -1972,12 +2016,11 @@ class stbPlatform {
 			username: mqttUsername,
 			password: mqttPassword
 		});
-		if (this.config.debugLevel > 2) { 
-			this.log.warn('startMqttClient: mqttUrl connect request sent' ); 
+		if (this.config.debugLevel > 0) { 
+			this.log.warn('startMqttClient: mqttUrl connect request sent using mqttClientId %s',mqttClientId ); 
 		}
 
 		//mqttClient.setMaxListeners(20); // default is 10 sometimes causes issues when the listeners reach 11
-
 		//parent.log(mqttClient); //for debug
 
 		
@@ -1996,8 +2039,10 @@ class stbPlatform {
 				parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction');
 				
 				// purchaseService and watchlistService are not needed, but add if desired if we want to monitor these services
-				//parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService');
-				//parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService');
+				parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService');
+				parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService');
+				//parent.mqttSubscribeToTopic(mqttUsername + '/radioStatus'); // a guess
+				//parent.mqttSubscribeToTopic(mqttUsername + '/audioStatus'); // a guess
 
 				// initiate the EOS session by turning on the HGO platform
 				// this is needed to trigger the backend to send us channel change messages when the channel is changed on the box
@@ -2006,7 +2051,7 @@ class stbPlatform {
 
 				// subscribe to all householdId messages
 				parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
-				//parent.mqttSubscribeToTopic(mqttUsername + '/status'); // experiment, may not be needed
+				parent.mqttSubscribeToTopic(mqttUsername + '/status'); // experiment, may not be needed
 				parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status
 
 				// experimental support of recording status
@@ -2019,6 +2064,11 @@ class stbPlatform {
 					parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId);
 					// subscribe to our householdId/deviceId/status
 					parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/status');
+					//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/audioStatus'); // a guess
+					//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/radioStatus'); // a guess
+					//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/source'); // a guess
+					//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/radio'); // a guess
+					//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/audio'); // a guess
 				});
 
 				// and request the initial UI status for each device
@@ -2174,19 +2224,27 @@ class stbPlatform {
 									// linear = normal TV
 									// reviewbuffer = delayed buffered TV playback
 									// replay = replay TV
-									// nDVR = playback from saved program (Digital Video Recorder)
+									// nDVR = playback from saved program (network Digital Video Recorder)
+									// lDVR = playback from saved program (local Digital Video Recorder)
+									// '' (empty string) = when radio is playing
 									switch (playerState.sourceType) {
-										case 'linear':	// ONLINE_RUNNING: power is on
+										case 'linear':	// linear: normal tv
 										case 'reviewbuffer': 
 											currInputSourceType = Characteristic.InputSourceType.TUNER;
 											currInputDeviceType = Characteristic.InputDeviceType.TV; // linear TV
 											break;
-										case 'replay': // replay TV
+										case 'replay': 	// replay TV
 										case 'nDVR':
+										case 'lDVR':
+										case 'LDVR':
 											currInputSourceType = Characteristic.InputSourceType.OTHER;
 											currInputDeviceType = Characteristic.InputDeviceType.PLAYBACK; // replay TV
 											break;
-									}
+										case '':		// '' (empty string), happens when radio is playing
+											currInputSourceType = Characteristic.InputSourceType.OTHER;
+											currInputDeviceType = Characteristic.InputDeviceType.TUNER; // use tuner for radio
+											break;
+										}
 	
 
 									// get channelId (current playing channel eg SV09038) from linear TV
@@ -2202,6 +2260,7 @@ class stbPlatform {
 									} else {
 										// if playerState.source is null, then the settop box could be playing a radio station
 										// the code will pass a null through the code but no change will occur, so deliberately set a NO_CHANNEL_ID
+										// when playing radio playerState.sourceType='' and playerState.source is null, and a relativePosition=0 appears, this could be maybe used for Radio detection
 										currChannelId = NO_CHANNEL_ID;
 									}
 
@@ -2364,6 +2423,7 @@ class stbPlatform {
 				currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 			}
 		}); // end of mqttClient.on('connect'... event
+		return true;
 
 	} // end of startMqttClient
 
@@ -2465,9 +2525,16 @@ class stbPlatform {
 			if (mqttUsername) {
 				this.mqttPublishMessage(
 					mqttUsername + '/' + deviceId, 
+					// cannot get radio to work, sourceType is unclear
+					// [09/11/2022, 12:55:00] [EOSSTB] Processing channel: 518 1001 SV01301 Radio SRF 1
+					// [09/11/2022, 12:55:00] [EOSSTB] Processing channel: 519 1002 SV01327 Radio SRF 1 ZH
+					// [09 /11/2022, 12:55:00] [EOSSTB] Processing channel: 520 1003 SV01322 Radio SRF 1 BE
+					// [09/11/2022, 12:55:00] [EOSSTB] Processing channel: 521 1004 SV01323 Radio SRF 1 BS
 					'{"id":"' + makeFormattedId(32) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
-					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
-					+ channelId + '"},"relativePosition":0,"speed":1}}',
+					//+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
+					//+ channelId + '"},"relativePosition":0,"speed":1}}',
+					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"ott","source":{"channelId":"' 
+					+ 'SV01301' + '"},"relativePosition":0,"speed":1}}',
 					'{"qos":0}'
 				);
 			}
