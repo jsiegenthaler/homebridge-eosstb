@@ -2531,10 +2531,10 @@ class stbPlatform {
 					// [09 /11/2022, 12:55:00] [EOSSTB] Processing channel: 520 1003 SV01322 Radio SRF 1 BE
 					// [09/11/2022, 12:55:00] [EOSSTB] Processing channel: 521 1004 SV01323 Radio SRF 1 BS
 					'{"id":"' + makeFormattedId(32) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
-					//+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
-					//+ channelId + '"},"relativePosition":0,"speed":1}}',
-					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"ott","source":{"channelId":"' 
-					+ 'SV01301' + '"},"relativePosition":0,"speed":1}}',
+					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
+					+ channelId + '"},"relativePosition":0,"speed":1}}',
+					//+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"ott","source":{"channelId":"' 
+					//+ 'SV01301' + '"},"relativePosition":0,"speed":1}}',
 					'{"qos":0}'
 				);
 			}
