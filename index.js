@@ -2423,6 +2423,11 @@ class stbPlatform {
 				currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 			}
 		}); // end of mqttClient.on('connect'... event
+		
+		
+		if (this.config.debugLevel > 0) { 
+			this.log("mqttClient: end of code block");
+		}
 		return true;
 
 	} // end of startMqttClient
@@ -2984,7 +2989,7 @@ class stbDevice {
 		// setup arrays
 		this.debugLevel = this.config.debugLevel || 0; // debugLevel defaults to 0 (minimum)
 		this.channelList = [];			// subscribed channels, filtered from the masterchannelLust, to be loaded into the Home app. Limited to 96
-		this.inputServices = [];		// loaded input services, used by the accessory, as shown in the Home app. Limited to 96
+		this.inputServices = [];		// loaded input services, used by the accessory, as shown in the Home app. Limited to 95
 		this.configuredInputs = [];		// a list of inputs that have been renamed by the user. EXPERIMENTAL
 
 		//setup variables
@@ -4109,9 +4114,10 @@ class stbDevice {
 						if (this.profileid == 0) {
 							this.inputServices[i].updateCharacteristic(Characteristic.Name, channel.name); // stays unchanged at Input 01 etc
 						}
-						this.inputServices[i].updateCharacteristic(Characteristic.ConfiguredName, channel.configuredName);
-						this.inputServices[i].updateCharacteristic(Characteristic.CurrentVisibilityState, channel.visibilityState);
-						this.inputServices[i].updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
+						this.inputServices[i]
+							.updateCharacteristic(Characteristic.ConfiguredName, channel.configuredName)
+							.updateCharacteristic(Characteristic.CurrentVisibilityState, channel.visibilityState)
+							.updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
 						//inputService.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
 					}
 				}
@@ -4130,6 +4136,34 @@ class stbDevice {
 					this.televisionService.updateCharacteristic(Characteristic.ActiveIdentifier, NO_INPUT_ID);
 				}
 			}
+
+			// load any custom key macros: in work, not for publich consumption yet
+			if (this.config.channels && 1==0) {
+				this.config.channels.forEach((customChannel, i) => {
+				this.log("In forEach loop, processing config channel index %s %s", i, customChannel)
+
+				this.log(customChannel)
+				// first look in the config channels list for any user-defined custom channel name
+				if (customChannel.channelKeyMacro){
+					this.log("%s: Found Key Macro in config channels:", this.name, customChannel.channelKeyMacro, customChannel.channelName)
+					let i = this.inputServices.length
+					this.log("inputService %s is set to", i-1);
+					this.log(this.inputServices[i-1]);
+					this.inputServices[i]
+						.name = customChannel.channelName
+						//.subtype = 'input_KM' + 20000 + i; // string, input_KM20000 + channel offset. KM=KeyMacro
+					this.inputServices[i].updateCharacteristic(Characteristic.Name, customChannel.channelName) // stays unchanged at Input 01 etc
+						.updateCharacteristic(Characteristic.ConfiguredName, customChannel.channelName)
+						.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.SHOWN)
+						.updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
+					
+					this.log("inputService %s is set to", i);
+					this.log(this.inputServices[i]);
+
+				}
+				})
+			}
+
 
 
 			// save to disk
@@ -4502,6 +4536,10 @@ class stbDevice {
 		var currentChannelName = NO_CHANNEL_NAME;
 		const channel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId);
 		if (channel) { currentChannelName = channel.name; }
+
+		this.log.warn("setInput: go to input %s", input)
+		this.log.warn(channel)
+
 		// robustness: only try to switch channel if an input.id exists
 		if (input.id){
 			this.log('%s: Change channel from %s [%s] to %s [%s]', this.name, this.currentChannelId, currentChannelName, input.id, input.name);
