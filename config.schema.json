@@ -792,7 +792,12 @@
                     "channelId": {
                         "title": "Channel ID",
                         "type": "string",
-                        "description": "Unique channelId, see the Homebridge log."
+                        "description": "Unique channelId, see the Homebridge log. Has priority over key macros."
+                    },
+                    "channelKeyMacro": {
+                        "title": "Channel Key Macro",
+                        "type": "string",
+                        "description": "A sequence of remote control keys for enhanced customising. Channel ID must be empty to use key macros. Example: '1 2 3 Enter' to select channel 123. See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys."
                     },
                     "channelName": {
                         "title": "Channel Name",
@@ -1096,6 +1101,7 @@
                     "type": "array",
                     "items": [
                         "channels[].channelId",
+                        "channels[].channelKeyMacro",
                         "channels[].channelName"
                     ]
                 }
