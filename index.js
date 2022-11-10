@@ -179,6 +179,7 @@ var exec = require("child_process").exec;
 const { waitForDebugger } = require('inspector');
 const { ENGINE_METHOD_CIPHERS } = require('constants');
 const { LOADIPHLPAPI } = require('dns');
+const { connected } = require('process');
 var PLUGIN_ENV = ''; // controls the development environment, appended to UUID to make unique device when developing
 
 // variables for session and all devices
@@ -1985,451 +1986,460 @@ class stbPlatform {
 
 	// start the mqtt client and handle mqtt messages
 	// a sync procedure, no promise returned
+	// https://github.com/mqttjs/MQTT.js#readme
 	startMqttClient(parent, mqttUsername, mqttPassword) {
 		return new Promise((resolve, reject) => {
-			if (this.config.debugLevel > 0) { 
-			this.log('Starting mqttClient...'); 
-		}
-		if (currentSessionState !== sessionState.CONNECTED) {
-			this.log.warn('Cannot start mqttClient: currentSessionState incorrect:', currentSessionState);
-			return false;
-		}
-
-
-		// create mqtt client instance and connect to the mqttUrl
-		const mqttUrl = mqttUrlArray[this.config.country.toLowerCase()];
-		if (this.config.debugLevel > 0) { 
-			this.log.warn('startMqttClient: mqttUrl:', mqttUrl ); 
-		}
-		if (this.config.debugLevel > 0) { 
-			this.log.warn('startMqttClient: Creating mqttClient object with username %s, password %s', mqttUsername ,mqttPassword ); 
-		}
-
-		// make a new mqttClientId on every session start, much robuster, then connect
-		//mqttClientId = makeId(32);
-		//mqttClientId = makeFormattedId(32); // one ch user having trouble with the long id
-		mqttClientId = makeId(32);
-
-		mqttClient = mqtt.connect(mqttUrl, {
-			connectTimeout: 10*1000, //10 seconds
-			clientId: mqttClientId,
-			username: mqttUsername,
-			password: mqttPassword
-		});
-		if (this.config.debugLevel > 0) { 
-			this.log.warn('startMqttClient: mqttUrl connect request sent using mqttClientId %s',mqttClientId ); 
-		}
-
-		//mqttClient.setMaxListeners(20); // default is 10 sometimes causes issues when the listeners reach 11
-		//parent.log(mqttClient); //for debug
-
-		
-		// mqtt client event: connect
-		mqttClient.on('connect', function () {
 			try {
-				parent.currentMqttState = mqttState.connected;
-				parent.log("mqttClient: Connected: %s", mqttClient.connected);
-				parent.mqttClientConnecting = false;
+				if (this.config.debugLevel > 0) { 
+					this.log('Starting mqttClient...'); 
+				}
+				if (currentSessionState !== sessionState.CONNECTED) {
+					this.log.warn('Cannot start mqttClient: currentSessionState incorrect:', currentSessionState);
+					return false;
+				}
 
-				// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
-				parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
 
-				// subscribe to recording status, used to update the accessory charateristics
-				parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus');
-				parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction');
+				// create mqtt client instance and connect to the mqttUrl
+				const mqttUrl = mqttUrlArray[this.config.country.toLowerCase()];
+				if (this.config.debugLevel > 0) { 
+					this.log.warn('startMqttClient: mqttUrl:', mqttUrl ); 
+				}
+				if (this.config.debugLevel > 0) { 
+					this.log.warn('startMqttClient: Creating mqttClient object with username %s, password %s', mqttUsername ,mqttPassword ); 
+				}
+
+				// make a new mqttClientId on every session start, much robuster, then connect
+				//mqttClientId = makeId(32);
+				mqttClientId = makeFormattedId(32);
+				//mqttClientId = makeId(32);
+
+				this.log.warn('startMqttClient: doing connect now'); 
+				mqttClient = mqtt.connect(mqttUrl, {
+					connectTimeout: 10 * 1000, // 10s
+					clientId: mqttClientId,
+					username: mqttUsername,
+					password: mqttPassword
+				});
+				if (this.config.debugLevel > 0) { 
+					this.log.warn('startMqttClient: mqttUrl connect request sent using mqttClientId %s',mqttClientId ); 
+				}
+				this.log.warn('startMqttClient: connect status: ', mqttClient.connected); 
+
+				//mqttClient.setMaxListeners(20); // default is 10 sometimes causes issues when the listeners reach 11
+				//parent.log(mqttClient); //for debug
+
 				
-				// purchaseService and watchlistService are not needed, but add if desired if we want to monitor these services
-				parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService');
-				parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService');
-				//parent.mqttSubscribeToTopic(mqttUsername + '/radioStatus'); // a guess
-				//parent.mqttSubscribeToTopic(mqttUsername + '/audioStatus'); // a guess
-
-				// initiate the EOS session by turning on the HGO platform
-				// this is needed to trigger the backend to send us channel change messages when the channel is changed on the box
-				parent.setHgoOnlineRunning(mqttUsername, mqttClientId);
-				parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId); // subscribe to mqttClientId to get channel data
-
-				// subscribe to all householdId messages
-				parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
-				parent.mqttSubscribeToTopic(mqttUsername + '/status'); // experiment, may not be needed
-				parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status
-
-				// experimental support of recording status
-				parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings');
-				parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings/capacity');
-
-				// subscribe to all devices after the setHgoOnlineRunning is sent
-				parent.devices.forEach((device) => {
-					// subscribe to our householdId/deviceId
-					parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId);
-					// subscribe to our householdId/deviceId/status
-					parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/status');
-					//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/audioStatus'); // a guess
-					//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/radioStatus'); // a guess
-					//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/source'); // a guess
-					//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/radio'); // a guess
-					//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/audio'); // a guess
-				});
-
-				// and request the initial UI status for each device
-				// hmm do we really need this now that HGO has been deprecated as web client?
-				parent.devices.forEach((device) => {
-					// send a getuiStatus request
-					parent.getUiStatus(device.deviceId, mqttClientId);
-				});
-
-				// and request current recordingState
-				parent.getRecordingState();  // async function
-
-				// ++++++++++++++++++++ mqttConnected +++++++++++++++++++++
-			
-		  
-				// mqtt client event: message received
-				mqttClient.on('message', function (topic, payload) {
+				// mqtt client event: connect
+				mqttClient.on('connect', function () {
 					try {
+						parent.currentMqttState = mqttState.connected;
+						parent.log("mqttClient: Connected: %s", mqttClient.connected);
+						parent.mqttClientConnecting = false;
 
-						// store some mqtt diagnostic data
-						parent.currentMqttState = mqttState.connected; // set to connected on every message received event
-						parent.lastMqttMessageReceived = Date.now();
+						// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
+						parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
 
-						let mqttMessage = JSON.parse(payload);
-						if (parent.config.debugLevel > 0) {
-							parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: \r\n%s', topic, mqttMessage);
-							parent.log.warn(mqttMessage);
-						}
-
-						// variables for just in this function
-						var deviceId, stbState, currPowerState, currMediaState, currChannelId, currSourceType, profileDataChanged, currRecordingState, currStatusActive, currInputDeviceType, currInputSourceType;
-
-						// and request the UI status for each device
-						// 14.03.2021 does not respond, disabling for now...
-						// need to poll at regular intervals maybe?
-						//parent.devices.forEach((device) => {
-							// send a getuiStatus request
-							//parent.getUiStatus(device.deviceId, mqttClientId);
-						//});
-
-						// handle personalizationService messages
-						// Topic: Topic: 107xxxx_ch/personalizationService
-						// Message: { action: 'OPS.getProfilesUpdate', source: '3C36E4-EOSSTB-00365657xxxx', ... }
-						// Message: { action: 'OPS.getDeviceUpdate', source: '3C36E4-EOSSTB-00365657xxxx', deviceId: '3C36E4-EOSSTB-00365657xxxx' }
-						if (topic.includes(mqttUsername + '/personalizationService')) {
-							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s: action', mqttMessage.action); }
-							if (mqttMessage.action == 'OPS.getProfilesUpdate' || mqttMessage.action == 'OPS.getDeviceUpdate') {
-								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData', mqttMessage.action); }
-								deviceId = mqttMessage.source;
-								profileDataChanged = true;
-								parent.getPersonalizationData(parent.session.householdId); // async function
-							}
-						}
-
-						// handle recordingState messages
-						// Topic: Topic: 107xxxx_ch/recordingStatus
-						// Message: {"id":"crid:~~2F~~2Fgn.tv~~2F2004781~~2FEP019440730003,imi:2d369682b865679f2e5182ea52a93410171cfdc8","event":"scheduleEvent","transactionId":"/CH/eng/web/networkdvrrecordings - 013f12fc-23ef-4b77-a244-eeeea0c6901c"}
-						if (topic.includes(mqttUsername + '/recordingStatus')) {
-							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: event: %s', mqttMessage.event); }
-							parent.getRecordingState(); // async function
-						}
-
-						// handle status messages for the STB
-						// Topic: 107xxxx_ch/3C36E4-EOSSTB-00365657xxxx/status
-						// Message: {"deviceType":"STB","source":"3C36E4-EOSSTB-00365657xxxx","state":"ONLINE_RUNNING","mac":"F8:F5:32:45:DE:52","ipAddress":"192.168.0.33/255.255.255.0"}
-						if (topic.includes('/status')) {
-							if (mqttMessage.deviceType == 'STB') {
-								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: STB status: Detecting Power State: Received Message of deviceType %s for %s', mqttMessage.deviceType, mqttMessage.source); }
-								// sometimes a rogue empty message appears without a mac or ipAddress, so ensure a mac is always present
-								// mac.length = 0 when the box is physically offline
-								if (mqttMessage.mac.length > 0) {
-									deviceId = mqttMessage.source;
-									stbState = mqttMessage.state;
-								} else {
-									deviceId = mqttMessage.source;
-									stbState = mqttMessage.state;
-								}
-								// Box setting: StandbyPowerConsumption = FastStart / ActiveStart / EcoSlowstart
-								// In FastStart the box goes to ONLINE_STANDBY when turned off, and can be turned on again over mqtt
-								// In ActiveStart the box goes to ONLINE_STANDBY when turned off, and maybe changes after time? test this. 
-								switch (stbState) {
-									case 'ONLINE_RUNNING':	// ONLINE_RUNNING: power is on
-										currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
-										currPowerState = Characteristic.Active.ACTIVE; 
-										break;
-									case 'ONLINE_STANDBY': // ONLINE_STANDBY: power is off, device is on standby, still reachable over the network, can be turned on via mqtt. 
-										currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
-										currPowerState = Characteristic.Active.INACTIVE;
-										currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
-										break;
-									case 'OFFLINE_NETWORK_STANDBY': // OFFLINE_NETWORK_STANDBY: power is off, device is still reachable on the network
-										currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
-										currPowerState = Characteristic.Active.INACTIVE;
-										currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
-										break;
-									case 'OFFLINE':			// OFFLINE: power is off, device is not reachable over the network
-										currStatusActive = Characteristic.Active.INACTIVE; // bool, 0 = not active, 1 = active
-										currPowerState = Characteristic.Active.INACTIVE;
-										currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
-										break;
-								}
-								if (parent.config.debugLevel > 0) { 
-									parent.log.warn('mqttClient: %s %s ', deviceId, stbState);
-								}
-
-							}
-						}
-
-						//parent.log.warn('mqttClient: CPE.uiStatus: stbState %s, currStatusActive %s, currPowerState %s, currMediaState %s', stbState, currStatusActive, currPowerState, currMediaState); 
+						// subscribe to recording status, used to update the accessory charateristics
+						parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus');
+						parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction');
 						
-						// handle CPE UI status messages for the STB
-						// topic can be many, so look for mqttMessage.type
-						// Topic: 107xxxx_ch/vy9hvvxo8n6r1t3f4e05tgg590p8s0
-						// Message: {"version":"1.3.10","type":"CPE.uiStatus","source":"3C36E4-EOSSTB-00365657xxxx","messageTimeStamp":1607205483257,"status":{"uiStatus":"mainUI","playerState":{"sourceType":"linear","speed":1,"lastSpeedChangeTime":1607203130936,"source":{"channelId":"SV09259","eventId":"crid:~~2F~~2Fbds.tv~~2F394850976,imi:3ef107f9a95f37e5fde84ee780c834b502be1226"}},"uiState":{}},"id":"fms4mjb9uf"}
-						if (mqttMessage.type == 'CPE.uiStatus') {
-							if (parent.config.debugLevel > 0) { 
-								parent.log.warn('mqttClient: CPE.uiStatus: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
-							}
-							if (parent.config.debugLevel > 0) {
-								parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
-								parent.log.warn('mqttClient: mqttMessage.status.uiStatus:', mqttMessage.status.uiStatus);
-							}
-							// if we have this message, then the power is on. Sometimes the message arrives before the status topic with the power state
-							currStatusActive = Characteristic.Active.ACTIVE; // ensure statusActive is set to Active
-							currPowerState = Characteristic.Active.ACTIVE;  // ensure power is set to ON
+						// purchaseService and watchlistService are not needed, but add if desired if we want to monitor these services
+						parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService');
+						parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService');
+						//parent.mqttSubscribeToTopic(mqttUsername + '/radioStatus'); // a guess
+						//parent.mqttSubscribeToTopic(mqttUsername + '/audioStatus'); // a guess
 
-							parent.lastMqttUiStatusMessageReceived = Date.now();
-							deviceId = mqttMessage.source;
-							const cpeUiStatus = mqttMessage.status;
-							// normal TV: 	cpeUiStatus = mainUI
-							// app: 		cpeUiStatus = apps (YouTube, Netflix, etc)
-							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus:', cpeUiStatus); }
-							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus.uiStatus:', cpeUiStatus.uiStatus); }
-							switch (cpeUiStatus.uiStatus) {
-								case 'mainUI':
-									// grab the status part of the mqttMessage object as we cannot go any deeper with json
-									const playerState = cpeUiStatus.playerState;
-									currSourceType = playerState.sourceType;
-									if (parent.config.debugLevel > 1) { parent.log.warn('mqttClient: mainUI: Detected mqtt playerState.speed:', playerState.speed); }
+						// initiate the EOS session by turning on the HGO platform
+						// this is needed to trigger the backend to send us channel change messages when the channel is changed on the box
+						parent.setHgoOnlineRunning(mqttUsername, mqttClientId);
+						parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId); // subscribe to mqttClientId to get channel data
 
-									// get playerState.speed (shows if playing or paused)
-									// speed can be one of: -64 -30 -6 -2 0 2 6 30 64. 0=Paused, 1=Play, >1=FastForward, <0=Rewind
-									if (playerState.speed == 0) { 			// speed 0 is PAUSE
-										currMediaState = Characteristic.CurrentMediaState.PAUSE;
-									} else if (playerState.speed == 1) { 	// speed 1 is PLAY
-										currMediaState = Characteristic.CurrentMediaState.PLAY;
-									} else {								// default for all speeds (-64 -30 -6 2 6 30 64) is LOADING
-										currMediaState = Characteristic.CurrentMediaState.LOADING;
-									}
+						// subscribe to all householdId messages
+						parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
+						parent.mqttSubscribeToTopic(mqttUsername + '/status'); // experiment, may not be needed
+						parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status
 
-									// get sourceType to set the currInputSourceType and currInputDeviceType
-									// playerState.sourceType
-									// linear = normal TV
-									// reviewbuffer = delayed buffered TV playback
-									// replay = replay TV
-									// nDVR = playback from saved program (network Digital Video Recorder)
-									// lDVR = playback from saved program (local Digital Video Recorder)
-									// '' (empty string) = when radio is playing
-									switch (playerState.sourceType) {
-										case 'linear':	// linear: normal tv
-										case 'reviewbuffer': 
-											currInputSourceType = Characteristic.InputSourceType.TUNER;
-											currInputDeviceType = Characteristic.InputDeviceType.TV; // linear TV
-											break;
-										case 'replay': 	// replay TV
-										case 'nDVR':
-										case 'lDVR':
-										case 'LDVR':
-											currInputSourceType = Characteristic.InputSourceType.OTHER;
-											currInputDeviceType = Characteristic.InputDeviceType.PLAYBACK; // replay TV
-											break;
-										case '':		// '' (empty string), happens when radio is playing
-											currInputSourceType = Characteristic.InputSourceType.OTHER;
-											currInputDeviceType = Characteristic.InputDeviceType.TUNER; // use tuner for radio
-											break;
-										}
-	
+						// experimental support of recording status
+						parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings');
+						parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings/capacity');
 
-									// get channelId (current playing channel eg SV09038) from linear TV
-									// Careful: source is not always present in the data
-									if (playerState.source) {
-										currChannelId = playerState.source.channelId || NO_CHANNEL_ID; // must be a string
-										if (parent.config.debugLevel > 0 && parent.masterChannelList) {
-											let currentChannelName; // let is scoped to the current {} block
-											let curChannel = parent.masterChannelList.find(channel => channel.id === currChannelId); 
-											if (curChannel) { currentChannelName = curChannel.name; }
-											parent.log.warn('mqttClient: Detected mqtt channelId: %s [%s]', currChannelId, currentChannelName);
-										}
-									} else {
-										// if playerState.source is null, then the settop box could be playing a radio station
-										// the code will pass a null through the code but no change will occur, so deliberately set a NO_CHANNEL_ID
-										// when playing radio playerState.sourceType='' and playerState.source is null, and a relativePosition=0 appears, this could be maybe used for Radio detection
-										currChannelId = NO_CHANNEL_ID;
-									}
+						// subscribe to all devices after the setHgoOnlineRunning is sent
+						parent.devices.forEach((device) => {
+							// subscribe to our householdId/deviceId
+							parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId);
+							// subscribe to our householdId/deviceId/status
+							parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/status');
+							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/audioStatus'); // a guess
+							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/radioStatus'); // a guess
+							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/source'); // a guess
+							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/radio'); // a guess
+							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/audio'); // a guess
+						});
 
-									break;
+						// and request the initial UI status for each device
+						// hmm do we really need this now that HGO has been deprecated as web client?
+						parent.devices.forEach((device) => {
+							// send a getuiStatus request
+							parent.getUiStatus(device.deviceId, mqttClientId);
+						});
 
-								case 'apps':
-									//parent.log('mqttClient: apps: Detected mqtt app channelId: %s', cpeUiStatus.appsState.id);
-									//parent.log("mqttClient: apps: Detected mqtt app appName %s", cpeUiStatus.appsState.appName);
-									// we get id and appName here, load to the channel list...
-									// useful for YouTube and Netflix
-									currInputSourceType = Characteristic.InputSourceType.APPLICATION;
-									currInputDeviceType = Characteristic.InputDeviceType.OTHER; // apps
-									switch (cpeUiStatus.appsState.id) {
+						// and request current recordingState
+						parent.getRecordingState();  // async function
+
+						// ++++++++++++++++++++ mqttConnected +++++++++++++++++++++
+					
 				
-										case 'com.bbc.app.launcher': case 'com.bbc.app.crb':
-											// ignore the following apps to ensure channel name is not overridden:
-											// com.bbc.app.launcher 	button launcher app??
-											// com.bbc.app.crb 			Connected Red Button app, this is the Red Button special control on the remote
-											currChannelId = null; 
-											parent.log("App %s [%s] detected. Ignoring", cpeUiStatus.appsState.id, cpeUiStatus.appsState.appName);
-											break;
-	
-										default:
-											// check if the app channel exists in the master channel list, if not, push it, using the user-defined name if one exists
-											currChannelId = cpeUiStatus.appsState.id;
-											var foundIndex = parent.masterChannelList.findIndex(channel => channel.id === currChannelId); 
-											if (foundIndex == -1 ) {
-												parent.log("App %s detected. Adding to the master channel list at index %s with channelId %s", cpeUiStatus.appsState.appName, parent.masterChannelList.length, currChannelId);
-												const entitlementId = parent.entitlements.entitlements[0].id;
-												// for easy identification, make the logicalChannelNumber and channelNumber app10000 + the index number
-												parent.masterChannelList.push({
-													id: currChannelId, 
-													name: cleanNameForHomeKit(cpeUiStatus.appsState.appName),
-													logicalChannelNumber: 10000 + parent.masterChannelList.length, // integer
-													linearProducts: entitlementId // must be a valid entitlement id 
-													//channelNumber: 'app' + (10000 + parent.masterChannelList.length)
-												});
+						// mqtt client event: message received
+						mqttClient.on('message', function (topic, payload) {
+							try {
+
+								// store some mqtt diagnostic data
+								parent.currentMqttState = mqttState.connected; // set to connected on every message received event
+								parent.lastMqttMessageReceived = Date.now();
+
+								let mqttMessage = JSON.parse(payload);
+								if (parent.config.debugLevel > 0) {
+									parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: \r\n%s', topic, mqttMessage);
+									parent.log.warn(mqttMessage);
+								}
+
+								// variables for just in this function
+								var deviceId, stbState, currPowerState, currMediaState, currChannelId, currSourceType, profileDataChanged, currRecordingState, currStatusActive, currInputDeviceType, currInputSourceType;
+
+								// and request the UI status for each device
+								// 14.03.2021 does not respond, disabling for now...
+								// need to poll at regular intervals maybe?
+								//parent.devices.forEach((device) => {
+									// send a getuiStatus request
+									//parent.getUiStatus(device.deviceId, mqttClientId);
+								//});
+
+								// handle personalizationService messages
+								// Topic: Topic: 107xxxx_ch/personalizationService
+								// Message: { action: 'OPS.getProfilesUpdate', source: '3C36E4-EOSSTB-00365657xxxx', ... }
+								// Message: { action: 'OPS.getDeviceUpdate', source: '3C36E4-EOSSTB-00365657xxxx', deviceId: '3C36E4-EOSSTB-00365657xxxx' }
+								if (topic.includes(mqttUsername + '/personalizationService')) {
+									if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s: action', mqttMessage.action); }
+									if (mqttMessage.action == 'OPS.getProfilesUpdate' || mqttMessage.action == 'OPS.getDeviceUpdate') {
+										if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData', mqttMessage.action); }
+										deviceId = mqttMessage.source;
+										profileDataChanged = true;
+										parent.getPersonalizationData(parent.session.householdId); // async function
+									}
+								}
+
+								// handle recordingState messages
+								// Topic: Topic: 107xxxx_ch/recordingStatus
+								// Message: {"id":"crid:~~2F~~2Fgn.tv~~2F2004781~~2FEP019440730003,imi:2d369682b865679f2e5182ea52a93410171cfdc8","event":"scheduleEvent","transactionId":"/CH/eng/web/networkdvrrecordings - 013f12fc-23ef-4b77-a244-eeeea0c6901c"}
+								if (topic.includes(mqttUsername + '/recordingStatus')) {
+									if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: event: %s', mqttMessage.event); }
+									parent.getRecordingState(); // async function
+								}
+
+								// handle status messages for the STB
+								// Topic: 107xxxx_ch/3C36E4-EOSSTB-00365657xxxx/status
+								// Message: {"deviceType":"STB","source":"3C36E4-EOSSTB-00365657xxxx","state":"ONLINE_RUNNING","mac":"F8:F5:32:45:DE:52","ipAddress":"192.168.0.33/255.255.255.0"}
+								if (topic.includes('/status')) {
+									if (mqttMessage.deviceType == 'STB') {
+										if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: STB status: Detecting Power State: Received Message of deviceType %s for %s', mqttMessage.deviceType, mqttMessage.source); }
+										// sometimes a rogue empty message appears without a mac or ipAddress, so ensure a mac is always present
+										// mac.length = 0 when the box is physically offline
+										if (mqttMessage.mac.length > 0) {
+											deviceId = mqttMessage.source;
+											stbState = mqttMessage.state;
+										} else {
+											deviceId = mqttMessage.source;
+											stbState = mqttMessage.state;
+										}
+										// Box setting: StandbyPowerConsumption = FastStart / ActiveStart / EcoSlowstart
+										// In FastStart the box goes to ONLINE_STANDBY when turned off, and can be turned on again over mqtt
+										// In ActiveStart the box goes to ONLINE_STANDBY when turned off, and maybe changes after time? test this. 
+										switch (stbState) {
+											case 'ONLINE_RUNNING':	// ONLINE_RUNNING: power is on
+												currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
+												currPowerState = Characteristic.Active.ACTIVE; 
+												break;
+											case 'ONLINE_STANDBY': // ONLINE_STANDBY: power is off, device is on standby, still reachable over the network, can be turned on via mqtt. 
+												currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
+												currPowerState = Characteristic.Active.INACTIVE;
+												currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
+												break;
+											case 'OFFLINE_NETWORK_STANDBY': // OFFLINE_NETWORK_STANDBY: power is off, device is still reachable on the network
+												currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
+												currPowerState = Characteristic.Active.INACTIVE;
+												currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
+												break;
+											case 'OFFLINE':			// OFFLINE: power is off, device is not reachable over the network
+												currStatusActive = Characteristic.Active.INACTIVE; // bool, 0 = not active, 1 = active
+												currPowerState = Characteristic.Active.INACTIVE;
+												currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
+												break;
+										}
+										if (parent.config.debugLevel > 0) { 
+											parent.log.warn('mqttClient: %s %s ', deviceId, stbState);
+										}
+
+									}
+								}
+
+								//parent.log.warn('mqttClient: CPE.uiStatus: stbState %s, currStatusActive %s, currPowerState %s, currMediaState %s', stbState, currStatusActive, currPowerState, currMediaState); 
+								
+								// handle CPE UI status messages for the STB
+								// topic can be many, so look for mqttMessage.type
+								// Topic: 107xxxx_ch/vy9hvvxo8n6r1t3f4e05tgg590p8s0
+								// Message: {"version":"1.3.10","type":"CPE.uiStatus","source":"3C36E4-EOSSTB-00365657xxxx","messageTimeStamp":1607205483257,"status":{"uiStatus":"mainUI","playerState":{"sourceType":"linear","speed":1,"lastSpeedChangeTime":1607203130936,"source":{"channelId":"SV09259","eventId":"crid:~~2F~~2Fbds.tv~~2F394850976,imi:3ef107f9a95f37e5fde84ee780c834b502be1226"}},"uiState":{}},"id":"fms4mjb9uf"}
+								if (mqttMessage.type == 'CPE.uiStatus') {
+									if (parent.config.debugLevel > 0) { 
+										parent.log.warn('mqttClient: CPE.uiStatus: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
+									}
+									if (parent.config.debugLevel > 0) {
+										parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
+										parent.log.warn('mqttClient: mqttMessage.status.uiStatus:', mqttMessage.status.uiStatus);
+									}
+									// if we have this message, then the power is on. Sometimes the message arrives before the status topic with the power state
+									currStatusActive = Characteristic.Active.ACTIVE; // ensure statusActive is set to Active
+									currPowerState = Characteristic.Active.ACTIVE;  // ensure power is set to ON
+
+									parent.lastMqttUiStatusMessageReceived = Date.now();
+									deviceId = mqttMessage.source;
+									const cpeUiStatus = mqttMessage.status;
+									// normal TV: 	cpeUiStatus = mainUI
+									// app: 		cpeUiStatus = apps (YouTube, Netflix, etc)
+									if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus:', cpeUiStatus); }
+									if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus.uiStatus:', cpeUiStatus.uiStatus); }
+									switch (cpeUiStatus.uiStatus) {
+										case 'mainUI':
+											// grab the status part of the mqttMessage object as we cannot go any deeper with json
+											const playerState = cpeUiStatus.playerState;
+											currSourceType = playerState.sourceType;
+											if (parent.config.debugLevel > 1) { parent.log.warn('mqttClient: mainUI: Detected mqtt playerState.speed:', playerState.speed); }
+
+											// get playerState.speed (shows if playing or paused)
+											// speed can be one of: -64 -30 -6 -2 0 2 6 30 64. 0=Paused, 1=Play, >1=FastForward, <0=Rewind
+											if (playerState.speed == 0) { 			// speed 0 is PAUSE
+												currMediaState = Characteristic.CurrentMediaState.PAUSE;
+											} else if (playerState.speed == 1) { 	// speed 1 is PLAY
+												currMediaState = Characteristic.CurrentMediaState.PLAY;
+											} else {								// default for all speeds (-64 -30 -6 2 6 30 64) is LOADING
+												currMediaState = Characteristic.CurrentMediaState.LOADING;
 											}
+
+											// get sourceType to set the currInputSourceType and currInputDeviceType
+											// playerState.sourceType
+											// linear = normal TV
+											// reviewbuffer = delayed buffered TV playback
+											// replay = replay TV
+											// nDVR = playback from saved program (network Digital Video Recorder)
+											// lDVR = playback from saved program (local Digital Video Recorder)
+											// '' (empty string) = when radio is playing
+											switch (playerState.sourceType) {
+												case 'linear':	// linear: normal tv
+												case 'reviewbuffer': 
+													currInputSourceType = Characteristic.InputSourceType.TUNER;
+													currInputDeviceType = Characteristic.InputDeviceType.TV; // linear TV
+													break;
+												case 'replay': 	// replay TV
+												case 'nDVR':
+												case 'lDVR':
+												case 'LDVR':
+													currInputSourceType = Characteristic.InputSourceType.OTHER;
+													currInputDeviceType = Characteristic.InputDeviceType.PLAYBACK; // replay TV
+													break;
+												case '':		// '' (empty string), happens when radio is playing
+													currInputSourceType = Characteristic.InputSourceType.OTHER;
+													currInputDeviceType = Characteristic.InputDeviceType.TUNER; // use tuner for radio
+													break;
+												}
+			
+
+											// get channelId (current playing channel eg SV09038) from linear TV
+											// Careful: source is not always present in the data
+											if (playerState.source) {
+												currChannelId = playerState.source.channelId || NO_CHANNEL_ID; // must be a string
+												if (parent.config.debugLevel > 0 && parent.masterChannelList) {
+													let currentChannelName; // let is scoped to the current {} block
+													let curChannel = parent.masterChannelList.find(channel => channel.id === currChannelId); 
+													if (curChannel) { currentChannelName = curChannel.name; }
+													parent.log.warn('mqttClient: Detected mqtt channelId: %s [%s]', currChannelId, currentChannelName);
+												}
+											} else {
+												// if playerState.source is null, then the settop box could be playing a radio station
+												// the code will pass a null through the code but no change will occur, so deliberately set a NO_CHANNEL_ID
+												// when playing radio playerState.sourceType='' and playerState.source is null, and a relativePosition=0 appears, this could be maybe used for Radio detection
+												currChannelId = NO_CHANNEL_ID;
+											}
+
+											break;
+
+										case 'apps':
+											//parent.log('mqttClient: apps: Detected mqtt app channelId: %s', cpeUiStatus.appsState.id);
+											//parent.log("mqttClient: apps: Detected mqtt app appName %s", cpeUiStatus.appsState.appName);
+											// we get id and appName here, load to the channel list...
+											// useful for YouTube and Netflix
+											currInputSourceType = Characteristic.InputSourceType.APPLICATION;
+											currInputDeviceType = Characteristic.InputDeviceType.OTHER; // apps
+											switch (cpeUiStatus.appsState.id) {
+						
+												case 'com.bbc.app.launcher': case 'com.bbc.app.crb':
+													// ignore the following apps to ensure channel name is not overridden:
+													// com.bbc.app.launcher 	button launcher app??
+													// com.bbc.app.crb 			Connected Red Button app, this is the Red Button special control on the remote
+													currChannelId = null; 
+													parent.log("App %s [%s] detected. Ignoring", cpeUiStatus.appsState.id, cpeUiStatus.appsState.appName);
+													break;
+			
+												default:
+													// check if the app channel exists in the master channel list, if not, push it, using the user-defined name if one exists
+													currChannelId = cpeUiStatus.appsState.id;
+													var foundIndex = parent.masterChannelList.findIndex(channel => channel.id === currChannelId); 
+													if (foundIndex == -1 ) {
+														parent.log("App %s detected. Adding to the master channel list at index %s with channelId %s", cpeUiStatus.appsState.appName, parent.masterChannelList.length, currChannelId);
+														const entitlementId = parent.entitlements.entitlements[0].id;
+														// for easy identification, make the logicalChannelNumber and channelNumber app10000 + the index number
+														parent.masterChannelList.push({
+															id: currChannelId, 
+															name: cleanNameForHomeKit(cpeUiStatus.appsState.appName),
+															logicalChannelNumber: 10000 + parent.masterChannelList.length, // integer
+															linearProducts: entitlementId // must be a valid entitlement id 
+															//channelNumber: 'app' + (10000 + parent.masterChannelList.length)
+														});
+													}
+											}
+
+										default:
+
 									}
+								}
 
-								default:
+								// handle CPE pushToTV messages for the STB
+								// seen on VirginMedia connections in GB
+								// Topic: 10950xxxx_gb/qc76wses7wfqhox2uqqteoedbyqgtt
+								// Message: {	type: 'CPE.pushToTV.rsp',	source: '3C36E4-EOSSTB-003597101009',	id: 'TrgPON8eV8',	version: '1.3.12',	status: [Object]  }: 
+								// there's also a pullFromTV
+								// {"source":"7028f103-8494-4f79-9b76-beb67a2e5caa","type":"CPE.pullFromTV","runtimeType":"pull"}
+								if (mqttMessage.type == 'CPE.pushToTV.rsp') {
+									if (parent.config.debugLevel > 0) { 
+										parent.log.warn('mqttClient: CPE.pushToTV.rsp: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
+									}
+									if (parent.config.debugLevel > 0) {
+										parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
+									}
+								}
 
+
+								// update the device on every message
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currSourceType, profileDataChanged, Characteristic.StatusFault.NO_FAULT, null, currStatusActive, currInputDeviceType, currInputSourceType);
+						
+								//end of try
+							} catch (err) {
+								// catch all mqtt errors
+								parent.log.error("Error trapped in mqttClient message event:", err.message);
+								parent.log.error(err);
 							}
-						}
+						
+						}); // end of mqtt client event: message received
 
-						// handle CPE pushToTV messages for the STB
-						// seen on VirginMedia connections in GB
-						// Topic: 10950xxxx_gb/qc76wses7wfqhox2uqqteoedbyqgtt
-						// Message: {	type: 'CPE.pushToTV.rsp',	source: '3C36E4-EOSSTB-003597101009',	id: 'TrgPON8eV8',	version: '1.3.12',	status: [Object]  }: 
-						// there's also a pullFromTV
-						// {"source":"7028f103-8494-4f79-9b76-beb67a2e5caa","type":"CPE.pullFromTV","runtimeType":"pull"}
-						if (mqttMessage.type == 'CPE.pushToTV.rsp') {
-							if (parent.config.debugLevel > 0) { 
-								parent.log.warn('mqttClient: CPE.pushToTV.rsp: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
+
+
+						// mqtt client event: close
+						// Emitted after a disconnection.
+						mqttClient.on('close', function () {
+							try {
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.currentMqttState = mqttState.closed;
+								parent.log('mqttClient: Connection closed');
+								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+								if (!isShuttingDown) {
+									parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+								}
+							} catch (err) {
+								parent.log.error("Error trapped in mqttClient close event:", err.message);
+								parent.log.error(err);
 							}
-							if (parent.config.debugLevel > 0) {
-								parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
+						});
+
+						// mqtt client event: reconnect
+						// Emitted when a reconnect starts.
+						mqttClient.on('reconnect', function () {
+							try {
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.currentMqttState = mqttState.reconnected;
+								parent.log('mqttClient: Reconnect started');
+								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+							} catch (err) {
+								parent.log.error("Error trapped in mqttClient reconnect event:", err.message);
+								parent.log.error(err);
 							}
-						}
+						});
+						
+						// mqtt client event: disconnect 
+						// Emitted after receiving disconnect packet from broker. MQTT 5.0 feature.
+						mqttClient.on('disconnect', function () {
+							try {
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.currentMqttState = mqttState.disconnected;
+								parent.log('mqttClient: Disconnect command received');
+								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+							} catch (err) {
+								parent.log.error("Error trapped in mqttClient disconnect event:", err.message);
+								parent.log.error(err);
+							}
+						});
+						
+						// mqtt client event: offline
+						// Emitted when the client goes offline.
+						mqttClient.on('offline', function () {
+							try {
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.currentMqttState = mqttState.offline;
+								parent.log('mqttClient: Client is offline');
+								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+							} catch (err) {
+								parent.log.error("Error trapped in mqttClient offline event:", err.message);
+								parent.log.error(err);
+							}
+						});
+
+						// mqtt client event: error
+						// Emitted when the client cannot connect (i.e. connack rc != 0) or when a parsing error occurs.
+						mqttClient.on('error', function(err) {
+							try {
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.currentMqttState = mqttState.error;
+								parent.log.warn('mqttClient: Error', err.syscall + ' ' + err.code + ' ' + (err.hostname || ''));
+								parent.log.debug('mqttClient: Error:', err); 
+								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+								mqttClient.end();
+								return false;
+							} catch (err) {
+								parent.log.error("Error trapped in mqttClient error event:", err.message);
+								parent.log.error(err);
+							}
+						});
 
 
-						// update the device on every message
-						// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-						parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currSourceType, profileDataChanged, Characteristic.StatusFault.NO_FAULT, null, currStatusActive, currInputDeviceType, currInputSourceType);
-				
-						//end of try
 					} catch (err) {
-						// catch all mqtt errors
-						parent.log.error("Error trapped in mqttClient message event:", err.message);
+						parent.log.error("Error trapped in mqttClient connect event:", err.message);
 						parent.log.error(err);
-					}
-				
-				}); // end of mqtt client event: message received
-
-
-
-				// mqtt client event: close
-				// Emitted after a disconnection.
-				mqttClient.on('close', function () {
-					try {
-						// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-						parent.currentMqttState = mqttState.closed;
-						parent.log('mqttClient: Connection closed');
 						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
-						if (!isShuttingDown) {
-							parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
-						}
-					} catch (err) {
-						parent.log.error("Error trapped in mqttClient close event:", err.message);
-						parent.log.error(err);
 					}
-				});
-
-				// mqtt client event: reconnect
-				// Emitted when a reconnect starts.
-				mqttClient.on('reconnect', function () {
-					try {
-						// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-						parent.currentMqttState = mqttState.reconnected;
-						parent.log('mqttClient: Reconnect started');
-						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
-					} catch (err) {
-						parent.log.error("Error trapped in mqttClient reconnect event:", err.message);
-						parent.log.error(err);
-					}
-				});
+				}); // end of mqttClient.on('connect'... event
 				
-				// mqtt client event: disconnect 
-				// Emitted after receiving disconnect packet from broker. MQTT 5.0 feature.
-				mqttClient.on('disconnect', function () {
-					try {
-						// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-						parent.currentMqttState = mqttState.disconnected;
-						parent.log('mqttClient: Disconnect command received');
-						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
-						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
-					} catch (err) {
-						parent.log.error("Error trapped in mqttClient disconnect event:", err.message);
-						parent.log.error(err);
-					}
-				});
 				
-				// mqtt client event: offline
-				// Emitted when the client goes offline.
-				mqttClient.on('offline', function () {
-					try {
-						// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-						parent.currentMqttState = mqttState.offline;
-						parent.log('mqttClient: Client is offline');
-						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
-						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
-					} catch (err) {
-						parent.log.error("Error trapped in mqttClient offline event:", err.message);
-						parent.log.error(err);
-					}
-				});
-
-				// mqtt client event: error
-				// Emitted when the client cannot connect (i.e. connack rc != 0) or when a parsing error occurs.
-				mqttClient.on('error', function(err) {
-					try {
-						// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-						parent.currentMqttState = mqttState.error;
-						parent.log.warn('mqttClient: Error', err.syscall + ' ' + err.code + ' ' + (err.hostname || ''));
-						parent.log.debug('mqttClient: Error:', err); 
-						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
-						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
-						mqttClient.end();
-						return false;
-					} catch (err) {
-						parent.log.error("Error trapped in mqttClient error event:", err.message);
-						parent.log.error(err);
-					}
-				});
-
+				if (this.config.debugLevel > 0) { 
+					this.log("mqttClient: end of code block");
+				}
+				resolve(mqttClient.connected); // return the promise with the connected state
 
 			} catch (err) {
-				parent.log.error("Error trapped in mqttClient connect event:", err.message);
-				parent.log.error(err);
-				currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+				reject('Cannot connect to mqtt broker', err); // reject the promise
 			}
-		}); // end of mqttClient.on('connect'... event
-		
-		
-		if (this.config.debugLevel > 0) { 
-			this.log("mqttClient: end of code block");
-		}
-		resolve(true);
-	})
+
+		})
 	} // end of startMqttClient
 
 
@@ -2481,7 +2491,7 @@ class stbPlatform {
 	}
 
 	// subscribe to an mqtt topic, with logging, to help in debugging
-	mqttSubscribeToTopic(Topic, Qos) {
+	mqttSubscribeToTopic(Topic) {
 		if (this.config.debugLevel > 0) { this.log.warn('mqttSubscribeToTopic: Subscribe to topic:', Topic); }
 		mqttClient.subscribe(Topic, function (err) {
 			if(err){
@@ -2492,7 +2502,7 @@ class stbPlatform {
 	}
 
 	// unsubscribe to an mqtt topic, with logging, to help in debugging
-	mqttUnsubscribeToTopic(Topic, Qos) {
+	mqttUnsubscribeToTopic(Topic) {
 		if (this.config.debugLevel > 0) { this.log.warn('mqttUnsubscribeToTopic: Unsubscribe to topic:', Topic); }
 		mqttClient.unsubscribe(Topic, function (err) {
 			if(err){
@@ -2509,9 +2519,9 @@ class stbPlatform {
 			if (mqttUsername) {
 				this.mqttPublishMessage(
 					// {"source":"fd29b575-5f2b-49a0-8efe-62a844ac2b40","state":"ONLINE_RUNNING","deviceType":"HGO","mac":"","ipAddress":""}
-					mqttUsername + '/' + mqttClientId + '/status', 
-					'{"source":"' +  mqttClientId + '","state":"ONLINE_RUNNING","deviceType":"HGO","mac":"","ipAddress":""}',
-					'{"qos":1,"retain":"true"}'
+					mqttUsername + '/' + mqttClientId + '/status',  // Topic, 
+					'{"source":"' +  mqttClientId + '","state":"ONLINE_RUNNING","deviceType":"HGO","mac":"","ipAddress":""}', // Message, Options
+					{ qos:1, retain:true } //Options (json object)
 				);
 			}
 		} catch (err) {
@@ -2537,10 +2547,9 @@ class stbPlatform {
 					// [09/11/2022, 12:55:00] [EOSSTB] Processing channel: 521 1004 SV01323 Radio SRF 1 BS
 					'{"id":"' + makeFormattedId(32) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
 					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
-					+ channelId + '"},"relativePosition":0,"speed":1}}',
+					+ channelId + '"},"relativePosition":0,"speed":1}}'
 					//+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"ott","source":{"channelId":"' 
 					//+ 'SV01301' + '"},"relativePosition":0,"speed":1}}',
-					'{"qos":0}'
 				);
 			}
 		} catch (err) {
@@ -2560,8 +2569,7 @@ class stbPlatform {
 					mqttUsername + '/' + this.device.deviceId, 
 					'{"id":"' + makeFormattedId(32) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
 					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
-					+ channelId + '"},"relativePosition":0,"speed":' + speed + '}}',
-					'{"qos":0}'
+					+ channelId + '"},"relativePosition":0,"speed":' + speed + '}}'
 				);
 			}
 		} catch (err) {
@@ -2582,8 +2590,7 @@ class stbPlatform {
 				this.mqttPublishMessage(
 				mqttUsername + '/' + deviceId, 
 				'{"id":"' + makeFormattedId(32) + '","type":"CPE.setPlayerPosition","source":{"clientId":"' + mqttClientId 
-				+ '","status":{"relativePosition":' + relativePosition + '}}"' ,
-				'{"qos":0}'
+				+ '","status":{"relativePosition":' + relativePosition + '}}"' 
 				);
 			}
 		} catch (err) {
@@ -2632,8 +2639,7 @@ class stbPlatform {
 
 						this.mqttPublishMessage(
 							mqttUsername + '/' + deviceId, 
-							'{"id":"' + makeFormattedId(32) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}',
-							'{"qos":0}'
+							'{"id":"' + makeFormattedId(32) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}'
 						);
 						this.log.debug('sendKey: send %s done', keyName);
 
@@ -2663,7 +2669,7 @@ class stbPlatform {
 					mqttUsername + '/' + deviceId,
 					// added ,"runtimeType":"getUiStatus" to try to get ui status after reboot
 					'{"source":"' + mqttClientId + '","id":"' + makeFormattedId(32) + '","type":"CPE.getUiStatus","runtimeType":"getUiStatus"}',
-					'{"qos":1,"retain":"true"}'
+					{ qos:1, retain:true }
 				);
 			}
 		} catch (err) {
