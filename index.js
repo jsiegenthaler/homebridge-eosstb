@@ -12,8 +12,10 @@ const PLUGIN_VERSION = packagejson.version;
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
+const debug = require('debug')(PLUGIN_NAME) // https://github.com/debug-js/debug
 
-const mqtt = require('mqtt');  
+// good exanple of debug usage https://github.com/mqttjs/MQTT.js/blob/main/lib/client.js
+const mqtt = require('mqtt');  			// https://github.com/mqttjs
 const qs = require('qs')
 //const _ = require('underscore');
 
@@ -357,6 +359,7 @@ class stbPlatform {
 		this.api.on('didFinishLaunching', async () => {
 			if (this.config.debugLevel > 2) { this.log.warn('API event: didFinishLaunching'); }
 			this.log('%s v%s', PLUGIN_NAME, PLUGIN_VERSION);
+			debug('stbPlatform:apievent :: didFinishLaunching')
 
 			// call the session watchdog to create the session
 			this.sessionWatchdog.bind(this)
@@ -367,7 +370,8 @@ class stbPlatform {
 			// check for a channel list update every MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S seconds
 			this.checkChannelListInterval = setInterval(this.refreshMasterChannelList.bind(this),MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S * 1000);
 
-			this.log.debug('stbPlatform: end of code block');
+			debug('stbPlatform:apievent :: didFinishLaunching end of code block')
+			//this.log.debug('stbPlatform: end of code block');
 		});
 
 
@@ -375,9 +379,11 @@ class stbPlatform {
     	* "shutdown" event is fired when homebridge shuts down
     	*/
 		this.api.on('shutdown', () => {
+			debug('stbPlatform:apievent :: shutdown')
 			if (this.config.debugLevel > 2) { this.log.warn('API event: shutdown'); }
 			isShuttingDown = true;
 			this.endMqttClient().then(() => { this.log('Goodbye'); });
+			debug('stbPlatform :apievent :: shutdown end of code block')
 		});
 
 	} // end of constructor
@@ -446,6 +452,10 @@ class stbPlatform {
 		let watchdogInstance = 'sessionWatchdog(' + this.watchdogCounter + ')'; // set a log prefix for this instance of the watchdog to allow differentiation in the logs
 		let statusOverview = watchdogInstance + ':';
 		callback = true;
+
+		// standard debugging
+		let debugPrefix='\x1b[33msessionWatchdog :: ' // 33=yellow
+		debug(debugPrefix + 'started')
 
 		//robustness: if session state ever gets disconnected due to session creation problems, ensure the mqtt status is always disconnected
 		if (currentSessionState == sessionState.DISCONNECTED) { 
@@ -517,12 +527,14 @@ class stbPlatform {
 			// asnyc startup sequence with chain of promises
 			this.log.debug('sessionWatchdog: ++++ step 1: calling createSession')
 			errorTitle = 'Failed to create session';
+			debug(debugPrefix + 'calling createSession')
 			await this.createSession(this.config.country.toLowerCase()) // returns householdId
 				.then((sessionHouseholdId) => {
 					this.log.debug('sessionWatchdog: ++++++ step 2: session was created, connected to sessionHouseholdId %s', sessionHouseholdId)
 					this.log.debug('sessionWatchdog: ++++++ step 2: calling getPersonalizationData with sessionHouseholdId %s ',sessionHouseholdId)
 					this.log('Discovering platform...');
 					errorTitle = 'Failed to discover platform';
+					debug(debugPrefix + 'calling getPersonalizationData')
 					return this.getPersonalizationData(sessionHouseholdId) // returns customer object, with devices and profiles
 				})
 				// the results of the previous then is the customer object. This is passed on to the next then:
@@ -530,12 +542,14 @@ class stbPlatform {
 					this.log.debug('sessionWatchdog: ++++++ step 3: personalization data was retrieved, customerId %s customerStatus %s',objCustomer.customerId, objCustomer.customerStatus)
 					this.log.debug('sessionWatchdog: ++++++ step 3: calling getEntitlements with customerId %s ',objCustomer.customerId)
 					//this.getExperimentalEndpoint(objCustomer.customerId) // returns true
+					debug(debugPrefix + 'calling getEntitlements')
 					return this.getEntitlements(objCustomer.customerId) // returns entitlements object
 				})
 				// the results of the previous then is the entitlements object. This is passed on to the next then:
 				.then((objEntitlements) => {
 					this.log.debug('sessionWatchdog: ++++++ step 4: entitlements data was retrieved, objEntitlements.token %s',objEntitlements.token)
 					this.log.debug('sessionWatchdog: ++++++ step 4: calling refreshMasterChannelList')
+					debug(debugPrefix + 'calling refreshMasterChannelList')
 					return this.refreshMasterChannelList() // returns entitlements object
 				})
 				// the results of the previous then is the channels object. This is passed on to the next then:
@@ -543,6 +557,7 @@ class stbPlatform {
 					this.log.debug('sessionWatchdog: ++++++ step 5: masterchannelList data was retrieved, channels found: %s',objChannels.length)
 					this.log.debug('sessionWatchdog: ++++++ step 5: calling discoverDevices')
 					errorTitle = 'Failed to discover devices';
+					debug(debugPrefix + 'calling discoverDevices')
 					return this.discoverDevices() // returns stbDevices object 
 				})				
 				// the results of the previous then is the devices object. This is passed on to the next then:
@@ -551,12 +566,14 @@ class stbPlatform {
 					this.log.debug('sessionWatchdog: ++++++ step 6: devices data was retrieved, devices found: %s',objStbDevices.length)
 					this.log.debug('sessionWatchdog: ++++++ step 6: calling getJwtToken')
 					errorTitle = 'Failed to start mqtt session';
+					debug(debugPrefix + 'calling getJwtToken')
 					return this.getJwtToken(this.session.username, this.session.accessToken, this.session.householdId);
 				})				
 				// the results of the previous then is the jwt token. This is passed on to the next then:
 				.then((jwToken) => {
 					this.log.debug('sessionWatchdog: ++++++ step 7: getJwtToken token was retrieved, token %s',jwToken)
 					this.log.debug('sessionWatchdog: ++++++ step 7: start mqtt client')
+					debug(debugPrefix + 'calling startMqttClient')
 					return this.startMqttClient(this, this.session.householdId, jwToken);  // returns true
 					//return true // end the chain with a resolved promise
 				})				
@@ -567,15 +584,17 @@ class stbPlatform {
 					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 					return true
 				});	
-			this.log.debug('sessionWatchdog: ++++++ end of promise chain')
-			this.log.debug('sessionWatchdog: ++++ create session promise chain completed')
+			debug(debugPrefix + 'end of promise chain')
+			//this.log.debug('sessionWatchdog: ++++++ end of promise chain')
+			//this.log.debug('sessionWatchdog: ++++ create session promise chain completed')
 
 
 		} else if (currentSessionState == sessionState.CONNECTED && !mqttClient.connected) { 
 			this.log('%s: session is still connected, but mqttClient is disconnected, refreshing session and restarting mqttClient...', watchdogInstance);
 		}
 
-		this.log('Exiting sessionWatchdog')
+		debug(debugPrefix + 'exiting sessionWatchdog')
+		//this.log('Exiting sessionWatchdog')
 		this.sessionWatchdogRunning = false;
 		return true
 
@@ -2013,7 +2032,6 @@ class stbPlatform {
 				mqttClientId = makeFormattedId(32);
 				//mqttClientId = makeId(32);
 
-				this.log.warn('startMqttClient: doing connect now'); 
 				mqttClient = mqtt.connect(mqttUrl, {
 					connectTimeout: 10 * 1000, // 10s
 					clientId: mqttClientId,
@@ -2023,7 +2041,6 @@ class stbPlatform {
 				if (this.config.debugLevel > 0) { 
 					this.log.warn('startMqttClient: mqttUrl connect request sent using mqttClientId %s',mqttClientId ); 
 				}
-				this.log.warn('startMqttClient: connect status: ', mqttClient.connected); 
 
 				//mqttClient.setMaxListeners(20); // default is 10 sometimes causes issues when the listeners reach 11
 				//parent.log(mqttClient); //for debug
@@ -2450,7 +2467,7 @@ class stbPlatform {
 				this.log('Shutting down mqttClient...'); 
 			}
 			// mqtt.Client#end([force], [options], [callback])
-			mqttClient.end(true);
+			if (mqttClient.connected) { mqttClient.end(true) };
 			resolve(true);
 		})
 	}
@@ -4543,8 +4560,8 @@ class stbDevice {
 		const channel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId);
 		if (channel) { currentChannelName = channel.name; }
 
-		this.log.warn("setInput: go to input %s", input)
-		this.log.warn(channel)
+		//this.log.warn("setInput: go to input %s", input)
+		//this.log.warn(channel)
 
 		// robustness: only try to switch channel if an input.id exists
 		if (input.id){
