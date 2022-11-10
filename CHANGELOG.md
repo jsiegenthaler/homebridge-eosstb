@@ -21,6 +21,12 @@ See below
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
 
 
+## 2.0.0-beta.24 (2022-11-10)
+* Improved robustness of endMqttClient: now only calls an end if it was connected, hopefully avoiding the Error: WebSocket was closed before the connection was established
+* Set Node dependencies back to >=16.17.1, due to issues on MacMini with Node 18.12.0
+* Trialling different debug strategies
+
+
 ## 2.0.0-beta.23 (2022-11-10)
 * Fixed a very old mqtt qos bug (oops!)
 * Improved mqtt error handling
