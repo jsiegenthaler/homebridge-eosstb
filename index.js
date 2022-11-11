@@ -2469,7 +2469,7 @@ class stbPlatform {
 				this.log('Shutting down mqttClient...'); 
 			}
 			// mqtt.Client#end([force], [options], [callback])
-			if (mqttClient.connected) { mqttClient.end(true) };
+			if (mqttClient.connected) { mqttClient.end() };
 			resolve(true);
 		})
 	}
