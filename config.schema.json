@@ -792,7 +792,7 @@
                     "channelId": {
                         "title": "Channel ID",
                         "type": "string",
-                        "description": "Unique channelId, see the Homebridge log. Has priority over key macros."
+                        "description": "Unique channelId, see the Homebridge log."
                     },
                     "channelKeyMacro": {
                         "title": "Channel Key Macro",
@@ -1101,7 +1101,6 @@
                     "type": "array",
                     "items": [
                         "channels[].channelId",
-                        "channels[].channelKeyMacro",
                         "channels[].channelName"
                     ]
                 }
