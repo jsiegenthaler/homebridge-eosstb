@@ -2032,6 +2032,7 @@ class stbPlatform {
 				mqttClientId = makeFormattedId(32);
 				//mqttClientId = makeId(32);
 
+				// https://github.com/mqttjs/MQTT.js#connect
 				mqttClient = mqtt.connect(mqttUrl, {
 					connectTimeout: 10 * 1000, // 10s
 					clientId: mqttClientId,
@@ -2047,10 +2048,11 @@ class stbPlatform {
 
 				
 				// mqtt client event: connect
+				// https://github.com/mqttjs/MQTT.js#event-connect
 				mqttClient.on('connect', function () {
 					try {
-						parent.currentMqttState = mqttState.connected;
 						parent.log("mqttClient: Connected: %s", mqttClient.connected);
+						parent.currentMqttState = mqttState.connected;
 						parent.mqttClientConnecting = false;
 
 						// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
@@ -2108,14 +2110,15 @@ class stbPlatform {
 					
 				
 						// mqtt client event: message received
-						mqttClient.on('message', function (topic, payload) {
+						// https://github.com/mqttjs/MQTT.js#event-message
+						mqttClient.on('message', function (topic, message) {
 							try {
 
 								// store some mqtt diagnostic data
 								parent.currentMqttState = mqttState.connected; // set to connected on every message received event
 								parent.lastMqttMessageReceived = Date.now();
 
-								let mqttMessage = JSON.parse(payload);
+								let mqttMessage = JSON.parse(message);
 								if (parent.config.debugLevel > 0) {
 									parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: \r\n%s', topic, mqttMessage);
 									parent.log.warn(mqttMessage);
@@ -2363,6 +2366,7 @@ class stbPlatform {
 
 						// mqtt client event: close
 						// Emitted after a disconnection.
+						// https://github.com/mqttjs/MQTT.js#event-close
 						mqttClient.on('close', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
@@ -2380,6 +2384,7 @@ class stbPlatform {
 
 						// mqtt client event: reconnect
 						// Emitted when a reconnect starts.
+						// https://github.com/mqttjs/MQTT.js#event-reconnect
 						mqttClient.on('reconnect', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
@@ -2394,6 +2399,7 @@ class stbPlatform {
 						
 						// mqtt client event: disconnect 
 						// Emitted after receiving disconnect packet from broker. MQTT 5.0 feature.
+						// https://github.com/mqttjs/MQTT.js#event-disconnect
 						mqttClient.on('disconnect', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
@@ -2409,6 +2415,7 @@ class stbPlatform {
 						
 						// mqtt client event: offline
 						// Emitted when the client goes offline.
+						// https://github.com/mqttjs/MQTT.js#event-disconnect
 						mqttClient.on('offline', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
@@ -2424,6 +2431,7 @@ class stbPlatform {
 
 						// mqtt client event: error
 						// Emitted when the client cannot connect (i.e. connack rc != 0) or when a parsing error occurs.
+						// https://github.com/mqttjs/MQTT.js#event-error
 						mqttClient.on('error', function(err) {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
@@ -2468,6 +2476,7 @@ class stbPlatform {
 			if (this.config.debugLevel > -1) { 
 				this.log('Shutting down mqttClient...'); 
 			}
+			// https://github.com/mqttjs/MQTT.js#end
 			// mqtt.Client#end([force], [options], [callback])
 			if (mqttClient.connected) { mqttClient.end() };
 			resolve(true);
@@ -2777,7 +2786,7 @@ class stbPlatform {
 						}
 
 						// update the device state. Set StatusFault to nofault as connection is working
-						this.log('Recording state: %s: ongoing recordings found: local %s, network %s, current Recording State %s [%s]', device.deviceId, localOngoingRecordings, networkOngoingRecordings, currRecordingState, recordingStateName[currRecordingState]);
+						this.log('%s: Recording state: ongoing recordings found: local %s, network %s, current Recording State %s [%s]', device.settings.deviceFriendlyName + PLUGIN_ENV, localOngoingRecordings, networkOngoingRecordings, currRecordingState, recordingStateName[currRecordingState]);
 						//mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode) {
 						this.mqttDeviceStateHandler(device.deviceId, null, null, currRecordingState, null, null, null, Characteristic.StatusFault.NO_FAULT, null );
 					});
@@ -2890,7 +2899,7 @@ class stbPlatform {
 
 
 						// update the device state. Set StatusFault to nofault as connection is working
-						this.log('Recording bookings: %s: planned recordings found: local %s, network %s, current Program Mode %s [%s]', device.deviceId, localPlannedRecordings, networkPlannedRecordings, currProgramMode, programModeName[currProgramMode]);
+						this.log('%s: Recording bookings: planned recordings found: local %s, network %s, current Program Mode %s [%s]', device.settings.deviceFriendlyName + PLUGIN_ENV, localPlannedRecordings, networkPlannedRecordings, currProgramMode, programModeName[currProgramMode]);
 						//mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode) {
 						this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, null, Characteristic.StatusFault.NO_FAULT, currProgramMode );
 					});
@@ -3137,6 +3146,7 @@ class stbDevice {
 		const ver = PLUGIN_VERSION.split("-");
 		const deviceType = this.device.deviceId.split("-");
 
+		this.log('DEBUG: deviceType[0]',deviceType[0]);
 		switch (deviceType[0]) {
 			// 000378-EOSSTB-003893xxxxxx 	Ireland
 			// 3C36E4-EOSSTB-003792xxxxxx  	Belgium
@@ -3144,21 +3154,21 @@ class stbDevice {
 			// 3C36E4-EOSSTB-003713xxxxxx 	Great Britain with productType: 'TV360',
 			// 000378-EOS2STB-008420xxxxxx 	Belgium
 			case '3C36E4': case '000378':
+				this.log('DEBUG: deviceType[1]',deviceType[1]);
+				this.log('DEBUG: this.device.platformType',this.device.platformType);
+				this.log('DEBUG: this.device.deviceType',this.device.deviceType);
+				this.log('DEBUG: this.device.productType',this.device.productType);
 				switch (deviceType[1]) {
 					case 'EOS2STB':
 						// new EOS2STB released March 2022 is a HUMAX 2008C-STB-TN
 						manufacturer = 'HUMAX [' + (this.device.platformType || '') + ']'; 
-						model = '2008C-STB-TN [' + (this.device.deviceType || '') + ']';
-						break;
-					case 'GATEWAY':
-						// GB devices have deviceType=GATEWAY and productType=TV360
-						manufacturer = 'ARRIS [' + (this.device.platformType || '') + ']'; 
-						model = 'DCX960 [' + (this.device.productType || '') + ']';
+						model = '2008C-STB-TN [' + (this.device.productType || this.device.deviceType || '') + ']';
 						break;
 					case 'EOSSTB':
 					default:
+						// GB devices have deviceType=GATEWAY and productType=TV360
 						manufacturer = 'ARRIS [' + (this.device.platformType || '') + ']'; // NL uses EOS as platformType
-						model = 'DCX960 [' + (this.device.deviceType || '') + ']'; // NL has no deviceType in their device settings
+						model = 'DCX960 [' + (this.device.productType || this.device.deviceType || '') + ']'; // GB has a productType, NL has no deviceType in their device settings
 						break;
 				}
 				// EOSSTB and EOS2STB both use deviceId as serial number
@@ -3168,7 +3178,7 @@ class stbDevice {
 
 			default:
 				manufacturer = this.device.platformType || PLATFORM_NAME;
-				model = this.device.deviceType || this.device.productType || PLUGIN_NAME;
+				model = this.device.productType || this.device.deviceType || this.device.productType || PLUGIN_NAME;
 				serialnumber = this.device.deviceId; // same as shown on TV
 				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
 		}
