@@ -382,7 +382,11 @@ class stbPlatform {
 			debug('stbPlatform:apievent :: shutdown')
 			if (this.config.debugLevel > 2) { this.log.warn('API event: shutdown'); }
 			isShuttingDown = true;
-			this.endMqttClient().then(() => { this.log('Goodbye'); });
+			this.endMqttClient()
+				.then(() => { 
+					this.log('Goodbye'); 
+				}
+			);
 			debug('stbPlatform :apievent :: shutdown end of code block')
 		});
 
@@ -587,148 +591,12 @@ class stbPlatform {
 			debug(debugPrefix + 'end of promise chain')
 			//this.log.debug('sessionWatchdog: ++++++ end of promise chain')
 			//this.log.debug('sessionWatchdog: ++++ create session promise chain completed')
-
-
-		} else if (currentSessionState == sessionState.CONNECTED && !mqttClient.connected) { 
-			this.log('%s: session is still connected, but mqttClient is disconnected, refreshing session and restarting mqttClient...', watchdogInstance);
 		}
 
 		debug(debugPrefix + 'exiting sessionWatchdog')
 		//this.log('Exiting sessionWatchdog')
 		this.sessionWatchdogRunning = false;
 		return true
-
-		// old code still in place while I test error handling
-		// async wait a few seconds for the session to load, then continue
-		// should be 15s as GB takes 12s for some users
-		// increased to 30s on 30.08.2021 to help be-nl
-		if (this.config.debugLevel > 2) { this.log.warn('%s: waiting for session to be created', watchdogInstance); }
-		wait(30*1000).then(() => { 
-
-			// only continue with mqtt if a session was actually created
-			if (this.config.debugLevel > 2) { this.log.warn('%s: session connect wait completed, checking currentSessionState: %s', watchdogInstance, sessionStateName[currentSessionState]); }
-			if (currentSessionState !== sessionState.CONNECTED) { 
-				this.sessionWatchdogRunning = false;
-				if (this.config.debugLevel > 2) { this.log.warn('%s: session connection timeout. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
-				return; 
-			}
-
-			// discovery devices at every session connection
-			this.log('Discovering platform and devices...');
-
-
-			// new WS_MQTT session type, from 13.10.2022
-			// writing this as a separate IF first for ease of debugging
-			if (!this.session.householdId) {
-				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-				this.log('Failed to find customer data. The backend systems may be down')
-			} else {
-				this.log('Found customer data: %s', this.session.householdId);
-
-				// after session is created, get the Personalization Data and entitlements, but only if this.session.householdId  exists
-				// refreshMasterChannelList happens inside getPersonalizationData, as cityid must be known
-				this.log('Loading personalization data and entitlements')
-				this.getPersonalizationData(this.session.householdId); // async function
-				this.getEntitlements(this.session.householdId); // async function
-			}
-
-			// wait for master channel list and personalization data to load then see how many devices were found
-			wait(5*1000).then(() => { 
-				// show feedback for devices found
-				if (!this.devices || !this.devices[0].settings) {
-					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-					this.log('Failed to find any devices. The backend systems may be down, or you have no supported devices on your customer account')
-					this.sessionWatchdogRunning = false;
-					if (this.config.debugLevel > 2) { this.log.warn('%s: session connected but no devices found. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
-					return
-
-				} else {
-					// at least one device found
-					var logText = "Found %s device";
-					if (this.devices.length > 1) { logText = logText + "s"; }
-					this.log(logText, this.devices.length);
-					this.log('Discovery completed');
-
-
-					// user config tip showing all found devices
-					// display only when no config.devices not found
-					let tipText = '', deviceFoundInConfig = true;
-					for (let i = 0; i < this.devices.length; i++) {
-						if (!tipText == '') { tipText = tipText + ',\n'; }
-						tipText = tipText + ' {\n';
-						tipText = tipText + '   "deviceId": "' + this.devices[i].deviceId + '",\n';
-						tipText = tipText + '   "name": "' + this.devices[i].settings.deviceFriendlyName + '"\n';
-						tipText = tipText + ' }';
-						if (this.config.devices) {
-							let configDeviceIndex = this.config.devices.findIndex(devConfig => devConfig.deviceId == this.devices[i].deviceId);
-							if (configDeviceIndex == -1) {
-								this.log("Device not found in config: %s", this.devices[i].deviceId);
-								deviceFoundInConfig = false;
-							}
-						} else {
-							deviceFoundInConfig = false;
-						}
-					}
-					if (!deviceFoundInConfig) {
-						this.log('Config tip: Add these lines to your Homebridge ' + PLATFORM_NAME + ' config if you wish to customise your device config: \n"devices": [\n' + tipText + '\n]');
-					}
-
-
-					// debug: observe the structure!!
-					//this.log("sessionWatchdog: before searching the cache: this.stbDevices", this.stbDevices);
-
-					// setup/restore each device in turn as an accessory, as we can only setup the accessory after the session is created and the physicalDevices are retrieved
-					this.log("Finding devices in cache...");
-					for (let i = 0; i < this.devices.length; i++) {
-
-						// setup each device (runs once per device)
-						const deviceName = this.devices[i].settings.deviceFriendlyName;
-						this.log("Device %s: %s %s", i+1, deviceName, this.devices[i].deviceId);
-
-						// generate a constant uuid that will never change over the life of the accessory
-						const uuid = this.api.hap.uuid.generate(this.devices[i].deviceId + PLUGIN_ENV);
-
-						// check if the accessory already exists, create if it does not
-						// a stbDevice contains various data: HomeKit accessory, EOS platform, EOS device, EOS profile
-						let foundStbDevice = this.stbDevices.find(stbDevice => (stbDevice.accessory || {}).UUID === uuid)
-						if (!foundStbDevice) {
-							this.log("Device %s: Not found in cache, creating new accessory for %s", i+1, this.devices[i].deviceId);
-
-							// create the accessory
-							// 	constructor(log, config, api, device, customer, entitlements, platform) {
-							this.log("Setting up device %s of %s: %s", i+1, this.devices.length, deviceName);
-							//let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this.customer, this.entitlements, this);
-							// simplified the call by removing customer and entitlements as they are part of platform anyway
-							let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this);
-							this.stbDevices.push(newStbDevice);
-
-						} else {
-							this.log("Device found in cache: [%s] %s", foundStbDevice.name, foundStbDevice.deviceId);
-						}	
-
-					};
-
-					// debug: observe the structure!!
-					//this.log("sessionWatchdog: after searching the cache: this.stbDevices", this.stbDevices);
-
-					// wait 3sec for session and devices to be loaded loaded
-					// now get the Jwt Token which triggers the mqtt client
-					wait(3*1000).then(() => { 
-						this.mqttClientConnecting = true;
-						this.getJwtToken(this.session.username, this.session.accessToken, this.session.householdId);
-						this.sessionWatchdogRunning = false;
-						if (this.config.debugLevel > 2) { this.log.warn('%s: session connection successful. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
-						return
-					})
-
-				}
-			});
-
-		}).catch((error) => { 
-			this.log.error("sessionWatchdog: Error", error); 
-			this.sessionWatchdogRunning = false;
-			if (this.config.debugLevel > 2) { this.log.warn('%s: session connection error. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
-		});
 
 	}
 
@@ -3146,7 +3014,6 @@ class stbDevice {
 		const ver = PLUGIN_VERSION.split("-");
 		const deviceType = this.device.deviceId.split("-");
 
-		this.log('DEBUG: deviceType[0]',deviceType[0]);
 		switch (deviceType[0]) {
 			// 000378-EOSSTB-003893xxxxxx 	Ireland
 			// 3C36E4-EOSSTB-003792xxxxxx  	Belgium
@@ -3154,31 +3021,31 @@ class stbDevice {
 			// 3C36E4-EOSSTB-003713xxxxxx 	Great Britain with productType: 'TV360',
 			// 000378-EOS2STB-008420xxxxxx 	Belgium
 			case '3C36E4': case '000378':
-				this.log('DEBUG: deviceType[1]',deviceType[1]);
-				this.log('DEBUG: this.device.platformType',this.device.platformType);
-				this.log('DEBUG: this.device.deviceType',this.device.deviceType);
-				this.log('DEBUG: this.device.productType',this.device.productType);
 				switch (deviceType[1]) {
 					case 'EOS2STB':
 						// new EOS2STB released March 2022 is a HUMAX 2008C-STB-TN
-						manufacturer = 'HUMAX [' + (this.device.platformType || '') + ']'; 
+						manufacturer = 'HUMAX'; 
 						model = '2008C-STB-TN [' + (this.device.productType || this.device.deviceType || '') + ']';
 						break;
 					case 'EOSSTB':
 					default:
 						// GB devices have deviceType=GATEWAY and productType=TV360
-						manufacturer = 'ARRIS [' + (this.device.platformType || '') + ']'; // NL uses EOS as platformType
-						model = 'DCX960 [' + (this.device.productType || this.device.deviceType || '') + ']'; // GB has a productType, NL has no deviceType in their device settings
+						manufacturer = 'ARRIS'; 
+						model = 'DCX960';
 						break;
 				}
 				// EOSSTB and EOS2STB both use deviceId as serial number
+				// CH & NL uses EOS as platformType, GB uses HORIZON
+				manufacturer = manufacturer + ' [' + (this.device.platformType || '') + ']'; 
+				 // GB has a productType, CH & NL have no productType but they have deviceType.
+				model = model + ' [' + (this.device.productType || this.device.deviceType || '') + ']'
 				serialnumber = this.device.deviceId; // same as shown on TV
 				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
 				break;
 
 			default:
 				manufacturer = this.device.platformType || PLATFORM_NAME;
-				model = this.device.productType || this.device.deviceType || this.device.productType || PLUGIN_NAME;
+				model = this.device.productType || this.device.deviceType || PLUGIN_NAME;
 				serialnumber = this.device.deviceId; // same as shown on TV
 				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
 		}
@@ -3911,7 +3778,7 @@ class stbDevice {
 			// Note: favoriteChannels is allowed to be empty!
 			// Note: the shared profile contains no favorites
 			const lastModeDate = new Date(wantedProfile.lastModified);
-			this.log("%s: Profile '%s' contains %s channels, profile last modified at %s", this.name, wantedProfile.name, wantedProfile.favoriteChannels.length, lastModeDate.toLocaleString() );
+			this.log("%s: Profile '%s' contains %s channels, profile last modified on %s", this.name, wantedProfile.name, wantedProfile.favoriteChannels.length, lastModeDate.toLocaleString() );
 			var subscribedChIds = []; // an array of channelIds: SV00302, SV09091, etc
 			if (wantedProfile.favoriteChannels.length > 0){
 				if (this.config.debugLevel > 1) { 
