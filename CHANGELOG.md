@@ -11,14 +11,15 @@ Please report all bugs and problems.
 
 # Bug Fixes and Improvements
 
-## Current In-Work List (Future Releases)
-See below
-
-## Major Reworks TO-DO (in rough order of priority):
+## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
 * Work on ideas for showing radio channels and using them -> STARTED
-* Fix problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
+* Fix potential problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
+
+
+## 2.0.0-beta.25 (2022-11-11)
+* Improved detection of recording state and recording ookings for network recordings. Local HDD need testing
 
 
 ## 2.0.0-beta.24 (2022-11-11)
