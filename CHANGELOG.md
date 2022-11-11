@@ -19,7 +19,9 @@ Please report all bugs and problems.
 
 
 ## 2.0.0-beta.26 (2022-11-11)
+* Corrected settop box model detection for GB
 * Set mqttClient.end force=false for better behaviour
+* Small logging improvements
 
 
 ## 2.0.0-beta.25 (2022-11-11)
