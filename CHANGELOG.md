@@ -18,8 +18,12 @@ Please report all bugs and problems.
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
 
 
+## 2.0.0-beta.27 (2022-11-11)
+* Debug code cleanup
+
+
 ## 2.0.0-beta.26 (2022-11-11)
-* Corrected settop box model detection for GB
+* Corrected settop box model detection using deviceType and productType (better for GB)
 * Set mqttClient.end force=false for better behaviour
 * Small logging improvements
 
