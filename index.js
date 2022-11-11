@@ -2100,8 +2100,9 @@ class stbPlatform {
 							parent.getUiStatus(device.deviceId, mqttClientId);
 						});
 
-						// and request current recordingState
+						// and request current recording state and bookings
 						parent.getRecordingState();  // async function
+						parent.getRecordingBookings();  // async function
 
 						// ++++++++++++++++++++ mqttConnected +++++++++++++++++++++
 					
@@ -2151,6 +2152,7 @@ class stbPlatform {
 								if (topic.includes(mqttUsername + '/recordingStatus')) {
 									if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: event: %s', mqttMessage.event); }
 									parent.getRecordingState(); // async function
+									parent.getRecordingBookings(); // async function
 								}
 
 								// handle status messages for the STB
@@ -2697,7 +2699,6 @@ class stbPlatform {
 
 
 	// get the recording state via web request GET
-	// new endpoint as of October 2022
 	async getRecordingState(callback) {
 		try {
 			this.log("Refreshing recording state");
@@ -2712,207 +2713,80 @@ class stbPlatform {
 					}
 				};
 
-			// get all planned recordings. We only need to know if any results exist. 
-			// 0 results = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED
-			// >0 results = Characteristic.ProgramMode.PROGRAM_SCHEDULED
-			// old:
-			// https://obo-prod.oesp.sunrisetv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?plannedOnly=true&range=1-20
-			// from october 2022:
+			// get all recordings. We only need to know if any are ongoing. 
 			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/recordings/state?channelIds=SV09039
 			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/recordings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=desc&profileId=4eb38207-d869-4367-8973-9467a42cad74&language=en
-			//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
-			var currProgramMode = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED; // default
+			// const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
 			// parameter plannedOnly=false did not work
-			var url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + this.session.householdId + '/recordings/state'; // limit to 20 recordings for performance
-			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: planned recordings: GET %s', url); }
-			axiosWS.get(url, config)
-				.then(response => {	
-					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: planned recordings response: %s %s', response.status, response.statusText); }
-					if (this.config.debugLevel > 2) { 
-						this.log.warn('getRecordingState: recordings state response data:');
-						this.log.warn(response.data);
-					}
-					// get array of planned recordings, ensure output is always an array
-					// cannot support local hdd at the moment, I need a tester with hdd
-					// recordingState: one of 'planned', 'ongoing', 'recorded',
-					var recType, recState;
-					let plannedRecordings = [].concat(response.data.data.find(recording => recording.recordingState == 'planned') ?? []);
-					if (plannedRecordings.length > 0) { 
-						currProgramMode = Characteristic.ProgramMode.PROGRAM_SCHEDULED;
-					} else {
-						currProgramMode = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED;
-					}
-					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: planned recordings %s, currProgramMode set to %s [%s]', plannedRecordings.length, currProgramMode, programModeName[currProgramMode]); }
-
-
-					// determine if anything is ongoing!
-					// currently only possible for network recordings until I see an example for a local HDD recording
-					let ongoingRecordings = [].concat(response.data.data.find(recording => recording.recordingState == 'ongoing') ?? []);
-					if (ongoingRecordings.length > 0) { 
-						recType = 'nDVR';
-					} else {
-						recType = 'idle';
-					}
-					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: ongoing recordings %s', ongoingRecordings.length ); }
-
-
-
-					// set recording state for each device
-					// GB: only the main device can have a HDD and thus should receive the ONGOING_LOCALDVR state
-					// loop through all devices, handling devices with HDDs and devices without HDDs
-					this.devices.forEach((device) => {
-						if (recType == 'localDVR' || recType == 'LDVR') { 
-							recState = recordingState.ONGOING_LOCALDVR;
-						} else if (recType == 'nDVR') { 
-							recState = recordingState.ONGOING_NDVR;
-						} else {
-							recState = recordingState.IDLE;
-						}
-						// update the device state. Set StatusFault to nofault as connection is working
-						if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Updating device state for %s to recState %s %s", device.deviceId, recState, recType); }
-						//mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode) {
-						this.mqttDeviceStateHandler(device.deviceId, null, null, recState, null, null, null, Characteristic.StatusFault.NO_FAULT, currProgramMode );
-					})				
-
-				})
-				.catch(error => {
-					let errText, errReason;
-					errText = 'getRecordingState get planned recordings for %s failed: '
-					if (error.isAxiosError) { 
-						errReason = error.code + ': ' + (error.hostname || ''); 
-					} else if (error.response) {
-						errReason = (error.response || {}).status + ' ' + ((error.response || {}).statusText || ''); 
-					} else {
-						errReason = error; 
-					}
-					this.log('%s', (errReason || ''));
-					this.log.debug(`getRecordingState get planned recordings error:`, error);
-				});	
-
-			return false;
-
-			// get all booked series recordings:
-			// I need a test user to get me the html endpoints for local HDD recording state
-			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/bookings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=asc&language=en
-			//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
-			url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + this.session.householdId + '/bookings?limit=100&sort=time&sortOrder=asc'; // limit to 20 recordings for performance
+			const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + this.session.householdId + '/recordings/state'; // limit to 20 recordings for performance
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: GET %s', url); }
 			axiosWS.get(url, config)
+			axiosWS.get(url, config)
 				.then(response => {	
-					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: response: %s %s', response.status, response.statusText); }
-					if (this.config.debugLevel > 2) { 
+					// log at level 1, 2
+					if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: response: %s %s', response.status, response.statusText); }
+					if (this.config.debugLevel > 1) { 
 						this.log.warn('getRecordingState: response data:');
 						this.log.warn(response.data);
 					}
 
-					// find if any recordings are ongoing, and if local or network
-					// loop all cpes, find and local recordings per cpe first.
-					// if none found, find network recordings second
-					if (response.data.recordings) { 
-						// a recording carries these properties:
-						// for type='single'
-						// recordingState: 'ongoing', 'recorded', 'planned' or ??, for all types
-						// recordingType: 'nDVR', 'localDVR', 'LDVR', 
-						// cpeId: '3C36E4-EOSSTB-003597101009', only for local DVRs
+					// a recording carries these properties:
+					// for type='single'
+					// recordingState: 'ongoing', 'recorded', 'planned' or ??, for all types
+					// recordingType: 'nDVR', 'localDVR', 'LDVR', 
+					// cpeId: '3C36E4-EOSSTB-003597101009', only for local DVRs
 
-						// for type='season':
-						// mostRelevantEpisode.recordingState: 'ongoing',
-						// mostRelevantEpisode.recordingType: 'nDVR',
-						// logging
-						if (this.config.debugLevel > 2) { 
-							response.data.recordings.forEach((recording) => {
-								this.log.warn('Recording showTitle "%s", cpeId %s, type %s, recordingState %s, recordingType %s, mostRelevantEpisode:',  recording.showTitle, recording.cpeId, recording.type, recording.recordingState, recording.recordingType, )
-								this.log.warn(recording.mostRelevantEpisode )
-							});
+					// for type='season':
+					// mostRelevantEpisode.recordingState: 'ongoing',
+					// mostRelevantEpisode.recordingType: 'nDVR',
+					// logging at level 2
+					if (this.config.debugLevel > 1) { 
+						this.log.warn('Recordings length %s:',  response.data.data.length )
+						response.data.data.forEach((recording) => {
+							this.log.warn('Recording title "%s", type %s, recordingState %s, recordingType %s, mostRelevantEpisode:',  recording.title, recording.type, recording.recordingState, recording.recordingType )
+							this.log.warn(recording.mostRelevantEpisode)
+						});
+					}
+					let currRecordingState = recordingState.IDLE; // default
+					let localOngoingRecordings = 0, networkOngoingRecordings = 0;
+
+					// look for planned network single recordings: (type = "single" = one object, type = "season" = array)
+					if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: searching for ongoing network recordings"); }
+					let recordingNetworkOngoing = [].concat(response.data.data.find(recording => recording.recordingState == 'ongoing') ?? []);
+					//let recordingNetworkSeasonOngoing = [].concat(response.data.data.find(recording => recording.source == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing') ?? []);
+					//networkOngoingRecordings = recordingNetworkSingleOngoing.length + recordingNetworkSeasonOngoing.length;
+					networkOngoingRecordings = recordingNetworkOngoing.length;
+
+					// find if any local device recordings are ongoing, for each device, as each device can have a HDD
+					this.devices.forEach((device) => {
+						if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: Checking device %s for ongoing local HDD recordings", device.deviceId); }
+						if (device.capabilities.hasHDD) {
+							// device has HDD, look for local recordings
+							// look for ongoing local single recordings: (type = "single" = one object, type = "season" = array)
+							if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: %s: searching for ongoing local recordings for this device", device.deviceId); }
+							let recordingLocalSingleOngoing = [].concat(response.data.data.find(recording => recording.cpeId == device.deviceId && recording.source == 'single' && recording.recordingState == 'ongoing') ?? []);
+							let recordingLocalSeasonOngoing = [].concat(response.data.data.find(recording => recording.cpeId == device.deviceId && recording.source == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing') ?? []);
+							localOngoingRecordings = recordingLocalSingleOngoing.length + recordingLocalSeasonOngoing.length;
 						}
 
-						// get each device. for every recordingState update, update all devices
-						// only the main device can have a HDD and thus should receive the ONGOING_LOCALDVR state
-						// loop through all devices, handling devices with HDDs and devices without HDDs
-						this.devices.forEach((device) => {
-							var recType, recState, systemRecordingState;
+						// log state
+						if (localOngoingRecordings > 0) {
+							currRecordingState = recordingState.ONGOING_LOCALDVR;
+						} else if (networkOngoingRecordings > 0) {
+							currRecordingState = recordingState.ONGOING_NDVR;
+						}
 
-							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s...", device.deviceId); }
-							if (device.capabilities.hasHDD) {
-								// device has HDD, look for local recordings
-								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Device has a HDD:", device.deviceId); }
-
-								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s with HDD. Searching for ongoing local recordings for this device...", device.deviceId); }
-								// first look for non-season recordings: (type = "single" or "show")
-								let recordingLocal = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.recordingState == 'ongoing');
-								if (recordingLocal) {
-									// found ongoing local non-season recording
-									recType = recordingLocal.recordingType;
-									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing local non-season recording found for device %s with status %s %s", recordingLocal.cpeId, recordingLocal.recordingState, recordingLocal.recordingType); }
-
-								} else {
-									// if none found then look for season recordings:
-									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s with HDD. Searching for ongoing local season recordings for this device...", device.deviceId); }
-									let recordingLocalSeason = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
-									if (recordingLocalSeason) {
-										// found local ongoing season recording
-										recType = recordingLocalSeason.mostRelevantEpisode.recordingType;
-										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing local season recording found with status %s %s", recordingLocalSeason.mostRelevantEpisode.recordingState, recordingLocalSeason.mostRelevantEpisode.recordingType); }
-
-									} else {
-										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: No ongoing local recordings found"); }
-										recType = 'idle';
-									}
-
-								}
-
-							}
-
-							// check network recordings
-							if (!recType || recType == 'idle') {
-								// device has no HDD, check network recordings
-								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Searching for ongoing network recordings for this device...", device.deviceId); }
-								// first look for non-season recordings: (type = "single" or "show")
-								let recordingNetwork = response.data.recordings.find(recording => !recording.cpeId && recording.recordingState == 'ongoing');
-								if (recordingNetwork) {
-									// found ongoing network non-season recording
-									recType = recordingNetwork.recordingType;
-									if (this.config.debugLevel >= 0) { this.log.warn("getRecordingState: ongoing network non-season recording found with status %s %s", recordingNetwork.recordingState, recordingNetwork.recordingType); }
-
-								} else {
-									// if none found then look for season or show recordings: (type = "season") type = show also exists
-									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Searching for ongoing network season recordings for this device...", device.deviceId); }
-									let recordingNetworkSeason = response.data.recordings.find(recording => recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
-									if (recordingNetworkSeason) {
-										recType = recordingNetworkSeason.mostRelevantEpisode.recordingType;
-										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing network season recording found with status %s %s", recordingNetworkSeason.mostRelevantEpisode.recordingState, recordingNetworkSeason.mostRelevantEpisode.recordingType); }
-
-									} else {
-										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: No ongoing network recordings found"); }
-										recType = 'idle';
-									}
-								}
-							}
-
-							// local has prio over network
-							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Setting recState for %s according to recType %s", device.deviceId, recType); }
-							if (recType == 'localDVR' || recType == 'LDVR') { 
-								recState = recordingState.ONGOING_LOCALDVR;
-							} else if (recType == 'nDVR') { 
-								recState = recordingState.ONGOING_NDVR;
-							} else {
-								recState = recordingState.IDLE;
-							}
-
-							// update the device state. Set StatusFault to nofault as connection is working
-							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Updating device state for %s to recState %s %s", device.deviceId, recState, recType); }
-							//mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode) {
-							this.mqttDeviceStateHandler(device.deviceId, null, null, recState, null, null, null, Characteristic.StatusFault.NO_FAULT, currProgramMode );
-							});
-
-					}
-
-
+						// update the device state. Set StatusFault to nofault as connection is working
+						this.log('Recording state: %s: ongoing recordings found: local %s, network %s, current Recording State %s [%s]', device.deviceId, localOngoingRecordings, networkOngoingRecordings, currRecordingState, recordingStateName[currRecordingState]);
+						//mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode) {
+						this.mqttDeviceStateHandler(device.deviceId, null, null, currRecordingState, null, null, null, Characteristic.StatusFault.NO_FAULT, null );
+					});
 					return false;
 				})
+
 				.catch(error => {
 					let errText, errReason;
-					errText = 'getRecordingState for %s failed: '
+					errText = 'getRecordingState get ongoing recordings for %s failed: '
 					if (error.isAxiosError) { 
 						errReason = error.code + ': ' + (error.hostname || ''); 
 					} else if (error.response) {
@@ -2921,11 +2795,10 @@ class stbPlatform {
 						errReason = error; 
 					}
 					this.log('%s', (errReason || ''));
-					this.log.debug(`getRecordingState error:`, error);
-
+					this.log.debug(`getRecordingState get ongoing recordings error:`, error);
 					return false, error;
-				});		
-			return false;
+				});
+
 
 		} catch (err) {
 			this.log.error("Error trapped in getRecordingState:", err.message);
@@ -2935,6 +2808,116 @@ class stbPlatform {
 	
 
 
+	// get the recording bookings via web request GET
+	async getRecordingBookings(callback) {
+		try {
+			this.log("Refreshing recording bookings");
+			if (this.config.debugLevel > 0) { this.log.warn('getRecordingBookings'); }
+
+			// headers for the connection
+			const config = {
+					headers: {
+						"x-cus": this.session.householdId, 
+						//"x-oesp-token": this.session.accessToken,  // no longer needed
+						"x-oesp-username": this.session.username
+					}
+				};
+
+			// get all planned recordings. We only need to know if any results exist. 
+			// 0 results = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED
+			// >0 results = Characteristic.ProgramMode.PROGRAM_SCHEDULED
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/recordings/state?channelIds=SV09039
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/recordings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=desc&profileId=4eb38207-d869-4367-8973-9467a42cad74&language=en
+			// parameter plannedOnly=false did not work
+				
+			// get all booked series recordings: these are planned future recordings
+			// I need a test user to get me the html endpoints for local HDD recording state
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/bookings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=asc&language=en
+			const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + this.session.householdId + '/bookings?limit=10&sort=time&sortOrder=asc'; // limit to 10 recordings for performance
+			if (this.config.debugLevel > 0) { this.log.warn('getRecordingBookings: GET %s', url); }
+			axiosWS.get(url, config)
+				.then(response => {	
+					// log at level 1, 2
+					if (this.config.debugLevel > 0) { this.log.warn('getRecordingBookings: response: %s %s', response.status, response.statusText); }
+					if (this.config.debugLevel > 1) { 
+						this.log.warn('getRecordingBookings: response data:');
+						this.log.warn(response.data);
+					}
+
+					// a recording carries these properties:
+					// for type='single'
+					// recordingState: 'ongoing', 'recorded', 'planned' or ??, for all types
+					// recordingType: 'nDVR', 'localDVR', 'LDVR', 
+					// cpeId: '3C36E4-EOSSTB-003597101009', only for local DVRs
+
+					// for type='season':
+					// mostRelevantEpisode.recordingState: 'ongoing',
+					// mostRelevantEpisode.recordingType: 'nDVR',
+					// logging at level 2
+					if (this.config.debugLevel > 1) { 
+						this.log.warn('Recordings length %s:',  response.data.data.length )
+						response.data.data.forEach((recording) => {
+							this.log.warn('Recording title "%s", type %s, recordingState %s, recordingType %s, mostRelevantEpisode:',  recording.title, recording.type, recording.recordingState, recording.recordingType )
+							this.log.warn(recording.mostRelevantEpisode)
+						});
+					}
+					let currProgramMode = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED; // default
+					let localPlannedRecordings = 0, networkPlannedRecordings = 0;
+
+					// look for planned network recordings: (type = "single" = one object, type = "season" = array)
+					if (this.config.debugLevel > 0) { this.log.warn("getRecordingBookings: searching for planned network recordings"); }
+					let recordingNetworkSinglePlanned = [].concat(response.data.data.find(recording => recording.type == 'single' && recording.recordingState == 'planned') ?? []);
+					let recordingNetworkSeasonPlanned = [].concat(response.data.data.find(recording => recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'planned') ?? []);
+					networkPlannedRecordings = recordingNetworkSinglePlanned.length + recordingNetworkSeasonPlanned.length;
+
+
+					// find if any local recordings are booked, for each device, as each device can have a HDD
+					this.devices.forEach((device) => {
+						if (this.config.debugLevel > 0) { this.log.warn("getRecordingBookings: Checking device %s for planned local HDD recordings", device.deviceId); }
+						if (device.capabilities.hasHDD) {
+							// device has HDD, look for local recordings
+							// look for planned local single recordings: (type = "single")
+							if (this.config.debugLevel > 0) { this.log.warn("getRecordingBookings: %s: searching for planned local recordings for this device", device.deviceId); }
+							let recordingLocalSinglePlanned = [].concat(response.data.data.find(recording => recording.cpeId == device.deviceId && recording.type == 'single' && recording.recordingState == 'planned') ?? []);
+							let recordingLocalSeasonPlanned = [].concat(response.data.data.find(recording => recording.cpeId == device.deviceId && recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'planned') ?? []);
+							localPlannedRecordings = recordingLocalSinglePlanned.length + recordingLocalSeasonPlanned.length;
+						}
+
+						// log state
+						if (localPlannedRecordings + networkPlannedRecordings > 0) {
+							currProgramMode = Characteristic.ProgramMode.PROGRAM_SCHEDULED;
+						}
+
+
+						// update the device state. Set StatusFault to nofault as connection is working
+						this.log('Recording bookings: %s: planned recordings found: local %s, network %s, current Program Mode %s [%s]', device.deviceId, localPlannedRecordings, networkPlannedRecordings, currProgramMode, programModeName[currProgramMode]);
+						//mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode) {
+						this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, null, Characteristic.StatusFault.NO_FAULT, currProgramMode );
+					});
+					return false;
+				})
+
+				.catch(error => {
+					let errText, errReason;
+					errText = 'getRecordingBookings for %s failed: '
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+					} else if (error.response) {
+						errReason = (error.response || {}).status + ' ' + ((error.response || {}).statusText || ''); 
+					} else {
+						errReason = error; 
+					}
+					this.log('%s', (errReason || ''));
+					this.log.debug(`getRecordingBookings error:`, error);
+
+					return false, error;
+				});
+
+		} catch (err) {
+			this.log.error("Error trapped in getRecordingBookings:", err.message);
+			this.log.error(err);
+		}
+	}
 
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3781,6 +3764,8 @@ class stbDevice {
 				// search by subtype in the inputServices array, index 0 = input 1, subtype: 'input_SV09038',
 				const oldActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
 				//this.log("updateDeviceState: oldActiveIdentifier %s, currentActiveIdentifier %s, searchChannelId %s", oldActiveIdentifier, currentActiveIdentifier, searchChannelId)
+				//this.log("this.inputServices")
+				//this.log(this.inputServices)
 				currentActiveIdentifier = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + searchChannelId ) + 1;
 				//this.log("found searchChannelId %s at currentActiveIdentifier %s", 'input_' + searchChannelId , currentActiveIdentifier)
 				if (currentActiveIdentifier <= 0) { currentActiveIdentifier = NO_INPUT_ID; } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
