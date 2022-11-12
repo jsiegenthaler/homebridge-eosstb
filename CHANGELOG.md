@@ -13,9 +13,15 @@ Please report all bugs and problems.
 
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
 * Work on ideas for showing radio channels and using them -> STARTED
+* Get Input Source Type working: The set-top box current source type, one of 0 (OTHER) for replay TV, 3 (TUNER) for linear TV, and 10 (APPLICATION) for apps such as Netflix, YouTube.
 * Fix potential problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
+
+
+## 2.0.0-beta.28 (2022-11-12)
+* Improved speed to startup sequence by removing delay before prepareAccessory
+* Cleaned up some code
 
 
 ## 2.0.0-beta.27 (2022-11-11)
