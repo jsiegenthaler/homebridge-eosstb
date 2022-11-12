@@ -21,7 +21,7 @@ Please report all bugs and problems.
 
 ## 2.0.0-beta.28 (2022-11-12)
 * Improved speed to startup sequence by removing delay before prepareAccessory
-* Cleaned up some code
+* Cleaned up and optimized some code
 
 
 ## 2.0.0-beta.27 (2022-11-11)
