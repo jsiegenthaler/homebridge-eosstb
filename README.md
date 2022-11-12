@@ -54,7 +54,7 @@ As [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) (the operator of the Horiz
 | Country | TV Provider | Web App | Box Name | Plugin Status |
 | ------- | ----------- | ------- | -------- | ------------- |
 | BE | [Telenet](https://www2.telenet.be/) | [Telenet TV](https://www.telenettv.be/nl.html) | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/) | Fully Working |
-| CH | [Sunrise](https://www.sunrise.ch/en/) | [Sunrise TV](https://www.sunrisetv.ch/en.html) | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription)* | Fully Working |
+| CH | [Sunrise](https://www.sunrise.ch/en/) | [Sunrise TV](https://www.sunrisetv.ch/en.html) | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription) | Fully Working |
 | GB | [Virgin Media](https://www.virginmedia.com/) | [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | Working, Under Test |
 | IE | [Virgin Media](https://www.virginmedia.ie/) | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/) | Fully Working |
 | NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo GO](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | Fully Working |
