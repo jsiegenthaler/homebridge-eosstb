@@ -563,11 +563,11 @@ class stbPlatform {
 					errorTitle = 'Failed to discover devices';
 					debug(debugPrefix + 'calling discoverDevices')
 					return this.discoverDevices() // returns stbDevices object 
-				})				
-				// the results of the previous then is the devices object. This is passed on to the next then:
+				})
+				// the results of the previous then is a device array. This is passed on to the next then:
 				.then((objStbDevices) => {
 					this.log('Discovery completed');
-					this.log.debug('sessionWatchdog: ++++++ step 6: devices data was retrieved, devices found: %s',objStbDevices.length)
+					this.log.debug('sessionWatchdog: ++++++ step 6: devices found:', this.devices.length )
 					this.log.debug('sessionWatchdog: ++++++ step 6: calling getJwtToken')
 					errorTitle = 'Failed to start mqtt session';
 					debug(debugPrefix + 'calling getJwtToken')
@@ -2911,21 +2911,16 @@ class stbDevice {
 
 
 		// do an initial accessory channel list update, required to configure the accessory
-		//this.log('%s: Calling refreshDeviceMostWatchedChannels', this.name);
-		//this.refreshDeviceMostWatchedChannels(this.device.defaultProfileId); // async function
+		// then prepare the accessory
+		this.refreshDeviceChannelList(this.deviceId) // async function
+			.then(() => {
+				// plugin setup done, session and channels loaded, can load the accessory
+				this.accessoryConfigured = false;
+				this.prepareAccessory();
+				this.log('%s: Initialization completed', this.name);
+			})
 
-		// wait 1s for the refreshDeviceMostWatchedChannels to complete then continue
-		this.refreshDeviceChannelList(this.deviceId); // async function
-	
-
-		// plugin setup done, session and channels loaded, can load 
-		// wait 5s for the accessory channel list to load then continue
-		wait(3*1000).then(() => { 
-			this.accessoryConfigured = false;
-			this.prepareAccessory();
-			this.log('%s: Initialization completed', this.name);
-		})
-
+		//this.log('%s: end of stbDevice constructor', this.name);
 	}
 
 
@@ -3709,7 +3704,7 @@ class stbDevice {
 		try {
 			if (this.config.debugLevel > 1) { this.log.warn('%s: refreshDeviceChannelList', this.name); }
 			this.log("%s: Refreshing device channel list...", this.name);
-			//this.log("%s: Refreshing channel list: CURRENTLY DISABLED AS MASTER CHANNEL LIST NOT YET BUILT", this.name);
+			//this.log("%s: Refreshing channel list: CURRENTLY DISABLED AS MASTER CHANNEL LIST not yet BUILT", this.name);
 			//return;
 			
 			// exit if no session exists
@@ -3760,14 +3755,7 @@ class stbDevice {
 
 			
 			// now load the mostWatched list for this profile
-			//TODO MAKE THIS INTO A PROMISE
 			this.refreshDeviceMostWatchedChannels(wantedProfile.profileId); // async function
-			// wait 1s for the refreshDeviceMostWatchedChannels to complete then continue
-			wait(1*1000).then(() => { 
-///				this.refreshDeviceMostWatchedChannels(wantedProfile.profileId); // async function
-//				this.log('%s: refreshDeviceChannelList done', this.name);
-			})
-
 
 			// get the wanted profile configured on the stb
 			this.profileId = wantedProfile.profileId
@@ -4230,7 +4218,6 @@ class stbDevice {
 		callback(null); // for rapid response
 		if(this.currentPowerState !== targetPowerState){
 			this.platform.sendKey(this.deviceId, this.name, 'Power');
-			//this.platform.sendKeyHTTP(this.deviceId, this.name, 'Power');
 			this.lastPowerKeySent = Date.now();
 		}
 	}
@@ -4326,6 +4313,7 @@ class stbDevice {
 
 	// get volume
 	async getVolume(callback) {
+		// not supported, but might use somehow in the future
 		if (this.config.debugLevel > 1) { this.log.warn("getVolume"); }
 		callback(null);
 	}
@@ -4389,7 +4377,7 @@ class stbDevice {
 		// fired when the user clicks away from the iOS Device TV Remote Control, regardless of which TV was selected
 		// fired when the icon is clicked in the Home app and HomeKit requests a refresh
 		// fired when the Home app is opened
-		// this.currentChannelId is updated by the polling mechanisn
+		// this.currentChannelId is updated by mqtt
 		// must return a valid index, and must never return null
 		//if (this.config.debugLevel > 1) { this.log.warn('%s: getInput currentChannelId %s',this.name, this.currentChannelId); }
 
@@ -4490,12 +4478,12 @@ class stbDevice {
 
 	// get input visibility state (of the TV channel in the accessory)
 	async getInputVisibilityState(inputId, callback) {
-		//if (this.config.debugLevel > 1) { this.log.warn('%s: getInputVisibilityState inputId %s', this.name, inputId); }
+		// fired when ??
+		if (this.config.debugLevel > 1) { this.log.warn('%s: getInputVisibilityState inputId %s', this.name, inputId); }
 		//var visibilityState = Characteristic.CurrentVisibilityState.SHOWN;
 		//if (this.channelList[inputId-1].name == 'HIDDEN') {
 		//	visibilityState = Characteristic.CurrentVisibilityState.HIDDEN;
 		// }
-		// from v1.1.7, index 0 is input 1 and so on
 		const visibilityState = this.inputServices[inputId-1].getCharacteristic(Characteristic.CurrentVisibilityState).value;
 		if (this.config.debugLevel > 2) {
 			this.log.warn('%s: getInputVisibilityState for input %s returning %s [%s]', this.name, inputId, visibilityState, visibilityStateName[visibilityState]);
@@ -4505,6 +4493,7 @@ class stbDevice {
 
 	// set input visibility state (show or hide the TV channel)
 	async setInputVisibilityState(inputId, visibilityState, callback) {
+		// fired when ??
 		if (this.config.debugLevel > 1) { 
 			this.log.warn('%s: setInputVisibilityState for input %s inputVisibilityState %s [%s]', this.name, inputId, visibilityState, visibilityStateName[visibilityState]); 
 		}
@@ -4530,11 +4519,11 @@ class stbDevice {
 
 	// set closed captions state
 	async setClosedCaptions(targetClosedCaptionsState, callback) {
-		// fired when ??
+		// fired when ?? Apple HomeKit has no ability to control setClosedCaptions 
 		// targetClosedCaptionsState is the wanted state
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setClosedCaptions targetClosedCaptionsState:', this.name, targetClosedCaptionsState, closedCaptionsStateName[targetClosedCaptionsState]); }
 		if(this.currentClosedCaptionsState !== targetClosedCaptionsState){
-			this.log("setClosedCaptions: not Yet implemented");
+			this.log("setClosedCaptions: not yet implemented");
 		}
 		callback(null);
 	}
@@ -4565,7 +4554,7 @@ class stbDevice {
 		// targetClosedCaptionsState is the wanted state
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setPictureMode targetPictureMode:', this.name, targetPictureMode, pictureModeName[targetPictureMode]); }
 		if(this.customPictureMode !== targetPictureMode){
-			this.log("setPictureMode: not Yet implemented");
+			this.log("setPictureMode: not yet implemented");
 		}
 		callback(null);
 	}
@@ -4618,15 +4607,15 @@ class stbDevice {
 		switch (targetState) {
 			case Characteristic.TargetMediaState.PLAY:
 				this.log('setTargetMediaState: Set media to PLAY for', this.currentChannelId);
-				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 1)
+				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 1) // set to 1, play at normal speed
 				break;
 			case Characteristic.TargetMediaState.PAUSE:
 				this.log('setTargetMediaState: Set media to PAUSE for', this.currentChannelId);
-				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 0)
+				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 0) // set to 0, pause/stop
 				break;
 			case Characteristic.TargetMediaState.STOP:
 				this.log('setTargetMediaState: Set media to STOP for', this.currentChannelId);
-				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 0)
+				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 0) // set to 0, pause/stop
 				break;
 			}
 	}
@@ -4640,7 +4629,6 @@ class stbDevice {
 		// log the display order
 		let dispOrder = this.televisionService.getCharacteristic(Characteristic.DisplayOrder).value;
 		if (this.config.debugLevel > 1) { this.log.warn("%s: getDisplayOrder returning '%s'", this.name, dispOrder); }
-
 		callback(null, dispOrder);
 	}
 
@@ -4652,16 +4640,6 @@ class stbDevice {
 		// must return a valid index, and must never return null
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setDisplayOrder displayOrder',this.name, displayOrder); }
 		callback(null);
-	}
-
-	// get status fault
-	async getStatusFault(callback) {
-		// useful in Shortcuts and Automations
-		// log the status fault 
-		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getStatusFault returning %s [%s]', this.name, this.currentStatusFault, statusFaultName[this.currentStatusFault]);
-		}
-		callback(null, this.currentStatusFault);
 	}
 
 	// get in use
@@ -4694,6 +4672,16 @@ class stbDevice {
 		callback(null, this.currentStatusActive);
 	}
 
+	// get status fault
+	async getStatusFault(callback) {
+		// useful in Shortcuts and Automations
+		// log the StatusFault 
+		if (this.config.debugLevel > 1) { 
+			this.log.warn('%s: getStatusFault returning %s [%s]', this.name, this.currentStatusFault, statusFaultName[this.currentStatusFault]);
+		}
+		callback(null, this.currentStatusFault);
+	}
+	
 	// get InputSourceType state
 	async getInputSourceType(callback) {
 		// useful in Shortcuts and Automations
