@@ -96,7 +96,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports).
 
-* **Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple Siri supports), allowing you to control switch-on and channel selection in Home Automations, Shorcuts and Personal Automations.
+* **Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple supports), allowing you to control switch-on and channel selection in Home Automations, Shorcuts and Personal Automations.
 
 * **Synchronised Set-Top Box Name**: Changing the name of the set-top box in the Home app changes it on the TV and backend systems in real time, and vice-versa. No reboot required. You can turn off the sync if desired in the config.
 
@@ -108,11 +108,11 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Master Channel List Refreshed Daily**: The master channel list is refreshed daily, ensuring it is always up to date.
 
-* **Ignores Not-Subscribed Channels**: Only the channels you subscribe to are shown in the Home app, saving you valuable slots in the limited Home app channel list.
+* **Ignores Non-Subscribed Channels**: Only the channels you subscribe to are shown in the Home app, saving you valuable slots in the limited Home app channel list.
 
 * **Optional Channel Numbers**: If you wish, you can display a channel number before the channel name. As this consumes some space on the Home app tile, it is off by default.
 
-* **Default Profile Support**: The default profile on start-up is used for the channel list if no other profile is configured for the plugin.
+* **Default Profile Support**: The default profile on start-up of the set-top box is used for the channel list if no other profile is configured for the plugin.
 
 * **Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute (TV dependent). The triple-press timing is configurable.
 
@@ -122,7 +122,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
-* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 16.1). Hopefully, Apple will add support for these features in the future. You can however use this data in the Shortcuts app.
+* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 16.1). Hopefully, Apple will add support for these features in the future. You can however use this data in Home Automations or the Shortcuts app.
 
 
 
@@ -178,15 +178,15 @@ The following keys are supported by in the **Apple TV Remote** in the Control Ce
 | Volume Up | volUpCommand | - |
 | Volume Down | volDownCommand | 3 clicks = mute |
 
-The table shows the default key mappings. You can map any Apple TV Remote button to any EOSSTB remote control button, see the Wiki for all of the known [KeyEvents](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents).
+The table shows the default key mappings. You can map any Apple TV Remote button to any set-top box remote control button, see the Wiki for all of the known [KeyEvents](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents).
 
 The volume controls do not control the set-top box directly, as the set-top box has no volume capability. The set-top box physical remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
 
 
 ## Using Profiles to better manage your Channel List
-Many TV providers provide hundreds of TV channels. The Home app is limited to 95 channels, and the plugin will load the first 95 subscribed channels found, ignoring non-subscribed channels. 
+Many TV providers provide hundreds of TV channels. The Home app is limited to 100 "services", which are TV channels or reserved for system control. This limits the maximum possible channels to 95, and thus the plugin will load the first 95 subscribed channels found, ignoring all non-subscribed channels. 
 
-If the channels you wish to have in the Home app are not within the first 95 subscribed channels, then you can create a profile on the set-top box, and configure the profile with the channels you want, in the order you want. Enter the same profile name in the plugin config **Profile Name**, and the plugin will load the channels from that profile.
+If the channels you wish to have in the Home app are not within the first 95 subscribed channels in your TV providers channel list, then you can create a profile on the set-top box, and configure the profile with the channels you want, in the order you want. Enter the same profile name in the plugin config **Profile Name**, and the plugin will load the channels from that profile.
 
 Any changes in the profile on the set-top box will automatically be reflected in the plugin. As the Home app does not expect channels to change in the channel list, you may need to force-close the Home app and reopen it to force a refresh of the displayed channels after a change is made on your set-top box.
 
@@ -199,7 +199,7 @@ The config item **Channel Sort By** allows the channels to be sorted by **Channe
 
 ## Limitations
 ### Channel Count
-Due to HomeKit limitations, the maximum services for a single accessory are 100. Over this value the Home app will no longer respond. 
+Due to HomeKit design limitations, the maximum services for a single accessory are 100. Over this value the Home app will no longer respond. 
 Services used in this set-top box accessory are:
 1. Information service (Name, model, serial number of the accessory)
 2. Television service (for controlling the TV accessory)
@@ -213,7 +213,7 @@ The eosstb plugin emulates the TV service web app. If the web app is started on 
 The eosstb plugin can detect the current and target media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 16.1) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ### Recording State Limitations
-The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but the eosstb plugin uses it to set the inUse charateristic if the set-top box is turned on or is recording to the local HDD. This is useful in Shortcuts or Automations. **STATUS OF LOCAL HDD RECORDINGS CURRENTLY NOT WORKING IN V2 DUE TO CHANGED AND UNKNOWN ENDPOINTS. TESTERS NEEDED.**
+The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but the eosstb plugin uses it to set the inUse charateristic if the set-top box is turned on or is recording to the local HDD. This is useful in Shortcuts or Automations.
 
 ### Closed Captions Limitations
 The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 16.1) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
