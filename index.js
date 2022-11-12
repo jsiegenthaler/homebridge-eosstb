@@ -173,7 +173,6 @@ var PLUGIN_ENV = ''; // controls the development environment, appended to UUID t
 let mqttClient = {};
 let mqttClientId = '';
 let mqttUsername;
-//let mqttPassword;
 let currentSessionState;
 let isShuttingDown = false; // to handle reboots cleanly
 
@@ -1708,7 +1707,7 @@ class stbPlatform {
 			this.log("Refreshing entitlements for householdId %s", householdId);
 
 			//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
-			//const url='https://prod.spark.sunrisetv.ch/eng/web/purchase-service/v2/customers/1076582_ch/entitlements?enableDaypass=true'
+			//const url='https://prod.spark.sunrisetv.ch/eng/web/purchase-service/v2/customers/107xxxx_ch/entitlements?enableDaypass=true'
 			const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
 			//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
 			const config = {headers: {
@@ -1753,7 +1752,7 @@ class stbPlatform {
 			this.log("getExperimentalEndpoint: householdId %s", householdId);
 
 			//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
-			//const url='https://prod.spark.sunrisetv.ch/eng/web/purchase-service/v2/customers/1076582_ch/entitlements?enableDaypass=true'
+			//const url='https://prod.spark.sunrisetv.ch/eng/web/purchase-service/v2/customers/107xxxx_ch/entitlements?enableDaypass=true'
 			// 'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web'
 			let url
 			//url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
@@ -1859,6 +1858,7 @@ class stbPlatform {
 	// start the mqtt client and handle mqtt messages
 	// a sync procedure, no promise returned
 	// https://github.com/mqttjs/MQTT.js#readme
+	// http://www.steves-internet-guide.com/mqtt-publish-subscribe/
 	startMqttClient(parent, mqttUsername, mqttPassword) {
 		return new Promise((resolve, reject) => {
 			try {
@@ -2109,14 +2109,14 @@ class stbPlatform {
 											// '' (empty string) = when radio is playing
 											switch (playerState.sourceType) {
 												case 'linear':	// linear: normal tv
-												case 'reviewbuffer': 
+												case 'reviewbuffer': 	// delayed playback
 													currInputDeviceType = Characteristic.InputDeviceType.TV; // linear TV
 													currInputSourceType = Characteristic.InputSourceType.TUNER;
 													break;
 												case 'replay': 	// replay TV
-												case 'nDVR':
-												case 'lDVR':
-												case 'LDVR':
+												case 'nDVR':	// network DVR
+												case 'lDVR':	// local DVR
+												case 'LDVR':	// local DVR
 													currInputDeviceType = Characteristic.InputDeviceType.PLAYBACK; // replay TV
 													currInputSourceType = Characteristic.InputSourceType.OTHER;
 													break;
@@ -2344,13 +2344,10 @@ class stbPlatform {
 			if (this.config.debugLevel > 1) { 
 				this.log.warn('mqttDeviceStateHandler: calling updateDeviceState with deviceId %s, powerState %s, mediaState %s, channelId %s, sourceType %s, profileDataChanged %s, statusFault %s, programMode %s, statusActive %s, currInputDeviceType %s, currInputSourceType %s', deviceId, powerState, mediaState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
 			}
-			if (this.devices) {
-				//this.log.warn('mqttDeviceStateHandler: devices exist');
-				const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
-				if (deviceIndex > -1 && this.stbDevices.length > 0) { 
-					//this.log.warn('mqttDeviceStateHandler: stbDevices found, calling updateDeviceState');
-					this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
-				}
+			const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
+			if (deviceIndex > -1 && this.stbDevices.length > 0) { 
+				//this.log.warn('mqttDeviceStateHandler: stbDevices found, calling updateDeviceState');
+				this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
 			}
 		} catch (err) {
 			this.log.error("Error trapped in mqttDeviceStateHandler:", err.message);
@@ -2544,11 +2541,8 @@ class stbPlatform {
 				this.log.warn('getUiStatus deviceId %s', deviceId);
 			}
 			if (mqttUsername) {
-				//var mqttTopic = mqttUsername + '/' + deviceId;
-				//var mqttMessage =  '{"id":"' + makeFormattedId(32) + '","type":"CPE.getUiStatus","source":"' + mqttClientId + '"}';
 				this.mqttPublishMessage(
 					mqttUsername + '/' + deviceId,
-					// added ,"runtimeType":"getUiStatus" to try to get ui status after reboot
 					'{"source":"' + mqttClientId + '","id":"' + makeFormattedId(32) + '","type":"CPE.getUiStatus","runtimeType":"getUiStatus"}',
 					{ qos:1, retain:true }
 				);
@@ -2576,8 +2570,8 @@ class stbPlatform {
 				};
 
 			// get all recordings. We only need to know if any are ongoing. 
-			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/recordings/state?channelIds=SV09039
-			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/recordings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=desc&profileId=4eb38207-d869-4367-8973-9467a42cad74&language=en
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/107xxxx_ch/recordings/state?channelIds=SV09039
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/107xxxx_ch/recordings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=desc&profileId=4eb38207-d869-4367-8973-9467a42cad74&language=en
 			// const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
 			// parameter plannedOnly=false did not work
 			const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + this.session.householdId + '/recordings/state'; // limit to 20 recordings for performance
@@ -2688,13 +2682,13 @@ class stbPlatform {
 			// get all planned recordings. We only need to know if any results exist. 
 			// 0 results = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED
 			// >0 results = Characteristic.ProgramMode.PROGRAM_SCHEDULED
-			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/recordings/state?channelIds=SV09039
-			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/recordings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=desc&profileId=4eb38207-d869-4367-8973-9467a42cad74&language=en
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/107xxxx_ch/recordings/state?channelIds=SV09039
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/107xxxx_ch/recordings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=desc&profileId=4eb38207-d869-4367-8973-9467a42cad74&language=en
 			// parameter plannedOnly=false did not work
 				
 			// get all booked series recordings: these are planned future recordings
 			// I need a test user to get me the html endpoints for local HDD recording state
-			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/1076582_ch/bookings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=asc&language=en
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/107xxxx_ch/bookings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=asc&language=en
 			const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + this.session.householdId + '/bookings?limit=10&sort=time&sortOrder=asc'; // limit to 10 recordings for performance
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingBookings: GET %s', url); }
 			axiosWS.get(url, config)
