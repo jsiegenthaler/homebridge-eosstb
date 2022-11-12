@@ -137,41 +137,26 @@ const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
 
 
 
-// state constants
-const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 };
-const sessionStateName = ["DISCONNECTED", "LOADING", "LOGGING_IN", "AUTHENTICATING", "VERIFYING", "AUTHENTICATED", "CONNECTED"];
-const mqttState = { disconnected: 0, offline: 1, closed: 2, connected: 3, reconnected: 4, error: 5, end: 6, messagereceived: 7, packetsent: 8, packetreceived: 9 };
-const mqttStateName = [ "DISCONNECTED", "OFFLINE", "CLOSED", "CONNECTED", "RECONNECTED", "ERROR", "END", "MESSAGERECEIVED", "PACKETSENT", "PACKETRECEIVED" ];
-const mediaStateName = ["PLAY", "PAUSE", "STOP", "UNKNOWN3", "LOADING", "INTERRUPTED"];
-const powerStateName = ["OFF", "ON"];
-const closedCaptionsStateName = ["DISABLED", "ENABLED"];
-const visibilityStateName = ["SHOWN", "HIDDEN"];
-const pictureModeName = ["OTHER", "STANDARD", "CALIBRATED", "CALIBRATED_DARK", "VIVID", "GAME", "COMPUTER", "CUSTOM"];
-const recordingState = { IDLE: 0, ONGOING_NDVR: 1, ONGOING_LOCALDVR: 2 };
-const recordingStateName = ["IDLE", "ONGOING_NDVR", "ONGOING_LOCALDVR"];
-const statusFaultName = ["NO_FAULT", "GENERAL_FAULT"];
-const inUseName = ["NOT_IN_USE", "IN_USE"];
-const programModeName = ["NO_PROGRAM_SCHEDULED", "PROGRAM_SCHEDULED", "PROGRAM_SCHEDULED_MANUAL_MODE_"];
-const statusActiveName = ["NOT_ACTIVE", "ACTIVE"];
-const inputSourceTypeName = ["OTHER", "HOME_SCREEN", "TUNER", "HDMI", "COMPOSITE_VIDEO", "S_VIDEO", "COMPONENT_VIDEO", "DVI", "AIRPLAY", "USB", "APPLICATION"];
-const inputDeviceTypeName = ["OTHER", "TV", "RECORDING", "TUNER", "PLAYBACK", "AUDIO_SYSTEM"];
+// state constants. Need to add an array for any characteristic that is not an array, or the array is not contiguous
+const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 }; // custom
+const sessionStateName = ["DISCONNECTED", "LOADING", "LOGGING_IN", "AUTHENTICATING", "VERIFYING", "AUTHENTICATED", "CONNECTED"]; // custom
+const mqttState = { disconnected: 0, offline: 1, closed: 2, connected: 3, reconnected: 4, error: 5, end: 6, messagereceived: 7, packetsent: 8, packetreceived: 9 }; // custom
+const mqttStateName = [ "DISCONNECTED", "OFFLINE", "CLOSED", "CONNECTED", "RECONNECTED", "ERROR", "END", "MESSAGERECEIVED", "PACKETSENT", "PACKETRECEIVED" ]; // custom
+const currentMediaStateName = ["PLAY", "PAUSE", "STOP", "UNKNOWN3", "LOADING", "INTERRUPTED"]; // characteristic is non contiguous
+const powerStateName = ["OFF", "ON"]; // custom
+const recordingState = { IDLE: 0, ONGOING_NDVR: 1, ONGOING_LOCALDVR: 2 }; // custom
+const recordingStateName = ["IDLE", "ONGOING_NDVR", "ONGOING_LOCALDVR"]; // custom
+const statusActiveName = ["NOT_ACTIVE", "ACTIVE"]; // characteristic is boolean, not an array
 
 Object.freeze(sessionState);
 Object.freeze(sessionStateName);
 Object.freeze(mqttState);
 Object.freeze(mqttStateName);
-Object.freeze(mediaStateName);
+Object.freeze(currentMediaStateName);
 Object.freeze(powerStateName);
-Object.freeze(closedCaptionsStateName);
-Object.freeze(visibilityStateName);
-Object.freeze(pictureModeName);
+Object.freeze(recordingState);
 Object.freeze(recordingStateName);
-Object.freeze(statusFaultName);
-Object.freeze(inUseName);
-Object.freeze(programModeName);
 Object.freeze(statusActiveName);
-Object.freeze(inputSourceTypeName);
-Object.freeze(inputDeviceTypeName);
 
 
 
@@ -358,7 +343,7 @@ class stbPlatform {
 		//this.api.on('didFinishLaunching', () => {
 		this.api.on('didFinishLaunching', async () => {
 			if (this.config.debugLevel > 2) { this.log.warn('API event: didFinishLaunching'); }
-			this.log('%s v%s', PLUGIN_NAME, PLUGIN_VERSION);
+			this.log('%s xxx v%s', PLUGIN_NAME, PLUGIN_VERSION);
 			debug('stbPlatform:apievent :: didFinishLaunching')
 
 			// call the session watchdog to create the session
@@ -1944,7 +1929,7 @@ class stbPlatform {
 						// subscribe to all householdId messages
 						parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
 						parent.mqttSubscribeToTopic(mqttUsername + '/status'); // experiment, may not be needed
-						parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status
+						//parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status // dont subscribe to this, its all clientIds, floods with messages
 
 						// experimental support of recording status
 						parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings');
@@ -2125,19 +2110,19 @@ class stbPlatform {
 											switch (playerState.sourceType) {
 												case 'linear':	// linear: normal tv
 												case 'reviewbuffer': 
-													currInputSourceType = Characteristic.InputSourceType.TUNER;
 													currInputDeviceType = Characteristic.InputDeviceType.TV; // linear TV
+													currInputSourceType = Characteristic.InputSourceType.TUNER;
 													break;
 												case 'replay': 	// replay TV
 												case 'nDVR':
 												case 'lDVR':
 												case 'LDVR':
-													currInputSourceType = Characteristic.InputSourceType.OTHER;
 													currInputDeviceType = Characteristic.InputDeviceType.PLAYBACK; // replay TV
+													currInputSourceType = Characteristic.InputSourceType.OTHER;
 													break;
 												case '':		// '' (empty string), happens when radio is playing
-													currInputSourceType = Characteristic.InputSourceType.OTHER;
 													currInputDeviceType = Characteristic.InputDeviceType.TUNER; // use tuner for radio
+													currInputSourceType = Characteristic.InputSourceType.OTHER;
 													break;
 												}
 			
@@ -2767,7 +2752,8 @@ class stbPlatform {
 
 
 						// update the device state. Set StatusFault to nofault as connection is working
-						this.log('%s: Recording bookings: planned recordings found: local %s, network %s, current Program Mode %s [%s]', device.settings.deviceFriendlyName + PLUGIN_ENV, localPlannedRecordings, networkPlannedRecordings, currProgramMode, programModeName[currProgramMode]);
+						this.log('%s: Recording bookings: planned recordings found: local %s, network %s, current Program Mode %s [%s]', device.settings.deviceFriendlyName + PLUGIN_ENV, localPlannedRecordings, networkPlannedRecordings, 
+							currProgramMode, Object.keys(Characteristic.ProgramMode)[currProgramMode + 1]);
 						//mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode) {
 						this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, null, Characteristic.StatusFault.NO_FAULT, currProgramMode );
 					});
@@ -3360,16 +3346,19 @@ class stbDevice {
 			// doesn't get the data direct from the settop box, but rather: gets it from the this.currentPowerState and this.currentChannelId variables
 			// which are received by the mqtt messages, which occurs very often
 			if (this.config.debugLevel > 0) {
-				this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], recordingState %s [%s], channelId %s, sourceType %s, profileDataChanged %s, statusFault %s [%s], programMode %s [%s]', 
+				this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], recordingState %s [%s], channelId %s, sourceType %s, profileDataChanged %s, statusFault %s [%s], programMode %s [%s], statusActive %s [%s], inputDeviceType %s [%s], inputSourceType %s [%s]', 
 					this.name, 
 					powerState, 
-					mediaState, mediaStateName[mediaState], 
-					recordingState, recordingStateName[recordingState], 
+					mediaState, currentMediaStateName[mediaState], 
+					recordingState, recordingStateName[recordingState], // custom characteristic
 					channelId,
 					sourceType,
 					profileDataChanged,
-					statusFault, statusFaultName[statusFault], 
-					programMode, programModeName[programMode]
+					statusFault, Object.keys(Characteristic.StatusFault)[statusFault + 1], 
+					programMode, Object.keys(Characteristic.ProgramMode)[programMode + 1],
+					statusActive, statusActiveName[statusActive],
+					inputDeviceType, Object.keys(Characteristic.InputDeviceType)[inputDeviceType + 1],
+					inputSourceType, Object.keys(Characteristic.InputSourceType)[inputSourceType + 1],
 				);
 			}
 
@@ -3426,15 +3415,15 @@ class stbDevice {
 				this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentRecordingState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s], currentPictureMode %s [%s], profileDataChanged %s, currentStatusFault %s [%s], currentProgramMode %s [%s], currentStatusActive %s', 
 					this.name, 
 					this.currentPowerState, 
-					this.currentMediaState, mediaStateName[this.currentMediaState], 
+					this.currentMediaState, currentMediaStateName[this.currentMediaState], 
 					this.currentRecordingState, recordingStateName[this.currentRecordingState],
 					this.currentChannelId, currentChannelName,
 					this.currentSourceType,
-					this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState],
-					this.currentPictureMode, pictureModeName[this.currentPictureMode],
+					this.currentClosedCaptionsState, Object.keys(Characteristic.ClosedCaptions)[this.currentClosedCaptionsState + 1],
+					this.currentPictureMode, Object.keys(Characteristic.PictureMode)[this.currentPictureMode + 1],
 					this.profileDataChanged,
-					this.currentStatusFault, statusFaultName[this.currentStatusFault],
-					this.currentProgramMode, programModeName[this.currentProgramMode],
+					this.currentStatusFault, Object.keys(Characteristic.StatusFault)[this.currentStatusFault + 1],
+					this.currentProgramMode, Object.keys(Characteristic.ProgramMode)[this.currentProgramMode + 1],
 					this.currentStatusActive
 				);
 			}
@@ -3468,8 +3457,8 @@ class stbDevice {
 				if (this.previousStatusFault !== this.currentStatusFault) {
 					this.log('%s: Status Fault changed from %s [%s] to %s [%s]', 
 						this.name,
-						this.previousStatusFault, statusFaultName[this.previousStatusFault],
-						this.currentStatusFault, statusFaultName[this.currentStatusFault]);
+						this.previousStatusFault, Object.keys(Characteristic.StatusFault)[this.previousStatusFault + 1],
+						this.currentStatusFault, Object.keys(Characteristic.StatusFault)[this.currentStatusFault + 1])
 				}
 				this.televisionService.getCharacteristic(Characteristic.StatusFault).updateValue(this.currentStatusFault);
 				this.previousStatusFault = this.currentStatusFault;
@@ -3507,8 +3496,8 @@ class stbDevice {
 				if (this.previousInUse !== this.currentInUse) {
 					this.log('%s: In Use changed from %s [%s] to %s [%s]', 
 						this.name,
-						this.previousInUse, inUseName[this.previousInUse],
-						this.currentInUse, inUseName[this.currentInUse]);
+						this.previousInUse, Object.keys(Characteristic.InUse)[this.previousInUse + 1],
+						this.currentInUse, Object.keys(Characteristic.InUse)[this.currentInUse + 1])
 				}
 				this.televisionService.getCharacteristic(Characteristic.InUse).updateValue(this.currentInUse);
 				this.previousInUse = this.currentInUse;
@@ -3521,8 +3510,8 @@ class stbDevice {
 				if (this.previousClosedCaptionsState !== this.currentClosedCaptionsState) {
 					this.log('%s: Closed Captions state changed from %s [%s] to %s [%s]', 
 						this.name,
-						this.previousClosedCaptionsState, closedCaptionsStateName[this.previousClosedCaptionsState],
-						this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]);
+						this.previousClosedCaptionsState, Object.keys(Characteristic.ClosedCaptions)[this.previousClosedCaptionsState + 1],
+						this.currentClosedCaptionsState, Object.keys(Characteristic.ClosedCaptions)[this.currentClosedCaptionsState + 1])
 				}
 				this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).updateValue(this.currentClosedCaptionsState);
 				this.previousClosedCaptionsState = this.currentClosedCaptionsState;
@@ -3551,8 +3540,8 @@ class stbDevice {
 					if (this.previousPictureMode !== this.currentPictureMode) {
 						this.log('%s: Picture Mode changed from %s [%s] to %s [%s]', 
 							this.name,
-							this.previousPictureMode, pictureModeName[this.previousPictureMode],
-							this.currentPictureMode, pictureModeName[this.currentPictureMode]);
+							this.previousPictureMode, Object.keys(Characteristic.PictureMode)[this.previousPictureMode + 1],
+							this.currentPictureMode, Object.keys(Characteristic.PictureMode)[this.currentPictureMode + 1])
 					}
 					//this.log("configDevice.customPictureMode not found %s, setting PictureMode to %s", (configDevice || {}).customPictureMode, this.currentPictureMode);
 					this.customPictureMode = this.currentPictureMode;
@@ -3566,36 +3555,12 @@ class stbDevice {
 				if (this.previousProgramMode !== this.currentProgramMode) {
 					this.log('%s: Program Mode changed from %s [%s] to %s [%s]', 
 						this.name,
-						this.previousProgramMode, programModeName[this.previousProgramMode],
-						this.currentProgramMode, programModeName[this.currentProgramMode]);
+						this.previousProgramMode, Object.keys(Characteristic.ProgramMode)[this.previousProgramMode + 1],
+						this.currentProgramMode, Object.keys(Characteristic.ProgramMode)[this.currentProgramMode + 1]);
 				}
 				this.televisionService.getCharacteristic(Characteristic.ProgramMode).updateValue(this.currentProgramMode);
 				this.previousProgramMode = this.currentProgramMode;
 
-
-				// check for change of InputSourceType state
-				// this is part of inputService which is an array... need to adapt code to get it to work properly
-				/*
-				if (this.previousInputSourceType !== this.currentInputSourceType) {
-					this.log('%s: Input Source Type changed from %s [%s] to %s [%s]', 
-						this.name,
-						this.previousInputSourceType, inputSourceTypeName[this.previousInputSourceType],
-						this.currentInputSourceType, inputSourceTypeName[this.currentInputSourceType]);
-				}
-				//this.televisionService.inputService.getCharacteristic(Characteristic.InputSourceType).updateValue(this.currentInputSourceType); // generates Homebridge warning
-				this.previousInputSourceType = this.currentInputSourceType;
-				*/
-
-
-				// check for change of InputDeviceType state
-				if (this.previousInputDeviceType !== this.currentInputDeviceType) {
-					this.log('%s: Input Device Type changed from %s [%s] to %s [%s]', 
-						this.name,
-						this.previousInputDeviceType, inputDeviceTypeName[this.previousInputDeviceType],
-						this.currentInputDeviceType, inputDeviceTypeName[this.currentInputDeviceType]);
-				}
-				this.televisionService.getCharacteristic(Characteristic.InputDeviceType).updateValue(this.currentInputDeviceType);
-				this.previousInputDeviceType = this.currentInputDeviceType;
 
 
 				// check for change of active identifier (channel)
@@ -3663,13 +3628,59 @@ class stbDevice {
 				}
 
 
+				// +++++++++++++++ Input Service characteristics ++++++++++++++
+				/*
+				inputService
+				.setCharacteristic(Characteristic.Identifier, i)
+				.setCharacteristic(Characteristic.Name, chFixedName)
+				.setCharacteristic(Characteristic.ConfiguredName, chName || `Input ${i < 9 ? `0${i}` : i}`)
+				.setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.APPLICATION) 
+				.setCharacteristic(Characteristic.InputDeviceType, Characteristic.InputDeviceType.TV)
+				.setCharacteristic(Characteristic.IsConfigured, configState)
+				.setCharacteristic(Characteristic.CurrentVisibilityState, visState)
+				.setCharacteristic(Characteristic.TargetVisibilityState, visState);
+				*/
+				// check for change of InputDeviceType state: (a characteristic of Input Source)
+
+				let curInp = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + this.currentChannelId ) + 1;
+				if (this.previousInputDeviceType !== this.currentInputDeviceType) {
+					this.log('%s: Input Device Type changed on input %s %s from %s [%s] to %s [%s]', 
+						this.name,
+						curInp,
+						this.currentChannelId,
+						this.previousInputDeviceType, Object.keys(Characteristic.InputDeviceType)[this.previousInputDeviceType + 1],
+						this.currentInputDeviceType, Object.keys(Characteristic.InputDeviceType)[this.currentInputDeviceType + 1]
+						);
+				}
+				//this.televisionService.getCharacteristic(Characteristic.InputDeviceType).updateValue(this.currentInputDeviceType);
+				this.inputServices[curInp].getCharacteristic(Characteristic.InputDeviceType).updateValue(this.currentInputDeviceType);
+				this.previousInputDeviceType = this.currentInputDeviceType;
+
+				// check for change of InputSourceType state: (a characteristic of Input Source)
+				if (this.previousInputSourceType !== this.currentInputSourceType) {
+					this.log('%s: Input Source Type changed on input %s %s from %s [%s] to %s [%s]',
+						this.name,
+						curInp,
+						this.currentChannelId,
+						this.previousInputSourceType, Object.keys(Characteristic.InputSourceType)[this.previousInputSourceType + 1],
+						this.currentInputSourceType, Object.keys(Characteristic.InputSourceType)[this.currentInputSourceType + 1]);
+				}
+				// [12/11/2022, 12:22:37] [homebridge-eosstb] This plugin generated a warning from the characteristic 'Input Source Type': Characteristic not in required or optional characteristic section for service Television. Adding anyway.. See https://homebridge.io/w/JtMGR for more info.
+				this.inputServices[curInp].getCharacteristic(Characteristic.InputSourceType).updateValue(this.currentInputSourceType); // generates Homebridge warning
+				this.previousInputSourceType = this.currentInputSourceType;
+				//this.log('++++DEBUG: this.inputServices[curInp]')
+				//this.log(this.inputServices[curInp])
+
+				// +++++++++++++++ end of Input Service characteristics ++++++++++++++
+
+
 				// check for change of current media state
 				var oldMediaState = this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).value;
 				if (oldMediaState !== this.currentMediaState) {
 					this.log('%s: Media state changed from %s [%s] to %s [%s]', 
 						this.name,
-						oldMediaState, mediaStateName[oldMediaState],
-						this.currentMediaState, mediaStateName[this.currentMediaState]);
+						oldMediaState, currentMediaStateName[oldMediaState],
+						this.currentMediaState, currentMediaStateName[this.currentMediaState]);
 				}
 				this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.currentMediaState);
 				this.previousMediaState = this.currentMediaState;
@@ -4486,7 +4497,7 @@ class stbDevice {
 		// }
 		const visibilityState = this.inputServices[inputId-1].getCharacteristic(Characteristic.CurrentVisibilityState).value;
 		if (this.config.debugLevel > 2) {
-			this.log.warn('%s: getInputVisibilityState for input %s returning %s [%s]', this.name, inputId, visibilityState, visibilityStateName[visibilityState]);
+			this.log.warn('%s: getInputVisibilityState for input %s returning %s [%s]', this.name, inputId, visibilityState, Object.keys(Characteristic.CurrentVisibilityState)[visibilityState + 1]);
 		}
 		callback(null, visibilityState);
 	}
@@ -4495,7 +4506,7 @@ class stbDevice {
 	async setInputVisibilityState(inputId, visibilityState, callback) {
 		// fired when ??
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: setInputVisibilityState for input %s inputVisibilityState %s [%s]', this.name, inputId, visibilityState, visibilityStateName[visibilityState]); 
+			this.log.warn('%s: setInputVisibilityState for input %s inputVisibilityState %s [%s]', this.name, inputId, visibilityState, Object.keys(Characteristic.CurrentVisibilityState)[visibilityState + 1]); 
 		}
 		this.inputServices[inputId-1].getCharacteristic(Characteristic.CurrentVisibilityState).updateValue(visibilityState);
 
@@ -4512,7 +4523,7 @@ class stbDevice {
 	async getClosedCaptions(callback) {
 		// fired when the Home app wants to refresh the TV tile. Refresh occurs when tile is displayed.
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getClosedCaptions returning %s [%s]', this.name, this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]); 
+			this.log.warn('%s: getClosedCaptions returning %s [%s]', this.name, this.currentClosedCaptionsState, Object.keys(Characteristic.ClosedCaptions)[this.currentClosedCaptionsState + 1])
 		}
 		callback(null, this.currentClosedCaptionsState); // return current state
 	}
@@ -4521,7 +4532,7 @@ class stbDevice {
 	async setClosedCaptions(targetClosedCaptionsState, callback) {
 		// fired when ?? Apple HomeKit has no ability to control setClosedCaptions 
 		// targetClosedCaptionsState is the wanted state
-		if (this.config.debugLevel > 1) { this.log.warn('%s: setClosedCaptions targetClosedCaptionsState:', this.name, targetClosedCaptionsState, closedCaptionsStateName[targetClosedCaptionsState]); }
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setClosedCaptions targetClosedCaptionsState:', this.name, targetClosedCaptionsState, Object.keys(Characteristic.ClosedCaptions)[targetClosedCaptionsState + 1]); }
 		if(this.currentClosedCaptionsState !== targetClosedCaptionsState){
 			this.log("setClosedCaptions: not yet implemented");
 		}
@@ -4542,7 +4553,7 @@ class stbDevice {
 			if ((configDevice || {}).customPictureMode == 'recordingState') {
 				this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.customPictureMode, recordingStateName[this.customPictureMode]); 
 			} else {
-				this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.customPictureMode, pictureModeName[this.customPictureMode]); 
+				this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.customPictureMode, Object.keys(Characteristic.PictureMode)[this.customPictureMode + 1] );
 			}
 		}
 		callback(null, this.customPictureMode); // return current state
@@ -4552,7 +4563,7 @@ class stbDevice {
 	async setPictureMode(targetPictureMode, callback) {
 		// The current Home app (iOS 16.0) does not support setting this characteristic, thus is never fired
 		// targetClosedCaptionsState is the wanted state
-		if (this.config.debugLevel > 1) { this.log.warn('%s: setPictureMode targetPictureMode:', this.name, targetPictureMode, pictureModeName[targetPictureMode]); }
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setPictureMode targetPictureMode:', this.name, targetPictureMode, Object.keys(Characteristic.PictureMode)[targetPictureMode + 1]); }
 		if(this.customPictureMode !== targetPictureMode){
 			this.log("setPictureMode: not yet implemented");
 		}
@@ -4582,7 +4593,7 @@ class stbDevice {
 		// The current Home app (iOS 16.0) does not support setting this characteristic, thus is never fired
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getCurrentMediaState returning %s [%s]', this.name, this.currentMediaState, mediaStateName[this.currentMediaState]);
+			this.log.warn('%s: getCurrentMediaState returning %s [%s]', this.name, this.currentMediaState, currentMediaStateName[this.currentMediaState]);
 		}
 		callback(null, this.currentMediaState);
 	}
@@ -4593,7 +4604,7 @@ class stbDevice {
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		// must never return null, so send STOP as default value
 		if (this.config.debugLevel > 1) {
-			this.log.warn('%s: getTargetMediaState returning %s [%s]', this.name, this.targetMediaState, mediaStateName[this.targetMediaState]);
+			this.log.warn('%s: getTargetMediaState returning %s [%s]', this.name, this.targetMediaState, currentMediaStateName[this.targetMediaState]);
 		}
 		callback(null, this.currentMediaState);
 	}
@@ -4602,7 +4613,7 @@ class stbDevice {
 	async setTargetMediaState(targetState, callback) {
 		// The current Home app (iOS 16.0) does not support setting this characteristic, thus is never fired
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
-		if (this.config.debugLevel > 1) { this.log.warn('%s: setTargetMediaState this.targetMediaState:',this.name, targetState, mediaStateName[targetState]); }
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setTargetMediaState this.targetMediaState:',this.name, targetState, currentMediaStateName[targetState]); }
 		callback(null); // for rapid response
 		switch (targetState) {
 			case Characteristic.TargetMediaState.PLAY:
@@ -4647,7 +4658,7 @@ class stbDevice {
 		// useful in Shortcuts and Automations
 		// log the inUse value
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getInUse returning %s [%s]', this.name, this.currentInUse, inUseName[this.currentInUse]);
+			this.log.warn('%s: getInUse returning %s [%s]', this.name, this.currentInUse, Object.keys(Characteristic.InUse)[this.currentInUse + 1] ); 
 		}
 		callback(null, this.currentInUse);
 	}
@@ -4657,7 +4668,7 @@ class stbDevice {
 		// useful in Shortcuts and Automations
 		// log the programMode value 
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getProgramMode returning %s [%s]', this.name, this.currentProgramMode, programModeName[this.currentProgramMode]);
+			this.log.warn('%s: getProgramMode returning %s [%s]', this.name, this.currentProgramMode, Object.keys(Characteristic.ProgramMode)[this.currentProgramMode + 1] );
 		}
 		callback(null, this.currentProgramMode);
 	}
@@ -4677,7 +4688,7 @@ class stbDevice {
 		// useful in Shortcuts and Automations
 		// log the StatusFault 
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getStatusFault returning %s [%s]', this.name, this.currentStatusFault, statusFaultName[this.currentStatusFault]);
+			this.log.warn('%s: getStatusFault returning %s [%s]', this.name, this.currentStatusFault, Object.keys(Characteristic.StatusFault)[this.currentStatusFault + 1]);
 		}
 		callback(null, this.currentStatusFault);
 	}
@@ -4687,7 +4698,7 @@ class stbDevice {
 		// useful in Shortcuts and Automations
 		// log the InputSourceType value 
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getInputSourceType returning %s [%s]', this.name, this.currentInputSourceType, inputSourceTypeName[this.currentInputSourceType]);
+			this.log.warn('%s: getInputSourceType returning %s [%s]', this.name, this.currentInputSourceType, Object.keys(Characteristic.InputSourceType)[this.currentInputSourceType + 1]);
 		}
 		callback(null, 0);
 	}
@@ -4697,7 +4708,7 @@ class stbDevice {
 		// useful in Shortcuts and Automations
 		// log the InputDeviceType value 
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getInputDeviceType returning %s [%s]', this.name, this.currentInputDeviceType, inputDeviceTypeName[this.currentInputDeviceType]);
+			this.log.warn('%s: getInputDeviceType returning %s [%s]', this.name, this.currentInputDeviceType, Object.keys(Characteristic.InputDeviceType)[this.currentInputDeviceType + 1]);
 		}
 		callback(null, 0);
 	}
