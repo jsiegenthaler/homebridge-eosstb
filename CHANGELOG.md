@@ -18,8 +18,8 @@ Please report all bugs and problems.
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
 
 
-## 2.0.0-beta.29 (2022-11-12)
-* Got input Source Type working properly
+## 2.0.0-beta.29 (2022-11-13)
+* Got Input Source Type working properly
 * Cleaned up and optimized some code
 
 
