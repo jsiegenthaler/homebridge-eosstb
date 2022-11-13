@@ -3162,8 +3162,10 @@ class stbDevice {
 		this.televisionService.getCharacteristic(Characteristic.RemoteKey)
 			.on('set', this.setRemoteKey.bind(this));
 
+		//this.log('DEBUG:  this.televisionService')
+		//this.log(this.televisionService)
 
-		// add to the accessory
+			// add to the accessory
 		this.accessory.addService(this.televisionService);
 
 	}
