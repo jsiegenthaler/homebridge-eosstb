@@ -18,8 +18,8 @@ Please report all bugs and problems.
 
 
 ## 2.0.0 (2022-11-14)
-* Rewrote a lot of plugin code to handle new login sequence and new endpoints following backend changes on 13.10.2022
+* Rewrote plugin to handle new login sequence and new endpoints following backend changes on 13.10.2022
 * Major startup speed improvements after Homebridge reboot
-* Added support of channel sort by most watched
 * Improved mqtt performance
-* And many more small bug fixes and improvements
+* Added support of channel sort by most watched
+* And many more small bug fixes and improvements included
