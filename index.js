@@ -12,12 +12,17 @@ const PLUGIN_VERSION = packagejson.version;
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
+const debug = require('debug')(PLUGIN_NAME) // https://github.com/debug-js/debug
 
-const mqtt = require('mqtt');  
+// good exanple of debug usage https://github.com/mqttjs/MQTT.js/blob/main/lib/client.js
+const mqtt = require('mqtt');  			// https://github.com/mqttjs
 const qs = require('qs')
 //const _ = require('underscore');
 
+
 const axios = require('axios').default;
+//const instance = axios.create(); // cannot create new instance in v1.1.x, do not know why. stay with v0.27.2 
+
 axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
 
 // axios-cookiejar-support v2.0.2 syntax
@@ -26,7 +31,6 @@ const { wrapper: axiosCookieJarSupport } = require('axios-cookiejar-support'); /
 const tough = require('tough-cookie');
 const cookieJar = new tough.CookieJar();
 
-// create a new instance called axiosWS
 const axiosWS = axios.create({
 	// axios-cookiejar-support v1.0.1 required config
 	//withCredentials: true, // deprecated since axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
@@ -50,117 +54,109 @@ axiosCookieJarSupport(axiosWS);
 
 
 // base url varies by country
+// without any trailing /
+// refer https://github.com/Sholofly/lghorizon-python/blob/features/telenet/lghorizon/const.py
 const countryBaseUrlArray = {
-    'at': 		'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web', // v3 and v4 works
-    'be-fr': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/fr/web',
-    'be-nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/BE/nld/web',
-    'ch': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v2, v3 and v4 work
-	'cz':		'https://web-api-pepper.horizon.tv/oesp/v4/CZ/ces/web/', // v2, v3 and v4 work
-	'de':		'https://web-api-pepper.horizon.tv/oesp/v4/DE/deu/web', // v2, v3 and v4 work
-    'gb':       'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web',
-	'hu':		'https://web-api-pepper.horizon.tv/oesp/v4/HU/hun/web',  // v2, v3 and v4 work
-	'ie':       'https://prod.oesp.virginmediatv.ie/oesp/v4/IE/eng/web/',
-    'nl': 		'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web',
-	'pl':		'https://web-api-pepper.horizon.tv/oesp/v4/PL/pol/web', // v2, v3 and v4 work
-	'sk':		'https://web-api-pepper.horizon.tv/oesp/v4/SK/slk/web', // v2, v3 and v4 work
-	'ro':		'https://web-api-pepper.horizon.tv/oesp/v4/RO/ron/web' // v2, v3 and v4 work
+	'at': 		'https://prod.spark.magentatv.at',
+	'be-fr':	'https://prod.spark.telenet.tv',
+	'be-nl':	'https://prod.spark.telenet.tv',	
+    'ch': 		'https://prod.spark.sunrisetv.ch',
+	'de':		'https://prod.spark.upctv.de',
+    'gb':       'https://prod.spark.virginmedia.com',
+	'ie':       'https://prod.spark.virginmediatv.ie',
+    'nl': 		'https://prod.spark.ziggogo.tv',
+	'pl':		'https://prod.spark.unknown.pl',
+	'sk':		'https://prod.spark.upctv.sk',
+	// old endpoints:
+    //'at': 	'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web', // v3 and v4 works old
+    //'ch': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v2, v3 and v4 work old
+	//'de':		'https://web-api-pepper.horizon.tv/oesp/v4/DE/deu/web', // v2, v3 and v4 work
+    //'gb':     'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web',
+    //'nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web', // old
+	//'pl':		'https://web-api-pepper.horizon.tv/oesp/v4/PL/pol/web', // v2, v3 and v4 work
+	//'ie':     'https://prod.oesp.virginmediatv.ie/oesp/v4/IE/eng/web/', // old
+	//'sk':		'https://web-api-pepper.horizon.tv/oesp/v4/SK/slk/web', // v2, v3 and v4 work
 };
 
-// mqtt endpoints varies by country
+// mqtt endpoints varies by country, unchanged after backend change on 13.10.2022
 const mqttUrlArray = {
     'at':		'wss://obomsg.prod.at.horizon.tv/mqtt',
     'be-fr':  	'wss://obomsg.prod.be.horizon.tv/mqtt',
     'be-nl': 	'wss://obomsg.prod.be.horizon.tv/mqtt',
     'ch': 		'wss://obomsg.prod.ch.horizon.tv/mqtt',
-	'cz':		'wss://obomsg.prod.cz.horizon.tv/mqtt',
 	'de':		'wss://obomsg.prod.de.horizon.tv/mqtt',
     'gb':       'wss://obomsg.prod.gb.horizon.tv/mqtt',
-	'hu':		'wss://obomsg.prod.hu.horizon.tv/mqtt',
     'ie':       'wss://obomsg.prod.ie.horizon.tv/mqtt',
     'nl': 		'wss://obomsg.prod.nl.horizon.tv/mqtt',
     'pl': 		'wss://obomsg.prod.pl.horizon.tv/mqtt',
-	'sk':		'wss://obomsg.prod.sk.horizon.tv/mqtt',
-	'ro':		'wss://obomsg.prod.ro.horizon.tv/mqtt'
+	'sk':		'wss://obomsg.prod.sk.horizon.tv/mqtt'
 };
 
 // profile url endpoints varies by country
-// https://prod.spark.upctv.ch/deu/web/personalization-service/v1/customer/{household_id}/devices
+// https://prod.spark.sunrisetv.ch/deu/web/personalization-service/v1/customer/{household_id}/devices
 // without terminating / 
+// no longer needed in v2
+/*
 const personalizationServiceUrlArray = {
     'at':		'https://prod.spark.magentatv.at/deu/web/personalization-service/v1/customer/{householdId}',
     'be-fr':  	'https://prod.spark.telenettv.be/fr/web/personalization-service/v1/customer/{householdId}',
     'be-nl': 	'https://prod.spark.telenettv.be/nld/web/personalization-service/v1/customer/{householdId}',
-    'ch': 		'https://prod.spark.upctv.ch/eng/web/personalization-service/v1/customer/{householdId}',
-	'cz':		'',
+    'ch': 		'https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/{householdId}',
 	'de':		'',
     'gb':       'https://prod.spark.virginmedia.com/eng/web/personalization-service/v1/customer/{householdId}',
-	'hu':		'',
     'ie':       'https://prod.spark.virginmediatv.ie/eng/web/personalization-service/v1/customer/{householdId}',
     'nl': 		'https://prod.spark.ziggogo.tv/nld/web/personalization-service/v1/customer/{householdId}',
-    'pl': 		'https://prod.spark.upctv.pl/pol/web/personalization-service/v1/customer/{householdId}',
-	'sk':		'',
-	'ro':		''
+    'pl': 		'https://prod.spark.unknown.pl/pol/web/personalization-service/v1/customer/{householdId}'
 };
-
+*/
 
 
 // openid logon url used in Telenet.be Belgium for be-nl and be-fr sessions
 const BE_AUTH_URL = 'https://login.prd.telenet.be/openid/login.do';
 
 // oidc logon url used in VirginMedia for gb sessions
+// still in use after logon session changes on 13.10.2022 for other countries
+// the url that worked in v1.7: 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web'
+// this may also work: https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/authorization
+const GB_AUTH_OESP_URL = 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web';
 // https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true
-// const GB_AUTH_URL = 'https://id.virginmedia.com/sign-in/?protocol=oidc';
 const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
 
 
 
 // general constants
-const NO_INPUT_ID = 99; // an input id that does not exist. Must be > 0 as a uint32 is expected
-const NO_CHANNEL_ID = 'NO_ID'; // id for a channel not in the channel list
+const NO_INPUT_ID = 99; // an input id that does not exist. Must be > 0 as a uint32 is expected. inteder
+const NO_CHANNEL_ID = 'ID_UNKNOWN'; // id for a channel not in the channel list, string
 const NO_CHANNEL_NAME = 'UNKNOWN'; // name for a channel not in the channel list
 const MAX_INPUT_SOURCES = 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
 const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in millisec. Default = 15000 (15s)
-const MQTT_WATCHDOG_INTERVAL_MS = 10000; // mqtt watchdog interval in millisec. Default = 10000 (10s)
-const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 600; // channel list refresh check interval, in seconds. Default = 600
-const RECORDING_STATE_ONGOING = 1; // Custom characteristic
+const MASTER_CHANNEL_LIST_VALID_FOR_S = 86400; // master channel list starts valid for 24 hours from last refresh = 86400 seconds
+const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 3600; // master channel list refresh check interval, in seconds. Default = 3600 (1hr) (increased from 600)
 const SETTOPBOX_NAME_MINLEN = 3; // min len of the set-top box name
 const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
 
-// state constants
-const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 };
-const sessionStateName = ["DISCONNECTED", "LOADING", "LOGGING_IN", "AUTHENTICATING", "VERIFYING", "AUTHENTICATED", "CONNECTED"];
-const mqttState = { disconnected: 0, offline: 1, closed: 2, connected: 3, reconnected: 4, error: 5, end: 6, messagereceived: 7, packetsent: 8, packetreceived: 9 };
-const mqttStateName = [ "DISCONNECTED", "OFFLINE", "CLOSED", "CONNECTED", "RECONNECTED", "ERROR", "END", "MESSAGERECEIVED", "PACKETSENT", "PACKETRECEIVED" ];
-const mediaStateName = ["PLAY", "PAUSE", "STOP", "UNKNOWN3", "LOADING", "INTERRUPTED"];
-const powerStateName = ["OFF", "ON"];
-const closedCaptionsStateName = ["DISABLED", "ENABLED"];
-const visibilityStateName = ["SHOWN", "HIDDEN"];
-const pictureModeName = ["OTHER", "STANDARD", "CALIBRATED", "CALIBRATED_DARK", "VIVID", "GAME", "COMPUTER", "CUSTOM"];
-const recordingState = { IDLE: 0, ONGOING_NDVR: 1, ONGOING_LOCALDVR: 2 };
-const recordingStateName = ["IDLE", "ONGOING_NDVR", "ONGOING_LOCALDVR"];
-const statusFaultName = ["NO_FAULT", "GENERAL_FAULT"];
-const inUseName = ["NOT_IN_USE", "IN_USE"];
-const programModeName = ["NO_PROGRAM_SCHEDULED", "PROGRAM_SCHEDULED", "PROGRAM_SCHEDULED_MANUAL_MODE_"];
-const statusActiveName = ["NOT_ACTIVE", "ACTIVE"];
-const inputSourceTypeName = ["OTHER", "HOME_SCREEN", "TUNER", "HDMI", "COMPOSITE_VIDEO", "S_VIDEO", "COMPONENT_VIDEO", "DVI", "AIRPLAY", "USB", "APPLICATION"];
-const inputDeviceTypeName = ["OTHER", "TV", "RECORDING", "TUNER", "PLAYBACK", "AUDIO_SYSTEM"];
+
+
+// state constants. Need to add an array for any characteristic that is not an array, or the array is not contiguous
+const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 }; // custom
+const sessionStateName = ["DISCONNECTED", "LOADING", "LOGGING_IN", "AUTHENTICATING", "VERIFYING", "AUTHENTICATED", "CONNECTED"]; // custom
+const mqttState = { disconnected: 0, offline: 1, closed: 2, connected: 3, reconnected: 4, error: 5, end: 6, messagereceived: 7, packetsent: 8, packetreceived: 9 }; // custom
+const mqttStateName = [ "DISCONNECTED", "OFFLINE", "CLOSED", "CONNECTED", "RECONNECTED", "ERROR", "END", "MESSAGERECEIVED", "PACKETSENT", "PACKETRECEIVED" ]; // custom
+const currentMediaStateName = ["PLAY", "PAUSE", "STOP", "UNKNOWN3", "LOADING", "INTERRUPTED"]; // characteristic is non contiguous
+const powerStateName = ["OFF", "ON"]; // custom
+const recordingState = { IDLE: 0, ONGOING_NDVR: 1, ONGOING_LOCALDVR: 2 }; // custom
+const recordingStateName = ["IDLE", "ONGOING_NDVR", "ONGOING_LOCALDVR"]; // custom
+const statusActiveName = ["NOT_ACTIVE", "ACTIVE"]; // characteristic is boolean, not an array
 
 Object.freeze(sessionState);
 Object.freeze(sessionStateName);
 Object.freeze(mqttState);
 Object.freeze(mqttStateName);
-Object.freeze(mediaStateName);
+Object.freeze(currentMediaStateName);
 Object.freeze(powerStateName);
-Object.freeze(closedCaptionsStateName);
-Object.freeze(visibilityStateName);
-Object.freeze(pictureModeName);
+Object.freeze(recordingState);
 Object.freeze(recordingStateName);
-Object.freeze(statusFaultName);
-Object.freeze(inUseName);
-Object.freeze(programModeName);
 Object.freeze(statusActiveName);
-Object.freeze(inputSourceTypeName);
-Object.freeze(inputDeviceTypeName);
 
 
 
@@ -170,14 +166,15 @@ var exec = require("child_process").exec;
 const { waitForDebugger } = require('inspector');
 const { ENGINE_METHOD_CIPHERS } = require('constants');
 const { LOADIPHLPAPI } = require('dns');
+const { connected } = require('process');
 var PLUGIN_ENV = ''; // controls the development environment, appended to UUID to make unique device when developing
 
 // variables for session and all devices
 let mqttClient = {};
 let mqttClientId = '';
 let mqttUsername;
-//let mqttPassword;
 let currentSessionState;
+let isShuttingDown = false; // to handle reboots cleanly
 
 let Accessory, Characteristic, Service, Categories, UUID;
 
@@ -193,6 +190,36 @@ function makeId(length) {
 	}
 	return result;
 };
+
+
+// format an id to conform with the web client ids
+// 32 char, lower case, formatted as follows:
+// "d3e9aa58-6ddc-4c1a-b6a4-8fc1526c6f19"
+//  12345678-9012-3456-7890-123456789012
+//  1------8 9-12-1316-1720-21--------32
+function makeFormattedId(length) {
+	let id	= '';
+	let result	= '';
+	let characters	= 'abcdefghijklmnopqrstuvwxyz0123456789';
+	let charactersLength = characters.length;
+	for ( let i = 0; i < length; i++ ) {
+		id += characters.charAt(Math.floor(Math.random() * charactersLength));
+	}
+	// expects 32 char id length
+	result = result + id.substring(0, 8) + '-';
+	result = result + id.substring(8, 12) + '-';
+	result = result + id.substring(12, 16) + '-';
+	result = result + id.substring(16, 20) + '-';
+	result = result + id.substring(20, id.length);
+	return result;
+};
+
+
+// get unix timestamp in seconds
+function getTimestampInSeconds() {
+	return Math.floor(Date.now() / 1000)
+};
+
 
 // clean a name so it is acceptable for HomeKit
 function cleanNameForHomeKit(name) {
@@ -242,16 +269,15 @@ function cleanNameForHomeKit(name) {
 }
 
 // wait function
-const wait=ms=>new Promise(resolve => setTimeout(resolve, ms)); 
+const wait=ms => new Promise(resolve => setTimeout(resolve, ms)); 
 
 // wait function with promise
-function waitprom(ms) {
-	return new Promise((resolve, reject) => {
-	  setTimeout(() => {
-		resolve(ms)
-	  }, ms )
+async function waitprom(ms) {
+	return new Promise((resolve) => {
+	  setTimeout(() => { resolve(ms) }, ms )
 	})
   }  
+
 
 
 // ++++++++++++++++++++++++++++++++++++++++++++
@@ -310,38 +336,55 @@ class stbPlatform {
 		this.devInfoFile = this.storagePath + '/' + 'devInfo_' + this.host.split('.').join('');
 		*/
 		
-		/**
+		/*
     	* Platforms should wait until the "didFinishLaunching" event has fired before registering any new accessories.
     	*/
-		this.api.on('didFinishLaunching', () => {
+		//this.api.on('didFinishLaunching', () => {
+		this.api.on('didFinishLaunching', async () => {
 			if (this.config.debugLevel > 2) { this.log.warn('API event: didFinishLaunching'); }
-			this.log('%s v%s', PLUGIN_NAME, PLUGIN_VERSION);
-
-			
-			// warning notice and disable plugin
-			this.log.warn('-- IMPORTANT NOTICE --');
-			this.log.warn('The %s plugin can no longer be used in your country due to changes in the backend systems.', PLUGIN_NAME);
-			this.log.warn('The backend change means that the accessory will show No Response in HomeKit.');
-			this.log.warn('The auther is investigating how to adapt the plugin.');
-			this.log.warn('You can leave this plugin installed so as not to miss any future updates.');
-			this.log.warn('Please monitor https://github.com/jsiegenthaler/homebridge-eosstb for more information.');
-			this.log.warn('Any and all assistance is welcome!');
-			return;
-			
+			this.log('%s xxx v%s', PLUGIN_NAME, PLUGIN_VERSION);
+			debug('stbPlatform:apievent :: didFinishLaunching')
 
 			// call the session watchdog now to create the session
 			this.sessionWatchdog.bind(this);
 
-			//this.runMe();
-
-			// the session watchdog creates a session when none exists, and recreates one if the session ever fails due to internaet failure or anything else
+			// the session watchdog creates a session when none exists, and recreates one if the session ever fails due to internet failure or anything else
 			this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
-			
+
 			// check for a channel list update every MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S seconds
 			this.checkChannelListInterval = setInterval(this.refreshMasterChannelList.bind(this),MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S * 1000);
+
+			debug('stbPlatform:apievent :: didFinishLaunching end of code block')
+			//this.log.debug('stbPlatform: end of code block');
 		});
 
-	}
+
+		/*
+    	* "shutdown" event is fired when homebridge shuts down
+    	*/
+		this.api.on('shutdown', () => {
+			debug('stbPlatform:apievent :: shutdown')
+			if (this.config.debugLevel > 2) { this.log.warn('API event: shutdown'); }
+			isShuttingDown = true;
+			this.endMqttClient()
+				.then(() => { 
+					this.log('Goodbye'); 
+				}
+			);
+			debug('stbPlatform :apievent :: shutdown end of code block')
+		});
+
+	} // end of constructor
+
+
+	// test wait function with promise
+	async testprom() {
+		return new Promise((resolve, reject) => {
+			this.log('testprom: in the testprom async function')
+			resolve('testprom response: some success text in the class') // must have a resolve to return something
+		})
+	}    
+
 
 	/**
    	* REQUIRED - Homebridge will call the "configureAccessory" method once for every cached accessory restored
@@ -387,37 +430,8 @@ class stbPlatform {
 	// START session handler (web)
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-	// demo of a async function with proper  try/catch/finally error handling
-	async runMe() {
-		try {
-			// do something here, errors are caught cleanly
-			this.log("This command worked");
-			
-			// generate an error
-			var text;
-			if (text.includes("abc")) {
-				this.log("should never log")
-			}
-
-			// It almost reads as synchronous code.  Just
-			//  make sure never to forget await when calling an async function (or a function that returns a promise).  
-			// I even created an async timeout(), so I can simply  await timeout(1000) to delay execution for 1 second.  And I make use of await events.once() a lot, to wait for a particular event.
-			//await thisThrows();
-
-		} catch (err) {
-			// some error occured, handle it nicely
-			this.log.error("runMe threw an error!")
-			this.log.error(err);
-
-		} finally {
-			// do any final cleanup here
-			this.log.warn('We do cleanup here. This is executed after the catch.');
-		}
-	}
-
-
 	// the awesome watchDog
-	async sessionWatchdog() {
+	async sessionWatchdog(callback) {
 		// the session watchdog creates a session when none exists, and creates stbDevices when none exist
 		// runs every few seconds. 
 		// If session exists or is still being connected: Exit immediately
@@ -425,6 +439,11 @@ class stbPlatform {
 		this.watchdogCounter++; // increment global counter by 1
 		let watchdogInstance = 'sessionWatchdog(' + this.watchdogCounter + ')'; // set a log prefix for this instance of the watchdog to allow differentiation in the logs
 		let statusOverview = watchdogInstance + ':';
+		callback = true;
+
+		// standard debugging
+		let debugPrefix='\x1b[33msessionWatchdog :: ' // 33=yellow
+		debug(debugPrefix + 'started')
 
 		//robustness: if session state ever gets disconnected due to session creation problems, ensure the mqtt status is always disconnected
 		if (currentSessionState == sessionState.DISCONNECTED) { 
@@ -440,9 +459,15 @@ class stbPlatform {
 			statusOverview = statusOverview + ' sessionWatchdogRunning=' + this.sessionWatchdogRunning
 		}
 
+		// exit if shutting down
+		if (isShuttingDown) { 
+			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Homebridge is shutting down, exiting %s without action', watchdogInstance); }
+			return;
+		}
+
 		// exit if a previous session is still running
 		if (this.sessionWatchdogRunning) { 
-			if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Previous sessionWatchdog still working, exiting %s without action', watchdogInstance); }
+			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Previous sessionWatchdog still working, exiting %s without action', watchdogInstance); }
 			return;
 
 		// as we are called regularly by setInterval, check connection status and exit without action if required
@@ -450,23 +475,23 @@ class stbPlatform {
 			// session is connected, check mqtt state
 
 			if (mqttClient.connected) { 
-				if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session and mqtt connected, exiting %s without action', watchdogInstance); }
+				if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session and mqtt connected, exiting %s without action', watchdogInstance); }
 				return; 
 			} else if (this.mqttClientConnecting) { 
-				if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session connected but mqtt still connecting, exiting %s without action', watchdogInstance); }
+				if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session connected but mqtt still connecting, exiting %s without action', watchdogInstance); }
 				return; 
 			} else {
-				if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session connected but mqtt not connected, %s will try to reconnect mqtt now...', watchdogInstance); }
+				if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session connected but mqtt not connected, %s will try to reconnect mqtt now...', watchdogInstance); }
 			}
 
 		} else if (currentSessionState != sessionState.DISCONNECTED) { 
 			// session is not disconnected, meaning it is between connected and disconnected, ie: a connection is in progress
-			if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session still connecting, exiting %s without action', watchdogInstance); }
+			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session still connecting, exiting %s without action', watchdogInstance); }
 			return;
 
 		} else { 
 			// session is not connected and is not in a state between connected and disconnected, so it is disconnected. Continue
-			if (this.config.debugLevel > 1) { this.log.warn(statusOverview + ' > Session and mqtt not connected, %s will try to connect now...', watchdogInstance); }
+			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session and mqtt not connected, %s will try to connect now...', watchdogInstance); }
 
 		}
 
@@ -480,771 +505,932 @@ class stbPlatform {
 		if ( this.api.user.customStoragePath.includes( 'jochen' ) ) { PLUGIN_ENV = ' DEV' }
 		if (PLUGIN_ENV) { this.log.warn('%s: %s running in %s environment with debugLevel %s', watchdogInstance, PLUGIN_NAME, PLUGIN_ENV.trim(), (this.config || {}).debugLevel || 0); }
 	
-		// Step 1: session does not exist, so create the session, passing the country value
+
+		// if session does not exist, create the session, passing the country value
+		let errorTitle;
 		if (currentSessionState == sessionState.DISCONNECTED ) { 
-			//this.log('Session is not connected');
+			this.log('Session %s. Starting session connection process', sessionStateName[currentSessionState]);
 			if (this.config.debugLevel > 2) { this.log.warn('%s: attempting to create session', watchdogInstance); }
-			this.createSession(this.config.country.toLowerCase());
-		} else if (currentSessionState == sessionState.CONNECTED && !mqttClient.connected) { 
-			this.log('%s: session is still connected, but mqttCLient is disconnected, refreshing session and restarting mqttClient...', watchdogInstance);
+
+			// asnyc startup sequence with chain of promises
+			this.log.debug('sessionWatchdog: ++++ step 1: calling createSession')
+			errorTitle = 'Failed to create session';
+			debug(debugPrefix + 'calling createSession')
+			await this.createSession(this.config.country.toLowerCase()) // returns householdId
+				.then((sessionHouseholdId) => {
+					this.log.debug('sessionWatchdog: ++++++ step 2: session was created, connected to sessionHouseholdId %s', sessionHouseholdId)
+					this.log.debug('sessionWatchdog: ++++++ step 2: calling getPersonalizationData with sessionHouseholdId %s ',sessionHouseholdId)
+					this.log('Discovering platform...');
+					errorTitle = 'Failed to discover platform';
+					debug(debugPrefix + 'calling getPersonalizationData')
+					return this.getPersonalizationData(sessionHouseholdId) // returns customer object, with devices and profiles
+				})
+				// the results of the previous then is the customer object. This is passed on to the next then:
+				.then((objCustomer) => {
+					this.log.debug('sessionWatchdog: ++++++ step 3: personalization data was retrieved, customerId %s customerStatus %s',objCustomer.customerId, objCustomer.customerStatus)
+					this.log.debug('sessionWatchdog: ++++++ step 3: calling getEntitlements with customerId %s ',objCustomer.customerId)
+					//this.getExperimentalEndpoint(objCustomer.customerId) // returns true
+					debug(debugPrefix + 'calling getEntitlements')
+					return this.getEntitlements(objCustomer.customerId) // returns entitlements object
+				})
+				// the results of the previous then is the entitlements object. This is passed on to the next then:
+				.then((objEntitlements) => {
+					this.log.debug('sessionWatchdog: ++++++ step 4: entitlements data was retrieved, objEntitlements.token %s',objEntitlements.token)
+					this.log.debug('sessionWatchdog: ++++++ step 4: calling refreshMasterChannelList')
+					debug(debugPrefix + 'calling refreshMasterChannelList')
+					return this.refreshMasterChannelList() // returns entitlements object
+				})
+				// the results of the previous then is the channels object. This is passed on to the next then:
+				.then((objChannels) => {
+					this.log.debug('sessionWatchdog: ++++++ step 5: masterchannelList data was retrieved, channels found: %s',objChannels.length)
+					this.log.debug('sessionWatchdog: ++++++ step 5: calling discoverDevices')
+					errorTitle = 'Failed to discover devices';
+					debug(debugPrefix + 'calling discoverDevices')
+					return this.discoverDevices() // returns stbDevices object 
+				})
+				// the results of the previous then is a device array. This is passed on to the next then:
+				.then((objStbDevices) => {
+					this.log('Discovery completed');
+					this.log.debug('sessionWatchdog: ++++++ step 6: devices found:', this.devices.length )
+					this.log.debug('sessionWatchdog: ++++++ step 6: calling getJwtToken')
+					errorTitle = 'Failed to start mqtt session';
+					debug(debugPrefix + 'calling getJwtToken')
+					return this.getJwtToken(this.session.username, this.session.accessToken, this.session.householdId);
+				})				
+				// the results of the previous then is the jwt token. This is passed on to the next then:
+				.then((jwToken) => {
+					this.log.debug('sessionWatchdog: ++++++ step 7: getJwtToken token was retrieved, token %s',jwToken)
+					this.log.debug('sessionWatchdog: ++++++ step 7: start mqtt client')
+					debug(debugPrefix + 'calling startMqttClient')
+					return this.startMqttClient(this, this.session.householdId, jwToken);  // returns true
+					//return true // end the chain with a resolved promise
+				})				
+				.catch(errorReason => {
+					// log any errors and set the currentSessionState
+					this.log.warn(errorTitle + ' - %s', errorReason);
+					currentSessionState = sessionState.DISCONNECTED;
+					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+					return true
+				});	
+			debug(debugPrefix + 'end of promise chain')
+			//this.log.debug('sessionWatchdog: ++++++ end of promise chain')
+			//this.log.debug('sessionWatchdog: ++++ create session promise chain completed')
 		}
 
-		// async wait a few seconds for the session to load, then continue
-		// should be 15s as GB takes 12s for some users
-		// increased to 30s on 30.08.2021 to help be-nl
-		if (this.config.debugLevel > 2) { this.log.warn('%s: waiting for session to be created', watchdogInstance); }
-		wait(30*1000).then(() => { 
+		debug(debugPrefix + 'exiting sessionWatchdog')
+		//this.log('Exiting sessionWatchdog')
+		this.sessionWatchdogRunning = false;
+		return true
 
-			// only continue with mqtt if a session was actually created
-			if (this.config.debugLevel > 2) { this.log.warn('%s: session connect wait completed, checking currentSessionState: %s', watchdogInstance, sessionStateName[currentSessionState]); }
-			if (currentSessionState !== sessionState.CONNECTED) { 
+	}
+
+
+	// discover all devices
+	async discoverDevices() {
+		return new Promise((resolve, reject) => {
+			this.log('Discovering devices...');
+
+			// show feedback for devices found
+			if (!this.devices || !this.devices[0].settings) {
+				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 				this.sessionWatchdogRunning = false;
-				if (this.config.debugLevel > 1) { this.log.warn('%s: session connection timeout. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
-				return; 
-			}
+				if (this.config.debugLevel > 2) { this.log.warn('%s: session connected but no devices found. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
+				//this.log('Failed to find any devices. The backend systems may be down, or you have no supported devices on your customer account')
+				reject('No devices found. The backend systems may be down, or you have no supported devices on your customer account')
 
-			// discovery devices at every session connection
-			this.log('Discovering platform and devices...');
-
-			// show feedback for customer data found
-			if (!this.session.customer) {
-				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-				this.log('Failed to find customer data. The backend systems may be down')
 			} else {
-				this.log('Found customer data: %s %s %s', this.session.customer.customerId, (this.session.customer.givenName || ''), (this.session.customer.familyName || '') );
-				if (this.config.debugLevel > 2) { 
-					this.log.warn('Session data: %s', this.session); 
-					this.log.warn('Session data profileSettings: %s', this.session.profileSettings); 
-				}
-				if (this.config.debugLevel > 2) { this.log.warn('Customer data: %s', this.session.customer); }
-			}
-
-			// Step 3: after session is created, get the masterChannelList get the Personalization Data, but only if this.session.customer.physicalDeviceId exists
-			if (this.session.customer.physicalDeviceId) {
-				this.log('Loading master channel list and personalization data')
-				this.refreshMasterChannelList(); // async function, processing continues
-				this.getPersonalizationData('profiles'); // async function
-				this.getPersonalizationData('devices'); // async function
-			} else {
-				// show warning if no physicalDeviceId found
-				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-				this.log('Failed to find physicalDeviceId in your customer data. Are you sure you have a compatible set-top box?')
-				if (this.config.country.toLowerCase() == 'gb') { this.log('You may have an older TiVo box. TiVo boxes are not supported by %s', PLUGIN_NAME); }
-			}
-
-			// wait for master channel list and personalization data to load then see how many devices were found
-			wait(5*1000).then(() => { 
-
-				// show feedback for devices found
-				if (!this.devices || !this.devices[0].settings) {
-					this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-					this.log('Failed to find any devices. The backend systems may be down, or you have no supported devices on your customer account')
-					this.sessionWatchdogRunning = false;
-					if (this.config.debugLevel > 1) { this.log.warn('%s: session connected but no devices found. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
-					return
-
-				} else {
-					// at least one device found
-					var logText = "Found %s device";
-					if (this.devices.length > 1) { logText = logText + "s"; }
-					this.log(logText, this.devices.length);
-					this.log('Discovery completed');
+				// at least one device found
+				var logText = "Found %s device";
+				if (this.devices.length > 1) { logText = logText + "s"; }
+				this.log(logText, this.devices.length);
 
 
-					// user config tip showing all found devices
-					// display only when no config.devices not found
-					let tipText = '', deviceFoundInConfig = true;
-					for (let i = 0; i < this.devices.length; i++) {
-						if (!tipText == '') { tipText = tipText + ',\n'; }
-						tipText = tipText + ' {\n';
-						tipText = tipText + '   "deviceId": "' + this.devices[i].deviceId + '",\n';
-						tipText = tipText + '   "name": "' + this.devices[i].settings.deviceFriendlyName + '"\n';
-						tipText = tipText + ' }';
-						if (this.config.devices) {
-							let configDeviceIndex = this.config.devices.findIndex(devConfig => devConfig.deviceId == this.devices[i].deviceId);
-							if (configDeviceIndex == -1) {
-								this.log("Device not found in config: %s", this.devices[i].deviceId);
-								deviceFoundInConfig = false;
-							}
-						} else {
+				// user config tip showing all found devices
+				// display only when no config.devices not found
+				this.log.debug('Showing config tip...');
+				let tipText = '', deviceFoundInConfig = true;
+				for (let i = 0; i < this.devices.length; i++) {
+					if (!tipText == '') { tipText = tipText + ',\n'; }
+					tipText = tipText + ' {\n';
+					tipText = tipText + '   "deviceId": "' + this.devices[i].deviceId + '",\n';
+					tipText = tipText + '   "name": "' + this.devices[i].settings.deviceFriendlyName + '"\n';
+					tipText = tipText + ' }';
+					if (this.config.devices) {
+						let configDeviceIndex = this.config.devices.findIndex(devConfig => devConfig.deviceId == this.devices[i].deviceId);
+						if (configDeviceIndex == -1) {
+							this.log("Device not found in config: %s", this.devices[i].deviceId);
 							deviceFoundInConfig = false;
 						}
+					} else {
+						deviceFoundInConfig = false;
 					}
-					if (!deviceFoundInConfig) {
-						this.log('Config tip: Add these lines to your Homebridge ' + PLATFORM_NAME + ' config if you wish to customise your device config: \n"devices": [\n' + tipText + '\n]');
-					}
-
-
-					// debug: observe the structure!!
-					//this.log("sessionWatchdog: before searching the cache: this.stbDevices", this.stbDevices);
-
-					// setup/restore each device in turn as an accessory, as we can only setup the accessory after the session is created and the physicalDevices are retrieved
-					this.log("Finding devices in cache...");
-					for (let i = 0; i < this.devices.length; i++) {
-
-						// setup each device (runs once per device)
-						const deviceName = this.devices[i].settings.deviceFriendlyName;
-						this.log("Device %s: %s %s", i+1, deviceName, this.devices[i].deviceId);
-
-						// generate a constant uuid that will never change over the life of the accessory
-						const uuid = this.api.hap.uuid.generate(this.devices[i].deviceId + PLUGIN_ENV);
-
-						// check if the accessory already exists, create if it does not
-						// a stbDevice contains various data: HomeKit accessory, EOS platform, EOS device, EOS profile
-						let foundStbDevice = this.stbDevices.find(stbDevice => (stbDevice.accessory || {}).UUID === uuid)
-						if (!foundStbDevice) {
-							this.log("Device not found in cache, creating new accessory for %s", this.devices[i].deviceId);
-
-							// create the accessory
-							// constructor(log, config, api, device, platform) {
-							this.log("Setting up device %s of %s: %s", i+1, this.devices.length, deviceName);
-							let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this);
-							this.stbDevices.push(newStbDevice);
-
-						} else {
-							this.log("Device found in cache: [%s] %s", foundStbDevice.name, foundStbDevice.deviceId);
-						}	
-
-					};
-
-					// debug: observe the structure!!
-					//this.log("sessionWatchdog: after searching the cache: this.stbDevices", this.stbDevices);
-
-					// wait 3sec for session and devices to be loaded loaded
-					// now get the Jwt Token which triggers the mqtt client
-					wait(3*1000).then(() => { 
-						this.mqttClientConnecting = true;
-						this.getJwtToken(this.session.username, this.session.oespToken, this.session.customer.householdId);
-						this.sessionWatchdogRunning = false;
-						if (this.config.debugLevel > 1) { this.log.warn('%s: session connection successful. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
-						return
-					})
-
 				}
-			});
+				if (!deviceFoundInConfig) {
+					this.log('Config tip: Add these lines to your Homebridge ' + PLATFORM_NAME + ' config if you wish to customise your device config: \n"devices": [\n' + tipText + '\n]');
+				}
 
-		}).catch((error) => { 
-			this.log.error("sessionWatchdog: Error", error); 
-			this.sessionWatchdogRunning = false;
-			if (this.config.debugLevel > 1) { this.log.warn('%s: session connection error. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
-		});
 
+				// setup/restore each device in turn as an accessory, as we can only setup the accessory after the session is created and the physicalDevices are retrieved
+				this.log.debug("Finding devices in cache...");
+				for (let i = 0; i < this.devices.length; i++) {
+
+					// setup each device (runs once per device)
+					const deviceName = this.devices[i].settings.deviceFriendlyName;
+					this.log("Device %s: %s %s", i+1, deviceName, this.devices[i].deviceId);
+
+					// generate a constant uuid that will never change over the life of the accessory
+					const uuid = this.api.hap.uuid.generate(this.devices[i].deviceId + PLUGIN_ENV);
+
+					// check if the accessory already exists, create if it does not
+					// a stbDevice contains various data: HomeKit accessory, EOS platform, EOS device, EOS profile
+					let foundStbDevice = this.stbDevices.find(stbDevice => (stbDevice.accessory || {}).UUID === uuid)
+					if (!foundStbDevice) {
+						this.log("Device %s: Not found in cache, creating new accessory for %s", i+1, this.devices[i].deviceId);
+
+						// create the accessory
+						// 	constructor(log, config, api, device, customer, entitlements, platform) {
+						this.log("Setting up device %s of %s: %s", i+1, this.devices.length, deviceName);
+						//let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this.customer, this.entitlements, this);
+						// simplified the call by removing customer and entitlements as they are part of platform anyway
+						let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this);
+						this.stbDevices.push(newStbDevice);
+
+					} else {
+						this.log("Device found in cache: [%s] %s", foundStbDevice.name, foundStbDevice.deviceId);
+					}	
+
+				};
+				resolve( this.stbDevices ); // resolve the promise with the stbDevices object
+			}
+
+			this.log.debug('discoverDevices: end of code block')
+		})
 	}
 
 
 
 	// select the right session to create
 	async createSession(country) {
-		this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-		switch(country) {
-			case 'be-nl': case 'be-fr':
-				this.getSessionBE(); break;
-			case 'gb':
-				this.getSessionGB(); break;
-			default: // ch, nl, ie, at
-				this.getSession();
-			}
+		return new Promise((resolve, reject) => {
+			this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+			switch(country) {
+				case 'be-nl': case 'be-fr':
+					this.getSessionBE()
+						.then((getSessionResponse) => { resolve(getSessionResponse); }) // return the getSessionResponse for the promise
+						.catch(error => { reject(error); }); // on any error, reject the promise and pass back the error
+					break;
+				case 'gb':
+					this.getSessionGB()
+						.then((getSessionResponse) => { resolve(getSessionResponse); }) // return the getSessionResponse for the promise
+						.catch(error => { reject(error); }); // on any error, reject the promise and pass back the error
+					break;
+				default: // ch, nl, ie, at
+					this.getSession()
+						.then((getSessionResponse) => { resolve(getSessionResponse); }) // resolve with the getSessionResponse for the promise
+						.catch(error => { reject(error); }); // on any error, reject the promise and pass back the error
+				}
+		})
 	}
 
 	// get session ch, nl, ie, at
+	// using new auth method, attempting as of 13.10.2022
 	async getSession() {
-		this.log('Creating %s session...', PLATFORM_NAME);
-		currentSessionState = sessionState.LOADING;
+		return new Promise((resolve, reject) => {
+			this.log('Creating %s session...', PLATFORM_NAME);
+			currentSessionState = sessionState.LOADING;
 
-		const axiosConfig = {
-			method: 'POST',
-			url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/session',
-			jar: cookieJar,
-			data: {
-				username: this.config.username,
-				password: this.config.password
-			}
-		};
 
-		// robustness: fail if url missing
-		if (!axiosConfig.url) {
-			this.log.warn('getSession: axiosConfig.url empty!');
-			currentSessionState = sessionState.DISCONNECTED;
-			this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-			return false;						
-		}
-		
-		this.log('Step 1 of 1: logging in with username %s', this.config.username);
-		this.log.debug('Step 1 of 1: post login to',axiosConfig.url);
-		axiosWS(axiosConfig)
-			.then(response => {	
-				this.log('Step 1 of 1: response:',response.status, response.statusText);
-				this.session = response.data;
-				if (this.session.customer) { currentSessionState = sessionState.AUTHENTICATED; }
-				this.log('Session created');
-				currentSessionState = sessionState.CONNECTED;
-				this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-				this.log('Session state:', sessionStateName[currentSessionState]);
-				return true;
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'Failed to create session'
-				if (error.response && error.response.status >= 400 && error.response.status < 500) {
-					errReason = '- check your ' + PLATFORM_NAME + ' username and password: ' + error.response.status + ' ' + (error.response.statusText || '');
-				} else if (error.response && error.response.status >= 500 && error.response.status < 600) {
-					errReason = '- try again later: ' + error.response.status + ' ' + (error.response.statusText || '');
-				} else if (error.response && error.response.status) {
-					errReason = '- check your internet connection: ' + error.response.status + ' ' + (error.response.statusText || '');
-				} else {
-					errReason = '- check your internet connection: ' + error.code + ' ' + (error.hostname || '');
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// axios interceptors to log request and response for debugging
+			// works on all following requests in this sub
+			/*
+			axiosWS.interceptors.request.use(req => {
+				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
+				'\nMethod:',req.method, '\nURL:', req.url, 
+				'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,  
+				//'\nParams:', req.params, '\nData:', req.data
+				);
+				this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
+				return req; // must return request
+			});
+			axiosWS.interceptors.response.use(res => {
+				this.log.warn('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
+				'\nHeaders:', res.headers, 
+				'\nData:', res.data, 
+				//'\nLast Request:', res.request
+				);
+				//this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
+				return res; // must return response
+			});
+			*/
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+			const axiosConfig = {
+				method: 'POST',
+				url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/authorization',
+				headers: {
+					"x-device-code": "web" // mandatory
+				}, 
+				jar: cookieJar,
+				data: {
+					username: this.config.username,
+					password: this.config.password,
+					stayLoggedIn: false // could alos set to true
 				}
-				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug('getSession: error:', error);
+			};
+
+			// robustness: fail if url missing
+			if (!axiosConfig.url) {
+				this.log.warn('getSession: axiosConfig.url empty!');
 				currentSessionState = sessionState.DISCONNECTED;
 				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-				return false;
-			});	
-		return false;
+				return false;						
+			}
+			
+			this.log('Step 1 of 1: logging in with username %s', this.config.username);
+			if (this.config.debugLevel > 1) { this.log.warn('Step 1 of 1: post login to',axiosConfig.url); }
+			axiosWS(axiosConfig)
+				.then(response => {	
+					this.log('Step 1 of 1: response:',response.status, response.statusText);
+					if (this.config.debugLevel > 1) { this.log('response data',response.data); }
+					this.session = response.data;
+					// check if householdId exists, if so, we have authenticated ok
+					if (this.session.householdId) { currentSessionState = sessionState.AUTHENTICATED; }
+					this.log.debug('Session username:', this.session.username);
+					this.log.debug('Session householdId:', this.session.householdId);
+					this.log.debug('Session accessToken:', this.session.accessToken);
+					this.log.debug('Session refreshToken:', this.session.refreshToken);
+					this.log.debug('Session refreshTokenExpiry:', this.session.refreshTokenExpiry);
+					currentSessionState = sessionState.CONNECTED;
+					this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+					this.log('Session %s', sessionStateName[currentSessionState]);
+					resolve(this.session.householdId) // resolve the promise with the householdId
+				})
+				.catch(error => {
+					let errReason;
+					if (error.response && error.response.status >= 400 && error.response.status < 500) {
+						errReason = 'check your ' + PLATFORM_NAME + ' username and password: ' + error.response.status + ' ' + (error.response.statusText || '');
+					} else if (error.response && error.response.status >= 500 && error.response.status < 600) {
+						errReason = 'try again later: ' + error.response.status + ' ' + (error.response.statusText || '');
+					} else if (error.response && error.response.status) {
+						errReason = 'check your internet connection: ' + error.response.status + ' ' + (error.response.statusText || '');
+					} else {
+						errReason = 'check your internet connection: ' + error.code + ' ' + (error.hostname || '');
+					}
+					//this.log('%s %s', errText, (errReason || ''));
+					this.log.debug('getSession: error:', error);
+					//currentSessionState = sessionState.DISCONNECTED;
+					//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+					reject(errReason); // reject the promise and return the error
+				});
+		})
 	}
+
 
 
 	// get session for BE only (special logon sequence)
 	async getSessionBE() {
-		// only for be-nl and be-fr users, as the session logon using openid is different
-		// looks like also for gb users:
-		// https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
-		this.log('Creating %s BE session...',PLATFORM_NAME);
-		currentSessionState = sessionState.LOADING;
+		return new Promise((resolve, reject) => {
+			// only for be-nl and be-fr users, as the session logon using openid is different
+			// looks like also for gb users:
+			this.log('Creating %s BE session...',PLATFORM_NAME);
+			currentSessionState = sessionState.LOADING;
 
 
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		// axios interceptors to log request and response for debugging
-		// works on all following requests in this sub
-		/*
-		axiosWS.interceptors.request.use(req => {
-			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
-			'\nMethod:',req.method, '\nURL:', req.url, 
-			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,  
-			//'\nParams:', req.params, '\nData:', req.data
-			);
-			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
-			return req; // must return request
-		});
-		axiosWS.interceptors.response.use(res => {
-			this.log('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
-			'\nHeaders:', res.headers, 
-			//'\nData:', res.data, 
-			//'\nLast Request:', res.request
-			);
-			this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
-			return res; // must return response
-		});
-		*/
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// axios interceptors to log request and response for debugging
+			// works on all following requests in this sub
+			/*
+			axiosWS.interceptors.request.use(req => {
+				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
+				'\nMethod:',req.method, '\nURL:', req.url, 
+				'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,  
+				//'\nParams:', req.params, '\nData:', req.data
+				);
+				this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
+				return req; // must return request
+			});
+			axiosWS.interceptors.response.use(res => {
+				this.log('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
+				'\nHeaders:', res.headers, 
+				//'\nData:', res.data, 
+				//'\nLast Request:', res.request
+				);
+				this.log('+++INTERCEPTED SESSION COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
+				return res; // must return response
+			});
+			*/
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-		// ensure the required POST header is set
-		axiosWS.defaults.headers.post = { 'Content-Type': 'application/x-www-form-urlencoded' }; // needed for axios-cookiejar-support v2.0.x
+			// ensure the required POST header is set
+			axiosWS.defaults.headers.post = { 'Content-Type': 'application/x-www-form-urlencoded' }; // needed for axios-cookiejar-support v2.0.x
 
 
-		// Step 1: # get authentication details
-		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/authorization';
-		this.log('Step 1 of 7: get authentication details');
-		this.log.debug('Step 1 of 7: get authentication details from',apiAuthorizationUrl);
-		axiosWS.get(apiAuthorizationUrl)
-			.then(response => {	
-				this.log('Step 1 of 7: response:',response.status, response.statusText);
-				
-				// get the data we need for further steps
-				let auth = response.data;
-				let authState = auth.session.state;
-				let authAuthorizationUri = auth.session.authorizationUri;
-				let authValidtyToken = auth.session.validityToken;
+			// Step 1: # get authentication details
+			let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/sso/authorization';
+			this.log('Step 1 of 6: get authentication details');
+			if (this.config.debugLevel > 1) { this.log.warn('Step 1 of 6: get authentication details from',apiAuthorizationUrl); }
+			axiosWS.get(apiAuthorizationUrl)
+				.then(response => {	
+					this.log('Step 1 of 6: response:',response.status, response.statusText);
+					
+					// get the data we need for further steps
+					let auth = response.data;
+					let authState = auth.state;
+					let authAuthorizationUri = auth.authorizationUri;
+					let authValidtyToken = auth.validityToken;
 
-				// Step 2: # follow authorizationUri to get AUTH cookie
-				this.log('Step 2 of 7: get AUTH cookie');
-				this.log.debug('Step 2 of 7: get AUTH cookie from',authAuthorizationUri);
-				axiosWS.get(authAuthorizationUri, {
-						jar: cookieJar,
-						// unsure what minimum headers will here
-						headers: {
-							Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-						},
-					})
-					.then(response => {	
-						this.log('Step 2 of 7: response:',response.status, response.statusText);
-		
-						// Step 3: # login
-						this.log('Step 3 of 7: logging in with username %s', this.config.username);
-						this.log.debug('Step 3 of 7: post login to auth url:',BE_AUTH_URL);
-						this.log.debug('Step 3 of 7: Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
-						currentSessionState = sessionState.LOGGING_IN;
-						var payload = qs.stringify({
-							j_username: this.config.username,
-							j_password: this.config.password,
-							rememberme: 'true'
-						});
-						this.log.debug('Step 3 of 7: using payload',payload);
-						axiosWS.post(BE_AUTH_URL,payload,{
+					// Step 2: # follow authorizationUri to get AUTH cookie
+					this.log('Step 2 of 6: get AUTH cookie');
+					this.log.debug('Step 2 of 6: get AUTH cookie from',authAuthorizationUri);
+					axiosWS.get(authAuthorizationUri, {
 							jar: cookieJar,
-							maxRedirects: 0, // do not follow redirects
-							validateStatus: function (status) {
-								return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
-								},
-							})
-							.then(response => {	
-								this.log('Step 3 of 7: response:',response.status, response.statusText);
-								this.log.debug('Step 3 response.headers.location:',response.headers.location); 
-								this.log.debug('Step 3 response.headers:',response.headers);
-								var url = response.headers.location;
-								if (!url) {		// robustness: fail if url missing
-									this.log.warn('getSessionBE: Step 3: location url empty!');
-									currentSessionState = sessionState.DISCONNECTED;
-									return false;						
-								}
+							// unsure what minimum headers will here
+							headers: {
+								Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+							},
+						})
+						.then(response => {	
+							this.log('Step 2 of 6: response:',response.status, response.statusText);
+			
+							// Step 3: # login
+							this.log('Step 3 of 6: logging in with username %s', this.config.username);
+							this.log.debug('Step 3 of 6: post login to auth url:',BE_AUTH_URL);
+							this.log.debug('Step 3 of 6: Cookies for the auth url:',cookieJar.getCookies(BE_AUTH_URL));
+							currentSessionState = sessionState.LOGGING_IN;
+							var payload = qs.stringify({
+								j_username: this.config.username,
+								j_password: this.config.password,
+								rememberme: 'true'
+							});
+							this.log.debug('Step 3 of 6: using payload',payload);
+							axiosWS.post(BE_AUTH_URL,payload,{
+								jar: cookieJar,
+								maxRedirects: 0, // do not follow redirects
+								validateStatus: function (status) {
+									return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
+									},
+								})
+								.then(response => {	
+									this.log('Step 3 of 6: response:',response.status, response.statusText);
+									this.log.debug('Step 3 response.headers.location:',response.headers.location); 
+									this.log.debug('Step 3 response.headers:',response.headers);
+									var url = response.headers.location;
+									if (!url) {		// robustness: fail if url missing
+										this.log.warn('getSessionBE: Step 3: location url empty!');
+										currentSessionState = sessionState.DISCONNECTED;
+										return false;						
+									}
 
-								//location is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
-								//location is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
-								//location is https://login.prd.telenet.be/openid/login?error=session_expired if session has expired
-								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
-									this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
-									currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-								} else if (url.indexOf('error=session_expired') > 0 ) {
-									this.log.warn('Step 3 of 7: Unable to login: session expired');
-									cookieJar.removeAllCookies();	// remove all the locally cached cookies
-									currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-								} else {
+									// locations unsure after change of login method in October 2022
+									//location is https://login.prd.telenet.be/openid/login?response_type=code&state=... if success
+									//location is https://login.prd.telenet.be/openid/login?authentication_error=true if not authorised
+									//location is https://login.prd.telenet.be/openid/login?error=session_expired if session has expired
+									if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
+										//this.log.warn('Step 3 of 6: Unable to login: wrong credentials');
+										reject("Step 3 of 6: Unable to login: wrong credentials"); // reject the promise and return the error
+										//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+										//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+									} else if (url.indexOf('error=session_expired') > 0 ) {
+										//this.log.warn('Step 3 of 6: Unable to login: session expired');
+										cookieJar.removeAllCookies();	// remove all the locally cached cookies
+										reject("Step 3 of 6: Unable to login: session expired"); // reject the promise and return the error
+										//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+										//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+									} else {
 
-									// Step 4: # follow redirect url
-									this.log('Step 4 of 7: follow redirect url');
-									//this.log('Cookies for the redirect url:',cookieJar.getCookies(url));
-									axiosWS.get(url,{
-										jar: cookieJar,
-										maxRedirects: 0, // do not follow redirects
-										validateStatus: function (status) {
-											return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
-											},
-										})
-										.then(response => {	
-											this.log('Step 4 of 7: response:',response.status, response.statusText);
-											//this.log('Step 4 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
-											//this.log('Step 4 response.headers:',response.headers);
-											url = response.headers.location;
-											if (!url) {		// robustness: fail if url missing
-												this.log.warn('Step 4 of 7: location url empty!');
-												currentSessionState = sessionState.DISCONNECTED;
-												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-												return false;						
-											}
-
-											// look for login_success?code=
-											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
-												this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
-												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-											} else if (url.indexOf('error=session_expired') > 0 ) {
-												this.log.warn('Step 4 of 7: Unable to login: session expired');
-												cookieJar.removeAllCookies();	// remove all the locally cached cookies
-												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-											} else {
-
-												// Step 5: # obtain authorizationCode
-												this.log('Step 5 of 7: extract authorizationCode');
+										// Step 4: # follow redirect url
+										this.log('Step 4 of 6: follow redirect url');
+										//this.log('Cookies for the redirect url:',cookieJar.getCookies(url));
+										axiosWS.get(url,{
+											jar: cookieJar,
+											maxRedirects: 0, // do not follow redirects
+											validateStatus: function (status) {
+												return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
+												},
+											})
+											.then(response => {	
+												this.log('Step 4 of 6: response:',response.status, response.statusText);
+												//this.log('Step 4 response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
+												//this.log('Step 4 response.headers:',response.headers);
 												url = response.headers.location;
 												if (!url) {		// robustness: fail if url missing
-													this.log.warn('Step 5 of 7: location url empty!');
-													currentSessionState = sessionState.DISCONNECTED;
-													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-													return false;						
+													t//his.log.warn('Step 4 of 6: location url empty!');
+													reject("Step 4 of 6: location url empty!"); // reject the promise and return the error
+													//currentSessionState = sessionState.DISCONNECTED;
+													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+													//return false;						
 												}
-	
-												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
-												var authorizationCode = codeMatches[1];
-												if (codeMatches.length !== 2 ) { // length must be 2 if code found
-													this.log.warn('Step 5 of 7: Unable to extract authorizationCode');
+
+												// look for login_success.html?code=
+												if (url.indexOf('login_success.html?code=') < 0 ) { // <0 if not found
+													//this.log.warn('Step 4 of 6: Unable to login: wrong credentials');
+													reject("Step 4 of 6: Unable to login: wrong credentials"); // reject the promise and return the error
+													//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+												} else if (url.indexOf('error=session_expired') > 0 ) {
+													//this.log.warn('Step 4 of 6: Unable to login: session expired');
+													cookieJar.removeAllCookies();	// remove all the locally cached cookies
+													reject("Step 4 of 6: Unable to login: session expired"); // reject the promise and return the error
+													//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 												} else {
-													this.log('Step 5 of 7: authorizationCode OK');
-													this.log.debug('Step 5 of 7: authorizationCode:',authorizationCode);
 
-													// Step 6: # authorize again
-													this.log('Step 6 of 7: post auth data');
-													this.log.debug('Step 6 of 7: post auth data to',apiAuthorizationUrl);
-													currentSessionState = sessionState.AUTHENTICATING;
-													payload = {'authorizationGrant':{
-														'authorizationCode':authorizationCode,
-														'validityToken':authValidtyToken,
-														'state':authState
-													}};
-													//this.log('Cookies for the session:',cookieJar.getCookies(apiAuthorizationUrl));
-													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
-														.then(response => {	
-															this.log('Step 6 of 7: response:',response.status, response.statusText);
-																
-															auth = response.data;
-															//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
-															//this.log('Step 6 refreshToken:',auth.refreshToken);
+													// Step 5: # obtain authorizationCode
+													this.log('Step 5 of 6: extract authorizationCode');
+													url = response.headers.location;
+													if (!url) {		// robustness: fail if url missing
+														//this.log.warn('Step 5 of 6: location url empty!');
+														reject("Step 5 of 6: location url empty!"); // reject the promise and return the error
+														//currentSessionState = sessionState.DISCONNECTED;
+														//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+														//return false;						
+													}
+		
+													var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
+													var authorizationCode = codeMatches[1];
+													if (codeMatches.length !== 2 ) { // length must be 2 if code found
+														//this.log.warn('Step 5 of 6: Unable to extract authorizationCode');
+														reject("Step 5 of 6: Unable to extract authorizationCode"); // reject the promise and return the error
+													} else {
+														this.log('Step 5 of 6: authorizationCode OK');
+														this.log.debug('Step 5 of 6: authorizationCode:',authorizationCode);
 
-															// Step 7: # get OESP code
-															this.log('Step 7 of 7: post refreshToken request');
-															this.log.debug('Step 7 of 7: post refreshToken request to',apiAuthorizationUrl);
-															payload = {'refreshToken':auth.refreshToken,'username':auth.username};
-															var sessionUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/session';
-															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
-																.then(response => {	
-																	this.log('Step 7 of 7: response:',response.status, response.statusText);
-																	currentSessionState = sessionState.VERIFYING;
-																		
-																	//this.log('Step 7 response.headers:',response.headers); 
-																	//this.log('Step 7 response.data:',response.data); 
-																	//this.log('Cookies for the session:',cookieJar.getCookies(sessionUrl));
-
-																	// get device data from the session
-																	this.session = response.data;
-																	this.log('Session created');
-																	currentSessionState = sessionState.CONNECTED;
-																	this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-																	return true;
-																})
-																// Step 7 http errors
-																.catch(error => {
-																	this.log.warn("Step 7 of 7: Unable to get OESP token:", error.response.status, error.response.statusText);
-																	this.log.debug("Step 7 of 7: Unable to get OESP token:",error);
-																	currentSessionState = sessionState.DISCONNECTED;
-																	this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-																});
-														})
-														// Step 6 http errors
-														.catch(error => {
-															this.log.warn("Step 6 of 7: Unable to authorize with oauth code:", error.response.status, error.response.statusText);
-															this.log.debug("Step 6 of 7: Unable to authorize with oauth code:",error);
-															currentSessionState = sessionState.DISCONNECTED;
-															this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-														});	
+														// Step 6: # authorize again
+														this.log('Step 6 of 6: post auth data');
+														this.log.debug('Step 6 of 6: post auth data to',apiAuthorizationUrl);
+														currentSessionState = sessionState.AUTHENTICATING;
+														payload = {'authorizationGrant':{
+															'authorizationCode':authorizationCode,
+															'validityToken':authValidtyToken,
+															'state':authState
+														}};
+														//this.log('Cookies for the session:',cookieJar.getCookies(apiAuthorizationUrl));
+														axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
+															.then(response => {	
+																this.log('Step 6 of 6: response:',response.status, response.statusText);
+																	
+																// get device data from the session
+																this.session = response.data;
+																this.log('Session created');
+																currentSessionState = sessionState.CONNECTED;
+																this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+																resolve(this.session.householdId) // resolve the promise with the householdId
+															})
+															// Step 6 http errors
+															.catch(error => {
+																//this.log.warn("Step 6 of 6: Unable to authorize with oauth code:", error.response.status, error.response.statusText);
+																this.log.debug("Step 6 of 6: Unable to authorize with oauth code:",error);
+																reject("Step 6 of 6: Step 6 of 6: Unable to authorize with oauth code: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+																//currentSessionState = sessionState.DISCONNECTED;
+																//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+															});	
+														};
 													};
-												};
-										})
-										// Step 4 http errors
-										.catch(error => {
-											this.log.warn("Step 4 of 7: Unable to oauth authorize:", error.response.status, error.response.statusText);
-											this.log.debug("Step 4 of 7: Unable to oauth authorize:",error);
-											currentSessionState = sessionState.DISCONNECTED;
-											this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-										});
-								};
-							})
-							// Step 3 http errors
-							.catch(error => {
-								this.log.warn("Step 3 of 7: Unable to login:", error.response.status, error.response.statusText);
-								this.log.debug("Step 3 of 7: Unable to login:",error);
-								currentSessionState = sessionState.DISCONNECTED;
-								this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-							});
-					})
-					// Step 2 http errors
-					.catch(error => {
-						this.log.warn("Step 2 of 7: Could not get authorizationUri", error.response.status, error.response.statusText);
-						this.log.debug("Step 2 of 7: Could not get authorizationUri:",error);
-						currentSessionState = sessionState.DISCONNECTED;
-						this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-					});
-			})
-			// Step 1 http errors
-			.catch(error => {
-				if (!error.response) {
-					this.log('Step 1 of 7: Failed to create BE session - check your internet connection.');
-				} else {
-					this.log('Step 1 of 7: Failed to create BE session: %s', error.response.status, error.response.statusText);
-				}
-				this.log.debug('Step 1 of 7: getSessionBE: error:', error);
-				currentSessionState = sessionState.DISCONNECTED;
-				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-			});
+											})
+											// Step 4 http errors
+											.catch(error => {
+												//this.log.warn("Step 4 of 6: Unable to oauth authorize:", error.response.status, error.response.statusText);
+												this.log.debug("Step 4 of 6: Unable to oauth authorize:",error);
+												reject("Step 2 of 6: Step 4 of 6: Unable to oauth authorize: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+												//currentSessionState = sessionState.DISCONNECTED;
+												//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+											});
+									};
+								})
+								// Step 3 http errors
+								.catch(error => {
+									this.log.debug("Step 3 of 6: Unable to login:",error);
+									this.log("Step 3 of 6: Unable to login:",error);
+									reject("Step 3 of 6: Unable to login: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+									//this.log.warn("Step 3 of 6: Unable to login:", error.response.status, error.response.statusText);
+									//currentSessionState = sessionState.DISCONNECTED;
+									//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+								});
+						})
+						// Step 2 http errors
+						.catch(error => {
+							this.log.debug("Step 2 of 6: Could not get authorizationUri:",error);
+							//this.log.warn("Step 2 of 6: Could not get authorizationUri", error.response.status, error.response.statusText);
+							reject("Step 2 of 6: Could not get authorizationUri: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+							//currentSessionState = sessionState.DISCONNECTED;
+							//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+						});
+				})
+				// Step 1 http errors
+				.catch(error => {
+					if (!error.response) {
+						this.log('Step 1 of 6: Failed to create BE session - check your internet connection.');
+					} else {
+						this.log('Step 1 of 6: Failed to create BE session: %s', error.response.status, error.response.statusText);
+					}
+					this.log.debug('Step 1 of 6: getSessionBE: error:', error);
+					reject("Step 1 of 6: Failed to create BE session: check your internet connection"); // reject the promise and return the error
+					//currentSessionState = sessionState.DISCONNECTED;
+					//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+				});
 
-		currentSessionState = sessionState.DISCONNECTED;
-		this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+			currentSessionState = sessionState.DISCONNECTED;
+			this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+		})
 	}
 
 
 	// get session for GB only (special logon sequence)
 	getSessionGB() {
-		// this code is a copy of the be session code, adapted for gb
-		this.log('Creating %s GB session...',PLATFORM_NAME);
-		currentSessionState = sessionState.LOADING;
+		return new Promise((resolve, reject) => {
+			// this code is a copy of the be session code, adapted for gb
+			this.log('Creating %s GB session...',PLATFORM_NAME);
+			currentSessionState = sessionState.LOADING;
 
-		//var cookieJarGB = new cookieJar();
+			//var cookieJarGB = new cookieJar();
 
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		// axios interceptors to log request and response for debugging
-		// works on all following requests in this sub
-		/*
-		axiosWS.interceptors.request.use(req => {
-			this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
-			this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
-			'\nMethod:',req.method, '\nURL:', req.url, 
-			'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,
-			//'\nParams:', req.params, '\nData:', req.data
-			);
-			return req; // must return request
-		});
-		axiosWS.interceptors.response.use(res => {
-			this.log('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
-			'\nHeaders:', res.headers, 
-			//'\nData:', res.data, 
-			//'\nLast Request:', res.request
-			);
-			this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:\n', cookieJar.getCookies(res.url)); 
-			return res; // must return response
-		});
-		*/
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// axios interceptors to log request and response for debugging
+			// works on all following requests in this sub
+			/*
+			axiosWS.interceptors.request.use(req => {
+				this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
+				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
+				'\nMethod:',req.method, '\nURL:', req.url, 
+				'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,
+				'\nParams:', req.params, '\nData:', req.data
+				);
+				return req; // must return request
+			});
+			axiosWS.interceptors.response.use(res => {
+				this.log.warn('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
+				'\nHeaders:', res.headers, 
+				'\nUrl:', res.url, 
+				//'\nData:', res.data, 
+				//'\nLast Request:', res.request
+				);
+				//this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:'); 
+				//if (cookieJar) { this.log(cookieJar.getCookies(res.url)); }// watch out for empty cookieJar
+				return res; // must return response
+			});
+			*/
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-		// Step 1: # get authentication details
-		// https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
-		let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/authorization';
-		this.log('Step 1 of 7: get authentication details');
-		this.log.debug('Step 1 of 7: get authentication details from',apiAuthorizationUrl);
-		axiosWS.get(apiAuthorizationUrl)
-			.then(response => {	
-				this.log('Step 1 of 7 response:',response.status, response.statusText);
-				this.log.debug('Step 1 of 7 response.data',response.data);
-				
-				// get the data we need for further steps
-				let auth = response.data;
-				let authState = auth.session.state;
-				let authAuthorizationUri = auth.session.authorizationUri;
-				let authValidtyToken = auth.session.validityToken;
-				this.log.debug('Step 1 of 7: results: authState',authState);
-				this.log.debug('Step 1 of 7: results: authAuthorizationUri',authAuthorizationUri);
-				this.log.debug('Step 1 of 7: results: authValidtyToken',authValidtyToken);
+			// Step 1: # get authentication details
+			// https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
+			// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/authorization
+			let apiAuthorizationUrl = GB_AUTH_OESP_URL + '/authorization';
+			this.log('Step 1 of 7: get authentication details');
+			if (this.config.debugLevel > 1) { this.log.warn('Step 1 of 7: get authentication details from',apiAuthorizationUrl); }
+			axiosWS.get(apiAuthorizationUrl)
+				.then(response => {	
+					this.log('Step 1 of 7: response:',response.status, response.statusText);
+					this.log.debug('Step 1 of :7 response.data',response.data);
+					
+					// get the data we need for further steps
+					let auth = response.data;
+					let authState = auth.session.state;
+					let authAuthorizationUri = auth.session.authorizationUri;
+					let authValidtyToken = auth.session.validityToken;
+					this.log.debug('Step 1 of 7: results: authState',authState);
+					this.log.debug('Step 1 of 7: results: authAuthorizationUri',authAuthorizationUri);
+					this.log.debug('Step 1 of 7: results: authValidtyToken',authValidtyToken);
 
-				// Step 2: # follow authorizationUri to get AUTH cookie (ULM-JSESSIONID)
-				this.log('Step 2 of 7: get AUTH cookie');
-				this.log.debug('Step 2 of 7: get AUTH cookie from',authAuthorizationUri);
-				axiosWS.get(authAuthorizationUri, {
-						jar: cookieJar
-						// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-						//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
-					})
-					.then(response => {	
-						this.log('Step 2 of 7: response:',response.status, response.statusText);
-						//this.log.warn('Step 2 of 7 response.data',response.data); // an html logon page
-		
-						// Step 3: # login
-						this.log('Step 3 of 7: logging in with username %s', this.config.username);
-						//this.log('Cookies for the auth url:',cookieJar.getCookies(GB_AUTH_URL));
-						currentSessionState = sessionState.LOGGING_IN;
-
-						// we just want to POST to 
-						// 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
-						const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
-						this.log.debug('Step 3 of 7: POST request will contain this data: {"username":"' + this.config.username + '","credential":"' + this.config.password + '"}');
-						axiosWS(GB_AUTH_URL,{
-						//axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
-							jar: cookieJar,
+					// Step 2: # follow authorizationUri to get AUTH cookie (ULM-JSESSIONID)
+					this.log('Step 2 of 7: get AUTH cookie');
+					this.log.debug('Step 2 of 7: get AUTH cookie from',authAuthorizationUri);
+					axiosWS.get(authAuthorizationUri, {
+							jar: cookieJar
 							// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 							//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
-							data: '{"username":"' + this.config.username + '","credential":"' + this.config.password + '"}',
-							method: "POST",
-							// minimum headers are "accept": "*/*",
-							headers: {
-								"accept": "application/json; charset=UTF-8, */*",
-							},
-							maxRedirects: 0, // do not follow redirects
-							validateStatus: function (status) {
-								return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK. GB returns 200
-							},
-							})
-							.then(response => {	
-								this.log('Step 3 of 7: response:',response.status, response.statusText);
-								this.log.debug('Step 3 of 7: response.headers:',response.headers); 
-								this.log.debug('Step 3 of 7: response.data:',response.data);
-
-								//this.log('Step 3 of 7 response.headers:',response.headers);
-								var url = response.headers['x-redirect-location']
-								if (!url) {		// robustness: fail if url missing
-									this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
-									currentSessionState = sessionState.DISCONNECTED;
-									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-									return false;						
-								}								
-								//location is h??=... if success
-								//location is https?? if not authorised
-								//location is https:... error=session_expired if session has expired
-								if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
-									this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
-								} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
-									this.log.warn('Step 3 of 7: Unable to login: session expired');
-									cookieJar.removeAllCookies();	// remove all the locally cached cookies
-									currentSessionState = sessionState.DISCONNECTED;	// flag the session as dead
-									this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-								} else {
-									this.log.debug('Step 3 of 7: login successful');
-
-									// Step 4: # follow redirect url
-									this.log('Step 4 of 7: follow redirect url');
-									axiosWS.get(url,{
-										jar: cookieJar,
-										maxRedirects: 0, // do not follow redirects
-										validateStatus: function (status) {
-											return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
-											},
-										})
-										.then(response => {	
-											this.log('Step 4 of 7 response:',response.status, response.statusText);
-											this.log.debug('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
-											this.log.debug('Step 4 of 7: response.data:',response.data);
-											//this.log('Step 4 response.headers:',response.headers);
-											url = response.headers.location;
-											if (!url) {		// robustness: fail if url missing
-												this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
-												currentSessionState = sessionState.DISCONNECTED;
-												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-												return false;						
-											}								
+						})
+						.then(response => {	
+							this.log('Step 2 of 7: response:',response.status, response.statusText);
+							//this.log.warn('Step 2 of 7 response.data',response.data); // an html logon page
 			
-											// look for login_success?code=
-											if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
-												this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
-												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-											} else if (url.indexOf('error=session_expired') > 0 ) {
-												this.log.warn('Step 4 of 7: Unable to login: session expired');
-												cookieJar.removeAllCookies();	// remove all the locally cached cookies
-												currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-												this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-											} else {
+							// Step 3: # login
+							this.log('Step 3 of 7: logging in with username %s', this.config.username);
+							//this.log('Cookies for the auth url:',cookieJar.getCookies(GB_AUTH_URL));
+							currentSessionState = sessionState.LOGGING_IN;
 
-												// Step 5: # obtain authorizationCode
-												this.log('Step 5 of 7: extract authorizationCode');
+							// we just want to POST to 
+							// 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
+							const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
+							this.log.debug('Step 3 of 7: POST request will contain this data: {"username":"' + this.config.username + '","credential":"' + this.config.password + '"}');
+							axiosWS(GB_AUTH_URL,{
+							//axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
+								jar: cookieJar,
+								// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
+								//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
+								data: '{"username":"' + this.config.username + '","credential":"' + this.config.password + '"}',
+								method: "POST",
+								// minimum headers are "accept": "*/*",
+								headers: {
+									"accept": "application/json; charset=UTF-8, */*",
+								},
+								maxRedirects: 0, // do not follow redirects
+								validateStatus: function (status) {
+									return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK. GB returns 200
+								},
+								})
+								.then(response => {	
+									this.log('Step 3 of 7: response:',response.status, response.statusText);
+									this.log.debug('Step 3 of 7: response.headers:',response.headers); 
+									this.log.debug('Step 3 of 7: response.data:',response.data);
+
+									//this.log('Step 3 of 7 response.headers:',response.headers);
+									var url = response.headers['x-redirect-location']
+									if (!url) {		// robustness: fail if url missing
+										this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
+										currentSessionState = sessionState.DISCONNECTED;
+										this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+										return false;						
+									}								
+									//location is h??=... if success
+									//location is https?? if not authorised
+									//location is https:... error=session_expired if session has expired
+									if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
+										//this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
+										reject('Step 3 of 7: Unable to login: wrong credentials'); // reject the promise and return the error
+									} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
+										//this.log.warn('Step 3 of 7: Unable to login: session expired');
+										cookieJar.removeAllCookies();	// remove all the locally cached cookies
+										reject('Step 3 of 7: Unable to login: session expired'); // reject the promise and return the error
+										//currentSessionState = sessionState.DISCONNECTED;	// flag the session as dead
+										//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+									} else {
+										this.log.debug('Step 3 of 7: login successful');
+
+										// Step 4: # follow redirect url
+										this.log('Step 4 of 7: follow redirect url');
+										axiosWS.get(url,{
+											jar: cookieJar,
+											maxRedirects: 0, // do not follow redirects
+											validateStatus: function (status) {
+												return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
+												},
+											})
+											.then(response => {	
+												this.log('Step 4 of 7 response:',response.status, response.statusText);
+												this.log.debug('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
+												this.log.debug('Step 4 of 7: response.data:',response.data);
+												//this.log('Step 4 response.headers:',response.headers);
 												url = response.headers.location;
 												if (!url) {		// robustness: fail if url missing
-													this.log.warn('getSessionGB: Step 5: location url empty!');
+													this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
 													currentSessionState = sessionState.DISCONNECTED;
 													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 													return false;						
 												}								
 				
-												var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
-												var authorizationCode = codeMatches[1];
-												if (codeMatches.length !== 2 ) { // length must be 2 if code found
-													this.log.warn('Step 5 of 7: Unable to extract authorizationCode');
+												// look for login_success?code=
+												if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
+													//this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
+													//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+													reject('Step 4 of 7: Unable to login: wrong credentials'); // reject the promise and return the error
+												} else if (url.indexOf('error=session_expired') > 0 ) {
+													//this.log.warn('Step 4 of 7: Unable to login: session expired');
+													cookieJar.removeAllCookies();	// remove all the locally cached cookies
+													reject('Step 4 of 7: Unable to login: session expired'); // reject the promise and return the error
+													//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
+													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 												} else {
-													this.log('Step 5 of 7: authorizationCode OK');
-													this.log.debug('Step 5 of 7: authorizationCode:',authorizationCode);
 
-													// Step 6: # authorize again
-													this.log('Step 6 of 7: post auth data with valid code');
-													this.log.debug('Step 6 of 7: post auth data with valid code to',apiAuthorizationUrl);
-													currentSessionState = sessionState.AUTHENTICATING;
-													var payload = {'authorizationGrant':{
-														'authorizationCode':authorizationCode,
-														'validityToken':authValidtyToken,
-														'state':authState
-													}};
-													axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
-														.then(response => {	
-															this.log('Step 6 of 7: response:',response.status, response.statusText);
-															this.log.debug('Step 6 of 7: response.data:',response.data);
-															
-															auth = response.data;
-															//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
-															this.log.debug('Step 6 of 7: refreshToken:',auth.refreshToken);
+													// Step 5: # obtain authorizationCode
+													this.log('Step 5 of 7: extract authorizationCode');
+													url = response.headers.location;
+													if (!url) {		// robustness: fail if url missing
+														this.log.warn('getSessionGB: Step 5: location url empty!');
+														currentSessionState = sessionState.DISCONNECTED;
+														this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+														return false;						
+													}								
+					
+													var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
+													var authorizationCode = codeMatches[1];
+													if (codeMatches.length !== 2 ) { // length must be 2 if code found
+														this.log.warn('Step 5 of 7: Unable to extract authorizationCode');
+													} else {
+														this.log('Step 5 of 7: authorizationCode OK');
+														this.log.debug('Step 5 of 7: authorizationCode:',authorizationCode);
 
-															// Step 7: # get OESP code
-															this.log('Step 7 of 7: post refreshToken request');
-															this.log.debug('Step 7 of 7: post refreshToken request to',apiAuthorizationUrl);
-															payload = {'refreshToken':auth.refreshToken,'username':auth.username};
-															var sessionUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/session';
-															axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
-																.then(response => {	
-																	this.log('Step 7 of 7: response:',response.status, response.statusText);
-																	currentSessionState = sessionState.VERIFYING;
-																	
-																	this.log.debug('Step 7 of 7: response.headers:',response.headers); 
-																	this.log.debug('Step 7 of 7: response.data:',response.data); 
-																	this.log.debug('Cookies for the session:',cookieJar.getCookies(sessionUrl));
+														// Step 6: # authorize again
+														this.log('Step 6 of 7: post auth data with valid code');
+														this.log.debug('Step 6 of 7: post auth data with valid code to',apiAuthorizationUrl);
+														currentSessionState = sessionState.AUTHENTICATING;
+														var payload = {'authorizationGrant':{
+															'authorizationCode':authorizationCode,
+															'validityToken':authValidtyToken,
+															'state':authState
+														}};
+														axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
+															.then(response => {	
+																this.log('Step 6 of 7: response:',response.status, response.statusText);
+																this.log.debug('Step 6 of 7: response.data:',response.data);
+																
+																auth = response.data;
+																//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
+																this.log.debug('Step 6 of 7: refreshToken:',auth.refreshToken);
 
-																	// get device data from the session
-																	this.session = response.data;
-																	
-																	// get device data from the session
-																	this.session = response.data;
-																	currentSessionState = sessionState.CONNECTED;
-																	this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-																	this.log('Session created');
-																	return true;
-																})
-																// Step 7 http errors
-																.catch(error => {
-																	this.log.warn("Step 7 of 7: Unable to get OESP token:",error.response.status, error.response.statusText);
-																	this.log.debug("Step 7 of 7: error:",error);
-																	currentSessionState = sessionState.DISCONNECTED;
-																	this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-																});
-														})
-														// Step 6 http errors
-														.catch(error => {
-															this.log.warn("Step 6 of 7: Unable to authorize with oauth code, http error:",error);
-															currentSessionState = sessionState.DISCONNECTED;
-															this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-														});	
+																// Step 7: # get OESP code
+																this.log('Step 7 of 7: post refreshToken request');
+																this.log.debug('Step 7 of 7: post refreshToken request to',apiAuthorizationUrl);
+																payload = {'refreshToken':auth.refreshToken,'username':auth.username};
+																// must resolve to
+																// 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/session';',
+																var sessionUrl = GB_AUTH_OESP_URL + '/session';
+																axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
+																	.then(response => {	
+																		this.log('Step 7 of 7: response:',response.status, response.statusText);
+																		currentSessionState = sessionState.VERIFYING;
+																		
+																		this.log.debug('Step 7 of 7: response.headers:',response.headers); 
+																		this.log.debug('Step 7 of 7: response.data:',response.data); 
+																		this.log.debug('Cookies for the session:',cookieJar.getCookies(sessionUrl));
+
+																		// get device data from the session
+																		this.session = response.data;
+																		
+																		// get device data from the session
+																		this.session = response.data;
+																		currentSessionState = sessionState.CONNECTED;
+																		this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+																		this.log('Session created');
+																		resolve(this.session.householdId) // resolve the promise with the householdId
+																	})
+																	// Step 7 http errors
+																	.catch(error => {
+																		//this.log.warn("Step 7 of 7: Unable to get OESP token:",error.response.status, error.response.statusText);
+																		this.log.debug("Step 7 of 7: error:",error);
+																		reject("Step 7 of 7: Unable to get OESP token: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+																		//currentSessionState = sessionState.DISCONNECTED;
+																		//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+																	});
+															})
+															// Step 6 http errors
+															.catch(error => {
+																//this.log.warn("Step 6 of 7: Unable to authorize with oauth code, http error:",error);
+																reject("Step 6 of 7: Unable to authorize with oauth code, http error: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+																//currentSessionState = sessionState.DISCONNECTED;
+																//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+															});	
+													};
 												};
-											};
-										})
-										// Step 4 http errors
-										.catch(error => {
-											this.log.warn("Step 4 of 7: Unable to oauth authorize:",error.response.status, error.response.statusText);
-											this.log.debug("Step 4 of 7: error:",error);
-											currentSessionState = sessionState.DISCONNECTED;
-											this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-										});
-								};
-							})
-							// Step 3 http errors
-							.catch(error => {
-								this.log.warn("Step 3 of 7: Unable to login:",error.response.status, error.response.statusText);
-								this.log.debug("Step 3 of 7: error:",error);
-								currentSessionState = sessionState.DISCONNECTED;
-								this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-							});
-					})
-					// Step 2 http errors
-					.catch(error => {
-						this.log.warn("Step 2 of 7: Unable to get authorizationUri:",error.response.status, error.response.statusText);
-						this.log.debug("Step 2 of 7: error:",error);
-						currentSessionState = sessionState.DISCONNECTED;
-						this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-					});
-			})
-			// Step 1 http errors
-			.catch(error => {
-				this.log('Failed to create GB session - check your internet connection');
-				this.log.warn("Step 1 of 7: Could not get apiAuthorizationUrl:",error.response.status, error.response.statusText);
-				this.log.debug("Step 1 of 7: error:",error);
-				currentSessionState = sessionState.DISCONNECTED;
-				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-			});
+											})
+											// Step 4 http errors
+											.catch(error => {
+												//this.log.warn("Step 4 of 7: Unable to oauth authorize:",error.response.status, error.response.statusText);
+												this.log.debug("Step 4 of 7: error:",error);
+												reject("Step 4 of 7: Unable to oauth authorize: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+												//currentSessionState = sessionState.DISCONNECTED;
+												//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+											});
+									};
+								})
+								// Step 3 http errors
+								.catch(error => {
+									//this.log.warn("Step 3 of 7: Unable to login:",error.response.status, error.response.statusText);
+									this.log.debug("Step 3 of 7: error:",error);
+									reject("Step 3 of 7: Unable to login: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+									//currentSessionState = sessionState.DISCONNECTED;
+									//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+								});
+						})
+						// Step 2 http errors
+						.catch(error => {
+							//this.log.warn("Step 2 of 7: Unable to get authorizationUri:",error.response.status, error.response.statusText);
+							this.log.debug("Step 2 of 7: error:",error);
+							reject("Step 2 of 7: Could not get authorizationUri: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+							//currentSessionState = sessionState.DISCONNECTED;
+							//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+						});
+				})
+				// Step 1 http errors
+				.catch(error => {
+					//this.log('Failed to create GB session - check your internet connection');
+					//this.log.warn("Step 1 of 7: Could not get apiAuthorizationUrl:",error.response.status, error.response.statusText);
+					this.log.debug("Step 1 of 7: error:",error);
+					reject("Step 1 of 7: Failed to create GB session - check your internet connection"); // reject the promise and return the error
+					//currentSessionState = sessionState.DISCONNECTED;
+					//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+				});
 
-		currentSessionState = sessionState.DISCONNECTED;
-		this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+			currentSessionState = sessionState.DISCONNECTED;
+			this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+		})
 	}
 
 
 	// load all available TV channels at regular intervals into an array
+	// new version using endpoints available from 13.10.2022
+	// the masterChannelList contains all possible channels, both subscribed and non-subscribed channels
 	async refreshMasterChannelList(callback) {
+		return new Promise((resolve, reject) => {
+			// called by refreshMasterChannelList (state handler), thus runs at polling interval
+
+			// exit immediately if the session does not exist
+			if (currentSessionState != sessionState.CONNECTED) { 
+				if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not exist, exiting'); }
+				return false;
+			}
+
+			// exit immediately if channel list has not expired
+			if (this.masterChannelListExpiryDate > Date.now()) {
+				if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString()); }
+				return false;
+			}
+
+			this.log('Refreshing master channel list');
+
+			
+			// channels can be retrieved for the country without having a mqtt session going  but then the list is not relevant for the user's locationId
+			// so you should add the user's locationId as a parameter, and this needs the accessToken
+			// syntax:
+			// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/channels?byLocationId=41043&includeInvisible=true&includeNotEntitled=true&personalised=true&sort=channelNumber
+			// https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH
+			/*
+			let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/channels';
+			url = url + '?byLocationId=' + this.session.locationId // locationId needed to get user-specific list
+			url = url + '&includeInvisible=true' // includeInvisible
+			url = url + '&includeNotEntitled=true' // includeNotEntitled
+			url = url + '&personalised=true' // personalised
+			url = url + '&sort=channelNumber' // sort
+			*/
+			//url = 'https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH'
+			let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v2/channels';
+			url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
+			url = url + '&language=en'; // language
+			url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
+			//url = url + '&includeNotEntitled=false' // includeNotEntitled testing to see if this parameter is accepted
+			if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: loading inputs from',url); }
+
+			// call the webservice to get all available channels
+			const axiosConfig = {
+				method: 'GET',
+				url: url
+			};
+			axiosWS(axiosConfig)
+				.then(response => {
+					//this.log(response.data);
+					if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.length); }
+
+					// set the masterChannelListExpiryDate to expire at now + MASTER_CHANNEL_LIST_VALID_FOR_S
+					this.masterChannelListExpiryDate =new Date(new Date().getTime() + (MASTER_CHANNEL_LIST_VALID_FOR_S * 1000));
+					//this.log('MasterChannelList valid until',this.masterChannelListExpiryDate.toLocaleString())
+				
+					// load the channel list with all channels found
+					this.masterChannelList = [];
+					const channels = response.data;
+					this.log.debug('Channels to process:',channels.length);
+					for(let i=0; i<channels.length; i++) {
+						const channel = channels[i];
+						if (this.config.debugLevel > 2) { this.log('Processing channel:',i,channel.logicalChannelNumber,channel.id, channel.name); } // for debug purposes
+						// log the detail of logicalChannelNumber 60 nicktoons, for which I have no subscription, as a test of entitlements
+						//if (this.config.debugLevel > 0) { if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); } }
+						this.masterChannelList.push({
+							id: channel.id, 
+							name: cleanNameForHomeKit(channel.name),
+							logicalChannelNumber: channel.logicalChannelNumber, 
+							linearProducts: channel.linearProducts				
+						});
+					}
+						
+					if (this.config.debugLevel > 0) {
+						this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', this.masterChannelList.length, this.masterChannelListExpiryDate.toLocaleString());
+					}
+					resolve( this.masterChannelList ); // resolve the promise with the masterChannelList object
+
+				})
+				.catch(error => {
+					let errReason;
+					errReason = 'Failed to refresh the master channel list - check your internet connection:'
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+						// if no connection then set session to disconnected to force a session reconnect
+						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+					}
+					//this.log('%s %s', errText, (errReason || ''));
+					this.log.warn(`refreshMasterChannelList error:`, error);
+					reject(errReason);
+				});
+		})
+	}
+
+	// load all available TV channels at regular intervals into an array
+	// new version using endpoints available from 13.10.2022
+	// the masterChannelList contains all possible channels, bith subscribed and non-subscribed channels
+	async refreshMasterChannelListPrev(callback) {
 		// called by refreshMasterChannelList (state handler), thus runs at polling interval
 
 		// exit immediately if the session does not exist
 		if (currentSessionState != sessionState.CONNECTED) { 
 			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not exist, exiting'); }
-			return;
-		 }
+			return false;
+		}
 
 		// exit immediately if channel list has not expired
 		if (this.masterChannelListExpiryDate > Date.now()) {
-			if (this.config.debugLevel > 1) {
-				this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString());
-			}
+			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString()); }
 			return false;
 		}
 
@@ -1256,50 +1442,60 @@ class stbPlatform {
 		//if (currentSessionState != sessionState.CONNECTED) { return; }
 		
 		// channels can be retrieved for the country without having a mqtt session going  but then the list is not relevant for the user's locationId
-		// so you should add the user's locationId as a parameter, and this needs the oespToken
+		// so you should add the user's locationId as a parameter, and this needs the accessToken
 		// syntax:
 		// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/channels?byLocationId=41043&includeInvisible=true&includeNotEntitled=true&personalised=true&sort=channelNumber
+		// https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH
+		/*
 		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/channels';
 		url = url + '?byLocationId=' + this.session.locationId // locationId needed to get user-specific list
 		url = url + '&includeInvisible=true' // includeInvisible
 		url = url + '&includeNotEntitled=true' // includeNotEntitled
 		url = url + '&personalised=true' // personalised
 		url = url + '&sort=channelNumber' // sort
-		if (this.config.debugLevel > 2) {
-			this.log.warn('refreshMasterChannelList: loading inputs from',url);
-		}
+		*/
+		//url = 'https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH'
+		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v2/channels';
+		url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
+		url = url + '&language=en'; // language
+		url = url + '&entitled=true'; // testing! 760 with all, 
+		url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
+		//url = url + '&includeNotEntitled=false' // includeNotEntitled testing to see if this parameter is accepted
+		if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: loading inputs from',url); }
 
 		// call the webservice to get all available channels
 		const axiosConfig = {
 			method: 'GET',
-			url: url,
-			headers: {
-				'X-OESP-Token': this.session.oespToken,		
-				'X-OESP-Username': this.session.username
-			}
+			url: url
 		};
 		axiosWS(axiosConfig)
 			.then(response => {
-				if (this.config.debugLevel > 2) {
-					this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.totalResults);
-				}
-				this.masterChannelListExpiryDate = new Date(response.data.expires);
+				//this.log(response.data);
+				if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.length); }
+
+				// set the masterChannelListExpiryDate to expire at now + MASTER_CHANNEL_LIST_VALID_FOR_S
+				this.masterChannelListExpiryDate =new Date(new Date().getTime() + (MASTER_CHANNEL_LIST_VALID_FOR_S * 1000));
+				//this.log('MasterChannelList valid until',this.masterChannelListExpiryDate.toLocaleString())
 			
 				// load the channel list with all channels found
 				this.masterChannelList = [];
-				const channels = response.data.channels;
+				const channels = response.data;
+				this.log.debug('Channels to process:',channels.length);
 				for(let i=0; i<channels.length; i++) {
 					const channel = channels[i];
+					// if (this.config.debugLevel > 0) { this.log('Loading channel:',i,channel.logicalChannelNumber,channel.id, channel.name); } // for debug purposes
+					// log the detail of logicalChannelNumber 60 nicktoons, for which I have no subscription, as a test of entitlements
+					//if (this.config.debugLevel > 0) { if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); } }
 					this.masterChannelList.push({
-						channelId: channel.stationSchedules[0].station.serviceId, 
-						channelNumber: channel.channelNumber, 
-						channelName: cleanNameForHomeKit(channel.title)
-						//channelListIndex: i
+						id: channel.id, 
+						name: cleanNameForHomeKit(channel.name),
+						logicalChannelNumber: channel.logicalChannelNumber, 
+						linearProducts: channel.linearProducts				
 					});
 				}
 					
 				if (this.config.debugLevel > 0) {
-					this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', response.data.totalResults, this.masterChannelListExpiryDate.toLocaleString());
+					this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', this.masterChannelList.length, this.masterChannelListExpiryDate.toLocaleString());
 				}
 				return true;
 
@@ -1313,9 +1509,223 @@ class stbPlatform {
 					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
 				}
 				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug(`refreshMasterChannelList error:`, error);
+				this.log.warn(`refreshMasterChannelList error:`, error);
 				return error;
 			});
+	}
+
+
+	// get Personalization Data via web request GET
+	// this is for the web session type as of 13.10.2022
+	// may not have the full data from GB...
+	async getPersonalizationData(householdId, callback) {
+		return new Promise((resolve, reject) => {
+			this.log("Refreshing personalization data for householdId %s", householdId);
+			
+			//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
+			//const url='https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
+			const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
+			// headers are in the web client
+			let config={}
+			if (householdId.endsWith('gb')){
+				// gb needs x-cus, x-oesp-token and x-oesp-username
+				config = {headers: {
+					"x-cus": this.session.householdId,
+					"x-oesp-token": this.session.accessToken,
+					"x-oesp-username": this.session.username
+				}}
+			} else {
+				// other countries on new backend from Oct 2022 need just x-oesp-username
+				config = {headers: {
+					"x-oesp-username": this.session.username
+				}}
+			};
+			if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: GET %s', url); }
+			// this.log('getPersonalizationData: GET %s', url);
+			axiosWS.get(url, config)
+				.then(response => {	
+					if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: response: %s %s', response.status, response.statusText); }
+					if (this.config.debugLevel > 2) { // DEBUG
+						this.log.warn('getPersonalizationData: %s: response data:', householdId);
+						this.log.warn(response.data);
+					}
+
+					// devices are an array named assignedDevices
+					this.customer = response.data; // store the entire personalization data for future use in this.customer
+					this.devices = response.data.assignedDevices; // store the entire device array at platform level
+				
+					// update all the devices in the array. Don't trust the index order in the Personalization Data message
+					//this.log('getPersonalizationData: this.stbDevices.length:', this.stbDevices.length)
+					this.devices.forEach((device) => {
+						const deviceId = device.deviceId;
+						const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
+						if (deviceIndex > -1 && this.stbDevices[deviceIndex]) { 
+							this.stbDevices[deviceIndex].device = device;
+							this.stbDevices[deviceIndex].customer = this.customer; // store entire customer object
+
+							// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault) {
+							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT ); // update this device
+						}
+					});
+					
+
+					// profiles are an array named profiles, store entire array in this.profiles
+					//this.profiles = response.data.profiles; // set this.profiles to the profile data we just received
+					//this.log('getPersonalizationData: this.profiles:')
+					//this.log(this.profiles)
+					///let testProfile1 = this.profiles.find(profile => profile.name === 'Test');
+					//this.log("getPersonalizationData: freshly stored profile data: Profile '%s' last modified at %s", testProfile1.name, testProfile1.lastModified); 
+					//this.log(testProfile1)
+					/*
+					// for every personalization data update, update all devices device.customer per device with the new this.customer data
+					// but only if stbDevices has been created...
+					this.log('getPersonalizationData: this.stbDevices.length:', this.stbDevices.length)
+					if (this.stbDevices.length > 0) {
+						this.devices.forEach((device) => {
+							device.customer = this.customer; // update the device with the refreshed customer data, including the profiles array
+							this.log('getPersonalizationData: new customer data stored in device.customer:')
+							//this.log(device.profiles)
+							let testProfile = device.customer.profiles.find(profile => profile.name === 'Test');
+							this.log("getPersonalizationData: Profile '%s' last modified at %s", testProfile.name, testProfile.lastModified); 
+							this.log(testProfile)
+
+
+							// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault) {
+							this.log('about to call mqttDeviceStateHandler')
+							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT );
+						});
+					}
+					*/
+					// now we have the cityId data, load the MasterChannelList
+					//this.refreshMasterChannelList(); // async function, processing continues, must load after customer data is loaded
+
+					//this.log.warn('getPersonalizationData: all done, returnng customerStatus: %s', this.customer.customerStatus);
+					resolve( this.customer ); // resolve the promise with the customer object
+				})
+				.catch(error => {
+					let errReason;
+					errReason = 'Could not refresh personalization data for ' + householdId + ' - check your internet connection'
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+						// if no connection then set session to disconnected to force a session reconnect
+						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+					}
+					//this.log('%s %s', errText, (errReason || ''));
+					this.log.debug(`getPersonalizationData error:`, error);
+					reject(error);
+				});
+		})
+	}
+
+
+	// set the Personalization Data for the current device via web request PUT
+	async setPersonalizationDataForDevice(deviceId, deviceSettings, callback) {
+		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: deviceSettings:', deviceSettings); }
+		// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/1012345_ch/devices/3C36E4-EOSSTB-003656123456
+		const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
+		const data = {"settings": deviceSettings};
+		const config = {headers: {"x-cus": accessToken, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
+		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: PUT %s', url); }
+		axiosWS.put(url, data, config)
+			.then(response => {	
+				// returns 204 No Content when succesfull
+				if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: response: %s %s', response.status, response.statusText); }
+				return false;
+			})
+			.catch(error => {
+				this.log.warn('setPersonalizationDataForDevice failed: %s %s', error.response.status, error.response.statusText);
+				this.log.debug('setPersonalizationDataForDevice: error:', error);
+				return true, error;
+			});		
+		return false;
+	}
+
+
+	// get the entitlements for the householdId
+	// this is for the web session type as of 13.10.2022
+	async getEntitlements(householdId, callback) {
+		return new Promise((resolve, reject) => {
+			this.log("Refreshing entitlements for householdId %s", householdId);
+
+			//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
+			//const url='https://prod.spark.sunrisetv.ch/eng/web/purchase-service/v2/customers/107xxxx_ch/entitlements?enableDaypass=true'
+			const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
+			//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
+			const config = {headers: {
+				"x-cus": householdId,
+				"x-oesp-token": this.session.accessToken,
+				"x-oesp-username": this.session.username
+			}};
+			if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: GET %s', url); }
+			// this.log('getEntitlements: GET %s', url);
+			axiosWS.get(url, config)
+				.then(response => {	
+					if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: response: %s %s', response.status, response.statusText); }
+					if (this.config.debugLevel > 2) { 
+						this.log.warn('getEntitlements: %s: response data:', householdId);
+						this.log.warn(response.data);
+					}
+					this.entitlements = response.data; // store the entire entitlements data for future use in this.customer.entitlements
+					if (this.config.debugLevel > 0) { 
+						this.log.warn('getEntitlements: entitlements found:', this.entitlements.entitlements.length);
+					}
+					//his.log('getEntitlements: returning entitlements object');
+					resolve( this.entitlements ); // resolve the promise with the customer object
+				})
+				.catch(error => {
+					let errReason;
+					errReason = 'Could not refresh entitlements data for ' + householdId + ' - check your internet connection'
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+						// if no connection then set session to disconnected to force a session reconnect
+						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+					}
+					this.log.debug(`getEntitlements error:`, error);
+					reject(errReason);
+				});		
+		})
+	}
+
+
+	// get getExperimentalEndpoint for the householdId
+	async getExperimentalEndpoint(householdId, callback) {
+		//return new Promise((resolve, reject) => {
+			this.log("getExperimentalEndpoint: householdId %s", householdId);
+
+			//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
+			//const url='https://prod.spark.sunrisetv.ch/eng/web/purchase-service/v2/customers/107xxxx_ch/entitlements?enableDaypass=true'
+			// 'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web'
+			let url
+			//url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
+			//url='https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web/eng/session'
+			url='https://prod.spark.upctv.ch/ch/en/session-service'
+			const config = {headers: {
+				"x-cus": householdId,
+				"x-oesp-token": this.session.accessToken,
+				"x-oesp-username": this.session.username
+			}};
+			this.log.warn('getExperimentalEndpoint: GET %s', url);
+			// this.log('getEntitlements: GET %s', url);
+			axiosWS.get(url, config)
+				.then(response => {	
+					this.log.warn('getExperimentalEndpoint: response: %s %s', response.status, response.statusText);
+					this.log.warn(response.data);
+					return true
+					//resolve( true ); // resolve the promise with the customer object
+				})
+				.catch(error => {
+					let errReason;
+					errReason = 'Could not get experimental data for ' + householdId + ' - check your internet connection'
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+						// if no connection then set session to disconnected to force a session reconnect
+						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+					}
+					this.log.warn(`getExperimentalEndpoint error:`, error);
+					//reject(errReason);
+					return false;
+				});		
+		//})
 	}
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1333,479 +1743,552 @@ class stbPlatform {
 	// START session handler mqtt
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-	// get a Java Web Token
-	getJwtToken(oespUsername, oespToken, householdId){
-		// get a JSON web token from the supplied oespToken and householdId
-		if (this.config.debugLevel > 1) { this.log.warn('getJwtToken'); }
-		// robustness checks
-		if (currentSessionState !== sessionState.CONNECTED) {
-			this.log.warn('Cannot get JWT token: currentSessionState incorrect:', currentSessionState);
-			return false;
-		}
-		if (!oespToken) {
-			this.log.warn('Cannot get JWT token: oespToken not set');
-			return false;
-		}
-
-		const jwtAxiosConfig = {
-			method: 'GET',
-			url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/tokens/jwt',
-			headers: {
-				'X-OESP-Token': oespToken,
-				'X-OESP-Username': oespUsername, 
-			}
-		};
-		this.log.debug("getJwtToken: jwtAxiosConfig:", jwtAxiosConfig)
-		axiosWS(jwtAxiosConfig)
-			.then(response => {	
-				this.log.debug("getJwtToken: response.data:", response.data)
-				mqttUsername = householdId;
-				//mqttPassword = response.data.token;
-				if (this.config.debugLevel > 1) { this.log.warn('getJwtToken: calling startMqttClient'); }
-				this.startMqttClient(this, householdId, response.data.token);  // this starts the mqtt session
-				
-			})
-			.catch(error => {
-				this.log('Failed to get jwtToken: ', error.code + ' ' + (error.hostname || '') );
-				this.log.debug('getJwtToken error details:', error);
-				// set session flag to disconnected to force a session reconnect
-				currentSessionState = sessionState.DISCONNECTED;
+	// get a Json Web Token
+	async getJwtToken(oespUsername, accessToken, householdId){
+		return new Promise((resolve, reject) => {
+			this.log.debug("Getting jwt token for householdId %s", householdId);
+			// get a JSON web token from the supplied accessToken and householdId
+			if (this.config.debugLevel > 1) { this.log.warn('getJwtToken'); }
+			// robustness checks
+			if (currentSessionState !== sessionState.CONNECTED) {
+				this.log.warn('Cannot get JWT token: currentSessionState incorrect:', currentSessionState);
 				return false;
-			});			
+			}
+			if (!accessToken) {
+				this.log.warn('Cannot get JWT token: accessToken not set');
+				return false;
+			}
+
+			//this.log.warn('getJwtToken disabled while I build channel list');
+			//return false;
+
+			const jwtAxiosConfig = {
+				method: 'GET',
+				url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/tokens/jwt',
+				// examples of auth-service/v1/mqtt/token urls:
+				// https://prod.spark.ziggogo.tv/auth-service/v1/mqtt/token
+				// https://prod.spark.sunrisetv.ch/auth-service/v1/mqtt/token
+				url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/mqtt/token', // new from October 2022
+				headers: {
+					'X-OESP-Token': accessToken,
+					'X-OESP-Username': oespUsername, 
+				}
+			};
+			this.log.debug("getJwtToken: jwtAxiosConfig:", jwtAxiosConfig)
+			axiosWS(jwtAxiosConfig)
+				.then(response => {	
+					if (this.config.debugLevel > 0) { 
+						this.log.warn("getJwtToken: response.data:", response.data)
+					}
+					//this.jwtToken = response.data.token; // store the token
+					mqttUsername = householdId; // used in sendKey to ensure that mqtt is connected
+					resolve( response.data.token ); // resolve with the tokwn
+					//this.startMqttClient(this, householdId, response.data.token);  // this starts the mqtt session
+					
+				})
+				.catch(error => {
+					this.log.debug('getJwtToken error details:', error);
+					// set session flag to disconnected to force a session reconnect
+					currentSessionState = sessionState.DISCONNECTED;
+					reject('Failed to get jwtToken: ', error.code + ' ' + (error.hostname || ''));
+				});			
+		})
 	}
 
 
 	// start the mqtt client and handle mqtt messages
+	// a sync procedure, no promise returned
+	// https://github.com/mqttjs/MQTT.js#readme
+	// http://www.steves-internet-guide.com/mqtt-publish-subscribe/
 	startMqttClient(parent, mqttUsername, mqttPassword) {
-		if (this.config.debugLevel > 0) { 
-			this.log('Starting mqttClient...'); 
-		}
-		if (currentSessionState !== sessionState.CONNECTED) {
-			this.log.warn('Cannot start mqttClient: currentSessionState incorrect:', currentSessionState);
-			return false;
-		}
-
-
-		// create mqtt client instance and connect to the mqttUrl
-		const mqttUrl = mqttUrlArray[this.config.country.toLowerCase()];
-		if (this.config.debugLevel > 2) { 
-			this.log.warn('startMqttClient: mqttUrl:', mqttUrl ); 
-		}
-		if (this.config.debugLevel > 2) { 
-			this.log.warn('startMqttClient: Creating mqttClient object with username %s, password %s', mqttUsername ,mqttPassword ); 
-		}
-
-		// make a new mqttClientId on every session start, much robuster, then connect
-		mqttClientId = makeId(30).toLowerCase();
-		mqttClient = mqtt.connect(mqttUrl, {
-			connectTimeout: 10*1000, //10 seconds
-			clientId: mqttClientId,
-			username: mqttUsername,
-			password: mqttPassword
-		});
-		if (this.config.debugLevel > 2) { 
-			this.log.warn('startMqttClient: mqttUrl connect request sent' ); 
-		}
-
-		//mqttClient.setMaxListeners(20); // default is 10 sometimes causes issues when the listeners reach 11
-
-		//parent.log(mqttClient); //for debug
-
-		
-		// mqtt client event: connect
-		mqttClient.on('connect', function () {
+		return new Promise((resolve, reject) => {
 			try {
-				parent.currentMqttState = mqttState.connected;
-				parent.log("mqttClient: Connected: %s", mqttClient.connected);
-				parent.mqttClientConnecting = false;
+				if (this.config.debugLevel > 0) { 
+					this.log('Starting mqttClient...'); 
+				}
+				if (currentSessionState !== sessionState.CONNECTED) {
+					this.log.warn('Cannot start mqttClient: currentSessionState incorrect:', currentSessionState);
+					return false;
+				}
 
-				// https://prod.spark.upctv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
-				parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
 
-				// experimental support
-				parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus'); // not needed
-				parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction'); // not needed
-				/*
-				// the next 2 are not needed
-				parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService'); // not needed
-				parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService'); // not needed
-				*/
+				// create mqtt client instance and connect to the mqttUrl
+				const mqttUrl = mqttUrlArray[this.config.country.toLowerCase()];
+				if (this.config.debugLevel > 0) { 
+					this.log.warn('startMqttClient: mqttUrl:', mqttUrl ); 
+				}
+				if (this.config.debugLevel > 0) { 
+					this.log.warn('startMqttClient: Creating mqttClient object with username %s, password %s', mqttUsername ,mqttPassword ); 
+				}
 
-				// initiate the EOS session by turning on the HGO platform
-				parent.mqttSetHgoOnlineRunning(mqttUsername, mqttClientId);
+				// make a new mqttClientId on every session start, much robuster, then connect
+				//mqttClientId = makeId(32);
+				mqttClientId = makeFormattedId(32);
+				//mqttClientId = makeId(32);
+
+				// https://github.com/mqttjs/MQTT.js#connect
+				mqttClient = mqtt.connect(mqttUrl, {
+					connectTimeout: 10 * 1000, // 10s
+					clientId: mqttClientId,
+					username: mqttUsername,
+					password: mqttPassword
+				});
+				if (this.config.debugLevel > 0) { 
+					this.log.warn('startMqttClient: mqttUrl connect request sent using mqttClientId %s',mqttClientId ); 
+				}
+
+				//mqttClient.setMaxListeners(20); // default is 10 sometimes causes issues when the listeners reach 11
+				//parent.log(mqttClient); //for debug
 
 				
-				parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
-				parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status
-
-				// experimental support
-				parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings'); // not needed
-				parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings/capacity'); // not needed
-
-				// subscribe to all devices after the mqttSetHgoOnlineRunning is sent
-				parent.devices.forEach((device) => {
-					// subscribe to our own generated unique householdId/mqttClientId and everything for our box
-					parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId);
-					// subscribe to our householdId/deviceId
-					parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId);
-					// subscribe to our householdId/deviceId/status
-					parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/status');
-				});
-
-				// and request the UI status for each device
-				parent.devices.forEach((device) => {
-					// send a getuiStatus request
-					parent.getUiStatus(device.deviceId, mqttClientId);
-				});
-
-				// and request current recordingState
-				parent.getRecordingState();  // async function
-
-				// ++++++++++++++++++++ mqttConnected +++++++++++++++++++++
-			
-		  
-				// mqtt client event: message received
-				mqttClient.on('message', function (topic, payload) {
+				// mqtt client event: connect
+				// https://github.com/mqttjs/MQTT.js#event-connect
+				mqttClient.on('connect', function () {
 					try {
+						parent.log("mqttClient: Connected: %s", mqttClient.connected);
+						parent.currentMqttState = mqttState.connected;
+						parent.mqttClientConnecting = false;
 
-						// store some mqtt diagnostic data
-						parent.currentMqttState = mqttState.connected; // set to connected on every message received event
-						parent.lastMqttMessageReceived = Date.now();
+						// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
+						parent.mqttSubscribeToTopic(mqttUsername + '/personalizationService');
 
-						let mqttMessage = JSON.parse(payload);
-						if (parent.config.debugLevel > 0) {
-							parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: \r\n%s', topic, mqttMessage);
-						}
+						// subscribe to recording status, used to update the accessory charateristics
+						parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus');
+						parent.mqttSubscribeToTopic(mqttUsername + '/recordingStatus/lastUserAction');
+						
+						// purchaseService and watchlistService are not needed, but add if desired if we want to monitor these services
+						parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService');
+						parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService');
+						//parent.mqttSubscribeToTopic(mqttUsername + '/radioStatus'); // a guess
+						//parent.mqttSubscribeToTopic(mqttUsername + '/audioStatus'); // a guess
 
-						// variables for just in this function
-						var deviceId, stbState, currPowerState, currMediaState, currChannelId, currSourceType, currRecordingState, currStatusActive, currInputDeviceType, currInputSourceType;
+						// initiate the EOS session by turning on the HGO platform
+						// this is needed to trigger the backend to send us channel change messages when the channel is changed on the box
+						parent.setHgoOnlineRunning(mqttUsername, mqttClientId);
+						parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId); // subscribe to mqttClientId to get channel data
 
-						// and request the UI status for each device
-						// 14.03.2021 does not respond, disabling for now...
-						/*
+						// subscribe to all householdId messages
+						parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
+						parent.mqttSubscribeToTopic(mqttUsername + '/status'); // experiment, may not be needed
+						//parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status // dont subscribe to this, its all clientIds, floods with messages
+
+						// experimental support of recording status
+						parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings');
+						parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings/capacity');
+
+						// subscribe to all devices after the setHgoOnlineRunning is sent
+						parent.devices.forEach((device) => {
+							// subscribe to our householdId/deviceId
+							parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId);
+							// subscribe to our householdId/deviceId/status
+							parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/status');
+							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/audioStatus'); // a guess
+							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/radioStatus'); // a guess
+							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/source'); // a guess
+							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/radio'); // a guess
+							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/audio'); // a guess
+						});
+
+						// and request the initial UI status for each device
+						// hmm do we really need this now that HGO has been deprecated as web client?
 						parent.devices.forEach((device) => {
 							// send a getuiStatus request
 							parent.getUiStatus(device.deviceId, mqttClientId);
 						});
-						*/
 
-						// handle personalizationService messages
-						// Topic: Topic: 107xxxx_ch/personalizationService
-						// Message: { action: 'OPS.getProfilesUpdate', source: '3C36E4-EOSSTB-00365657xxxx', ... }
-						// Message: { action: 'OPS.getDeviceUpdate', source: '3C36E4-EOSSTB-00365657xxxx', deviceId: '3C36E4-EOSSTB-00365657xxxx' }
-						if (topic.includes(mqttUsername + '/personalizationService')) {
-							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s: action', mqttMessage.action); }
-							if (mqttMessage.action == 'OPS.getProfilesUpdate') {
-								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData for profiles', mqttMessage.action); }
-								parent.getPersonalizationData('profiles'); // async function
+						// and request current recording state and bookings
+						parent.getRecordingState();  // async function
+						parent.getRecordingBookings();  // async function
 
-							} else if (mqttMessage.action == 'OPS.getDeviceUpdate') {
-								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData for devices', mqttMessage.action); }
-								deviceId = mqttMessage.deviceId;
-								parent.getPersonalizationData('devices/' + deviceId); // async function
-							}
-						}
+						// ++++++++++++++++++++ mqttConnected +++++++++++++++++++++
+					
+				
+						// mqtt client event: message received
+						// https://github.com/mqttjs/MQTT.js#event-message
+						mqttClient.on('message', function (topic, message) {
+							try {
 
-						// handle recordingState messages
-						// Topic: Topic: 107xxxx_ch/recordingStatus
-						// Message: {"id":"crid:~~2F~~2Fgn.tv~~2F2004781~~2FEP019440730003,imi:2d369682b865679f2e5182ea52a93410171cfdc8","event":"scheduleEvent","transactionId":"/CH/eng/web/networkdvrrecordings - 013f12fc-23ef-4b77-a244-eeeea0c6901c"}
-						if (topic.includes(mqttUsername + '/recordingStatus')) {
-							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: event: %s', mqttMessage.event); }
-							parent.getRecordingState(); // async function
-						}
+								// store some mqtt diagnostic data
+								parent.currentMqttState = mqttState.connected; // set to connected on every message received event
+								parent.lastMqttMessageReceived = Date.now();
 
-						// handle status messages for the STB
-						// Topic: 107xxxx_ch/3C36E4-EOSSTB-00365657xxxx/status
-						// Message: {"deviceType":"STB","source":"3C36E4-EOSSTB-00365657xxxx","state":"ONLINE_RUNNING","mac":"F8:F5:32:45:DE:52","ipAddress":"192.168.0.33/255.255.255.0"}
-						if (topic.includes('/status')) {
-							if (mqttMessage.deviceType == 'STB') {
-								if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: STB status: Detecting Power State: Received Message of deviceType %s for %s', mqttMessage.deviceType, mqttMessage.source); }
-								// sometimes a rogue empty message appears without a mac or ipAddress, so ensure a mac is always present
-								// mac.length = 0 when the box is physically offline
-								if (mqttMessage.mac.length > 0) {
-									deviceId = mqttMessage.source;
-									stbState = mqttMessage.state;
-								} else {
-									deviceId = mqttMessage.source;
-									stbState = mqttMessage.state;
-								}
-								// Box setting: StandbyPowerConsumption = FastStart / ActiveStart / EcoSlowstart
-								// In FastStart the box goes to ONLINE_STANDBY when turned off, and can be turned on again over mqtt
-								// In ActiveStart the box goes to ONLINE_STANDBY when turned off, and maybe changes after time? test this. 
-								switch (stbState) {
-									case 'ONLINE_RUNNING':	// ONLINE_RUNNING: power is on
-										currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
-										currPowerState = Characteristic.Active.ACTIVE; 
-										break;
-									case 'ONLINE_STANDBY': // ONLINE_STANDBY: power is off, device is on standby, still reachable over the network, can be turned on via mqtt. 
-										currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
-										currPowerState = Characteristic.Active.INACTIVE;
-										currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
-										break;
-									case 'OFFLINE_NETWORK_STANDBY': // OFFLINE_NETWORK_STANDBY: power is off, device is still reachable on the network
-										currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
-										currPowerState = Characteristic.Active.INACTIVE;
-										currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
-										break;
-									case 'OFFLINE':			// OFFLINE: power is off, device is not reachable over the network
-										currStatusActive = Characteristic.Active.INACTIVE; // bool, 0 = not active, 1 = active
-										currPowerState = Characteristic.Active.INACTIVE;
-										currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
-										break;
-								}
-								if (parent.config.debugLevel > 0) { 
-									parent.log.warn('mqttClient: %s %s ', deviceId, stbState);
+								let mqttMessage = JSON.parse(message);
+								if (parent.config.debugLevel > 0) {
+									parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: \r\n%s', topic, mqttMessage);
+									parent.log.warn(mqttMessage);
 								}
 
-							}
-						}
+								// variables for just in this function
+								var deviceId, stbState, currPowerState, currMediaState, currChannelId, currSourceType, profileDataChanged, currRecordingState, currStatusActive, currInputDeviceType, currInputSourceType;
 
-						//parent.log.warn('mqttClient: CPE.uiStatus: stbState %s, currStatusActive %s, currPowerState %s, currMediaState %s', stbState, currStatusActive, currPowerState, currMediaState); 
-						
-						// handle CPE UI status messages for the STB
-						// topic can be many, so look for mqttMessage.type
-						// Topic: 107xxxx_ch/vy9hvvxo8n6r1t3f4e05tgg590p8s0
-						// Message: {"version":"1.3.10","type":"CPE.uiStatus","source":"3C36E4-EOSSTB-00365657xxxx","messageTimeStamp":1607205483257,"status":{"uiStatus":"mainUI","playerState":{"sourceType":"linear","speed":1,"lastSpeedChangeTime":1607203130936,"source":{"channelId":"SV09259","eventId":"crid:~~2F~~2Fbds.tv~~2F394850976,imi:3ef107f9a95f37e5fde84ee780c834b502be1226"}},"uiState":{}},"id":"fms4mjb9uf"}
-						if (mqttMessage.type == 'CPE.uiStatus') {
-							if (parent.config.debugLevel > 0) { 
-								parent.log.warn('mqttClient: CPE.uiStatus: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
-							}
-							if (parent.config.debugLevel > 0) {
-								parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
-								parent.log.warn('mqttClient: mqttMessage.status.uiStatus:', mqttMessage.status.uiStatus);
-							}
-							// if we have this message, then the power is on. Sometimes the message arrives before the status topic with the power state
-							currStatusActive = Characteristic.Active.ACTIVE; // ensure statusActive is set to Active
-							currPowerState = Characteristic.Active.ACTIVE;  // ensure power is set to ON
+								// and request the UI status for each device
+								// 14.03.2021 does not respond, disabling for now...
+								// need to poll at regular intervals maybe?
+								//parent.devices.forEach((device) => {
+									// send a getuiStatus request
+									//parent.getUiStatus(device.deviceId, mqttClientId);
+								//});
 
-							parent.lastMqttUiStatusMessageReceived = Date.now();
-							deviceId = mqttMessage.source;
-							const cpeUiStatus = mqttMessage.status;
-							// normal TV: 	cpeUiStatus = mainUI
-							// app: 		cpeUiStatus = apps (YouTube, Netflix, etc)
-							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus:', cpeUiStatus); }
-							if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus.uiStatus:', cpeUiStatus.uiStatus); }
-							switch (cpeUiStatus.uiStatus) {
-								case 'mainUI':
-									// grab the status part of the mqttMessage object as we cannot go any deeper with json
-									const playerState = cpeUiStatus.playerState;
-									currSourceType = playerState.sourceType;
-									if (parent.config.debugLevel > 1) { parent.log.warn('mqttClient: mainUI: Detected mqtt playerState.speed:', playerState.speed); }
-
-									// get playerState.speed (shows if playing or paused)
-									// speed can be one of: -64 -30 -6 -2 0 2 6 30 64. 0=Paused, 1=Play, >1=FastForward, <0=Rewind
-									if (playerState.speed == 0) { 			// speed 0 is PAUSE
-										currMediaState = Characteristic.CurrentMediaState.PAUSE;
-									} else if (playerState.speed == 1) { 	// speed 1 is PLAY
-										currMediaState = Characteristic.CurrentMediaState.PLAY;
-									} else {								// default for all speeds (-64 -30 -6 2 6 30 64) is LOADING
-										currMediaState = Characteristic.CurrentMediaState.LOADING;
+								// handle personalizationService messages
+								// Topic: Topic: 107xxxx_ch/personalizationService
+								// Message: { action: 'OPS.getProfilesUpdate', source: '3C36E4-EOSSTB-00365657xxxx', ... }
+								// Message: { action: 'OPS.getDeviceUpdate', source: '3C36E4-EOSSTB-00365657xxxx', deviceId: '3C36E4-EOSSTB-00365657xxxx' }
+								if (topic.includes(mqttUsername + '/personalizationService')) {
+									if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s: action', mqttMessage.action); }
+									if (mqttMessage.action == 'OPS.getProfilesUpdate' || mqttMessage.action == 'OPS.getDeviceUpdate') {
+										if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData', mqttMessage.action); }
+										deviceId = mqttMessage.source;
+										profileDataChanged = true;
+										parent.getPersonalizationData(parent.session.householdId); // async function
 									}
+								}
 
-									// get sourceType to set the currInputSourceType and currInputDeviceType
-									// playerState.sourceType
-									// linear = normal TV
-									// reviewbuffer = delayed buffered TV playback
-									// replay = replay TV
-									// nDVR = playback from saved program (Digital Video Recorder)
-									switch (playerState.sourceType) {
-										case 'linear':	// ONLINE_RUNNING: power is on
-										case 'reviewbuffer': 
-											currInputSourceType = Characteristic.InputSourceType.TUNER;
-											currInputDeviceType = Characteristic.InputDeviceType.TV; // linear TV
-											break;
-										case 'replay': // replay TV
-										case 'nDVR':
-											currInputSourceType = Characteristic.InputSourceType.OTHER;
-											currInputDeviceType = Characteristic.InputDeviceType.PLAYBACK; // replay TV
-											break;
-									}
-	
+								// handle recordingState messages
+								// Topic: Topic: 107xxxx_ch/recordingStatus
+								// Message: {"id":"crid:~~2F~~2Fgn.tv~~2F2004781~~2FEP019440730003,imi:2d369682b865679f2e5182ea52a93410171cfdc8","event":"scheduleEvent","transactionId":"/CH/eng/web/networkdvrrecordings - 013f12fc-23ef-4b77-a244-eeeea0c6901c"}
+								if (topic.includes(mqttUsername + '/recordingStatus')) {
+									if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: event: %s', mqttMessage.event); }
+									parent.getRecordingState(); // async function
+									parent.getRecordingBookings(); // async function
+								}
 
-									// get channelId (current playing channel) from linear TV
-									// Careful: source is not always present in the data
-									if (playerState.source) {
-										currChannelId = playerState.source.channelId || NO_CHANNEL_ID; // must be a string
-										if (parent.config.debugLevel > 0) {
-											let currentChannelName; // let is scoped to the current {} block
-											let curChannel = parent.masterChannelList.find(channel => channel.channelId === currChannelId); 
-											if (curChannel) { currentChannelName = curChannel.channelName; }
-											parent.log.warn('mqttClient: Detected mqtt channelId: %s [%s]', currChannelId, currentChannelName);
+								// handle status messages for the STB
+								// Topic: 107xxxx_ch/3C36E4-EOSSTB-00365657xxxx/status
+								// Message: {"deviceType":"STB","source":"3C36E4-EOSSTB-00365657xxxx","state":"ONLINE_RUNNING","mac":"F8:F5:32:45:DE:52","ipAddress":"192.168.0.33/255.255.255.0"}
+								if (topic.includes('/status')) {
+									if (mqttMessage.deviceType == 'STB') {
+										if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: STB status: Detecting Power State: Received Message of deviceType %s for %s', mqttMessage.deviceType, mqttMessage.source); }
+										// sometimes a rogue empty message appears without a mac or ipAddress, so ensure a mac is always present
+										// mac.length = 0 when the box is physically offline
+										if (mqttMessage.mac.length > 0) {
+											deviceId = mqttMessage.source;
+											stbState = mqttMessage.state;
+										} else {
+											deviceId = mqttMessage.source;
+											stbState = mqttMessage.state;
 										}
-									} else {
-										// if playerState.source is null, then the settop box could be playing a radio station
-										// the code will pass a null through the code but no change will occur, so deliberately set a NO_CHANNEL_ID
-										currChannelId = NO_CHANNEL_ID;
+										// Box setting: StandbyPowerConsumption = FastStart / ActiveStart / EcoSlowstart
+										// In FastStart the box goes to ONLINE_STANDBY when turned off, and can be turned on again over mqtt
+										// In ActiveStart the box goes to ONLINE_STANDBY when turned off, and maybe changes after time? test this. 
+										switch (stbState) {
+											case 'ONLINE_RUNNING':	// ONLINE_RUNNING: power is on
+												currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
+												currPowerState = Characteristic.Active.ACTIVE; 
+												break;
+											case 'ONLINE_STANDBY': // ONLINE_STANDBY: power is off, device is on standby, still reachable over the network, can be turned on via mqtt. 
+												currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
+												currPowerState = Characteristic.Active.INACTIVE;
+												currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
+												break;
+											case 'OFFLINE_NETWORK_STANDBY': // OFFLINE_NETWORK_STANDBY: power is off, device is still reachable on the network
+												currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
+												currPowerState = Characteristic.Active.INACTIVE;
+												currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
+												break;
+											case 'OFFLINE':			// OFFLINE: power is off, device is not reachable over the network
+												currStatusActive = Characteristic.Active.INACTIVE; // bool, 0 = not active, 1 = active
+												currPowerState = Characteristic.Active.INACTIVE;
+												currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
+												break;
+										}
+										if (parent.config.debugLevel > 0) { 
+											parent.log.warn('mqttClient: %s %s ', deviceId, stbState);
+										}
+
 									}
+								}
 
-									break;
+								//parent.log.warn('mqttClient: CPE.uiStatus: stbState %s, currStatusActive %s, currPowerState %s, currMediaState %s', stbState, currStatusActive, currPowerState, currMediaState); 
+								
+								// handle CPE UI status messages for the STB
+								// topic can be many, so look for mqttMessage.type
+								// Topic: 107xxxx_ch/vy9hvvxo8n6r1t3f4e05tgg590p8s0
+								// Message: {"version":"1.3.10","type":"CPE.uiStatus","source":"3C36E4-EOSSTB-00365657xxxx","messageTimeStamp":1607205483257,"status":{"uiStatus":"mainUI","playerState":{"sourceType":"linear","speed":1,"lastSpeedChangeTime":1607203130936,"source":{"channelId":"SV09259","eventId":"crid:~~2F~~2Fbds.tv~~2F394850976,imi:3ef107f9a95f37e5fde84ee780c834b502be1226"}},"uiState":{}},"id":"fms4mjb9uf"}
+								if (mqttMessage.type == 'CPE.uiStatus') {
+									if (parent.config.debugLevel > 0) { 
+										parent.log.warn('mqttClient: CPE.uiStatus: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
+									}
+									if (parent.config.debugLevel > 0) {
+										parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
+										parent.log.warn('mqttClient: mqttMessage.status.uiStatus:', mqttMessage.status.uiStatus);
+									}
+									// if we have this message, then the power is on. Sometimes the message arrives before the status topic with the power state
+									currStatusActive = Characteristic.Active.ACTIVE; // ensure statusActive is set to Active
+									currPowerState = Characteristic.Active.ACTIVE;  // ensure power is set to ON
 
-								case 'apps':
-									//parent.log('mqttClient: apps: Detected mqtt app channelId: %s', cpeUiStatus.appsState.id);
-									//parent.log("mqttClient: apps: Detected mqtt app appName %s", cpeUiStatus.appsState.appName);
-									// we get id and appName here, load to the channel list...
-									// useful for YouTube and Netflix
-									currInputSourceType = Characteristic.InputSourceType.APPLICATION;
-									currInputDeviceType = Characteristic.InputDeviceType.OTHER; // apps
-									switch (cpeUiStatus.appsState.id) {
-				
-										case 'com.bbc.app.launcher': case 'com.bbc.app.crb':
-											// ignore the following apps to ensure shannel name is not overridden:
-											// com.bbc.app.launcher 	button launcher app??
-											// com.bbc.app.crb 			Connected Red Button app, this is the Red Button special control on the remote
-											currChannelId = null; 
-											parent.log("App %s [%s] detected. Ignoring", cpeUiStatus.appsState.id, cpeUiStatus.appsState.appName);
-											break;
-	
-										default:
-											// check if the app channel exists in the master channel list, if not, push it, using the user-defined name if one exists
-											currChannelId = cpeUiStatus.appsState.id;
-											var foundIndex = parent.masterChannelList.findIndex(channel => channel.channelId === currChannelId); 
-											if (foundIndex == -1 ) {
-												parent.log("App %s detected. Adding to the master channel list at index %s with channelId %s", cpeUiStatus.appsState.appName, parent.masterChannelList.length, currChannelId);
-												// for easy identification, make the channelNumber app10000 + the index number
-												parent.masterChannelList.push({
-													channelId: currChannelId, 
-													channelNumber: 'app' + (10000 + parent.masterChannelList.length), 
-													channelName: cleanNameForHomeKit(cpeUiStatus.appsState.appName)
-												});
+									parent.lastMqttUiStatusMessageReceived = Date.now();
+									deviceId = mqttMessage.source;
+									const cpeUiStatus = mqttMessage.status;
+									// normal TV: 	cpeUiStatus = mainUI
+									// app: 		cpeUiStatus = apps (YouTube, Netflix, etc)
+									if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus:', cpeUiStatus); }
+									if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus.uiStatus:', cpeUiStatus.uiStatus); }
+									switch (cpeUiStatus.uiStatus) {
+										case 'mainUI':
+											// grab the status part of the mqttMessage object as we cannot go any deeper with json
+											const playerState = cpeUiStatus.playerState;
+											currSourceType = playerState.sourceType;
+											if (parent.config.debugLevel > 1) { parent.log.warn('mqttClient: mainUI: Detected mqtt playerState.speed:', playerState.speed); }
+
+											// get playerState.speed (shows if playing or paused)
+											// speed can be one of: -64 -30 -6 -2 0 2 6 30 64. 0=Paused, 1=Play, >1=FastForward, <0=Rewind
+											if (playerState.speed == 0) { 			// speed 0 is PAUSE
+												currMediaState = Characteristic.CurrentMediaState.PAUSE;
+											} else if (playerState.speed == 1) { 	// speed 1 is PLAY
+												currMediaState = Characteristic.CurrentMediaState.PLAY;
+											} else {								// default for all speeds (-64 -30 -6 2 6 30 64) is LOADING
+												currMediaState = Characteristic.CurrentMediaState.LOADING;
 											}
+
+											// get sourceType to set the currInputSourceType and currInputDeviceType
+											// playerState.sourceType
+											// linear = normal TV
+											// reviewbuffer = delayed buffered TV playback
+											// replay = replay TV
+											// nDVR = playback from saved program (network Digital Video Recorder)
+											// lDVR = playback from saved program (local Digital Video Recorder)
+											// '' (empty string) = when radio is playing
+											switch (playerState.sourceType) {
+												case 'linear':	// linear: normal tv
+												case 'reviewbuffer': 	// delayed playback
+													currInputDeviceType = Characteristic.InputDeviceType.TV; // linear TV
+													currInputSourceType = Characteristic.InputSourceType.TUNER;
+													break;
+												case 'replay': 	// replay TV
+												case 'nDVR':	// network DVR
+												case 'lDVR':	// local DVR
+												case 'LDVR':	// local DVR
+													currInputDeviceType = Characteristic.InputDeviceType.PLAYBACK; // replay TV
+													currInputSourceType = Characteristic.InputSourceType.OTHER;
+													break;
+												case '':		// '' (empty string), happens when radio is playing
+													currInputDeviceType = Characteristic.InputDeviceType.TUNER; // use tuner for radio
+													currInputSourceType = Characteristic.InputSourceType.OTHER;
+													break;
+												}
+			
+
+											// get channelId (current playing channel eg SV09038) from linear TV
+											// Careful: source is not always present in the data
+											if (playerState.source) {
+												currChannelId = playerState.source.channelId || NO_CHANNEL_ID; // must be a string
+												if (parent.config.debugLevel > 0 && parent.masterChannelList) {
+													let currentChannelName; // let is scoped to the current {} block
+													let curChannel = parent.masterChannelList.find(channel => channel.id === currChannelId); 
+													if (curChannel) { currentChannelName = curChannel.name; }
+													parent.log.warn('mqttClient: Detected mqtt channelId: %s [%s]', currChannelId, currentChannelName);
+												}
+											} else {
+												// if playerState.source is null, then the settop box could be playing a radio station
+												// the code will pass a null through the code but no change will occur, so deliberately set a NO_CHANNEL_ID
+												// when playing radio playerState.sourceType='' and playerState.source is null, and a relativePosition=0 appears, this could be maybe used for Radio detection
+												currChannelId = NO_CHANNEL_ID;
+											}
+
+											break;
+
+										case 'apps':
+											//parent.log('mqttClient: apps: Detected mqtt app channelId: %s', cpeUiStatus.appsState.id);
+											//parent.log("mqttClient: apps: Detected mqtt app appName %s", cpeUiStatus.appsState.appName);
+											// we get id and appName here, load to the channel list...
+											// useful for YouTube and Netflix
+											currInputSourceType = Characteristic.InputSourceType.APPLICATION;
+											currInputDeviceType = Characteristic.InputDeviceType.OTHER; // apps
+											switch (cpeUiStatus.appsState.id) {
+						
+												case 'com.bbc.app.launcher': case 'com.bbc.app.crb':
+													// ignore the following apps to ensure channel name is not overridden:
+													// com.bbc.app.launcher 	button launcher app??
+													// com.bbc.app.crb 			Connected Red Button app, this is the Red Button special control on the remote
+													currChannelId = null; 
+													parent.log("App %s [%s] detected. Ignoring", cpeUiStatus.appsState.id, cpeUiStatus.appsState.appName);
+													break;
+			
+												default:
+													// check if the app channel exists in the master channel list, if not, push it, using the user-defined name if one exists
+													currChannelId = cpeUiStatus.appsState.id;
+													var foundIndex = parent.masterChannelList.findIndex(channel => channel.id === currChannelId); 
+													if (foundIndex == -1 ) {
+														parent.log("App %s detected. Adding to the master channel list at index %s with channelId %s", cpeUiStatus.appsState.appName, parent.masterChannelList.length, currChannelId);
+														const entitlementId = parent.entitlements.entitlements[0].id;
+														// for easy identification, make the logicalChannelNumber and channelNumber app10000 + the index number
+														parent.masterChannelList.push({
+															id: currChannelId, 
+															name: cleanNameForHomeKit(cpeUiStatus.appsState.appName),
+															logicalChannelNumber: 10000 + parent.masterChannelList.length, // integer
+															linearProducts: entitlementId // must be a valid entitlement id 
+															//channelNumber: 'app' + (10000 + parent.masterChannelList.length)
+														});
+													}
+											}
+
+										default:
+
 									}
+								}
 
-								default:
+								// handle CPE pushToTV messages for the STB
+								// seen on VirginMedia connections in GB
+								// Topic: 10950xxxx_gb/qc76wses7wfqhox2uqqteoedbyqgtt
+								// Message: {	type: 'CPE.pushToTV.rsp',	source: '3C36E4-EOSSTB-003597101009',	id: 'TrgPON8eV8',	version: '1.3.12',	status: [Object]  }: 
+								// there's also a pullFromTV
+								// {"source":"7028f103-8494-4f79-9b76-beb67a2e5caa","type":"CPE.pullFromTV","runtimeType":"pull"}
+								if (mqttMessage.type == 'CPE.pushToTV.rsp') {
+									if (parent.config.debugLevel > 0) { 
+										parent.log.warn('mqttClient: CPE.pushToTV.rsp: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
+									}
+									if (parent.config.debugLevel > 0) {
+										parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
+									}
+								}
 
+
+								// update the device on every message
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currSourceType, profileDataChanged, Characteristic.StatusFault.NO_FAULT, null, currStatusActive, currInputDeviceType, currInputSourceType);
+						
+								//end of try
+							} catch (err) {
+								// catch all mqtt errors
+								parent.log.error("Error trapped in mqttClient message event:", err.message);
+								parent.log.error(err);
 							}
-						}
+						
+						}); // end of mqtt client event: message received
 
-						// handle CPE pushToTV messages for the STB
-						// seen on VirginMedia connections in GB
-						// Topic: 10950xxxx_gb/qc76wses7wfqhox2uqqteoedbyqgtt
-						// Message: {	type: 'CPE.pushToTV.rsp',	source: '3C36E4-EOSSTB-003597101009',	id: 'TrgPON8eV8',	version: '1.3.12',	status: [Object]  }: 
-						if (mqttMessage.type == 'CPE.pushToTV.rsp') {
-							if (parent.config.debugLevel > 0) { 
-								parent.log.warn('mqttClient: CPE.pushToTV.rsp: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
+
+
+						// mqtt client event: close
+						// Emitted after a disconnection.
+						// https://github.com/mqttjs/MQTT.js#event-close
+						mqttClient.on('close', function () {
+							try {
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.currentMqttState = mqttState.closed;
+								parent.log('mqttClient: Connection closed');
+								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+								if (!isShuttingDown) {
+									parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+								}
+							} catch (err) {
+								parent.log.error("Error trapped in mqttClient close event:", err.message);
+								parent.log.error(err);
 							}
-							if (parent.config.debugLevel > 0) {
-								parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
+						});
+
+						// mqtt client event: reconnect
+						// Emitted when a reconnect starts.
+						// https://github.com/mqttjs/MQTT.js#event-reconnect
+						mqttClient.on('reconnect', function () {
+							try {
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.currentMqttState = mqttState.reconnected;
+								parent.log('mqttClient: Reconnect started');
+								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+							} catch (err) {
+								parent.log.error("Error trapped in mqttClient reconnect event:", err.message);
+								parent.log.error(err);
 							}
-						}
+						});
+						
+						// mqtt client event: disconnect 
+						// Emitted after receiving disconnect packet from broker. MQTT 5.0 feature.
+						// https://github.com/mqttjs/MQTT.js#event-disconnect
+						mqttClient.on('disconnect', function () {
+							try {
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.currentMqttState = mqttState.disconnected;
+								parent.log('mqttClient: Disconnect command received');
+								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+							} catch (err) {
+								parent.log.error("Error trapped in mqttClient disconnect event:", err.message);
+								parent.log.error(err);
+							}
+						});
+						
+						// mqtt client event: offline
+						// Emitted when the client goes offline.
+						// https://github.com/mqttjs/MQTT.js#event-disconnect
+						mqttClient.on('offline', function () {
+							try {
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.currentMqttState = mqttState.offline;
+								parent.log('mqttClient: Client is offline');
+								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+							} catch (err) {
+								parent.log.error("Error trapped in mqttClient offline event:", err.message);
+								parent.log.error(err);
+							}
+						});
+
+						// mqtt client event: error
+						// Emitted when the client cannot connect (i.e. connack rc != 0) or when a parsing error occurs.
+						// https://github.com/mqttjs/MQTT.js#event-error
+						mqttClient.on('error', function(err) {
+							try {
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.currentMqttState = mqttState.error;
+								parent.log.warn('mqttClient: Error', err.syscall + ' ' + err.code + ' ' + (err.hostname || ''));
+								parent.log.debug('mqttClient: Error:', err); 
+								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+								mqttClient.end();
+								return false;
+							} catch (err) {
+								parent.log.error("Error trapped in mqttClient error event:", err.message);
+								parent.log.error(err);
+							}
+						});
 
 
-						// update the device on every message
-						parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currSourceType, null, Characteristic.StatusFault.NO_FAULT, null, currStatusActive, currInputDeviceType, currInputSourceType);
-				
-						//end of try
 					} catch (err) {
-						// catch all mqtt errors
-						parent.log.error("Error trapped in mqttClient message event:", err.message);
+						parent.log.error("Error trapped in mqttClient connect event:", err.message);
 						parent.log.error(err);
-						parent.log.error("mqttmessage:");
-						parent.log.error(mqttMessage);
-					}
-				
-				}); // end of mqtt client event: message received
-
-
-
-				// mqtt client event: close
-				// Emitted after a disconnection.
-				mqttClient.on('close', function () {
-					try {
-						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
-						parent.currentMqttState = mqttState.closed;
-						parent.log('mqttClient: Connection closed');
 						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
-						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
-					} catch (err) {
-						parent.log.error("Error trapped in mqttClient close event:", err.message);
-						parent.log.error(err);
 					}
-				});
-
-				// mqtt client event: reconnect
-				// Emitted when a reconnect starts.
-				mqttClient.on('reconnect', function () {
-					try {
-						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
-						parent.currentMqttState = mqttState.reconnected;
-						parent.log('mqttClient: Reconnect started');
-						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
-					} catch (err) {
-						parent.log.error("Error trapped in mqttClient reconnect event:", err.message);
-						parent.log.error(err);
-					}
-				});
+				}); // end of mqttClient.on('connect'... event
 				
-				// mqtt client event: disconnect 
-				// Emitted after receiving disconnect packet from broker. MQTT 5.0 feature.
-				mqttClient.on('disconnect', function () {
-					try {
-						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
-						parent.currentMqttState = mqttState.disconnected;
-						parent.log('mqttClient: Disconnect command received');
-						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
-						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
-					} catch (err) {
-						parent.log.error("Error trapped in mqttClient disconnect event:", err.message);
-						parent.log.error(err);
-					}
-				});
 				
-				// mqtt client event: offline
-				// Emitted when the client goes offline.
-				mqttClient.on('offline', function () {
-					try {
-						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
-						parent.currentMqttState = mqttState.offline;
-						parent.log('mqttClient: Client is offline');
-						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
-						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
-					} catch (err) {
-						parent.log.error("Error trapped in mqttClient offline event:", err.message);
-						parent.log.error(err);
-					}
-				});
-
-				// mqtt client event: error
-				// Emitted when the client cannot connect (i.e. connack rc != 0) or when a parsing error occurs.
-				mqttClient.on('error', function(err) {
-					try {
-						//     mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, currStatusFault) 
-						parent.currentMqttState = mqttState.error;
-						parent.log.warn('mqttClient: Error', err.syscall + ' ' + err.code + ' ' + (err.hostname || ''));
-						parent.log.debug('mqttClient: Error:', err); 
-						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
-						parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
-						mqttClient.end();
-						return false;
-					} catch (err) {
-						parent.log.error("Error trapped in mqttClient error event:", err.message);
-						parent.log.error(err);
-					}
-				});
-
+				if (this.config.debugLevel > 0) { 
+					this.log("mqttClient: end of code block");
+				}
+				resolve(mqttClient.connected); // return the promise with the connected state
 
 			} catch (err) {
-				parent.log.error("Error trapped in mqttClient connect event:", err.message);
-				parent.log.error(err);
-				currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
+				reject('Cannot connect to mqtt broker', err); // reject the promise
 			}
-		}); // end of mqttClient.on('connect'... event
 
+		})
 	} // end of startMqttClient
 
 
+	// end the mqtt client cleanly
+	endMqttClient() {
+		return new Promise((resolve, reject) => {
+			if (this.config.debugLevel > -1) { 
+				this.log('Shutting down mqttClient...'); 
+			}
+			// https://github.com/mqttjs/MQTT.js#end
+			// mqtt.Client#end([force], [options], [callback])
+			if (mqttClient.connected) { mqttClient.end() };
+			resolve(true);
+		})
+	}
+
+
 	// handle the state change of the device, calling the updateDeviceState of the relevant device
+	// handles multiple devices by deviceId, should the user have more than one device
 	mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType) {
 		try {
 			if (this.config.debugLevel > 1) { 
 				this.log.warn('mqttDeviceStateHandler: calling updateDeviceState with deviceId %s, powerState %s, mediaState %s, channelId %s, sourceType %s, profileDataChanged %s, statusFault %s, programMode %s, statusActive %s, currInputDeviceType %s, currInputSourceType %s', deviceId, powerState, mediaState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
 			}
-			if (this.devices) {
-				const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
-				if (deviceIndex > -1 && this.stbDevices.length > 0) { 
-					this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
-				}
+			const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
+			if (deviceIndex > -1 && this.stbDevices.length > 0) { 
+				//this.log.warn('mqttDeviceStateHandler: stbDevices found, calling updateDeviceState');
+				this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
 			}
 		} catch (err) {
 			this.log.error("Error trapped in mqttDeviceStateHandler:", err.message);
@@ -1826,8 +2309,8 @@ class stbPlatform {
 		}
 	}
 
-	// subscribe to an mqtt message, with logging, to help in debugging
-	mqttSubscribeToTopic(Topic, Qos) {
+	// subscribe to an mqtt topic, with logging, to help in debugging
+	mqttSubscribeToTopic(Topic) {
 		if (this.config.debugLevel > 0) { this.log.warn('mqttSubscribeToTopic: Subscribe to topic:', Topic); }
 		mqttClient.subscribe(Topic, function (err) {
 			if(err){
@@ -1837,24 +2320,38 @@ class stbPlatform {
 		});
 	}
 
-	// start the HGO session
-	mqttSetHgoOnlineRunning(mqttUsername, mqttClientId) {
+	// unsubscribe to an mqtt topic, with logging, to help in debugging
+	mqttUnsubscribeToTopic(Topic) {
+		if (this.config.debugLevel > 0) { this.log.warn('mqttUnsubscribeToTopic: Unsubscribe to topic:', Topic); }
+		mqttClient.unsubscribe(Topic, function (err) {
+			if(err){
+				//this.log('mqttClient connect: unsubscribe to %s Error %s:', Topic, err);
+				return true;
+			}
+		});
+	}
+
+	// start the HGO session (switch on)
+	setHgoOnlineRunning(mqttUsername, mqttClientId) {
 		try {
-			if (this.config.debugLevel > 0) { this.log.warn('mqttSetHgoOnlineRunning'); }
+			if (this.config.debugLevel > 0) { this.log.warn('setHgoOnlineRunning'); }
 			if (mqttUsername) {
 				this.mqttPublishMessage(
-					mqttUsername + '/' + mqttClientId + '/status', 
-					'{"source":"' +  mqttClientId + '","state":"ONLINE_RUNNING","deviceType":"HGO"}',
-					'{"qos":1,"retain":"true"}'
+					// {"source":"fd29b575-5f2b-49a0-8efe-62a844ac2b40","state":"ONLINE_RUNNING","deviceType":"HGO","mac":"","ipAddress":""}
+					mqttUsername + '/' + mqttClientId + '/status',  // Topic, 
+					'{"source":"' +  mqttClientId + '","state":"ONLINE_RUNNING","deviceType":"HGO","mac":"","ipAddress":""}', // Message, Options
+					{ qos:1, retain:true } //Options (json object)
 				);
 			}
 		} catch (err) {
-			this.log.error("Error trapped in mqttSetHgoOnlineRunning:", err.message);
+			this.log.error("Error trapped in setHgoOnlineRunning:", err.message);
 			this.log.error(err);
 		}
 	}
 
 	// send a channel change request to the settopbox via mqtt
+	// using the CPE.pushToTV message
+	// the friendlyDeviceName appears on the TV in a popup window
 	switchChannel(deviceId, deviceName, channelId, channelName) {
 		try {
 			if (this.config.debugLevel > 0) { this.log.warn('switchChannel: channelId %s %s on %s %s', channelId, channelName, deviceId, deviceName); }
@@ -1862,10 +2359,16 @@ class stbPlatform {
 			if (mqttUsername) {
 				this.mqttPublishMessage(
 					mqttUsername + '/' + deviceId, 
-					'{"id":"' + makeId(10) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
+					// cannot get radio to work, sourceType is unclear
+					// [09/11/2022, 12:55:00] [EOSSTB] Processing channel: 518 1001 SV01301 Radio SRF 1
+					// [09/11/2022, 12:55:00] [EOSSTB] Processing channel: 519 1002 SV01327 Radio SRF 1 ZH
+					// [09 /11/2022, 12:55:00] [EOSSTB] Processing channel: 520 1003 SV01322 Radio SRF 1 BE
+					// [09/11/2022, 12:55:00] [EOSSTB] Processing channel: 521 1004 SV01323 Radio SRF 1 BS
+					'{"id":"' + makeFormattedId(32) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
 					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
-					+ channelId + '"},"relativePosition":0,"speed":1}}',
-					'{"qos":0}'
+					+ channelId + '"},"relativePosition":0,"speed":1}}'
+					//+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"ott","source":{"channelId":"' 
+					//+ 'SV01301' + '"},"relativePosition":0,"speed":1}}',
 				);
 			}
 		} catch (err) {
@@ -1883,10 +2386,9 @@ class stbPlatform {
 			if (mqttUsername) {
 				this.mqttPublishMessage(
 					mqttUsername + '/' + this.device.deviceId, 
-					'{"id":"' + makeId(10) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
+					'{"id":"' + makeFormattedId(32) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
 					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
-					+ channelId + '"},"relativePosition":0,"speed":' + speed + '}}',
-					'{"qos":0}'
+					+ channelId + '"},"relativePosition":0,"speed":' + speed + '}}'
 				);
 			}
 		} catch (err) {
@@ -1906,32 +2408,12 @@ class stbPlatform {
 			if (mqttUsername) {
 				this.mqttPublishMessage(
 				mqttUsername + '/' + deviceId, 
-				'{"id":"' + makeId(10) + '","type":"CPE.setPlayerPosition","source":{"clientId":"' + mqttClientId 
-				+ '","status":{"relativePosition":' + relativePosition + '}}"' ,
-				'{"qos":0}'
+				'{"id":"' + makeFormattedId(32) + '","type":"CPE.setPlayerPosition","source":{"clientId":"' + mqttClientId 
+				+ '","status":{"relativePosition":' + relativePosition + '}}"' 
 				);
 			}
 		} catch (err) {
 			this.log.error("Error trapped in setPlayerPosition:", err.message);
-			this.log.error(err);
-		}
-	}
-
-
-	// return to live TV
-	returnToLiveTv(deviceId, deviceName) {
-		try {
-			if (this.config.debugLevel > 0) { this.log.warn('returnToLiveTv'); }
-			if (mqttUsername) {
-				this.mqttPublishMessage(
-				mqttUsername + '/' + deviceId, 
-				'{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + mqttClientId 
-				+ '","status":{"w3cKey":"TV","eventType":"keyDownUp"}}',
-				'{"qos":0}'
-				);
-			}
-		} catch (err) {
-			this.log.error("Error trapped in returnToLiveTv:", err.message);
 			this.log.error(err);
 		}
 	}
@@ -1976,8 +2458,7 @@ class stbPlatform {
 
 						this.mqttPublishMessage(
 							mqttUsername + '/' + deviceId, 
-							'{"id":"' + makeId(10) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}',
-							'{"qos":0}'
+							'{"id":"' + makeFormattedId(32) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}'
 						);
 						this.log.debug('sendKey: send %s done', keyName);
 
@@ -2001,12 +2482,10 @@ class stbPlatform {
 				this.log.warn('getUiStatus deviceId %s', deviceId);
 			}
 			if (mqttUsername) {
-				var mqttTopic = mqttUsername + '/' + deviceId;
-				var mqttMessage =  '{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + mqttClientId + '"}';
 				this.mqttPublishMessage(
 					mqttUsername + '/' + deviceId,
-					'{"id":"' + makeId(10).toLowerCase() + '","type":"CPE.getUiStatus","source":"' + mqttClientId + '"}',
-					'{"qos":1,"retain":"true"}'
+					'{"source":"' + mqttClientId + '","id":"' + makeFormattedId(32) + '","type":"CPE.getUiStatus","runtimeType":"getUiStatus"}',
+					{ qos:1, retain:true }
 				);
 			}
 		} catch (err) {
@@ -2023,167 +2502,88 @@ class stbPlatform {
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState'); }
 
 			// headers for the connection
-			const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
-
-			// get all planned recordings. We only need to know if any results exist. 
-			// 0 results = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED
-			// >0 results = Characteristic.ProgramMode.PROGRAM_SCHEDULED
-			// https://obo-prod.oesp.upctv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?plannedOnly=true&range=1-20
-			//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
-			var currProgramMode = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED; // default
-			var url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?plannedOnly=true&range=1-20'; // limit to 20 recordings for performance
-			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: planned recordings: GET %s', url); }
-			axiosWS.get(url, config)
-				.then(response => {	
-					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: planned recordings response: %s %s', response.status, response.statusText); }
-					if (this.config.debugLevel > 2) { 
-						this.log.warn('getRecordingState: planned recordings response data:');
-						this.log.warn(response.data);
+			const config = {
+					headers: {
+						"x-cus": this.session.householdId, 
+						//"x-oesp-token": this.session.accessToken,  // no longer needed
+						"x-oesp-username": this.session.username
 					}
-					//this.log.warn('getRecordingState: planned recordings totalResults:', response.data.totalResults);
-					if (response.data.totalResults > 0) { 
-						currProgramMode = Characteristic.ProgramMode.PROGRAM_SCHEDULED;
-					} else {
-						currProgramMode = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED;
-					}
-					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: planned recordings %s, currProgramMode set to %s [%s]', response.data.recordings.length, currProgramMode, programModeName[currProgramMode]); }
-				})
-				.catch(error => {
-					let errText, errReason;
-					errText = 'getRecordingState get planned recordings for %s failed: '
-					if (error.isAxiosError) { 
-						errReason = error.code + ': ' + (error.hostname || ''); 
-					} else if (error.response) {
-						errReason = (error.response || {}).status + ' ' + ((error.response || {}).statusText || ''); 
-					} else {
-						errReason = error; 
-					}
-					this.log('%s', (errReason || ''));
-					this.log.debug(`getRecordingState get planned recordings error:`, error);
-				});	
+				};
 
-
-			// get all saved recordings
-			// https://obo-prod.oesp.upctv.ch/oesp/v4/CH/eng/web/networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20
-			//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
-			url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?plannedOnly=false&range=1-20'; // works
+			// get all recordings. We only need to know if any are ongoing. 
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/107xxxx_ch/recordings/state?channelIds=SV09039
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/107xxxx_ch/recordings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=desc&profileId=4eb38207-d869-4367-8973-9467a42cad74&language=en
+			// const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
+			// parameter plannedOnly=false did not work
+			const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + this.session.householdId + '/recordings/state'; // limit to 20 recordings for performance
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: GET %s', url); }
 			axiosWS.get(url, config)
+			axiosWS.get(url, config)
 				.then(response => {	
-					if (this.config.debugLevel > 1) { this.log.warn('getRecordingState: response: %s %s', response.status, response.statusText); }
-					if (this.config.debugLevel > 2) { 
+					// log at level 1, 2
+					if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: response: %s %s', response.status, response.statusText); }
+					if (this.config.debugLevel > 1) { 
 						this.log.warn('getRecordingState: response data:');
 						this.log.warn(response.data);
 					}
 
-					// find if any recordings are ongoing, and if local or network
-					// loop all cpes, find and local recordings per cpe first.
-					// if none found, find network recordings second
-					if (response.data.recordings) { 
-						// a recording carries these properties:
-						// for type='single'
-						// recordingState: 'ongoing', 'recorded', 'planned' or ??, for all types
-						// recordingType: 'nDVR', 'localDVR', 'LDVR', 
-						// cpeId: '3C36E4-EOSSTB-003597101009', only for local DVRs
+					// a recording carries these properties:
+					// for type='single'
+					// recordingState: 'ongoing', 'recorded', 'planned' or ??, for all types
+					// recordingType: 'nDVR', 'localDVR', 'LDVR', 
+					// cpeId: '3C36E4-EOSSTB-003597101009', only for local DVRs
 
-						// for type='season':
-						// mostRelevantEpisode.recordingState: 'ongoing',
-						// mostRelevantEpisode.recordingType: 'nDVR',
-						// logging
-						if (this.config.debugLevel > 2) { 
-							response.data.recordings.forEach((recording) => {
-								this.log.warn('Recording showTitle "%s", cpeId %s, type %s, recordingState %s, recordingType %s, mostRelevantEpisode:',  recording.showTitle, recording.cpeId, recording.type, recording.recordingState, recording.recordingType, )
-								this.log.warn(recording.mostRelevantEpisode )
-							});
+					// for type='season':
+					// mostRelevantEpisode.recordingState: 'ongoing',
+					// mostRelevantEpisode.recordingType: 'nDVR',
+					// logging at level 2
+					if (this.config.debugLevel > 1) { 
+						this.log.warn('Recordings length %s:',  response.data.data.length )
+						response.data.data.forEach((recording) => {
+							this.log.warn('Recording title "%s", type %s, recordingState %s, recordingType %s, mostRelevantEpisode:',  recording.title, recording.type, recording.recordingState, recording.recordingType )
+							this.log.warn(recording.mostRelevantEpisode)
+						});
+					}
+					let currRecordingState = recordingState.IDLE; // default
+					let localOngoingRecordings = 0, networkOngoingRecordings = 0;
+
+					// look for planned network single recordings: (type = "single" = one object, type = "season" = array)
+					if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: searching for ongoing network recordings"); }
+					let recordingNetworkOngoing = [].concat(response.data.data.find(recording => recording.recordingState == 'ongoing') ?? []);
+					//let recordingNetworkSeasonOngoing = [].concat(response.data.data.find(recording => recording.source == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing') ?? []);
+					//networkOngoingRecordings = recordingNetworkSingleOngoing.length + recordingNetworkSeasonOngoing.length;
+					networkOngoingRecordings = recordingNetworkOngoing.length;
+
+					// find if any local device recordings are ongoing, for each device, as each device can have a HDD
+					this.devices.forEach((device) => {
+						if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: Checking device %s for ongoing local HDD recordings", device.deviceId); }
+						if (device.capabilities.hasHDD) {
+							// device has HDD, look for local recordings
+							// look for ongoing local single recordings: (type = "single" = one object, type = "season" = array)
+							if (this.config.debugLevel > 0) { this.log.warn("getRecordingState: %s: searching for ongoing local recordings for this device", device.deviceId); }
+							let recordingLocalSingleOngoing = [].concat(response.data.data.find(recording => recording.cpeId == device.deviceId && recording.source == 'single' && recording.recordingState == 'ongoing') ?? []);
+							let recordingLocalSeasonOngoing = [].concat(response.data.data.find(recording => recording.cpeId == device.deviceId && recording.source == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing') ?? []);
+							localOngoingRecordings = recordingLocalSingleOngoing.length + recordingLocalSeasonOngoing.length;
 						}
 
-						// get each device. for every recordingState update, update all devices
-						// only the main device can have a HDD and thus should receive the ONGOING_LOCALDVR state
-						// loop through all devices, handling devices with HDDs and devices without HDDs
-						this.devices.forEach((device) => {
-							var recType, recState, systemRecordingState;
+						// log state
+						if (localOngoingRecordings > 0) {
+							currRecordingState = recordingState.ONGOING_LOCALDVR;
+						} else if (networkOngoingRecordings > 0) {
+							currRecordingState = recordingState.ONGOING_NDVR;
+						}
 
-							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s...", device.deviceId); }
-							if (device.capabilities.hasHDD) {
-								// device has HDD, look for local recordings
-								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Device has a HDD:", device.deviceId); }
-
-								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s with HDD. Searching for ongoing local recordings for this device...", device.deviceId); }
-								// first look for non-season recordings: (type = "single" or "show")
-								let recordingLocal = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.recordingState == 'ongoing');
-								if (recordingLocal) {
-									// found ongoing local non-season recording
-									recType = recordingLocal.recordingType;
-									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing local non-season recording found for device %s with status %s %s", recordingLocal.cpeId, recordingLocal.recordingState, recordingLocal.recordingType); }
-
-								} else {
-									// if none found then look for season recordings:
-									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s with HDD. Searching for ongoing local season recordings for this device...", device.deviceId); }
-									let recordingLocalSeason = response.data.recordings.find(recording => recording.cpeId == device.deviceId && recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
-									if (recordingLocalSeason) {
-										// found local ongoing season recording
-										recType = recordingLocalSeason.mostRelevantEpisode.recordingType;
-										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing local season recording found with status %s %s", recordingLocalSeason.mostRelevantEpisode.recordingState, recordingLocalSeason.mostRelevantEpisode.recordingType); }
-
-									} else {
-										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: No ongoing local recordings found"); }
-										recType = 'idle';
-									}
-
-								}
-
-							}
-
-							// check network recordings
-							if (!recType || recType == 'idle') {
-								// device has no HDD, check network recordings
-								if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Searching for ongoing network recordings for this device...", device.deviceId); }
-								// first look for non-season recordings: (type = "single" or "show")
-								let recordingNetwork = response.data.recordings.find(recording => !recording.cpeId && recording.recordingState == 'ongoing');
-								if (recordingNetwork) {
-									// found ongoing network non-season recording
-									recType = recordingNetwork.recordingType;
-									if (this.config.debugLevel >= 0) { this.log.warn("getRecordingState: ongoing network non-season recording found with status %s %s", recordingNetwork.recordingState, recordingNetwork.recordingType); }
-
-								} else {
-									// if none found then look for season or show recordings: (type = "season") type = show also exists
-									if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Checking device %s. Searching for ongoing network season recordings for this device...", device.deviceId); }
-									let recordingNetworkSeason = response.data.recordings.find(recording => recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'ongoing');
-									if (recordingNetworkSeason) {
-										recType = recordingNetworkSeason.mostRelevantEpisode.recordingType;
-										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: ongoing network season recording found with status %s %s", recordingNetworkSeason.mostRelevantEpisode.recordingState, recordingNetworkSeason.mostRelevantEpisode.recordingType); }
-
-									} else {
-										if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: No ongoing network recordings found"); }
-										recType = 'idle';
-									}
-								}
-							}
-
-							// local has prio over network
-							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Setting recState for %s according to recType %s", device.deviceId, recType); }
-							if (recType == 'localDVR' || recType == 'LDVR') { 
-								recState = recordingState.ONGOING_LOCALDVR;
-							} else if (recType == 'nDVR') { 
-								recState = recordingState.ONGOING_NDVR;
-							} else {
-								recState = recordingState.IDLE;
-							}
-
-							// update the device state. Set StatusFault to nofault as connection is working
-							if (this.config.debugLevel > 2) { this.log.warn("getRecordingState: Updating device state for %s to recState %s %s", device.deviceId, recState, recType); }
-							//mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode) {
-							this.mqttDeviceStateHandler(device.deviceId, null, null, recState, null, null, null, Characteristic.StatusFault.NO_FAULT, currProgramMode );
-							});
-
-					}
-
-
+						// update the device state. Set StatusFault to nofault as connection is working
+						this.log('%s: Recording state: ongoing recordings found: local %s, network %s, current Recording State %s [%s]', device.settings.deviceFriendlyName + PLUGIN_ENV, localOngoingRecordings, networkOngoingRecordings, currRecordingState, recordingStateName[currRecordingState]);
+						//mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode) {
+						this.mqttDeviceStateHandler(device.deviceId, null, null, currRecordingState, null, null, null, Characteristic.StatusFault.NO_FAULT, null );
+					});
 					return false;
 				})
+
 				.catch(error => {
 					let errText, errReason;
-					errText = 'getRecordingState for %s failed: '
+					errText = 'getRecordingState get ongoing recordings for %s failed: '
 					if (error.isAxiosError) { 
 						errReason = error.code + ': ' + (error.hostname || ''); 
 					} else if (error.response) {
@@ -2192,112 +2592,131 @@ class stbPlatform {
 						errReason = error; 
 					}
 					this.log('%s', (errReason || ''));
-					this.log.debug(`getRecordingState error:`, error);
-
+					this.log.debug(`getRecordingState get ongoing recordings error:`, error);
 					return false, error;
-				});		
-			return false;
+				});
+
 
 		} catch (err) {
 			this.log.error("Error trapped in getRecordingState:", err.message);
 			this.log.error(err);
 		}
 	}
+	
 
 
-	// get the Personalization Data via web request GET
-	async getPersonalizationData(requestType, callback) {
-		this.log("Refreshing personalization data for %s", requestType);
-		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData requestType:', requestType); }
+	// get the recording bookings via web request GET
+	async getRecordingBookings(callback) {
+		try {
+			this.log("Refreshing recording bookings");
+			if (this.config.debugLevel > 0) { this.log.warn('getRecordingBookings'); }
 
-		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.customer.householdId) + '/' + requestType;
-		const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
-		if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: GET %s', url); }
-		// this.log('getPersonalizationData: GET %s', url);
-		axiosWS.get(url, config)
-			.then(response => {	
-				if (this.config.debugLevel > 0) { this.log.warn('getPersonalizationData: %s: response: %s %s', requestType, response.status, response.statusText); }
-				if (this.config.debugLevel > 2) { 
-					this.log.warn('getPersonalizationData: %s: response data:', requestType);
-					this.log.warn(response.data);
-				}
-				if (requestType.includes('profiles')) { 
-					this.profiles = response.data; // set this.profiles to the profile data we just received
-
-					// for every profiles data update, update all devices as closedCaptions may have changed
-					// but only if stbDevices has been created...
-					if (this.stbDevices.length > 0) {
-						this.devices.forEach((device) => {
-							device.profiles = this.profiles; // update the device with the profiles array
-							// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault) {
-							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, true, Characteristic.StatusFault.NO_FAULT );
-						});
+			// headers for the connection
+			const config = {
+					headers: {
+						"x-cus": this.session.householdId, 
+						//"x-oesp-token": this.session.accessToken,  // no longer needed
+						"x-oesp-username": this.session.username
 					}
+				};
 
-				}
-				else if (requestType.includes('devices')) { 
-					// devices can be an array or a single device
-					if (Array.isArray(response.data)) {
-						this.devices = response.data; // store the entire device array at platform level
-			
-						// update all the devices in the array. Don't trust the index order in the Personalization Data message
-						this.devices.forEach((device) => {
-							const deviceId = device.deviceId;
-							const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
-							if (deviceIndex > -1 && this.stbDevices[deviceIndex]) { 
-								this.stbDevices[deviceIndex].device = device;
-								this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, null, Characteristic.StatusFault.NO_FAULT ); // update one device
-							}
-						});
-
-					} else {
-						// data for a single device, find and update the device
-						const deviceId = response.data.deviceId;
-						const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
-						if (deviceIndex > -1) { 
-							this.stbDevices[deviceIndex].device = response.data; 
-							this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, null, Characteristic.StatusFault.NO_FAULT ); // update one device
-						}
+			// get all planned recordings. We only need to know if any results exist. 
+			// 0 results = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED
+			// >0 results = Characteristic.ProgramMode.PROGRAM_SCHEDULED
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/107xxxx_ch/recordings/state?channelIds=SV09039
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/107xxxx_ch/recordings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=desc&profileId=4eb38207-d869-4367-8973-9467a42cad74&language=en
+			// parameter plannedOnly=false did not work
 				
+			// get all booked series recordings: these are planned future recordings
+			// I need a test user to get me the html endpoints for local HDD recording state
+			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/107xxxx_ch/bookings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=asc&language=en
+			const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + this.session.householdId + '/bookings?limit=10&sort=time&sortOrder=asc'; // limit to 10 recordings for performance
+			if (this.config.debugLevel > 0) { this.log.warn('getRecordingBookings: GET %s', url); }
+			axiosWS.get(url, config)
+				.then(response => {	
+					// log at level 1, 2
+					if (this.config.debugLevel > 0) { this.log.warn('getRecordingBookings: response: %s %s', response.status, response.statusText); }
+					if (this.config.debugLevel > 1) { 
+						this.log.warn('getRecordingBookings: response data:');
+						this.log.warn(response.data);
 					}
 
-				}
-				return false;
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'Failed to refresh personalization data for ' + requestType + ' - check your internet connection:'
-				if (error.isAxiosError) { 
-					errReason = error.code + ': ' + (error.hostname || ''); 
-					// if no connection then set session to disconnected to force a session reconnect
-					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
-				}
-				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug(`refreshMasterChannelList error:`, error);
-				return false, error;
-			});		
-		return false;
+					// a recording carries these properties:
+					// for type='single'
+					// recordingState: 'ongoing', 'recorded', 'planned' or ??, for all types
+					// recordingType: 'nDVR', 'localDVR', 'LDVR', 
+					// cpeId: '3C36E4-EOSSTB-003597101009', only for local DVRs
+
+					// for type='season':
+					// mostRelevantEpisode.recordingState: 'ongoing',
+					// mostRelevantEpisode.recordingType: 'nDVR',
+					// logging at level 2
+					if (this.config.debugLevel > 1) { 
+						this.log.warn('Recordings length %s:',  response.data.data.length )
+						response.data.data.forEach((recording) => {
+							this.log.warn('Recording title "%s", type %s, recordingState %s, recordingType %s, mostRelevantEpisode:',  recording.title, recording.type, recording.recordingState, recording.recordingType )
+							this.log.warn(recording.mostRelevantEpisode)
+						});
+					}
+					let currProgramMode = Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED; // default
+					let localPlannedRecordings = 0, networkPlannedRecordings = 0;
+
+					// look for planned network recordings: (type = "single" = one object, type = "season" = array)
+					if (this.config.debugLevel > 0) { this.log.warn("getRecordingBookings: searching for planned network recordings"); }
+					let recordingNetworkSinglePlanned = [].concat(response.data.data.find(recording => recording.type == 'single' && recording.recordingState == 'planned') ?? []);
+					let recordingNetworkSeasonPlanned = [].concat(response.data.data.find(recording => recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'planned') ?? []);
+					networkPlannedRecordings = recordingNetworkSinglePlanned.length + recordingNetworkSeasonPlanned.length;
+
+
+					// find if any local recordings are booked, for each device, as each device can have a HDD
+					this.devices.forEach((device) => {
+						if (this.config.debugLevel > 0) { this.log.warn("getRecordingBookings: Checking device %s for planned local HDD recordings", device.deviceId); }
+						if (device.capabilities.hasHDD) {
+							// device has HDD, look for local recordings
+							// look for planned local single recordings: (type = "single")
+							if (this.config.debugLevel > 0) { this.log.warn("getRecordingBookings: %s: searching for planned local recordings for this device", device.deviceId); }
+							let recordingLocalSinglePlanned = [].concat(response.data.data.find(recording => recording.cpeId == device.deviceId && recording.type == 'single' && recording.recordingState == 'planned') ?? []);
+							let recordingLocalSeasonPlanned = [].concat(response.data.data.find(recording => recording.cpeId == device.deviceId && recording.type == 'season' && recording.mostRelevantEpisode.recordingState == 'planned') ?? []);
+							localPlannedRecordings = recordingLocalSinglePlanned.length + recordingLocalSeasonPlanned.length;
+						}
+
+						// log state
+						if (localPlannedRecordings + networkPlannedRecordings > 0) {
+							currProgramMode = Characteristic.ProgramMode.PROGRAM_SCHEDULED;
+						}
+
+
+						// update the device state. Set StatusFault to nofault as connection is working
+						this.log('%s: Recording bookings: planned recordings found: local %s, network %s, current Program Mode %s [%s]', device.settings.deviceFriendlyName + PLUGIN_ENV, localPlannedRecordings, networkPlannedRecordings, 
+							currProgramMode, Object.keys(Characteristic.ProgramMode)[currProgramMode + 1]);
+						//mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode) {
+						this.mqttDeviceStateHandler(device.deviceId, null, null, null, null, null, null, Characteristic.StatusFault.NO_FAULT, currProgramMode );
+					});
+					return false;
+				})
+
+				.catch(error => {
+					let errText, errReason;
+					errText = 'getRecordingBookings for %s failed: '
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+					} else if (error.response) {
+						errReason = (error.response || {}).status + ' ' + ((error.response || {}).statusText || ''); 
+					} else {
+						errReason = error; 
+					}
+					this.log('%s', (errReason || ''));
+					this.log.debug(`getRecordingBookings error:`, error);
+
+					return false, error;
+				});
+
+		} catch (err) {
+			this.log.error("Error trapped in getRecordingBookings:", err.message);
+			this.log.error(err);
+		}
 	}
 
-	// set the Personalization Data for the current device via web request PUT
-	async setPersonalizationDataForDevice(deviceId, deviceSettings, callback) {
-		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: deviceSettings:', deviceSettings); }
-		const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.customer.householdId) + '/devices/' + deviceId;
-		const data = {"settings": deviceSettings};
-		const config = {headers: {"x-cus": this.session.customer.householdId, "x-oesp-token": this.session.oespToken, "x-oesp-username": this.session.username}};
-		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: PUT %s', url); }
-		axiosWS.put(url, data, config)
-			.then(response => {	
-				if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: response: %s %s', response.status, response.statusText); }
-				return false;
-			})
-			.catch(error => {
-				this.log.warn('setPersonalizationDataForDevice failed: %s %s', error.response.status, error.response.statusText);
-				this.log.debug('setPersonalizationDataForDevice: error:', error);
-				return true, error;
-			});		
-		return false;
-	}
 
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// END session handler mqtt
@@ -2345,12 +2764,17 @@ class stbPlatform {
 
 class stbDevice {
 	// build the device
+	// called using
+	// let newStbDevice = new stbDevice(this.log, this.config, this.api, this.devices[i], this.customer, this.entitlements, this);
+	//constructor(log, config, api, device, customer, entitlements, platform) {
 	constructor(log, config, api, device, platform) {
 		this.log = log;
 		this.config = config;
 		this.api = api;
 		this.device = device;
 		this.platform = platform;
+		this.customer = this.platform.customer;
+		this.entitlements = this.platform.entitlements;
 
 		this.deviceId = this.device.deviceId
 		this.profileId = -1; // default -1
@@ -2368,8 +2792,8 @@ class stbDevice {
 		// ++++++++++++++++ plugin setup ++++++++++++++++
 		// setup arrays
 		this.debugLevel = this.config.debugLevel || 0; // debugLevel defaults to 0 (minimum)
-		this.channelList = [];	// loaded channels, as shown in the Home app. Limited to 96
-		this.inputServices = [];		// loaded input services, used by the accessory, as shown in the Home app. Limited to 96
+		this.channelList = [];			// subscribed channels, filtered from the masterchannelLust, to be loaded into the Home app. Limited to 96
+		this.inputServices = [];		// loaded input services, used by the accessory, as shown in the Home app. Limited to 95
 		this.configuredInputs = [];		// a list of inputs that have been renamed by the user. EXPERIMENTAL
 
 		//setup variables
@@ -2380,7 +2804,7 @@ class stbDevice {
 		// initial states. Will be updated by mqtt messages
 		this.currentPowerState = Characteristic.Active.INACTIVE;
 		this.previousPowerState = Characteristic.Active.INACTIVE;
-		this.currentChannelId = NO_CHANNEL_ID;
+		this.currentChannelId = NO_CHANNEL_ID; // string eg SV09038
 		this.currentClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		this.previousClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		this.currentMediaState = Characteristic.CurrentMediaState.STOP;
@@ -2407,18 +2831,17 @@ class stbDevice {
 		this.lastVolDownKeyPress = [];  // holds the time value of the last button press for the volume down button
 
 
-		// do an initial accessory channel update, required to configure the accessory
-		this.refreshChannelList(this.deviceId); // async function
+		// do an initial accessory channel list update, required to configure the accessory
+		// then prepare the accessory
+		this.refreshDeviceChannelList(this.deviceId) // async function
+			.then(() => {
+				// plugin setup done, session and channels loaded, can load the accessory
+				this.accessoryConfigured = false;
+				this.prepareAccessory();
+				this.log('%s: Initialization completed', this.name);
+			})
 
-		// plugin setup done, session and channels loaded, can load 
-
-		// wait 5s for the accessory channel list to load then continue
-		wait(3*1000).then(() => { 
-			this.accessoryConfigured = false;
-			this.prepareAccessory();
-			this.log('%s: Initialization completed', this.name);
-		})
-
+		//this.log('%s: end of stbDevice constructor', this.name);
 	}
 
 
@@ -2508,30 +2931,37 @@ class stbDevice {
 		const deviceType = this.device.deviceId.split("-");
 
 		switch (deviceType[0]) {
-			// 000378-EOSSTB-003893xxxxxx Ireland
-			// 3C36E4-EOSSTB-003792xxxxxx  Belgium
-			// 000378-EOS2STB-008420xxxxxx Belgium
+			// 000378-EOSSTB-003893xxxxxx 	Ireland
+			// 3C36E4-EOSSTB-003792xxxxxx  	Belgium
+			// 3C36E4-EOSSTB-003713xxxxxx 	Great Britain with productType: 'TV360'
+			// 3C36E4-EOSSTB-003713xxxxxx 	Great Britain with productType: 'TV360',
+			// 000378-EOS2STB-008420xxxxxx 	Belgium
 			case '3C36E4': case '000378':
 				switch (deviceType[1]) {
 					case 'EOS2STB':
 						// new EOS2STB released March 2022 is a HUMAX 2008C-STB-TN
-						manufacturer = 'HUMAX [' + (this.device.platformType || '') + ']'; 
-						model = '2008C-STB-TN [' + (this.device.deviceType || '') + ']';
+						manufacturer = 'HUMAX'; 
+						model = '2008C-STB-TN [' + (this.device.productType || this.device.deviceType || '') + ']';
 						break;
 					case 'EOSSTB':
 					default:
-						manufacturer = 'ARRIS [' + (this.device.platformType || '') + ']'; // NL uses EOS as platformType
-						model = 'DCX960 [' + (this.device.deviceType || '') + ']'; // NL has no deviceType in their device settings
+						// GB devices have deviceType=GATEWAY and productType=TV360
+						manufacturer = 'ARRIS'; 
+						model = 'DCX960';
 						break;
 				}
 				// EOSSTB and EOS2STB both use deviceId as serial number
+				// CH & NL uses EOS as platformType, GB uses HORIZON
+				manufacturer = manufacturer + ' [' + (this.device.platformType || '') + ']'; 
+				 // GB has a productType, CH & NL have no productType but they have deviceType.
+				model = model + ' [' + (this.device.productType || this.device.deviceType || '') + ']'
 				serialnumber = this.device.deviceId; // same as shown on TV
 				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
 				break;
 
 			default:
 				manufacturer = this.device.platformType || PLATFORM_NAME;
-				model = this.device.deviceType || PLUGIN_NAME;
+				model = this.device.productType || this.device.deviceType || PLUGIN_NAME;
 				serialnumber = this.device.deviceId; // same as shown on TV
 				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
 		}
@@ -2673,8 +3103,10 @@ class stbDevice {
 		this.televisionService.getCharacteristic(Characteristic.RemoteKey)
 			.on('set', this.setRemoteKey.bind(this));
 
+		//this.log('DEBUG:  this.televisionService')
+		//this.log(this.televisionService)
 
-		// add to the accessory
+			// add to the accessory
 		this.accessory.addService(this.televisionService);
 
 	}
@@ -2714,7 +3146,7 @@ class stbDevice {
 		var maxSources = MAX_INPUT_SOURCES;
 		let configDevice;
 		if (this.config.devices) {
-			// get a custom configDevice if one exists, used for adding channelNumber
+			// get a custom configDevice if one exists
 			configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
 			 // update maxSources only if found
 			if (configDevice) { 
@@ -2731,14 +3163,14 @@ class stbDevice {
 		this.displayOrder = [];
 
 		// index 0 is identifier 1, etc, needed for displayOrder
-		for (let i = 1; i <= maxSources; i++) {
+		for (let i=1; i<=maxSources; i++) {
 			if (this.config.debugLevel > 2) {
-				this.log.warn('prepareInputSourceServices Adding service',i, this.channelList[i-1].channelName);
+				this.log.warn('prepareInputSourceServices Adding service %s of %s: %s',i, maxSources, (this.channelList[i-1] || {}).name);
 			}
 
 			// default values to hide the input if nothing exists in this.channelList
 			var chFixedName = `Input ${i < 10 ? `0${i}` : i}`; // fixed if not profile 0
-			var chName = 'HIDDEN';
+			var chName = 'HIDDEN_' + ('0' + (i+1)).slice(-2);
 			var chId = 'HIDDEN_' + i;
 			var visState = Characteristic.CurrentVisibilityState.HIDDEN;
 			var configState = Characteristic.IsConfigured.NOT_CONFIGURED;
@@ -2748,14 +3180,14 @@ class stbDevice {
 			//this.log(this.channelList);
 			// index 0 = channel 1
 			if (i <= this.channelList.length && this.channelList[i-1]) {
-				chName = this.channelList[i-1].channelName;
-				chId = this.channelList[i-1].channelId;
-				visState = this.channelList[i-1].channelVisibilityState;
+				chName = this.channelList[i-1].name;
+				chId = this.channelList[i-1].id;
+				visState = this.channelList[i-1].visibilityState;
 				configState = Characteristic.IsConfigured.CONFIGURED;
 			}
 
 			// some channels are deliberately hidden, so assign a fictional channelId and disable them
-			if (chName == 'HIDDEN' || chName == ('0' + i).slice(-2) + " HIDDEN") {
+			if (chName.includes('HIDDEN_')) { // name contaisn 'HIDDEN_'
 				chId = 'HIDDEN_' + i;
 				visState = Characteristic.CurrentVisibilityState.HIDDEN;
 				configState = Characteristic.IsConfigured.NOT_CONFIGURED;
@@ -2851,16 +3283,19 @@ class stbDevice {
 			// doesn't get the data direct from the settop box, but rather: gets it from the this.currentPowerState and this.currentChannelId variables
 			// which are received by the mqtt messages, which occurs very often
 			if (this.config.debugLevel > 0) {
-				this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], recordingState %s [%s], channelId %s, sourceType %s, profileDataChanged %s, statusFault %s [%s], programMode %s [%s]', 
+				this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], recordingState %s [%s], channelId %s, sourceType %s, profileDataChanged %s, statusFault %s [%s], programMode %s [%s], statusActive %s [%s], inputDeviceType %s [%s], inputSourceType %s [%s]', 
 					this.name, 
 					powerState, 
-					mediaState, mediaStateName[mediaState], 
-					recordingState, recordingStateName[recordingState], 
+					mediaState, currentMediaStateName[mediaState], 
+					recordingState, recordingStateName[recordingState], // custom characteristic
 					channelId,
 					sourceType,
 					profileDataChanged,
-					statusFault, statusFaultName[statusFault], 
-					programMode, programModeName[programMode]
+					statusFault, Object.keys(Characteristic.StatusFault)[statusFault + 1], 
+					programMode, Object.keys(Characteristic.ProgramMode)[programMode + 1],
+					statusActive, statusActiveName[statusActive],
+					inputDeviceType, Object.keys(Characteristic.InputDeviceType)[inputDeviceType + 1],
+					inputSourceType, Object.keys(Characteristic.InputSourceType)[inputSourceType + 1],
 				);
 			}
 
@@ -2890,9 +3325,9 @@ class stbDevice {
 			
 			
 			// set the inUse state as a combination of power state and recording state. Added from v1.2.1
-			// 1 (IN_USE) when box is on or is recording 
-			// 0 (NOT_IN_USE) when box is off and not recording
-			if ((this.currentPowerState == Characteristic.Active.ACTIVE) || (this.currentRecordingState == 2)) {  // 2=ONGOING_LOCALDVR
+			// 1 (IN_USE) when box is on or is recording to local HDD
+			// 0 (NOT_IN_USE) when box is off and not recording to local HDD
+			if ((this.currentPowerState == Characteristic.Active.ACTIVE) || (this.currentRecordingState == 2)) { // 2 = ONGOING_LOCALDVR
 				this.currentInUse = Characteristic.InUse.IN_USE;
 			} else {
 				this.currentInUse = Characteristic.InUse.NOT_IN_USE;
@@ -2901,8 +3336,7 @@ class stbDevice {
 
 			// profile data is stored on the platform
 			// get the currentClosedCaptionsState from the currently selected profile (stored in this.profileid)
-			//var configDevice = {};
-			if ( this.platform.profiles[this.profileId] && this.platform.profiles[this.profileId].options.showSubtitles ) {
+			if ( this.customer.profiles[this.profileId] && this.customer.profiles[this.profileId].options.showSubtitles ) {
 				this.currentClosedCaptionsState = Characteristic.ClosedCaptions.ENABLED;
 			} else {
 				this.currentClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
@@ -2912,21 +3346,21 @@ class stbDevice {
 			if (this.config.debugLevel > 0) {
 				let curChannel, currentChannelName;
 				if (this.platform.masterChannelList) {
-					curChannel = this.platform.masterChannelList.find(channel => channel.channelId === this.currentChannelId ); 
-					if (curChannel) { currentChannelName = curChannel.channelName; }
+					curChannel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId );  // this.currentChannelId is a string eg SV09038
+					if (curChannel) { currentChannelName = curChannel.name; }
 				}
 				this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentRecordingState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s], currentPictureMode %s [%s], profileDataChanged %s, currentStatusFault %s [%s], currentProgramMode %s [%s], currentStatusActive %s', 
 					this.name, 
 					this.currentPowerState, 
-					this.currentMediaState, mediaStateName[this.currentMediaState], 
+					this.currentMediaState, currentMediaStateName[this.currentMediaState], 
 					this.currentRecordingState, recordingStateName[this.currentRecordingState],
 					this.currentChannelId, currentChannelName,
 					this.currentSourceType,
-					this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState],
-					this.currentPictureMode, pictureModeName[this.currentPictureMode],
+					this.currentClosedCaptionsState, Object.keys(Characteristic.ClosedCaptions)[this.currentClosedCaptionsState + 1],
+					this.currentPictureMode, Object.keys(Characteristic.PictureMode)[this.currentPictureMode + 1],
 					this.profileDataChanged,
-					this.currentStatusFault, statusFaultName[this.currentStatusFault],
-					this.currentProgramMode, programModeName[this.currentProgramMode],
+					this.currentStatusFault, Object.keys(Characteristic.StatusFault)[this.currentStatusFault + 1],
+					this.currentProgramMode, Object.keys(Characteristic.ProgramMode)[this.currentProgramMode + 1],
 					this.currentStatusActive
 				);
 			}
@@ -2960,8 +3394,8 @@ class stbDevice {
 				if (this.previousStatusFault !== this.currentStatusFault) {
 					this.log('%s: Status Fault changed from %s [%s] to %s [%s]', 
 						this.name,
-						this.previousStatusFault, statusFaultName[this.previousStatusFault],
-						this.currentStatusFault, statusFaultName[this.currentStatusFault]);
+						this.previousStatusFault, Object.keys(Characteristic.StatusFault)[this.previousStatusFault + 1],
+						this.currentStatusFault, Object.keys(Characteristic.StatusFault)[this.currentStatusFault + 1])
 				}
 				this.televisionService.getCharacteristic(Characteristic.StatusFault).updateValue(this.currentStatusFault);
 				this.previousStatusFault = this.currentStatusFault;
@@ -2999,8 +3433,8 @@ class stbDevice {
 				if (this.previousInUse !== this.currentInUse) {
 					this.log('%s: In Use changed from %s [%s] to %s [%s]', 
 						this.name,
-						this.previousInUse, inUseName[this.previousInUse],
-						this.currentInUse, inUseName[this.currentInUse]);
+						this.previousInUse, Object.keys(Characteristic.InUse)[this.previousInUse + 1],
+						this.currentInUse, Object.keys(Characteristic.InUse)[this.currentInUse + 1])
 				}
 				this.televisionService.getCharacteristic(Characteristic.InUse).updateValue(this.currentInUse);
 				this.previousInUse = this.currentInUse;
@@ -3013,15 +3447,17 @@ class stbDevice {
 				if (this.previousClosedCaptionsState !== this.currentClosedCaptionsState) {
 					this.log('%s: Closed Captions state changed from %s [%s] to %s [%s]', 
 						this.name,
-						this.previousClosedCaptionsState, closedCaptionsStateName[this.previousClosedCaptionsState],
-						this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]);
+						this.previousClosedCaptionsState, Object.keys(Characteristic.ClosedCaptions)[this.previousClosedCaptionsState + 1],
+						this.currentClosedCaptionsState, Object.keys(Characteristic.ClosedCaptions)[this.currentClosedCaptionsState + 1])
 				}
 				this.televisionService.getCharacteristic(Characteristic.ClosedCaptions).updateValue(this.currentClosedCaptionsState);
 				this.previousClosedCaptionsState = this.currentClosedCaptionsState;
 
 
 				// check for change of picture mode or recordingState (both stored in picture mode)
-				if ((configDevice || {}).customPictureMode == 'recordingState') {
+				// customPictureMode deprecated from v2.0.0 and removed from config.json, as its function is handled by inUse.
+				// Nov 2022: disabled code, will remove in a future version
+				if ((configDevice || {}).customPictureMode == 'recordingState' && 1==0) {
 					// PictureMode is used for recordingState function, this is a custom characteristic, not supported by HomeKit. we can use values 0...7
 					//this.log("previousRecordingState", this.previousRecordingState);
 					//this.log("currentRecordingState", this.currentRecordingState);
@@ -3041,8 +3477,8 @@ class stbDevice {
 					if (this.previousPictureMode !== this.currentPictureMode) {
 						this.log('%s: Picture Mode changed from %s [%s] to %s [%s]', 
 							this.name,
-							this.previousPictureMode, pictureModeName[this.previousPictureMode],
-							this.currentPictureMode, pictureModeName[this.currentPictureMode]);
+							this.previousPictureMode, Object.keys(Characteristic.PictureMode)[this.previousPictureMode + 1],
+							this.currentPictureMode, Object.keys(Characteristic.PictureMode)[this.currentPictureMode + 1])
 					}
 					//this.log("configDevice.customPictureMode not found %s, setting PictureMode to %s", (configDevice || {}).customPictureMode, this.currentPictureMode);
 					this.customPictureMode = this.currentPictureMode;
@@ -3056,61 +3492,36 @@ class stbDevice {
 				if (this.previousProgramMode !== this.currentProgramMode) {
 					this.log('%s: Program Mode changed from %s [%s] to %s [%s]', 
 						this.name,
-						this.previousProgramMode, programModeName[this.previousProgramMode],
-						this.currentProgramMode, programModeName[this.currentProgramMode]);
+						this.previousProgramMode, Object.keys(Characteristic.ProgramMode)[this.previousProgramMode + 1],
+						this.currentProgramMode, Object.keys(Characteristic.ProgramMode)[this.currentProgramMode + 1]);
 				}
 				this.televisionService.getCharacteristic(Characteristic.ProgramMode).updateValue(this.currentProgramMode);
 				this.previousProgramMode = this.currentProgramMode;
 
-
-				// check for change of InputSourceType state
-				// this is part of inputService which is an array... need to adapt code to get it to work properly
-				/*
-				if (this.previousInputSourceType !== this.currentInputSourceType) {
-					this.log('%s: Input Source Type changed from %s [%s] to %s [%s]', 
-						this.name,
-						this.previousInputSourceType, inputSourceTypeName[this.previousInputSourceType],
-						this.currentInputSourceType, inputSourceTypeName[this.currentInputSourceType]);
-				}
-				//this.televisionService.inputService.getCharacteristic(Characteristic.InputSourceType).updateValue(this.currentInputSourceType); // generates Homebridge warning
-				this.previousInputSourceType = this.currentInputSourceType;
-				*/
-
-
-				// check for change of InputDeviceType state
-				if (this.previousInputDeviceType !== this.currentInputDeviceType) {
-					this.log('%s: Input Device Type changed from %s [%s] to %s [%s]', 
-						this.name,
-						this.previousInputDeviceType, inputDeviceTypeName[this.previousInputDeviceType],
-						this.currentInputDeviceType, inputDeviceTypeName[this.currentInputDeviceType]);
-				}
-				this.televisionService.getCharacteristic(Characteristic.InputDeviceType).updateValue(this.currentInputDeviceType);
-				this.previousInputDeviceType = this.currentInputDeviceType;
 
 
 				// check for change of active identifier (channel)
 				// temporarily wrapped this in a try-catch to capture any errors
 				//this.log("Before error trap");
 				try {
-					var searchChannelId = this.currentChannelId;
-					//this.log("DEBUG: checking searchChannelId", searchChannelId);
-					var currentActiveIdentifier  = 0;
+					var searchChannelId = this.currentChannelId; // this.currentChannelId is a string eg SV09038
+					var currentActiveIdentifier  = NO_INPUT_ID;
 					// if the current channel id is an app, search by channel name name, and not by channel id
 					if (searchChannelId && searchChannelId.includes('.app.')) {
 						// the current channel is an app, eg Netflix
 						this.log("This channel is an app, looking for this app in the masterChannelList: ", searchChannelId)
 						// get the name from the master channel list
-						var masterChannelApp = this.platform.masterChannelList.find(channel => channel.channelId === searchChannelId ); 
+						var masterChannelApp = this.platform.masterChannelList.find(channel => channel.id === searchChannelId ); 
 						//this.log("found masterChannelApp", masterChannelApp)
 						// now look again in the master channel list to find this channel with the same name but not an app id
 						if (masterChannelApp) {
-							//this.log("looking for channel with same name in the masterChannelList: looking for %s", masterChannelApp.channelName)
-							//var masterChannelByName = this.platform.masterChannelList.find(channel => channel.channelName == masterChannelApp.channelName ); 
+							//this.log("looking for channel with same name in the masterChannelList: looking for %s", masterChannelApp.name)
+							//var masterChannelByName = this.platform.masterChannelList.find(channel => channel.name == masterChannelApp.name ); 
 							//this.log("found masterChannel", masterChannelByName)
-							//this.log("looking for channel with same name but different channelId in the masterChannelList: looking for %s where channelId is not %s", masterChannelApp.channelName, masterChannelApp.channelId)
-							var masterChannel = this.platform.masterChannelList.find(channel => channel.channelName == masterChannelApp.channelName && channel.channelId != masterChannelApp.channelId ); 
+							//this.log("looking for channel with same name but different channelId in the masterChannelList: looking for %s where channelId is not %s", masterChannelApp.name, masterChannelApp.id)
+							var masterChannel = this.platform.masterChannelList.find(channel => channel.name == masterChannelApp.name && channel.id != masterChannelApp.id ); 
 							if (masterChannel) {
-								searchChannelId = masterChannel.channelId;
+								searchChannelId = masterChannel.id;
 							}
 						}
 					}
@@ -3124,24 +3535,26 @@ class stbDevice {
 				}		
 				//this.log("After error trap. searchChannelId:", searchChannelId);
 
-				// search by subtype in the inputServices array, index 0 = input 1
+				// search by subtype in the inputServices array, index 0 = input 1, subtype: 'input_SV09038',
 				const oldActiveIdentifier = this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).value;
 				//this.log("updateDeviceState: oldActiveIdentifier %s, currentActiveIdentifier %s, searchChannelId %s", oldActiveIdentifier, currentActiveIdentifier, searchChannelId)
+				//this.log("this.inputServices")
+				//this.log(this.inputServices)
 				currentActiveIdentifier = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + searchChannelId ) + 1;
+				//this.log("found searchChannelId %s at currentActiveIdentifier %s", 'input_' + searchChannelId , currentActiveIdentifier)
+				if (currentActiveIdentifier <= 0) { currentActiveIdentifier = NO_INPUT_ID; } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
 				//this.log("found searchChannelId at currentActiveIdentifier ", currentActiveIdentifier)
 
-
-				if (currentActiveIdentifier <= 0) { currentActiveIdentifier = NO_INPUT_ID; } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
 				if (oldActiveIdentifier !== currentActiveIdentifier) {
 					// get names from loaded channel list. Using Ch Up/Ch Down buttons on the remote rolls around the profile channel list
 					// what happens if the TV is changed to another profile?
 					var oldName = NO_CHANNEL_NAME, newName = oldName; // default to UNKNOWN
 					if (oldActiveIdentifier != NO_INPUT_ID && this.channelList[oldActiveIdentifier-1]) {
-						oldName = this.channelList[oldActiveIdentifier-1].channelName
+						oldName = this.channelList[oldActiveIdentifier-1].name
 					}
 
 					if (currentActiveIdentifier != NO_INPUT_ID) {
-						newName = this.channelList[currentActiveIdentifier-1].channelName
+						newName = this.channelList[currentActiveIdentifier-1].name
 					}
 					this.log('%s: Channel changed from %s [%s] to %s [%s]', 
 						this.name,
@@ -3152,13 +3565,59 @@ class stbDevice {
 				}
 
 
+				// +++++++++++++++ Input Service characteristics ++++++++++++++
+				/*
+				inputService
+				.setCharacteristic(Characteristic.Identifier, i)
+				.setCharacteristic(Characteristic.Name, chFixedName)
+				.setCharacteristic(Characteristic.ConfiguredName, chName || `Input ${i < 9 ? `0${i}` : i}`)
+				.setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.APPLICATION) 
+				.setCharacteristic(Characteristic.InputDeviceType, Characteristic.InputDeviceType.TV)
+				.setCharacteristic(Characteristic.IsConfigured, configState)
+				.setCharacteristic(Characteristic.CurrentVisibilityState, visState)
+				.setCharacteristic(Characteristic.TargetVisibilityState, visState);
+				*/
+				// check for change of InputDeviceType state: (a characteristic of Input Source)
+
+				let curInp = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + this.currentChannelId ) + 1;
+				if (this.previousInputDeviceType !== this.currentInputDeviceType) {
+					this.log('%s: Input Device Type changed on input %s %s from %s [%s] to %s [%s]', 
+						this.name,
+						curInp,
+						this.currentChannelId,
+						this.previousInputDeviceType, Object.keys(Characteristic.InputDeviceType)[this.previousInputDeviceType + 1],
+						this.currentInputDeviceType, Object.keys(Characteristic.InputDeviceType)[this.currentInputDeviceType + 1]
+						);
+				}
+				//this.televisionService.getCharacteristic(Characteristic.InputDeviceType).updateValue(this.currentInputDeviceType);
+				this.inputServices[curInp].getCharacteristic(Characteristic.InputDeviceType).updateValue(this.currentInputDeviceType);
+				this.previousInputDeviceType = this.currentInputDeviceType;
+
+				// check for change of InputSourceType state: (a characteristic of Input Source)
+				if (this.previousInputSourceType !== this.currentInputSourceType) {
+					this.log('%s: Input Source Type changed on input %s %s from %s [%s] to %s [%s]',
+						this.name,
+						curInp,
+						this.currentChannelId,
+						this.previousInputSourceType, Object.keys(Characteristic.InputSourceType)[this.previousInputSourceType + 1],
+						this.currentInputSourceType, Object.keys(Characteristic.InputSourceType)[this.currentInputSourceType + 1]);
+				}
+				// [12/11/2022, 12:22:37] [homebridge-eosstb] This plugin generated a warning from the characteristic 'Input Source Type': Characteristic not in required or optional characteristic section for service Television. Adding anyway.. See https://homebridge.io/w/JtMGR for more info.
+				this.inputServices[curInp].getCharacteristic(Characteristic.InputSourceType).updateValue(this.currentInputSourceType); // generates Homebridge warning
+				this.previousInputSourceType = this.currentInputSourceType;
+				//this.log('++++DEBUG: this.inputServices[curInp]')
+				//this.log(this.inputServices[curInp])
+
+				// +++++++++++++++ end of Input Service characteristics ++++++++++++++
+
+
 				// check for change of current media state
 				var oldMediaState = this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).value;
 				if (oldMediaState !== this.currentMediaState) {
 					this.log('%s: Media state changed from %s [%s] to %s [%s]', 
 						this.name,
-						oldMediaState, mediaStateName[oldMediaState],
-						this.currentMediaState, mediaStateName[this.currentMediaState]);
+						oldMediaState, currentMediaStateName[oldMediaState],
+						this.currentMediaState, currentMediaStateName[this.currentMediaState]);
 				}
 				this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.currentMediaState);
 				this.previousMediaState = this.currentMediaState;
@@ -3166,8 +3625,7 @@ class stbDevice {
 				// check for change of profile
 				if (this.profileDataChanged) {
 					this.log('%s: Profile data changed', this.name);
-					this.refreshChannelList();
-					
+					this.refreshDeviceChannelList();
 				}
 
 
@@ -3190,161 +3648,171 @@ class stbDevice {
 
 
 	// refresh the channel list that shows in the Home app
-	async refreshChannelList(callback) {
+	async refreshDeviceChannelList(callback) {
 		try {
-			if (this.config.debugLevel > 1) { this.log.warn('%s: refreshChannelList', this.name); }
-			this.log("%s: Refreshing channel list...", this.name);
+			if (this.config.debugLevel > 1) { this.log.warn('%s: refreshDeviceChannelList', this.name); }
+			this.log("%s: Refreshing device channel list...", this.name);
+			//this.log("%s: Refreshing channel list: CURRENTLY DISABLED AS MASTER CHANNEL LIST not yet BUILT", this.name);
+			//return;
 			
 			// exit if no session exists
 			if (currentSessionState != sessionState.CONNECTED) { 
-				this.log.warn('%s: refreshChannelList: Session not yet created, exiting', this.name);
+				this.log.warn('%s: refreshDeviceChannelList: Session not yet created, exiting', this.name);
 				return; 
 			}
 
 			// exit if no master channel list loaded yet (on platform level)
-			if (!this.platform.masterChannelListExpiryDate) { 
-				this.log.warn('%s: refreshChannelList: master channel list not yet loaded, exiting', this.name);
+			if (!this.platform.masterChannelList) { 
+				this.log.warn('%s: refreshDeviceChannelList: master channel list not yet loaded, exiting', this.name);
 				return; 
 			}
 
-			// limit the amount of max channels to load.
+			// limit the amount of max channels to load as Apple HomeKit is limited to 100 services per accessory.
+			// if a config exists for this device, read the users configured maxSources, if it exists
 			var maxSources = MAX_INPUT_SOURCES;
-
-			//this.profileId = this.platform.profiles.findIndex(profile => profile.name === this.config.profile);
-			/*
-			this.log("%s: Loading profile: %s", this.name, this.config.profile);
-			this.log("%s: config: %s", this.name, this.config);
-			this.log("%s: config.devices: %s", this.name, this.config.devices);
-			this.log("%s: looking for: %s", this.name, this.device.deviceId);
-			*/
-
-			if (this.config.debugLevel > 1) { this.log.warn("%s: Getting profile data from config", this.name); }
-			var chIds = [];
 			var configDevice = {};
 			if (this.config.devices) {
 				configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
 				if (configDevice) {
-					// homebridge config for this device was found, get the profile item (=profile name) if it exists in the published profiles
-					var foundProfileId = this.platform.profiles.findIndex(profile => profile.name === configDevice.profile);
-					if (foundProfileId > -1) {
-						if (this.config.debugLevel > 1) { this.log.warn("%s: Valid profile found in config: '%s'", this.name, configDevice.profile); }
-						this.profileId = foundProfileId;
-					}
-					// get any custom maxChannels, set per device. Caution: maxChannels may not exist!
+					// homebridge config for this device exists, read maxSources (if exists)
 					maxSources = Math.min(configDevice.maxChannels || maxSources, maxSources);
 				}
 			}
+			//this.log("%s: Setting maxSources to %s", this.name, maxSources);
+
+
+			// get a user configured Profile, if it exists, otherwise we will use the default Profile for the channel list
+			var wantedProfile;
+			if (this.config.debugLevel > 1) { this.log.warn("%s: Getting profile data from config", this.name); }
+			if (configDevice) {
+				// homebridge config for this device was found, get the profile item if the name exists in the published profiles
+				wantedProfile = this.customer.profiles.find(profile => profile.name === configDevice.profile);
+				if (wantedProfile) {
+					if (this.config.debugLevel > 1) { this.log.warn("%s: Configured profile found: '%s'", this.name, configDevice.profile); }
+				}
+			}
+			// fallback to default profile if no user profile found
+			if (!wantedProfile) {
+				// no profile found, use the default profile
+				wantedProfile = this.customer.profiles.find(profile => profile.profileId === this.device.defaultProfileId);
+				if (this.config.debugLevel > 1) {this.log.warn("%s: No user-configured profile found, reverting to default profile: '%s'", this.name, wantedProfile.name) }
+			}
+			//this.log("%s: Using profile %s", this.name, wantedProfile.name)
+			//this.log("%s: profile dump:", this.name)
+			//this.log(wantedProfile)
+
+			
+			// now load the mostWatched list for this profile
+			this.refreshDeviceMostWatchedChannels(wantedProfile.profileId); // async function
+
+			// get the wanted profile configured on the stb
+			this.profileId = wantedProfile.profileId
+			//this.log.warn("%s: Profile '%s' last modified at %s", this.name, wantedProfile.name, wantedProfile.lastModified); 
+
+
+			// load the subscribedChIds array from the favoriteChannels of the wantedProfile, in the order shown
+			// Note: favoriteChannels is allowed to be empty!
+			// Note: the shared profile contains no favorites
+			const lastModeDate = new Date(wantedProfile.lastModified);
+			this.log("%s: Profile '%s' contains %s channels, profile last modified on %s", this.name, wantedProfile.name, wantedProfile.favoriteChannels.length, lastModeDate.toLocaleString() );
+			var subscribedChIds = []; // an array of channelIds: SV00302, SV09091, etc
+			if (wantedProfile.favoriteChannels.length > 0){
+				if (this.config.debugLevel > 1) { 
+					this.log.warn("%s: Loading channels from profile '%s' into the subscribedChIds", this.name, wantedProfile.name)
+					this.log.warn("%s: Most watched list length", this.name, (this.mostWatched || []).length) 
+				}
+				// check channelOrder: new config item added in v2, config item may not exist for older users.
+				//let debugChannelorder = (configDevice.channelOrder || 'channelOrder')
+				//this.log.warn("%s: DEBUG debugChannelorder", this.name, debugChannelorder)
+				if ((((configDevice || {}).channelOrder) || 'channelOrder') == 'mostWatched' && (this.mostWatched || []).length > 0) {
+					// load by mostWatched sort order
+					if (this.config.debugLevel > 1) { 
+						this.log.warn("%s: Loading channel using most watched sort order", this.name)
+					}
+					this.mostWatched.forEach((mostWatchedChannelId) => {
+						//this.log.warn("%s: Loading channel using most watched sort order. Looking for channel %s", this.name, mostWatchedChannelId)
+						// channel is just the channelId eg SV09322
+						wantedProfile.favoriteChannels.forEach((channel) => {
+							//this.log.warn("%s: checking channel", this.name, channel)
+							if (channel == mostWatchedChannelId) {
+								if (this.config.debugLevel > 2) { 
+									this.log.warn("%s: Loading channel using most watched sort order. Channel %s found, loading at index %s", this.name, channel, subscribedChIds.length)
+								}
+								subscribedChIds.push( channel ); 
+							}
+						});
+					});
+				} else {
+					// load by standard sort order
+					if (this.config.debugLevel > 1) { 
+						this.log.warn("%s: Loading channel using standard sort order", this.name)
+					}
+					wantedProfile.favoriteChannels.forEach((channel) => {
+						if (this.config.debugLevel > 1) { 
+							this.log.warn("%s: Loading channel using standard sort order. Channel %s found, loading at index %s", this.name, channel, subscribedChIds.length)
+						}
+						subscribedChIds.push( channel ); 
+					});
+				}
+			}
+			if (this.config.debugLevel > 1) {
+				this.log.warn("%s: subscribedChIds.length: %s", this.name, subscribedChIds.length)
+				this.log.warn("%s: subscribedChIds %s", this.name, subscribedChIds)
+				this.log.warn("%s: subscribedChIds.length", this.name, subscribedChIds.length)
+			}
 
 
 
-			// if no configured profile found (config item does not exist or name not found)
-			// or the selected profile has zero channels added to the "Profile channels list" 
-			// then build a clean, sorted, subscribed channel list
-			var subscribedChList = [];
-			if (this.config.debugLevel > 1) { this.log.warn("%s: Using profileId %s", this.name, this.profileId); }
-			if (this.config.debugLevel > 1) { this.log.warn("%s: Checking if subscribed channel list is needed", this.name); }
-			if (this.profileId <= 0 || this.platform.profiles[this.profileId].favoriteChannels.length == 0 ) {
-				if (this.config.debugLevel > 1) { this.log.warn("%s: Building subscribed channel list", this.name); }
+			// if the subscribedChIds is empty, load the channels from the master channel list
+			// sorted by logicalChannelNumber, including only entitled channels
+			//if (this.config.debugLevel > 1) { this.log.warn("%s: Checking if subscribed channel list is needed", this.name); }
+			//this.log.warn("%s: this.customer.profiles", this.name, this.customer.profiles); 
+			//wantedProfile = this.customer.profiles.find(profile => profile.profileId === this.device.defaultProfileId);
+			if (subscribedChIds.length == 0 ) {
+				if (this.config.debugLevel > 1) { this.log("%s: Profile '%s' contains 0 favorite channels. Channel list will be loaded from master channel list", this.name, wantedProfile.name); }
 				// get a clean list of entitled channels (will not be in correct order)
 				// some entitlements are not in the masterchannelList, these must be ignored
-				if (this.config.debugLevel > 1) { this.log.warn("%s: Checking %s entitlements within %s channels in the master channel list", this.name, this.platform.session.entitlements.length, this.platform.masterChannelList.length); }
-				
-				this.platform.session.entitlements.forEach((chId) => {
-					// chId can be crid:~~2F~~2Fupcch.tv~~2FSV09170, so split at ~~2F to get SV09170
-					// channels can exist multiple times in the entitlements
-					const chIdParts = chId.split("~~2F");
-					chId = chIdParts[chIdParts.length-1];
-					if (this.config.debugLevel > 2) { 
-						this.log.warn("%s: Checking entitlements ", this.name, chId); 
-					}
-					// see if we can find this in the masterChannelList, but not in the subscribedChList
-					// if exists in masterChannelList, and not in subscribedChList, add to subscribedChList
-					var masterChListIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === chId);
-					var subsChListIndex = subscribedChList.findIndex(subsChId => subsChId === chId);
-					if ( masterChListIndex > -1 && subsChListIndex == -1 ) { 
-						if (this.config.debugLevel > 2) { 
-							this.log.warn("%s: entitlement channelId does not exist in unsorted subscribedChList, adding %s at index %s", this.name, chId, subscribedChList.length); 
-						}
-						subscribedChList.push( chId ); 
-					}
-				});
+				//if (this.config.debugLevel > 1) { this.log.warn("%s: Checking %s entitlements within %s channels in the master channel list", this.name, this.platform.session.entitlements.length, this.platform.masterChannelList.length); }
 
-				// the channels are not in the right sort order, so sort correctly in same order as masterChannelList
+				// entitlements needs to be reworked, currently load everything
+				//this.log.warn("%s: Loading all channels into the subscribedChIds", this.name)
+				//this.log.warn("%s: masterChannelList.length", this.name, this.platform.masterChannelList.length)
+				//this.log.warn("%s: this.entitlements %s", this.name, this.entitlements)
+				//this.log.warn("%s: this.platform.entitlements.entitlements %s", this.name, this.platform.entitlements.entitlements)
 				this.platform.masterChannelList.forEach((channel) => {
-					var foundIndex = subscribedChList.findIndex(chId => chId === channel.channelId);
-					if ( foundIndex > -1 ) { 
-						if (this.config.debugLevel > 2) { 
-							this.log.warn("%s: channelId does not exist in sorted chIds, adding %s %s at index %s", this.name, channel.channelId, channel.channelName, chIds.length); 
-						}
-						chIds.push( channel.channelId ); 
-					} 
-				});
-				if (this.config.debugLevel > 2) { 
-					this.log.warn("%s: Sorted chids created with %s entries", this.name, chIds.length); 
-				}
-
-
-			}
-
-
-
-			// smart default channel list selection
-			// a profile can contain zero channels, this is OK
-			// load from profile channels list if one exists, otherwise from the subscribed channel list
-			// if the subscribed channel list fits  (>0 and <=maxSources), use it
-			// otherwise, use the first found profile channel list that fits
-			// always default to the subscribedChList if nothing else fits
-			if (this.profileId == -1) {
-				this.log("%s: No valid profile found in config. Selecting best-fitting profile", this.name);
-				if (subscribedChList.length > 0 && subscribedChList.length <= maxSources) {
-					// the subscribed channel list fits, use it
-					if (this.config.debugLevel > 1) { this.log.warn("%s: Selecting full subscribed channel list", this.name); }
-					this.profileId = 0; // default channel list
-				} else {
-					// otherwise, use the first found profile channel list theat fits
-					// check all available profiles and choose the first found with <90 channels
-					if (this.config.debugLevel > 1) { this.log.warn("%s: Looking for best fit profile channel list within %s user profiles", this.name, this.platform.profiles.length-1); }
-					for(let i=1; i<this.platform.profiles.length; i++) {
-						if (this.config.debugLevel > 1) { this.log.warn("%s: Checking profile %s '%s' containing %s channels", this.name, i, this.platform.profiles[i].name, this.platform.profiles[i].favoriteChannels.length); }
-						if (this.platform.profiles[i].favoriteChannels.length > 0 && this.platform.profiles[i].favoriteChannels.length <= maxSources) {
-							// found a profile that can be used
-							if (this.config.debugLevel > 1) { this.log.warn("%s: Selecting profile '%s' with %s channels", this.name, this.platform.profiles[i].name, this.platform.profiles[i].favoriteChannels.length); }
-							this.profileId = i;
-							break;
-						}
+					// check entitlements of this channel
+					// channel.linearProducts is an array of entitlement codes assigned to a channel, each channel can have multiple entitlement codes
+					// linearProducts: [ '601007005' ],
+					// this.platform.entitlements.entitlements is an array of entitlement codes that the household has subscribed to
+					// [{ casIndicator: 0, id: '600000001' }, { casIndicator: 0, id: '600000080' }, { casIndicator: 1, id: '600000070' }, { casIndicator: 1, id: '600000300' }]
+					// control channel: SV09038 SRF 1 HD (entitled), with "linearProducts": [ '100000000', '100000001', '600000300'	],
+					// control channel: SV06321 Nicktoons (not entitled), with linearProducts: [ '601007005' ],
+					var isEntitled = false;
+					this.log.debug("%s: checking entitlements for %s %s", this.name, channel.id, channel.name)
+					this.log.debug("%s: channel.linearProducts %s", this.name, channel.linearProducts)
+					this.platform.entitlements.entitlements.forEach((subscribedlEntitlement) => {
+						if (channel.linearProducts.includes(subscribedlEntitlement.id)){
+							this.log("%s: channel channelId %s, linearProducts includes subscribedlEntitlement.id %s, channel is entitled", this.name, channel.id, subscribedlEntitlement.id)
+							isEntitled = true;
 					}
+					});
+					if (isEntitled){
+						subscribedChIds.push( channel.id ); 
+						this.log("%s: %s %s is entitled, pushed to subscribedChIds, subscribedChIds.length now %s", this.name, channel.id, channel.name, subscribedChIds.length)
 				}
+				});
+				this.log("%s: subscribedChIds.length", this.name, subscribedChIds.length)
+			}
+			if (this.config.debugLevel > 1) { 
+				this.log("%s: Subscribed channel list loaded with %s channels", this.name, subscribedChIds.length)
 			}
 
 
-			// if no profile can be found, default to SharedProfile 0
-			// ensures choice is 0, or >0, but never -1
-			this.profileId = Math.max(this.profileId,0); 
-			this.log("%s: Using profile %s '%s'", this.name, this.profileId, this.platform.profiles[this.profileId].name);
 
-		
-
-
-			// determine what channel list we need to load: "Profiles channels list" or master list
-			// profile can have zero channels in it, this is OK, but if so load the master channel list
-			var channelsLoadedFromProfileName;
-			if (this.profileId == 0) {
-				// subscribed channels in Shared Profile, already loaded to chIds
-				channelsLoadedFromProfileName = this.platform.profiles[this.profileId].name;
-				this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
-			} else if ( this.platform.profiles[this.profileId].favoriteChannels.length > 0 ) {
-				chIds = this.platform.profiles[this.profileId].favoriteChannels;
-				channelsLoadedFromProfileName = this.platform.profiles[this.profileId].name;
-				this.log("%s: Profile '%s' contains %s channels", this.name, channelsLoadedFromProfileName, chIds.length);
-			} else {	
-				// Default subscribed channels in Shared Profile, already loaded to chIds
-				channelsLoadedFromProfileName = this.platform.profiles[0].name;
-				this.log("%s: Profile '%s' contains 0 channels. Channel list will be loaded from profile '%s'", this.name, this.platform.profiles[this.profileId].name, channelsLoadedFromProfileName);
-			}
 
 			// recently viewed apps
 			if (this.config.debugLevel > 1) { 
-				this.log.warn("%s: refreshChannelList: recentlyUsedApps", this.name, this.platform.profiles[this.profileId].recentlyUsedApps);
+				this.log.warn("%s: refreshDeviceChannelList: recentlyUsedApps", this.name, wantedProfile.recentlyUsedApps);
 			}
 
 
@@ -3359,7 +3827,7 @@ class stbDevice {
 				currentChannelName = this.inputServices[currentActiveIdentifier].getCharacteristic(Characteristic.ConfiguredName).value;
 			}
 			if (this.config.debugLevel > 0) { 
-				this.log.warn("%s: refreshChannelList: before channel refresh: this.currentChannelId %s currentActiveIdentifier %s currentChannelName %s", this.name, this.currentChannelId, currentActiveIdentifier, currentChannelName);
+				this.log.warn("%s: refreshDeviceChannelList: before channel refresh: this.currentChannelId %s currentActiveIdentifier %s currentChannelName %s", this.name, this.currentChannelId, currentActiveIdentifier, currentChannelName);
 			}
 			*/
 
@@ -3368,26 +3836,25 @@ class stbDevice {
 			//this.log("Found before channel load: this.currentChannelId %s found at currentInpIndex %s", this.currentChannelId, currentInpIndex);
 
 
+			////////////////////////////////////////////////////////
+			// load the input list
+			////////////////////////////////////////////////////////
+
 			// clear the array
 			this.channelList = [];
 
 			// limit the amount to load
-			const chs = Math.min(chIds.length, maxSources);
-			this.log("%s: Refreshing channels 1 to %s", this.name, chs);
-			if (chs < maxSources) {
-				this.log("%s: Hiding     channels %s to %s", this.name, chs + 1, maxSources);
+			const maxChs = Math.min(subscribedChIds.length, maxSources);
+			this.log("%s: Refreshing channels 1 to %s", this.name, maxChs);
+			if (maxChs < maxSources) {
+				this.log("%s: Hiding     channels %s to %s", this.name, maxChs + 1, maxSources);
 			}
 
 
-			// loop and load all channels from the chIds in the order defined by the array
-			chIds.forEach((chId, i) => {
-				//this.log("In for-each loop, processing index %s %s", i, chId)
-				// normalise the chId
-				// can be "crid:~~2F~~2Fupcch.tv~~2FSV09170" or just "SVO9170" so split at ~~2F
-				const oldChId = chId;
-				const chIdParts = chId.split("~~2F");
-				chId = chIdParts[chIdParts.length-1];
-				if (oldChId.includes("~~2F")) { this.log("chId %s modified to chId %s", oldChId, chId); }
+			// loop and load all channels from the subscribedChIds in the order defined by the array
+			//this.log("Loading all subscribed channels")
+			subscribedChIds.forEach((subscribedChId, i) => {
+				//this.log("In forEach loop, processing index %s %s", i, subscribedChId)
 
 				// find the channel to load.
 				var channel = {};
@@ -3395,85 +3862,93 @@ class stbDevice {
 				
 				// first look in the config channels list for any user-defined custom channel name
 				if (this.config.channels) {
-					customChannel = this.config.channels.find(channel => channel.channelId === chId);
-					if ((customChannel || {}).channelName) { 
-						customChannel.channelName = cleanNameForHomeKit(customChannel.channelName)
-						this.log("%s: Found %s in config channels, setting name to %s", this.name, chId, customChannel.channelName);
+					customChannel = this.config.channels.find(channel => channel.id === subscribedChId);
+					if ((customChannel || {}).name) { 
+						customChannel.name = cleanNameForHomeKit(customChannel.name)
+						this.log("%s: Found %s in config channels, setting name to %s", this.name, subscribedChId, customChannel.name);
 					} else {					
 						customChannel = {}; 
 					}
 				}
 
-				// check if the chId exists in the master channel list, if not, push it, using the user-defined name if one exists, and channelNumber >10000
-				this.log.debug("%s: Index %s: Finding chId %s in master channel list", this.name, i, chId);
-				channel = this.platform.masterChannelList.find(channel => channel.channelId === chId); 
+				// check if the subscribedChId exists in the master channel list, if not, push it, using the user-defined name if one exists, and channelNumber >10000
+				this.log.debug("%s: Index %s: Finding %s in master channel list", this.name, i, subscribedChId);
+				channel = this.platform.masterChannelList.find(channel => channel.id === subscribedChId); 
 				if (!channel) {
-					const newChName = customChannel.channelName || "Channel " + chId; 
-					this.log("%s: Unknown channel %s [%s] discovered. Adding to the master channel list", this.name, chId, newChName);
+					const newChName = customChannel.name || "Channel " + subscribedChId; 
+					this.log("%s: Unknown channel %s [%s] discovered. Adding to the master channel list", this.name, subscribedChId, newChName);
 					this.platform.masterChannelList.push({
-						channelId: chId, 
-						channelNumber: 10000 + this.platform.masterChannelList.length, 
-						channelName: newChName
-						//channelListIndex: this.platform.masterChannelList.length
+						id: subscribedChId, 
+						name: newChName,
+						logicalChannelNumber: 10000 + this.platform.masterChannelList.length, // integer
+						linearProducts: this.platform.entitlements.entitlements[0].id // must be a valid entitlement id
 					});
 					// refresh channel as the not found channel will now be in the masterChannelList
-					channel = this.platform.masterChannelList.find(channel => channel.channelId === chId); 
+					channel = this.platform.masterChannelList.find(channel => channel.id === subscribedChId); 
+					channel.configuredName = channel.name; // set a configured name same as name 
 				} else {
 					// show some useful debug data
-					this.log.debug("%s: Index %s: Found %s in master channel list", this.name, i, chId);
+					this.log.debug("%s: Index %s: Found %s %s in master channel list", this.name, i, channel.id, channel.name);
 				}
 
 				// load this channel as an input
 				//this.log("loading input %s of %s", i + 1, maxSources)
+				//this.log.warn("%s: Index %s: Checking if %s %s can be loaded", this.name, i, channel.id, channel.name);
 				if (i < maxSources) {
 
 					// add the user-defined name if one exists
-					if (customChannel && customChannel.channelName) { channel.channelName = customChannel.channelName; }
+					if (customChannel && customChannel.name) { channel.name = customChannel.name; }
 
 					// show channel number if user chose to do so
 					// must only happen once!
 					if ((configDevice || {}).showChannelNumbers) {
 						// a config exists. Add channel number prefix only if the prefix does not exist
 						const chPrefix = ('0' + (i + 1)).slice(-2) + " ";
-						if (!channel.channelConfiguredName || channel.channelConfiguredName.slice(0, 3) != chPrefix) {
+						if (!channel.configuredName || channel.configuredName.slice(0, 3) != chPrefix) {
 							//this.log("Adding prefix to configured name", chPrefix)
-							channel.channelConfiguredName = chPrefix + channel.channelName;
+							channel.configuredName = chPrefix + channel.name;
 						}
 					} else {
-						channel.channelConfiguredName = channel.channelName;
+						channel.configuredName = channel.name;
 					}
 
-					// add channel visibility and configured name, these don't exist on the master channel list
-					// these should be read from file...
-					channel.channelVisibilityState = Characteristic.CurrentVisibilityState.SHOWN;
+					// add channel visibilitystate, doesn't exist on the master channel list
+					// TODO these should be read from file...
+					channel.visibilityState = Characteristic.CurrentVisibilityState.SHOWN;
 
 					// show debug and add to array
-					//this.log.debug("%s: Index %s: Refreshing channel %s: [%s] %s", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
-					this.log.debug("%s: Index %s: Refreshing channel %s: %s [%s]", this.name, i, ('0' + (i + 1)).slice(-2), chId, channel.channelName);
+					this.log.debug("%s: Index %s: Refreshing channel %s: %s [%s]", this.name, i, ('0' + (i + 1)).slice(-2), channel.id, channel.name);
 					this.channelList[i] = channel;
 
-					// update accesory only when configured
+					// update accesory only when configured, as this.inputServices[i] can only be updated when it exists
 					if (this.accessoryConfigured) { 
 						// update existing services
-						//this.log.debug("Adding %s %s to input index %s",channel.channelId, channel.channelName, i);
-						this.log.debug("Adding %s %s to input %s at index %s",channel.channelId, channel.channelName, i+1, i);
-						this.inputServices[i].name = channel.channelConfiguredName;
-						this.inputServices[i].subtype = 'input_' + channel.channelId;
+						if (this.config.debugLevel > 2) { 
+							this.log.warn("Adding %s %s to input %s at index %s",channel.id, channel.name, i+1, i);
+						}
+						this.inputServices[i].name = channel.configuredName;
+						this.inputServices[i].subtype = 'input_' + channel.id; // string, input_SV09038 etc
+						//this.inputServices[i].subtype = 'input_' + i+1; // integer, generates input_1 for index 0
+						//this.log.warn("DEBUG: input %s subtype set to %s %s",i+1, channel.id, this.inputServices[i].subtype);
 
 						// Name can only be set for SharedProfile where order can never be changed
 						if (this.profileid == 0) {
-							this.inputServices[i].updateCharacteristic(Characteristic.Name, channel.channelName); // stays unchanged at Input 01 etc
+							this.inputServices[i].updateCharacteristic(Characteristic.Name, channel.name); // stays unchanged at Input 01 etc
 						}
-						this.inputServices[i].updateCharacteristic(Characteristic.ConfiguredName, channel.channelConfiguredName);
-						this.inputServices[i].updateCharacteristic(Characteristic.CurrentVisibilityState, channel.channelVisibilityState);
-						this.inputServices[i].updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
+						this.inputServices[i]
+							.updateCharacteristic(Characteristic.ConfiguredName, channel.configuredName)
+							.updateCharacteristic(Characteristic.CurrentVisibilityState, channel.visibilityState)
+							.updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
 						//inputService.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
 					}
 				}
 			});
 
 			// after loading all the channels, reset the ActiveIdentifier (uint32) to the right Identifier (uint32), as it may have moved slots
+			// subtype: 'input_SV09038',
 			const currentInput = this.inputServices.find(channel => channel.subtype == 'input_' + this.currentChannelId);
+			//this.log("DEBUG: this.currentChannelId %s", this.currentChannelId)
+			//this.log("DEBUG: currentInput %s", currentInput)
 			if (currentInput) { 
 				this.televisionService.updateCharacteristic(Characteristic.ActiveIdentifier, currentInput.getCharacteristic(Characteristic.Identifier).value);
 			} else {
@@ -3482,6 +3957,34 @@ class stbDevice {
 					this.televisionService.updateCharacteristic(Characteristic.ActiveIdentifier, NO_INPUT_ID);
 				}
 			}
+
+			// load any custom key macros: in work, not for publich consumption yet
+			if (this.config.channels && 1==0) {
+				this.config.channels.forEach((customChannel, i) => {
+				this.log("In forEach loop, processing config channel index %s %s", i, customChannel)
+
+				this.log(customChannel)
+				// first look in the config channels list for any user-defined custom channel name
+				if (customChannel.channelKeyMacro){
+					this.log("%s: Found Key Macro in config channels:", this.name, customChannel.channelKeyMacro, customChannel.channelName)
+					let i = this.inputServices.length
+					this.log("inputService %s is set to", i-1);
+					this.log(this.inputServices[i-1]);
+					this.inputServices[i]
+						.name = customChannel.channelName
+						//.subtype = 'input_KM' + 20000 + i; // string, input_KM20000 + channel offset. KM=KeyMacro
+					this.inputServices[i].updateCharacteristic(Characteristic.Name, customChannel.channelName) // stays unchanged at Input 01 etc
+						.updateCharacteristic(Characteristic.ConfiguredName, customChannel.channelName)
+						.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.SHOWN)
+						.updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
+					
+					this.log("inputService %s is set to", i);
+					this.log(this.inputServices[i]);
+
+				}
+				})
+			}
+
 
 
 			// save to disk
@@ -3498,7 +4001,7 @@ class stbDevice {
 							this.log("loading app", i, appId);
 							if (i <= maxSources) {
 								// get the channel
-								var foundIndex = this.platform.masterChannelList.findIndex(channel => channel.channelId === appId);
+								var foundIndex = this.platform.masterChannelList.findIndex(channel => channel.id === appId);
 								//this.log("foundIndex", foundIndex);
 								if (foundIndex >= 0) {
 									var channel = this.platform.masterChannelList[foundIndex];
@@ -3508,7 +4011,7 @@ class stbDevice {
 
 									const inputService = this.inputServices[i];
 									inputService
-										.updateCharacteristic(Characteristic.ConfiguredName, channel.channelName)
+										.updateCharacteristic(Characteristic.ConfiguredName, channel.name)
 										.updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED)
 										.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.SHOWN)
 										.updateCharacteristic(Characteristic.TargetVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
@@ -3527,17 +4030,18 @@ class stbDevice {
 			//this.log("channelList, filtering to first %s items", loadedChs);
 			//this.channelList = this.channelList.filter((channel, index) => index < loadedChs)
 			//this.log("channelList post filter:", this.channelList);
-			for(let i=chs; i<maxSources; i++) {
+			//this.log.debug("channelList, setting hidden items from %s to %s", maxChs + 1, maxSources);
+			for(let i=maxChs; i<maxSources; i++) {
 				//this.log.debug("Hiding channel", ('0' + (i + 1)).slice(-2));
-				this.log.debug("Hiding channel", ('0' + (i+1)).slice(-2));
-				// array must stay same size and have elements that can be queried, but channelId and channelListIndex must never match valid entries
+				this.log.debug("Hiding channel %s of %s", ('0' + (i+1)).slice(-2), maxSources);
+				// array must stay same size and have elements that can be queried, but channelId must never match valid entries
 				this.channelList[i] = {
-					channelId: 'chId_' + i,  // channelid mjust be unique
-					channelNumber: 'none', 
-					channelName: 'HIDDEN', 
-					//channelListIndex: 10000 + i,
-					channelVisibilityState: Characteristic.CurrentVisibilityState.HIDDEN,
-					channelConfiguredName: 'HIDDEN'
+					id: 'hiddenChId_' + i,  // channelid must be unique string, must be different from standard channel ids
+					name: 'HIDDEN_' + ('0' + (i+1)).slice(-2), 
+					logicalChannelNumber: null,
+					linearProducts: null,
+					configuredName: 'HIDDEN_' + ('0' + (i+1)).slice(-2),
+					visibilityState: Characteristic.CurrentVisibilityState.HIDDEN
 				}
 				
 				// get service and hide it if it exists
@@ -3550,13 +4054,75 @@ class stbDevice {
 
 			}
 
-			this.log("%s: Channel list refreshed from profile '%s' with %s channels", this.name, channelsLoadedFromProfileName, Math.min(chIds.length, maxSources));
+			this.log("%s: Channel list refreshed with %s channels", this.name, Math.min(maxChs, maxSources));
 			return false;
 
 		} catch (err) {
-			this.log.error("Error trapped in refreshChannelList:", err.message);
+			this.log.error("Error trapped in refreshDeviceChannelList:", err.message);
 			this.log.error(err);
 		}		
+	}
+
+	// get the most watched channels for the deviceId profileId
+	// this is for the web session type as of 13.10.2022
+	async refreshDeviceMostWatchedChannels(profileId, callback) {
+		if (this.config.debugLevel > 1) { this.log("%s: refreshDeviceMostWatchedChannels started with %s", this.name, profileId); }
+		const profile = this.customer.profiles.find(profile => profile.profileId === profileId);
+		this.log("%s: Refreshing most watched channels for profile '%s'", this.name, (profile || {}).name);
+
+		// 	https://prod.spark.sunrisetv.ch/eng/web/linear-service/v1/mostWatchedChannels?cityId=401&productClass=Orion-DASH"
+		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v1/mostWatchedChannels';
+		// add url standard parameters
+		url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
+		url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
+		if (this.config.debugLevel > 2) { this.log.warn('refreshDeviceMostWatchedChannels: loading from',url); }
+
+		const config = {headers: {
+			"x-oesp-username": this.platform.session.username, // not sure if needed
+			"x-profile": profile.profileId
+		}};
+		if (this.config.debugLevel > 0) { this.log.warn('refreshDeviceMostWatchedChannels: GET %s', url); }
+		// this.log('getMostWatchedChannels: GET %s', url);
+		axiosWS.get(url, config)
+			.then(response => {	
+				if (this.config.debugLevel > 2) { this.log.warn('refreshDeviceMostWatchedChannels: %s: response: %s %s', profile.name, response.status, response.statusText); }
+				if (this.config.debugLevel > 2) { 
+					this.log.warn('refreshDeviceMostWatchedChannels: %s: response data:', profile.name);
+					this.log.warn(response.data);
+				}
+				this.mostWatched = response.data; // store the entire mostWatched data for future use in this.mostWatched
+				this.log("%s: MostWatched list refreshed with %s channels", this.name, this.mostWatched.length);
+
+				return false;
+			})
+			.catch(error => {
+				let errText, errReason;
+				errText = 'Failed to refresh most watched channel data for ' + profileId + ' ' + profile.name + ' - check your internet connection:'
+				if (error.isAxiosError) { 
+					errReason = error.code + ': ' + (error.hostname || ''); 
+					// if no connection then set session to disconnected to force a session reconnect
+					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+				}
+				this.log('%s %s', errText, (errReason || ''));
+				this.log.debug(`refreshDeviceMostWatchedChannels error:`, error);
+				return false, error;
+			});		
+		return false;
+	}
+
+	getMaxSources(callback) {
+		// limit the amount of max channels to load as Apple HomeKit is limited to 100 services per accessory.
+		// if a config exists for this device, read the users configured maxSources, if it exists
+		var maxSources = MAX_INPUT_SOURCES;
+		var configDevice = {};
+		if (this.config.devices) {
+			configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
+			if (configDevice) {
+				// homebridge config for this device exists, read maxSources (if exists)
+				maxSources = Math.min(configDevice.maxChannels || maxSources, maxSources);
+			}
+		}
+		//this.log("%s: Setting maxSources to %s", this.name, maxSources);
 	}
 
 	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3581,7 +4147,7 @@ class stbDevice {
 	// get power state
 	async getPower(callback) {
 		// fired when the user clicks away from the Remote Control, regardless of which TV was selected
-		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
+		// fired when the Home app wants to refresh the TV tile. Refresh occurs when tile is displayed.
 		// this.currentPowerState is updated by the polling mechanisn
 		//this.log('getPowerState current power state:', this.currentPowerState);
 		if (this.config.debugLevel > 1) { 
@@ -3592,8 +4158,8 @@ class stbDevice {
 
 	// set power state
 	async setPower(targetPowerState, callback) {
-		// fired when the user clicks the power button in the TV accessory in HomeKit
-		// fired when the user clicks the TV tile in HomeKit
+		// fired when the user clicks the power button in the TV accessory in the Home app
+		// fired when the user clicks the TV tile in the Home app
 		// fired when the first key is pressed after opening the Remote Control
 		// wantedPowerState is the wanted power state: 0=off, 1=on
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setPower targetPowerState:', this.name, targetPowerState, powerStateName[targetPowerState]); }
@@ -3695,6 +4261,7 @@ class stbDevice {
 
 	// get volume
 	async getVolume(callback) {
+		// not supported, but might use somehow in the future
 		if (this.config.debugLevel > 1) { this.log.warn("getVolume"); }
 		callback(null);
 	}
@@ -3756,15 +4323,17 @@ class stbDevice {
 	// get input (TV channel)
 	async getInput(callback) {
 		// fired when the user clicks away from the iOS Device TV Remote Control, regardless of which TV was selected
-		// fired when the icon is clicked in HomeKit and HomeKit requests a refresh
-		// this.currentChannelId is updated by the polling mechanisn
+		// fired when the icon is clicked in the Home app and HomeKit requests a refresh
+		// fired when the Home app is opened
+		// this.currentChannelId is updated by mqtt
 		// must return a valid index, and must never return null
 		//if (this.config.debugLevel > 1) { this.log.warn('%s: getInput currentChannelId %s',this.name, this.currentChannelId); }
 
-		// find the this.currentChannelId in the accessory inputs and return the inputindex once found
+		// find the this.currentChannelId (eg SV09038) in the accessory inputs and return the inputindex once found
 		// this allows HomeKit to show the selected current channel
 		// as we cannot guarrantee the list order due to personalizationServices changing it at any time
 		// we must search by input_channelId within the current accessory InputSource.subtype
+		//this.log.warn('%s: getInput looking for this.currentChannelId %s in this.inputServices', this.name, this.currentChannelId);
 		var currentChannelName = NO_CHANNEL_NAME;
 		var currentInputIndex = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + this.currentChannelId );
 		if (currentInputIndex == -1) { currentInputIndex = NO_INPUT_ID-1 } // if nothing found, set to NO_INPUT_ID to clear the name from the Home app tile
@@ -3779,15 +4348,26 @@ class stbDevice {
 		callback(null, currentActiveInput);
 	}
 
+	
 	// set input (change the TV channel)
 	async setInput(input, callback) {
-		if (this.config.debugLevel > 1) { this.log.warn('%s: setInput input %s %s',this.name, input.channelId, input.channelName); }
+		input = input ?? {} // ensure input is never null or undefined
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setInput input %s %s',this.name, input.id, input.name); }
 		callback(null); // for rapid response
 		var currentChannelName = NO_CHANNEL_NAME;
-		const channel = this.platform.masterChannelList.find(channel => channel.channelId === this.currentChannelId);
-		if (channel) { currentChannelName = channel.channelName; }
-		this.log('%s: Change channel from %s [%s] to %s [%s]', this.name, this.currentChannelId, currentChannelName, input.channelId, input.channelName);
-		this.platform.switchChannel(this.deviceId, this.name, input.channelId, input.channelName);
+		const channel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId);
+		if (channel) { currentChannelName = channel.name; }
+
+		//this.log.warn("setInput: go to input %s", input)
+		//this.log.warn(channel)
+
+		// robustness: only try to switch channel if an input.id exists
+		if (input.id){
+			this.log('%s: Change channel from %s [%s] to %s [%s]', this.name, this.currentChannelId, currentChannelName, input.id, input.name);
+			this.platform.switchChannel(this.deviceId, this.name, input.id, input.name);
+		} else {
+			this.log.warn('%s: setInput called with no input.id', this.name);
+		}
 	}
 
 
@@ -3800,7 +4380,7 @@ class stbDevice {
 		// need to read from stored cache, currently not implemented, TO-DO
 		var chName = NO_CHANNEL_NAME; // must have a value
 		if (this.channelList[inputId-1]) {
-			chName = this.channelList[inputId-1].channelConfiguredName;
+			chName = this.channelList[inputId-1].configuredName;
 		}
 		if (this.config.debugLevel > 1) { 
 			this.log.warn("%s: getInputName for input %s returning '%s'", this.name, inputId, chName);
@@ -3815,48 +4395,60 @@ class stbDevice {
 		// as user could name multiple channels to xxx
 		// iOS does not like / or ! in the channel name:
 		// channel 3 renamed from BBC Four/Cbeebies HD to BBC Four Cbeebies HD (valid only for HomeKit)
+		// inputId is an integer of the input
 
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setInputName for input %s to inputName %s', this.name, inputId, newInputName); }
 
 		// store in channelList array and write to disk at every change
-		this.channelList[inputId-1].channelConfiguredName = newInputName;
+		// ensure that this.channelList bounds are not exceeded!
+		//if (this.config.debugLevel > 1) { this.log('%s: DEBUG setInputName inputId %s, this.channelList.length %s', this.name, inputId, this.channelList.length);	}
+		// not yet working, sometimes causes errors when channelList is not full of data, so comented out
+		/*
+		this.log.warn('%s: setInputName inputId %s, this.channelList.length %s', this.name, inputId, this.channelList.length);
+		if (inputId < this.channelList.length){
+			//this.channelList[inputId-1].configuredName = newInputName;
+			//const oldInputName = this.channelList[inputId-1].name;
+		}
+		*/
+
 		//not yet active
 		//this.platform.persistConfig(this.deviceId, this.channelList);
 
-		const oldInputName = this.channelList[inputId-1].channelName;
 		// maybe suppress 
 		if (this.config.debugLevel > 2) {
-			this.log('%s: Renamed channel %s from %s to %s (valid only for HomeKit)', this.name, inputId+1, oldInputName, newInputName);
+			//this.log('%s: Renamed channel %s from %s to %s (valid only for HomeKit)', this.name, inputId+1, oldInputName, newInputName);
+			this.log('%s: Renamed channel %s to %s (valid only for HomeKit)', this.name, inputId+1, newInputName);
 		}
 		callback(null);
 	};
 
 
 
-	// get input visibility state (of the TV channel in HomeKit)
+	// get input visibility state (of the TV channel in the accessory)
 	async getInputVisibilityState(inputId, callback) {
-		//if (this.config.debugLevel > 1) { this.log.warn('%s: getInputVisibilityState inputId %s', this.name, inputId); }
+		// fired when ??
+		if (this.config.debugLevel > 1) { this.log.warn('%s: getInputVisibilityState inputId %s', this.name, inputId); }
 		//var visibilityState = Characteristic.CurrentVisibilityState.SHOWN;
-		//if (this.channelList[inputId-1].channelName == 'HIDDEN') {
+		//if (this.channelList[inputId-1].name == 'HIDDEN') {
 		//	visibilityState = Characteristic.CurrentVisibilityState.HIDDEN;
 		// }
-		// from v1.1.7, index 0 is input 1 and so on
 		const visibilityState = this.inputServices[inputId-1].getCharacteristic(Characteristic.CurrentVisibilityState).value;
 		if (this.config.debugLevel > 2) {
-			this.log.warn('%s: getInputVisibilityState for input %s returning %s [%s]', this.name, inputId, visibilityState, visibilityStateName[visibilityState]);
+			this.log.warn('%s: getInputVisibilityState for input %s returning %s [%s]', this.name, inputId, visibilityState, Object.keys(Characteristic.CurrentVisibilityState)[visibilityState + 1]);
 		}
 		callback(null, visibilityState);
 	}
 
 	// set input visibility state (show or hide the TV channel)
 	async setInputVisibilityState(inputId, visibilityState, callback) {
+		// fired when ??
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: setInputVisibilityState for input %s inputVisibilityState %s [%s]', this.name, inputId, visibilityState, visibilityStateName[visibilityState]); 
+			this.log.warn('%s: setInputVisibilityState for input %s inputVisibilityState %s [%s]', this.name, inputId, visibilityState, Object.keys(Characteristic.CurrentVisibilityState)[visibilityState + 1]); 
 		}
 		this.inputServices[inputId-1].getCharacteristic(Characteristic.CurrentVisibilityState).updateValue(visibilityState);
 
 		// store in channelList array and write to disk at every change
-		this.channelList[inputId-1].channelVisibilityState = visibilityState;
+		this.channelList[inputId-1].visibilityState = visibilityState;
 		//not yet active
 		//this.platform.persistConfig(this.deviceId, this.channelList);
 
@@ -3866,20 +4458,20 @@ class stbDevice {
 
 	// get closed captions state
 	async getClosedCaptions(callback) {
-		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
+		// fired when the Home app wants to refresh the TV tile. Refresh occurs when tile is displayed.
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getClosedCaptions returning %s [%s]', this.name, this.currentClosedCaptionsState, closedCaptionsStateName[this.currentClosedCaptionsState]); 
+			this.log.warn('%s: getClosedCaptions returning %s [%s]', this.name, this.currentClosedCaptionsState, Object.keys(Characteristic.ClosedCaptions)[this.currentClosedCaptionsState + 1])
 		}
 		callback(null, this.currentClosedCaptionsState); // return current state
 	}
 
 	// set closed captions state
 	async setClosedCaptions(targetClosedCaptionsState, callback) {
-		// fired when ??
+		// fired when ?? Apple HomeKit has no ability to control setClosedCaptions 
 		// targetClosedCaptionsState is the wanted state
-		if (this.config.debugLevel > 1) { this.log.warn('%s: setClosedCaptions targetClosedCaptionsState:', this.name, targetClosedCaptionsState, closedCaptionsStateName[targetClosedCaptionsState]); }
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setClosedCaptions targetClosedCaptionsState:', this.name, targetClosedCaptionsState, Object.keys(Characteristic.ClosedCaptions)[targetClosedCaptionsState + 1]); }
 		if(this.currentClosedCaptionsState !== targetClosedCaptionsState){
-			this.log("setClosedCaptions: not Yet implemented");
+			this.log("setClosedCaptions: not yet implemented");
 		}
 		callback(null);
 	}
@@ -3887,7 +4479,7 @@ class stbDevice {
 
 	// get picture mode state
 	async getPictureMode(callback) {
-		// fired when HomeKit wants to refresh the TV tile in HomeKit. Refresh occurs when tile is displayed.
+		// fired when the Home app wants to refresh the TV tile. Refresh occurs when tile is displayed.
 		if (this.config.debugLevel > 1) { 
 			//this.log.warn('%s: getPictureMode', this.name); 
 			// get the config for the device, needed for a few status checks
@@ -3898,7 +4490,7 @@ class stbDevice {
 			if ((configDevice || {}).customPictureMode == 'recordingState') {
 				this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.customPictureMode, recordingStateName[this.customPictureMode]); 
 			} else {
-				this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.customPictureMode, pictureModeName[this.customPictureMode]); 
+				this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.customPictureMode, Object.keys(Characteristic.PictureMode)[this.customPictureMode + 1] );
 			}
 		}
 		callback(null, this.customPictureMode); // return current state
@@ -3906,11 +4498,11 @@ class stbDevice {
 
 	// set picture mode state
 	async setPictureMode(targetPictureMode, callback) {
-		// fired when ??
+		// The current Home app (iOS 16.0) does not support setting this characteristic, thus is never fired
 		// targetClosedCaptionsState is the wanted state
-		if (this.config.debugLevel > 1) { this.log.warn('%s: setPictureMode targetPictureMode:', this.name, targetPictureMode, pictureModeName[targetPictureMode]); }
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setPictureMode targetPictureMode:', this.name, targetPictureMode, Object.keys(Characteristic.PictureMode)[targetPictureMode + 1]); }
 		if(this.customPictureMode !== targetPictureMode){
-			this.log("setPictureMode: not Yet implemented");
+			this.log("setPictureMode: not yet implemented");
 		}
 		callback(null);
 	}
@@ -3920,7 +4512,7 @@ class stbDevice {
 
 	// set power mode selection (View TV Settings menu option)
 	async setPowerModeSelection(state, callback) {
-		// fired by the View TV Settings command in the HomeKit TV accessory Settings
+		// fired by the View TV Settings command in the Home app TV accessory Settings
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setPowerModeSelection state:',this.name, state); }
 		callback(false); // for rapid response
 		this.log('Menu command: View TV Settings');
@@ -3935,43 +4527,43 @@ class stbDevice {
 
 	// get current media state
 	async getCurrentMediaState(callback) {
-		// fired by ??
+		// The current Home app (iOS 16.0) does not support setting this characteristic, thus is never fired
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getCurrentMediaState returning %s [%s]', this.name, this.currentMediaState, mediaStateName[this.currentMediaState]);
+			this.log.warn('%s: getCurrentMediaState returning %s [%s]', this.name, this.currentMediaState, currentMediaStateName[this.currentMediaState]);
 		}
 		callback(null, this.currentMediaState);
 	}
 
 	// get target media state
 	async getTargetMediaState(callback) {
-		// fired by ??
+		// The current Home app (iOS 16.0) does not support getting this characteristic, thus is never fired
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		// must never return null, so send STOP as default value
 		if (this.config.debugLevel > 1) {
-			this.log.warn('%s: getTargetMediaState returning %s [%s]', this.name, this.targetMediaState, mediaStateName[this.targetMediaState]);
+			this.log.warn('%s: getTargetMediaState returning %s [%s]', this.name, this.targetMediaState, currentMediaStateName[this.targetMediaState]);
 		}
 		callback(null, this.currentMediaState);
 	}
 
 	// set target media state
 	async setTargetMediaState(targetState, callback) {
-		// fired by ??
+		// The current Home app (iOS 16.0) does not support setting this characteristic, thus is never fired
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
-		if (this.config.debugLevel > 1) { this.log.warn('%s: setTargetMediaState this.targetMediaState:',this.name, targetState, mediaStateName[targetState]); }
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setTargetMediaState this.targetMediaState:',this.name, targetState, currentMediaStateName[targetState]); }
 		callback(null); // for rapid response
 		switch (targetState) {
 			case Characteristic.TargetMediaState.PLAY:
 				this.log('setTargetMediaState: Set media to PLAY for', this.currentChannelId);
-				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 1)
+				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 1) // set to 1, play at normal speed
 				break;
 			case Characteristic.TargetMediaState.PAUSE:
 				this.log('setTargetMediaState: Set media to PAUSE for', this.currentChannelId);
-				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 0)
+				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 0) // set to 0, pause/stop
 				break;
 			case Characteristic.TargetMediaState.STOP:
 				this.log('setTargetMediaState: Set media to STOP for', this.currentChannelId);
-				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 0)
+				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 0) // set to 0, pause/stop
 				break;
 			}
 	}
@@ -3980,41 +4572,30 @@ class stbDevice {
 	// get display order
 	async getDisplayOrder(callback) {
 		// fired when the user clicks away from the iOS Device TV Remote Control, regardless of which TV was selected
-		// fired when the icon is clicked in HomeKit and HomeKit requests a refresh
+		// fired when the icon is clicked in the Home app and the Home app requests a refresh
 
 		// log the display order
 		let dispOrder = this.televisionService.getCharacteristic(Characteristic.DisplayOrder).value;
 		if (this.config.debugLevel > 1) { this.log.warn("%s: getDisplayOrder returning '%s'", this.name, dispOrder); }
-
 		callback(null, dispOrder);
 	}
 
 	// set display order
 	async setDisplayOrder(displayOrder, callback) {
 		// fired when the user clicks away from the iOS Device TV Remote Control, regardless of which TV was selected
-		// fired when the icon is clicked in HomeKit and HomeKit requests a refresh
+		// fired when the icon is clicked in the Home app and the Home app requests a refresh
 		// this.currentChannelId is updated by the polling mechanisn
 		// must return a valid index, and must never return null
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setDisplayOrder displayOrder',this.name, displayOrder); }
 		callback(null);
 	}
 
-	// get status fault
-	async getStatusFault(callback) {
-		// useful in Shortcuts and Automations
-		// log the status fault 
-		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getStatusFault returning %s [%s]', this.name, this.currentStatusFault, statusFaultName[this.currentStatusFault]);
-		}
-		callback(null, this.currentStatusFault);
-	}
-
 	// get in use
 	async getInUse(callback) {
 		// useful in Shortcuts and Automations
-		// log the in use value
+		// log the inUse value
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getInUse returning %s [%s]', this.name, this.currentInUse, inUseName[this.currentInUse]);
+			this.log.warn('%s: getInUse returning %s [%s]', this.name, this.currentInUse, Object.keys(Characteristic.InUse)[this.currentInUse + 1] ); 
 		}
 		callback(null, this.currentInUse);
 	}
@@ -4022,9 +4603,9 @@ class stbDevice {
 	// get program mode (recording scheduled, not scheduled)
 	async getProgramMode(callback) {
 		// useful in Shortcuts and Automations
-		// log the program mode value 
+		// log the programMode value 
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getProgramMode returning %s [%s]', this.name, this.currentProgramMode, programModeName[this.currentProgramMode]);
+			this.log.warn('%s: getProgramMode returning %s [%s]', this.name, this.currentProgramMode, Object.keys(Characteristic.ProgramMode)[this.currentProgramMode + 1] );
 		}
 		callback(null, this.currentProgramMode);
 	}
@@ -4039,12 +4620,22 @@ class stbDevice {
 		callback(null, this.currentStatusActive);
 	}
 
+	// get status fault
+	async getStatusFault(callback) {
+		// useful in Shortcuts and Automations
+		// log the StatusFault 
+		if (this.config.debugLevel > 1) { 
+			this.log.warn('%s: getStatusFault returning %s [%s]', this.name, this.currentStatusFault, Object.keys(Characteristic.StatusFault)[this.currentStatusFault + 1]);
+		}
+		callback(null, this.currentStatusFault);
+	}
+	
 	// get InputSourceType state
 	async getInputSourceType(callback) {
 		// useful in Shortcuts and Automations
 		// log the InputSourceType value 
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getInputSourceType returning %s [%s]', this.name, this.currentInputSourceType, inputSourceTypeName[this.currentInputSourceType]);
+			this.log.warn('%s: getInputSourceType returning %s [%s]', this.name, this.currentInputSourceType, Object.keys(Characteristic.InputSourceType)[this.currentInputSourceType + 1]);
 		}
 		callback(null, 0);
 	}
@@ -4054,7 +4645,7 @@ class stbDevice {
 		// useful in Shortcuts and Automations
 		// log the InputDeviceType value 
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getInputDeviceType returning %s [%s]', this.name, this.currentInputDeviceType, inputDeviceTypeName[this.currentInputDeviceType]);
+			this.log.warn('%s: getInputDeviceType returning %s [%s]', this.name, this.currentInputDeviceType, Object.keys(Characteristic.InputDeviceType)[this.currentInputDeviceType + 1]);
 		}
 		callback(null, 0);
 	}
@@ -4278,6 +4869,7 @@ class stbDevice {
 			if (this.readyToSendRemoteKeyPress){ 
 				// send immediately
 				this.log('%s: setRemoteKey: sending key %s now', this.name, keyName);
+				//this.platform.sendKey(this.deviceId, this.name, keyName);
 				this.platform.sendKey(this.deviceId, this.name, keyName);
 				this.pendingKeyPress = -1; // clear any pending key press
 			} else {
@@ -4290,7 +4882,9 @@ class stbDevice {
 					this.log.debug('%s: setRemoteKey: setTimeout delay completed, checking sendRemoteKeyPressAfterDelay for %s', this.name, keyName);
 					if (this.sendRemoteKeyPressAfterDelay){ 
 						this.log('%s: setRemoteKey: setTimeout delay completed, sending %s', this.name, keyName);
+						//this.platform.sendKey(this.deviceId, this.name, keyName);
 						this.platform.sendKey(this.deviceId, this.name, keyName);
+						
 						this.log.debug('%s: setRemoteKey: setTimeout delay completed, key %s sent, resetting readyToSendRemoteKeyPress', this.name, keyName);
 						this.readyToSendRemoteKeyPress = true; // reset the enable flag
 						this.pendingKeyPress = -1; // clear any pending key press

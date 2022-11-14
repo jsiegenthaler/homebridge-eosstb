@@ -7,11 +7,16 @@
 </p>
 
 # homebridge-eosstb
-# IMPORTANT NOTICE: V1 HAS BEEN REPLACED BY V2, CURRENTLY IN BETA TEST.
-Due to backend system changes on Thursday 13 October 2022, this plugin had to be re-written as v2. The v1 plugin has been disabled as it no longer works.
-The new version is v2, currently in beta test, and reported working well for CH, NL. BE and GB users.
-Feel free to try out the beta.
+# IMPORTANT NOTICE: THIS IS A BETA RELEASE DUE TO BACKEND CHANGES
+The system backend changed, first noted on Thursday 13 October 2022, requiring a rewrite of many parts of this plugin.
+The new release is contained in this branch and is currently in beta testing.
+I have logon and box status and control working again, so AT, BE, CH, GB, IE, and NL users can once again control their box.
 
+Feel free to try out the new beta version, but please always read the [CHANGELOG.md](/CHANGELOG.md) to see what state the plugin is currently in.
+Please provide feedback via bug reports if anything is not working as expected.
+
+# IMPORTANT NOTICE: THIS README STILL NEEDS UPDATING TO REFLECT CHANGES IN V2
+Biggest changes: Profile handling. The plugin now loads the profile configured as startup profile. User profiles are still supported. Sorting by most watched is supported. FAQ and WIKI need updating. Recordign status is deprecated due to unknown endpoints.
 
 
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
@@ -24,7 +29,7 @@ Feel free to try out the beta.
 
 `homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960 or HUMAX 2008C-STB-TN) running on the Magenta AT / Telenet BE / Sunrise CH / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
-| iOS 16 Accessory Tiles | Older iOS/iPadOS Accessory Tiles |
+| iOS/iPadOS 16 Accessory Tiles | Older iOS/iPadOS Accessory Tiles |
 |   :---:   |   :---:   |
 | <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTile.png" alt="EosstbAccessoryTile" height="60" align="center"> | <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/EosstbAccessoryTileiOS15.png" alt="EosstbAccessoryTileiOS15" height="80" align="center"> |
 
@@ -40,41 +45,23 @@ Supports multiple set-top boxes, should you have more than one.
 If you like this plugin, consider making a donation or buying me a coffee!<br>
 <a target="blank" href="https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468"><img src="https://img.shields.io/badge/PayPal-Donate-blue.svg?logo=paypal"/></a>  <a target="blank" href="https://ko-fi.com/jsiegenthaler"><img src="https://img.shields.io/badge/Ko--Fi-Buy%20me%20a%20coffee-29abe0.svg?logo=ko-fi"/></a>
 
-# BACKEND CHANGES CAUSED THIS PLUGIN TO STOP WORKING AS OF 13 OCTOBER 2022
-It appears that the system backend has changed. First noted on Thursday 13 October 2022. I have had reports from the following countries so far:
-
-* NL: Plugin backend logon failure: Failed to create session - check your eosstb username and password: 401 Unauthorized
-* CH: Plugin backend logon failure: Failed to create session - check your eosstb username and password: 401 Unauthorized
-* BE: The same is being reported
-
-As multiple countries are affected, I have updated the Important Notice in the plugin to apply to all countries.
-
-Initial investigations reveal that the change will need a large rewrite of the plugin. This may take some time, however as of 15.10.2022 I have managed to get the MQTT working again for CH. Stay tuned for alpha version coming soom.
-
-You may wish to  disable this plugin on your Homebridge until such time as I can issue a new version that works.
-
-
-
 ## Readme Applicability
 Due to the adding of features and functions, this Readme applies from v1.1.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
 
 # Works in Your Country (If you are with Magenta / Sunrise / Telenet / Virgin Media / Vodafone / Ziggo)
-As UPC (the operator of the Horizon TV platform) operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 or HUMAX 2008C-STB-TN set-top box are:
+As [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) (the operator of the Horizon TV platform) operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 or HUMAX 2008C-STB-TN set-top box are:
 
 | Country | TV Provider | Web App | Box Name | Plugin Status |
 | ------- | ----------- | ------- | -------- | ------------- |
 | BE | [Telenet](https://www2.telenet.be/) | [Telenet TV](https://www.telenettv.be/nl.html) | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/) | Fully Working |
-| CH | [Sunrise](https://www.sunrise.ch/en/) | [Sunrise TV](https://www.sunrisetv.ch/en.html) | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription)* | Fully Working |
-| GB | [Virgin Media](https://www.virginmedia.com/) | [Magenta TV](https://www.magentatv.at/de.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | Fully Working |
+| CH | [Sunrise](https://www.sunrise.ch/en/) | [Sunrise TV](https://www.sunrisetv.ch/en.html) | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription) | Fully Working |
+| GB | [Virgin Media](https://www.virginmedia.com/) | [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | Working, Under Test |
 | IE | [Virgin Media](https://www.virginmedia.ie/) | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/) | Fully Working |
-| NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo Go](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | Fully Working |
+| NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo GO](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | Fully Working |
 | ------- | ----------- | ------- | -------- | ------------- |
 | AT | [Magenta](https://www.magenta.at/) | [Magenta TV](https://www.magentatv.at/de.html) | [Entertain Box 4K](https://www.magenta.at/entertain-box) | _Testers Wanted_ |
-| CZ | [Vodafone CZ](https://www.vodafone.cz/) | [Horizon Go](https://www.horizon.tv/cs_cz.html) | Vodafone TV | _Testers Wanted_ |
 | DE | [Vodafone DE](https://zuhauseplus.vodafone.de/digital-fernsehen/) | [Horizon Go](https://www.horizon.tv/de_de.html) | [GigaTV Cable Box](https://zuhauseplus.vodafone.de/digital-fernsehen/tv-endgeraete/) | _Testers Wanted_ |
-| HU | [Vodafone Hungary](https://www.upc.hu/) | [Horizon Go](https://www.horizon.tv/hu_hu.html) | ?? | _Testers Wanted_ |
-| PL | [UPC PL](https://www.upc.pl/) | [Horizon Go](https://www.horizon.tv/pl_pl.html) | Horizon decoder | _Testers Wanted_ |
-| RO | [Vodafone Romania](https://www.vodafone.ro/) | [Horizon Go](https://www.horizon.tv/ro_ro.html) | Vodafone TV | _Testers Wanted_ |
+| PL | [UPC PL](https://www.upc.pl/) | [UPC TV GO](https://www.upctv.pl/pl/home) | Horizon decoder | _Testers Wanted_ |
 | SK | [UPC Broadband Slovakia](https://www.upc.sk/) | [Horizon Go](https://www.horizon.tv/sk_sk.html) | Horizon TV | _Testers Wanted_ |
 
 
@@ -91,11 +78,11 @@ I tried to find a good common name that works for this plugin for all countries.
 In March 2022, a newer version of the set-top box has started to appear in Telenet in Belgium: a HUMAX 2008C-STB-TN, which identifies itself as EOS2STB. However, I will keep the plugin name unchanged at EOSSTB. 
 
 ## Disclaimer (The Legal Stuff)
-This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or Ziggo any other affiliate of UPC. It is neither endorsed nor supported nor developed by UPC or any affiliates. UPC can change their systems at any time and that might break this plugin. But I hope not.
+This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or Ziggo any other affiliate of [UPC](https://en.wikipedia.org/wiki/UPC_Broadband). It is neither endorsed nor supported nor developed by [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) or any affiliates. [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
-* An Apple iPhone or iPad with iOS 14.0 (or later). Developed on iOS 14.1...16.0, earlier versions not tested.
-* [Homebridge](https://homebridge.io/) v1.5.0 (or later). Developed on Homebridge 1.1.116....1.5.0, earlier versions not tested.
+* An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1...16.1, earlier versions not tested.
+* [Homebridge](https://homebridge.io/) v1.5.1 (or later). Developed on Homebridge 1.1.116....1.5.1, earlier versions not tested.
 * A TV subscription from one of the supported countries and TV providers.
 * An online account for viewing TV in the web app (often part of your TV package), see the table above.
 * The ARRIS DCX960 or HUMAX 2008C-STB-TN mediabox, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" or "EOS2STB" and marketed under different names in different countries. 
@@ -109,21 +96,23 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports).
 
-* **Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple Siri supports), allowing you to control switch-on and channel selection in Home Automations, Shorcuts and Personal Automations.
+* **Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple supports), allowing you to control switch-on and channel selection in Home Automations, Shorcuts and Personal Automations.
 
 * **Synchronised Set-Top Box Name**: Changing the name of the set-top box in the Home app changes it on the TV and backend systems in real time, and vice-versa. No reboot required. You can turn off the sync if desired in the config.
 
 * **Synchronised Current Channel**: Changing the channel on the set-top box changes the displayed channel in the Home app in real time, and vice-versa.
 
-* **Synchronised Channel List Order**: Changing the order of channels in a profile on your set-top box changes the channel list order in the Home app in real time. No reboot required. Note that the Shared Profile channel list order cannot be changed.
+* **Selectable Channel Sort By**: Channels in the Home app channel list can be listed in the same order as shown on the TV, or by Most Watched.
 
-* **Master Channel List Refreshed Regularly**: The master channel list is refreshed at the correct intervals requested by the TV provider, minimising network traffic.
+* **Synchronised Channel List Order**: Changing the order of channels in a profile on your set-top box changes the standard channel list order in the Home app in real time. No reboot required. Note that the Shared Profile channel list order cannot be changed.
 
-* **Ignores Not-Subscribed Channels**: Only the channels you subscribe to are shown in the Home app, saving you valuable slots in the limited Home app channel list.
+* **Master Channel List Refreshed Daily**: The master channel list is refreshed daily, ensuring it is always up to date.
+
+* **Ignores Non-Subscribed Channels**: Only the channels you subscribe to are shown in the Home app, saving you valuable slots in the limited Home app channel list.
 
 * **Optional Channel Numbers**: If you wish, you can display a channel number before the channel name. As this consumes some space on the Home app tile, it is off by default.
 
-* **Intelligent Profile Support**: If the master channel list is too large for the Home app, then the plugin will choose the best fitting profile, should you have any user profiles stored on your set-top box. The best fitting user profile is the first user profile found that fits fully within the available channel list space. Of course, you can specify your own profile which overrides this intelligent selection.
+* **Default Profile Support**: The default profile on start-up of the set-top box is used for the channel list if no other profile is configured for the plugin.
 
 * **Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute (TV dependent). The triple-press timing is configurable.
 
@@ -133,7 +122,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
-* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 16.0). Hopefully, Apple will add support for these features in the future. You can however use this data in the Shortcuts app.
+* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 16.1). Hopefully, Apple will add support for these features in the future. You can however use this data in Home Automations or the Shortcuts app.
 
 
 
@@ -189,13 +178,28 @@ The following keys are supported by in the **Apple TV Remote** in the Control Ce
 | Volume Up | volUpCommand | - |
 | Volume Down | volDownCommand | 3 clicks = mute |
 
-The table shows the default key mappings. You can map any Apple TV Remote button to any EOSSTB remote control button, see the Wiki for all of the known [KeyEvents](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents).
+The table shows the default key mappings. You can map any Apple TV Remote button to any set-top box remote control button, see the Wiki for all of the known [KeyEvents](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents).
 
 The volume controls do not control the set-top box directly, as the set-top box has no volume capability. The set-top box physical remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
 
+
+## Using Profiles to better manage your Channel List
+Many TV providers provide hundreds of TV channels. The Home app is limited to 100 "services", which are TV channels or reserved for system control. This limits the maximum possible channels to 95, and thus the plugin will load the first 95 subscribed channels found, ignoring all non-subscribed channels. 
+
+If the channels you wish to have in the Home app are not within the first 95 subscribed channels in your TV providers channel list, then you can create a profile on the set-top box, and configure the profile with the channels you want, in the order you want. Enter the same profile name in the plugin config **Profile Name**, and the plugin will load the channels from that profile.
+
+Any changes in the profile on the set-top box will automatically be reflected in the plugin. As the Home app does not expect channels to change in the channel list, you may need to force-close the Home app and reopen it to force a refresh of the displayed channels after a change is made on your set-top box.
+
+The profile used by the plugin does not have to be the same as the set-top box's start-up profile. It is OK to configure a profile that is dedicated to the plugin, if you so wish.
+
+
+## Sorting the Channel list
+The config item **Channel Sort By** allows the channels to be sorted by **Channel Order** (the standard channel order as shown on the TV) or by **Most Watched**. Most Watched is reported by the backend systems and is profile-based. It is not clear how often this list is updated, however for a TV subscription with many channels, this may be a preferable option to show your most watched channels at the top of the channel list.
+
+
 ## Limitations
 ### Channel Count
-Due to HomeKit limitations, the maximum services for a single accessory are 100. Over this value the Home app will no longer respond. 
+Due to HomeKit design limitations, the maximum services for a single accessory are 100. Over this value the Home app will no longer respond. 
 Services used in this set-top box accessory are:
 1. Information service (Name, model, serial number of the accessory)
 2. Television service (for controlling the TV accessory)
@@ -206,13 +210,13 @@ Services used in this set-top box accessory are:
 The eosstb plugin emulates the TV service web app. If the web app is started on a web browser on a laptop or PC, the backend systems may prefer the web app to HomeKit, and disconnect HomeKit from the mqtt session. The mqtt session will try and reconnect if it gets disconnected.
 
 ### Media State (Play/Pause) Limitations
-The eosstb plugin can detect the current and target media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 16.0) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
+The eosstb plugin can detect the current and target media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 16.1) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ### Recording State Limitations
-The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but a eosstb config option **customPictureMode** allows you to use the PictureMode to read the recording state in  Shortcuts or Automations.
+The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but the eosstb plugin uses it to set the inUse charateristic if the set-top box is turned on or is recording to the local HDD. This is useful in Shortcuts or Automations.
 
 ### Closed Captions Limitations
-The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 16.0) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
+The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 16.1) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ## Configuration
 Add a new platform to the platforms section of your homebridge `config.json`.
@@ -248,6 +252,7 @@ Example extended configuration as used on the author with his Samsung TV (where 
                     "name": "Sunrise TV",
                     "syncName": true,
                     "profile": "Dad",
+                    "channelOrder": "mostWatched",
                     "accessoryCategory": "settopbox",
                     "playPauseButton": "MediaPlayPause",
                     "backButton": "Escape",
@@ -302,7 +307,7 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 #### Mandatory
 
-* **deviceId**: The unique set-top box physical device id, in Switzerland, Belgium and the Netherlands this is in the format 3C36E4-EOSSTB-001234567890. Other countries may be the same. Required to identify the set-top box in your network, as multiple boxes can exist. Review the Homebridge log to see your deviceId, it is displayed shortly after a Homebridge restart. Mandatory for a device configuration.
+* **deviceId**: The unique set-top box physical device id, in Switzerland, Belgium and the Netherlands this is in the format 3C36E4-EOSSTB-001234567890. Other countries are similar. Required to identify the set-top box in your network, as multiple boxes can exist. Review the Homebridge log to see your deviceId, it is displayed shortly after a Homebridge restart. Mandatory for a device configuration.
 
 #### Optional
 
@@ -321,50 +326,48 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 * **serialNumber**: You can add a serial number if you wish. Defaults to the set-top box serial number id, otherwise to the physical deviceId. Optional.
 
-* **modelName**: You can add a model name if you wish. Defaults to the detected device model and device type, otherwise to the eosstb plugin name. Optional.
+* **modelName**: You can add a model name if you wish. Defaults to the detected device model and product type or device type, otherwise to the eosstb plugin name. Optional.
 
 * **firmwareRevision**: You can add a firmware revision if you wish. Must be numeric (non-numeric values are not displayed in the Home app). Defaults to the eosstb plugin version. Optional.
 
 ##### Channel Display
 
-* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the Shared Profile. If using the Shared Profile, the device loads the first 95 channels found. Most TV providers offer many more than 95 channels: my provider has 483, of which I am entitled to 287. To ensure you have a useful channel list on your Home app, create a profile on your set-top box, and enter the profile name in the config. The channels will then be loaded from the profile. If your profile is changed to the set-top box, the changes will be pushed to HomeKit.
+* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the default profile on startup, as configured on the set-top box. The plugin loads the first 95 subscribed channels found, which is a limitation of HomeKit. To manage your favourte channels within the constraint of 95 channels, create a profile on your set-top box, and use the profile name in the plugin config. If your profile is changed to the set-top box, the changes will be pushed to HomeKit. Channels should stay in a consistent channel order as the channel number is used in HomeKit scenes, not the channel name.
+
+* **channelOrder**: The method to sort the channels in the channel list in the Home app. Available values are: Channel order = "channelOrder", Most Watched = "mostWatched". Case sensitive. Optional, defaults to channelOrder.
+
+
+* **maxChannels**: The maximum number of channels to load. Optional, defaults to 95. Note: you may need to do force-close and reopen the Home app to force it to recognise a change in the quantity of channels available.
 
 * **showChannelNumbers**: Shows or hides the channel numbers in the channel selector in HomeKit. Values: true or false (default). If channel numbers are displayed, there is less room for the channel name. Optional, defaults to false.
-
-* **maxChannels**: The maximum number of channels to load. Optional, defaults to 95. Note: re-pairing the accessory in the Home app might be needed after changing maxChannels.
 
 
 ##### Remote Control Button Mapping
 
-* **playPauseButton**: The command issued to the set-top box when the Play/Pause button (**> ||**) in the iOS remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
+* **playPauseButton**: The command issued to the set-top box when the Play/Pause button (**> ||**) in the Apple TV Remote is tapped. Normally MediaPause. Optional, defaults to MediaPause if not found.
 
-* **backButton**: The command issued to the set-top box when the **BACK** button in the iOS remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
+* **backButton**: The command issued to the set-top box when the **BACK** button in the Apple TV Remote is tapped. Normally Escape. Optional, defaults to Escape if not found.
 
-* **infoButton**: The command issued to the set-top box when the Info button (**i**) in the iOS remote is tapped. As the iOS remote has no Menu button, the Info button should be used to access the menu. This is why the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
+* **infoButton**: The command issued to the set-top box when the Info button (**i**) in the Apple TV Remote is tapped. As the Apple TV Remote has no Menu button, the Info button should be used to access the menu. This is why the Info button is set to MediaTopMenu. Optional, defaults to MediaTopMenu if not found.
 
 
 
 
 ##### Remote Control Volume Commands
 
-* **volUpCommand**: The bash command to increase the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Up button on your device. Optional.
+* **volUpCommand**: The bash command to increase the volume of the TV. This command is sent when the Apple TV Remote is open and you press the Volume Up button on your device. Optional.
 
-* **volDownCommand**: The bash command to decrease the volume of the TV. This command is sent when the iOS remote is open and you press the Volume Down button on your device. Optional.
+* **volDownCommand**: The bash command to decrease the volume of the TV. This command is sent when the Apple TV Remote is open and you press the Volume Down button on your device. Optional.
 
-* **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple iOS remote, I have integrated it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
+* **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple Apple TV Remote, this plugin integrates it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
 
-
-##### Extra Functions
-
-* **customPictureMode**: Allows the customisation of Picture Mode. Optional, defaults to normal Picture Mode if not found. Possible values are:
-recordingState: The Picture Mode reflects the recording state of the set-top box. Values are: 0 = Idle (not recording), 1 = Ongoing nDVR (network digital video recording), 2 = Ongoing localDVR (local hard-drive based digital video recording). It can be useful to know if the set-top box is currently recording to the hard drive for users want to control the power to the set-top box, so that they do not switch it off when a local recording is in progress.
 
 
 
 ### Channel Config Items
 Some channels such as Netflix are actually apps on the set-top box, and not normal linear TV channels. They appear in the channel list on the TV, and can be added to favourites from the TV menu (but not from the web app menu). However, they are not broadcast as a normal linear TV channel in the master channel list. Therefore, the name cannot be determined from the profile favourite channel list, and the name appears as "Channel xxxxxx" where xxxxxx is the channelId. To overcome this, add the channelId and the channelName to the channels section in the config as per the examples below.
 
-* **channelId**: The channelId, as defined by the TV provider. unknown channelIds will appear in the Homebridge log.
+* **channelId**: The channelId, as defined by the TV provider. Unknown channelIds will appear in the Homebridge log.
 
 * **channelNames**: Allows you to add unknown channel names, or to rename any channel as you wish. Required as some channels (e.g., Netflix) are not published on the master channel list. If a channel displays in the Home app like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
 
@@ -425,13 +428,13 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
 See the Wiki for [a collection of known key event commands that control the set-top box](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents). 
 
 ## Special Commands
-The volume and mute commands do not control the set-top box directly, but can be used to control the TV or Receiver volume (network remote control required).
+The volume and mute commands do not control the set-top box directly, but can be used to control the TV or Receiver volume (network remote control of the TV is required).
 
 ### Volume
-* **VolumeUp** and **VolumeDown**: When the iOS remote is displayed, the iOS device volume controls can be used to control the volume of your TV. However, this is not done via the set-top box, but instead via a command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Home Theater HT-D5500 and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP, KEY_VOLDOWN and KEY_MUTE to be easily sent to the Samsung Home Theater. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scroll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
+* **VolumeUp** and **VolumeDown**: When the Apple TV Remote is displayed, the iOS device volume controls can be used to control the volume of your TV. However, this is not done via the set-top box, but instead via a command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Home Theater HT-D5500 and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP, KEY_VOLDOWN and KEY_MUTE to be easily sent to the Samsung Home Theater. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scroll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
 
 ### Mute
-* **Mute** is not supported natively by the iOS remote, but I have added it with a triple-press detection on the volume down button. Press the button three times within 800ms, and the Mute command will be sent using the command stored in the **muteCommand** config item.
+* **Mute** is not supported natively by the Apple TV Remote, but this plugin adds it with a triple-press detection on the volume down button. Press the button three times within 800ms, and the Mute command will be sent using the command stored in the **muteCommand** config item.
 
 ### View TV Settings
 You can use **View TV Settings** to open the set-top box main menu at the **PROFILES** menu. Usage: in the Home app, tap-and-wait on the set-top box tile to open the channel changer, then tap on the cogwheel to open the settings for the accessory, and scroll down to **View TV Settings**. 
@@ -454,7 +457,7 @@ See the Wiki for [details on how to read and control the set-top box in the Shor
 
 * [ziggonext-python by Rudolf Offereins](https://pypi.org/project/ziggonext/#description) Rudolf is the best!
 
-* My helpers in Belgium: [Wesley Liekens](https://www.facebook.com/deliekes) and [Anthony Dekimpe](https://www.facebook.com/anthony.dekimpe) for helping me get the session code working for Telenet
+* My helpers in Belgium: [Wesley Liekens† (RIP)](https://www.facebook.com/deliekes) and [Anthony Dekimpe](https://www.facebook.com/anthony.dekimpe) for helping me get the session code working for Telenet
 
 * My helpers in Great Britain and Ireland (you know who you are) for helping me get the session code working for Virgin Media
 

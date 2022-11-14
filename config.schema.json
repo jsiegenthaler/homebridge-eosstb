@@ -52,6 +52,7 @@
           "placeholder": "yourTvProviderPassword",
           "required": true
         },
+
         "doublePressTime": {
             "title": "Double-Press Time",
             "type": "integer",
@@ -159,7 +160,7 @@
                         "title": "Firmware",
                         "type": "string",
                         "description": "The firmware version to display in the Home app. Numbers only eg 4.41. Default: plugin version.",
-                        "placeholder": "4.41",
+                        "placeholder": "4.43",
                         "pattern": "^(\\d+)((\\.{1}\\d+)*)(\\.{0})$"
                     },       
                     
@@ -167,21 +168,32 @@
                     "profile": {
                         "title": "Profile Name",
                         "type": "string",
-                        "description": "Use a profile to control what channels are displayed in the Home app. Default: Shared Profile",
+                        "description": "Use a profile to manage channels shown in the Home app. Default: Shared Profile",
                         "maxLength": 10
+                    },                    
+                    "channelOrder": {
+                        "title": "Channel Sort By",
+                        "type": "string",
+                        "description": "Select how the channels should be sorted in the channel list. Default: Most Watched",
+                        "default": "channelOrder",
+                        "required": false,
+                        "oneOf": [
+                            { "title": "Most Watched", "enum": ["mostWatched"] },
+                            { "title": "Channel Order", "enum": ["channelOrder"] }
+                        ]
+                    },
+                    "maxChannels": {
+                        "title": "Max Channels",
+                        "type": "integer",
+                        "description": "Limit the maximum channels to load in the channel list. Default: 95",
+                        "default": 95,
+                        "maximum": 95
                     },
                     "showChannelNumbers": {
                         "title": "Show Channel Numbers",
                         "type": "boolean",
                         "description": "Show or hide channel numbers in the channel list. Default: false",
                         "default": false
-                    },
-                    "maxChannels": {
-                        "title": "Max Channels",
-                        "type": "integer",
-                        "description": "Limit the maximum channels to load in the Home app. Default: 95",
-                        "default": 95,
-                        "maximum": 95
                     },
 
                     "arrowUpButton": {
@@ -782,6 +794,11 @@
                         "type": "string",
                         "description": "Unique channelId, see the Homebridge log."
                     },
+                    "channelKeyMacro": {
+                        "title": "Channel Key Macro",
+                        "type": "string",
+                        "description": "A sequence of remote control keys for enhanced customising. Channel ID must be empty to use key macros. Example: '1 2 3 Enter' to select channel 123. See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys."
+                    },
                     "channelName": {
                         "title": "Channel Name",
                         "type": "string",
@@ -837,6 +854,7 @@
             "expanded": false,
             "items": [
                 "name",
+                "channelOrder",
                 "doublePressTime",
                 "doublePressDelayTime",
                 "debugLevel"
@@ -886,8 +904,9 @@
                             "expandable": true,
                             "items": [
                                 "devices[].profile",
-                                "devices[].showChannelNumbers",
-                                "devices[].maxChannels"
+                                "devices[].channelOrder",
+                                "devices[].maxChannels",
+                                "devices[].showChannelNumbers"
                             ]
                         },
                         {
@@ -1062,22 +1081,6 @@
                                 "devices[].volUpCommand",
                                 "devices[].volDownCommand",
                                 "devices[].muteCommand"
-                            ]
-                        },
-                        {
-                            "key": "devices[]",
-                            "type": "section",
-                            "title": "Extra Functions",
-                            "expandable": true,
-                            "items": [
-                                {
-                                    "type": "flex",
-                                    "flex-flow": "row wrap",
-                                    "title": "See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md\">README</a> for a full description.",
-                                    "items": [
-                                        "devices[].customPictureMode"
-                                    ]
-                                } 
                             ]
                         }
                     ]
