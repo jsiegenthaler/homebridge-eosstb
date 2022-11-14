@@ -345,8 +345,8 @@ class stbPlatform {
 			this.log('%s xxx v%s', PLUGIN_NAME, PLUGIN_VERSION);
 			debug('stbPlatform:apievent :: didFinishLaunching')
 
-			// call the session watchdog now to create the session
-			this.sessionWatchdog.bind(this);
+			// call the session watchdog to create the session
+			this.sessionWatchdog.bind(this)
 
 			// the session watchdog creates a session when none exists, and recreates one if the session ever fails due to internet failure or anything else
 			this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
