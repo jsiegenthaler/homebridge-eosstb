@@ -789,65 +789,6 @@ class stbPlatform {
 
 
 
-	// get session ch, nl, ie, at
-	// the previous mqtt session used in v1, no longer applicable from 13.10.2022
-	async getSessionOld() {
-		this.log('Creating %s session...', PLATFORM_NAME);
-		currentSessionState = sessionState.LOADING;
-
-		const axiosConfig = {
-			method: 'POST',
-			url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/session',
-			jar: cookieJar,
-			data: {
-				username: this.config.username,
-				password: this.config.password
-			}
-		};
-
-		// robustness: fail if url missing
-		if (!axiosConfig.url) {
-			this.log.warn('getSession: axiosConfig.url empty!');
-			currentSessionState = sessionState.DISCONNECTED;
-			this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-			return false;						
-		}
-		
-		this.log('Step 1 of 1: logging in with username %s', this.config.username);
-		this.log.debug('Step 1 of 1: post login to',axiosConfig.url);
-		axiosWS(axiosConfig)
-			.then(response => {	
-				this.log('Step 1 of 1: response:',response.status, response.statusText);
-				this.session = response.data;
-				if (this.session.customer) { currentSessionState = sessionState.AUTHENTICATED; }
-				this.log('Session created');
-				currentSessionState = sessionState.CONNECTED;
-				this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-				this.log('Session state:', sessionStateName[currentSessionState]);
-				return true;
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'Failed to create session'
-				if (error.response && error.response.status >= 400 && error.response.status < 500) {
-					errReason = '- check your ' + PLATFORM_NAME + ' username and password: ' + error.response.status + ' ' + (error.response.statusText || '');
-				} else if (error.response && error.response.status >= 500 && error.response.status < 600) {
-					errReason = '- try again later: ' + error.response.status + ' ' + (error.response.statusText || '');
-				} else if (error.response && error.response.status) {
-					errReason = '- check your internet connection: ' + error.response.status + ' ' + (error.response.statusText || '');
-				} else {
-					errReason = '- check your internet connection: ' + error.code + ' ' + (error.hostname || '');
-				}
-				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug('getSession: error:', error);
-				currentSessionState = sessionState.DISCONNECTED;
-				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-				return false;
-			});	
-		return false;
-	}
-
-
 	// get session for BE only (special logon sequence)
 	async getSessionBE() {
 		return new Promise((resolve, reject) => {
