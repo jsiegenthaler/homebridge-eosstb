@@ -12,7 +12,7 @@ const PLUGIN_VERSION = packagejson.version;
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
-const debug = require('debug')(PLUGIN_NAME) // https://github.com/debug-js/debug
+const debug = require('debug')('eosstb') // https://github.com/debug-js/debug
 
 // good exanple of debug usage https://github.com/mqttjs/MQTT.js/blob/main/lib/client.js
 const mqtt = require('mqtt');  			// https://github.com/mqttjs
@@ -192,6 +192,7 @@ function makeId(length) {
 };
 
 
+
 // format an id to conform with the web client ids
 // 32 char, lower case, formatted as follows:
 // "d3e9aa58-6ddc-4c1a-b6a4-8fc1526c6f19"
@@ -342,7 +343,7 @@ class stbPlatform {
 		//this.api.on('didFinishLaunching', () => {
 		this.api.on('didFinishLaunching', async () => {
 			if (this.config.debugLevel > 2) { this.log.warn('API event: didFinishLaunching'); }
-			this.log('%s xxx v%s', PLUGIN_NAME, PLUGIN_VERSION);
+			this.log('%s v%s', PLUGIN_NAME, PLUGIN_VERSION);
 			debug('stbPlatform:apievent :: didFinishLaunching')
 
 			// call the session watchdog to create the session
@@ -693,7 +694,7 @@ class stbPlatform {
 	}
 
 	// get session ch, nl, ie, at
-	// using new auth method, attempting as of 13.10.2022
+	// using new auth method, as of 13.10.2022
 	async getSession() {
 		return new Promise((resolve, reject) => {
 			this.log('Creating %s session...', PLATFORM_NAME);
@@ -780,8 +781,6 @@ class stbPlatform {
 					}
 					//this.log('%s %s', errText, (errReason || ''));
 					this.log.debug('getSession: error:', error);
-					//currentSessionState = sessionState.DISCONNECTED;
-					//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 					reject(errReason); // reject the promise and return the error
 				});
 		})
@@ -897,8 +896,6 @@ class stbPlatform {
 										//this.log.warn('Step 3 of 6: Unable to login: session expired');
 										cookieJar.removeAllCookies();	// remove all the locally cached cookies
 										reject("Step 3 of 6: Unable to login: session expired"); // reject the promise and return the error
-										//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-										//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 									} else {
 
 										// Step 4: # follow redirect url
@@ -919,23 +916,16 @@ class stbPlatform {
 												if (!url) {		// robustness: fail if url missing
 													t//his.log.warn('Step 4 of 6: location url empty!');
 													reject("Step 4 of 6: location url empty!"); // reject the promise and return the error
-													//currentSessionState = sessionState.DISCONNECTED;
-													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-													//return false;						
 												}
 
 												// look for login_success.html?code=
 												if (url.indexOf('login_success.html?code=') < 0 ) { // <0 if not found
 													//this.log.warn('Step 4 of 6: Unable to login: wrong credentials');
 													reject("Step 4 of 6: Unable to login: wrong credentials"); // reject the promise and return the error
-													//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 												} else if (url.indexOf('error=session_expired') > 0 ) {
 													//this.log.warn('Step 4 of 6: Unable to login: session expired');
 													cookieJar.removeAllCookies();	// remove all the locally cached cookies
 													reject("Step 4 of 6: Unable to login: session expired"); // reject the promise and return the error
-													//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 												} else {
 
 													// Step 5: # obtain authorizationCode
@@ -944,9 +934,6 @@ class stbPlatform {
 													if (!url) {		// robustness: fail if url missing
 														//this.log.warn('Step 5 of 6: location url empty!');
 														reject("Step 5 of 6: location url empty!"); // reject the promise and return the error
-														//currentSessionState = sessionState.DISCONNECTED;
-														//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-														//return false;						
 													}
 		
 													var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
@@ -984,8 +971,6 @@ class stbPlatform {
 																//this.log.warn("Step 6 of 6: Unable to authorize with oauth code:", error.response.status, error.response.statusText);
 																this.log.debug("Step 6 of 6: Unable to authorize with oauth code:",error);
 																reject("Step 6 of 6: Step 6 of 6: Unable to authorize with oauth code: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-																//currentSessionState = sessionState.DISCONNECTED;
-																//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 															});	
 														};
 													};
@@ -995,8 +980,6 @@ class stbPlatform {
 												//this.log.warn("Step 4 of 6: Unable to oauth authorize:", error.response.status, error.response.statusText);
 												this.log.debug("Step 4 of 6: Unable to oauth authorize:",error);
 												reject("Step 2 of 6: Step 4 of 6: Unable to oauth authorize: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-												//currentSessionState = sessionState.DISCONNECTED;
-												//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 											});
 									};
 								})
@@ -1005,9 +988,6 @@ class stbPlatform {
 									this.log.debug("Step 3 of 6: Unable to login:",error);
 									this.log("Step 3 of 6: Unable to login:",error);
 									reject("Step 3 of 6: Unable to login: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-									//this.log.warn("Step 3 of 6: Unable to login:", error.response.status, error.response.statusText);
-									//currentSessionState = sessionState.DISCONNECTED;
-									//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 								});
 						})
 						// Step 2 http errors
@@ -1015,8 +995,6 @@ class stbPlatform {
 							this.log.debug("Step 2 of 6: Could not get authorizationUri:",error);
 							//this.log.warn("Step 2 of 6: Could not get authorizationUri", error.response.status, error.response.statusText);
 							reject("Step 2 of 6: Could not get authorizationUri: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-							//currentSessionState = sessionState.DISCONNECTED;
-							//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 						});
 				})
 				// Step 1 http errors
@@ -1028,8 +1006,6 @@ class stbPlatform {
 					}
 					this.log.debug('Step 1 of 6: getSessionBE: error:', error);
 					reject("Step 1 of 6: Failed to create BE session: check your internet connection"); // reject the promise and return the error
-					//currentSessionState = sessionState.DISCONNECTED;
-					//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 				});
 
 			currentSessionState = sessionState.DISCONNECTED;
@@ -1155,8 +1131,6 @@ class stbPlatform {
 										//this.log.warn('Step 3 of 7: Unable to login: session expired');
 										cookieJar.removeAllCookies();	// remove all the locally cached cookies
 										reject('Step 3 of 7: Unable to login: session expired'); // reject the promise and return the error
-										//currentSessionState = sessionState.DISCONNECTED;	// flag the session as dead
-										//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 									} else {
 										this.log.debug('Step 3 of 7: login successful');
 
@@ -1185,26 +1159,24 @@ class stbPlatform {
 												// look for login_success?code=
 												if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
 													//this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
-													//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 													reject('Step 4 of 7: Unable to login: wrong credentials'); // reject the promise and return the error
 												} else if (url.indexOf('error=session_expired') > 0 ) {
 													//this.log.warn('Step 4 of 7: Unable to login: session expired');
 													cookieJar.removeAllCookies();	// remove all the locally cached cookies
 													reject('Step 4 of 7: Unable to login: session expired'); // reject the promise and return the error
-													//currentSessionState = sessionState.DISCONNECTED;;	// flag the session as dead
-													//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 												} else {
 
 													// Step 5: # obtain authorizationCode
 													this.log('Step 5 of 7: extract authorizationCode');
+													/*
 													url = response.headers.location;
 													if (!url) {		// robustness: fail if url missing
 														this.log.warn('getSessionGB: Step 5: location url empty!');
 														currentSessionState = sessionState.DISCONNECTED;
 														this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 														return false;						
-													}								
+													}				
+													*/				
 					
 													var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
 													var authorizationCode = codeMatches[1];
@@ -1229,7 +1201,6 @@ class stbPlatform {
 																this.log.debug('Step 6 of 7: response.data:',response.data);
 																
 																auth = response.data;
-																//var refreshToken = auth.refreshToken // cleanup? don't need extra variable here
 																this.log.debug('Step 6 of 7: refreshToken:',auth.refreshToken);
 
 																// Step 7: # get OESP code
@@ -1251,8 +1222,6 @@ class stbPlatform {
 																		// get device data from the session
 																		this.session = response.data;
 																		
-																		// get device data from the session
-																		this.session = response.data;
 																		currentSessionState = sessionState.CONNECTED;
 																		this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
 																		this.log('Session created');
@@ -1263,16 +1232,12 @@ class stbPlatform {
 																		//this.log.warn("Step 7 of 7: Unable to get OESP token:",error.response.status, error.response.statusText);
 																		this.log.debug("Step 7 of 7: error:",error);
 																		reject("Step 7 of 7: Unable to get OESP token: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-																		//currentSessionState = sessionState.DISCONNECTED;
-																		//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 																	});
 															})
 															// Step 6 http errors
 															.catch(error => {
 																//this.log.warn("Step 6 of 7: Unable to authorize with oauth code, http error:",error);
 																reject("Step 6 of 7: Unable to authorize with oauth code, http error: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-																//currentSessionState = sessionState.DISCONNECTED;
-																//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 															});	
 													};
 												};
@@ -1282,8 +1247,6 @@ class stbPlatform {
 												//this.log.warn("Step 4 of 7: Unable to oauth authorize:",error.response.status, error.response.statusText);
 												this.log.debug("Step 4 of 7: error:",error);
 												reject("Step 4 of 7: Unable to oauth authorize: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-												//currentSessionState = sessionState.DISCONNECTED;
-												//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 											});
 									};
 								})
@@ -1292,8 +1255,6 @@ class stbPlatform {
 									//this.log.warn("Step 3 of 7: Unable to login:",error.response.status, error.response.statusText);
 									this.log.debug("Step 3 of 7: error:",error);
 									reject("Step 3 of 7: Unable to login: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-									//currentSessionState = sessionState.DISCONNECTED;
-									//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 								});
 						})
 						// Step 2 http errors
@@ -1301,8 +1262,6 @@ class stbPlatform {
 							//this.log.warn("Step 2 of 7: Unable to get authorizationUri:",error.response.status, error.response.statusText);
 							this.log.debug("Step 2 of 7: error:",error);
 							reject("Step 2 of 7: Could not get authorizationUri: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-							//currentSessionState = sessionState.DISCONNECTED;
-							//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 						});
 				})
 				// Step 1 http errors
@@ -1311,8 +1270,6 @@ class stbPlatform {
 					//this.log.warn("Step 1 of 7: Could not get apiAuthorizationUrl:",error.response.status, error.response.statusText);
 					this.log.debug("Step 1 of 7: error:",error);
 					reject("Step 1 of 7: Failed to create GB session - check your internet connection"); // reject the promise and return the error
-					//currentSessionState = sessionState.DISCONNECTED;
-					//this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 				});
 
 			currentSessionState = sessionState.DISCONNECTED;
@@ -1859,6 +1816,10 @@ class stbPlatform {
 						// purchaseService and watchlistService are not needed, but add if desired if we want to monitor these services
 						parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService');
 						parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService');
+
+						// bookmarkService is not needed
+						//parent.mqttSubscribeToTopic(mqttUsername + '/bookmarkService');
+						
 						//parent.mqttSubscribeToTopic(mqttUsername + '/radioStatus'); // a guess
 						//parent.mqttSubscribeToTopic(mqttUsername + '/audioStatus'); // a guess
 
@@ -2337,10 +2298,11 @@ class stbPlatform {
 			if (this.config.debugLevel > 0) { this.log.warn('setHgoOnlineRunning'); }
 			if (mqttUsername) {
 				this.mqttPublishMessage(
+					// the web client uses qos:2, so we should as well
 					// {"source":"fd29b575-5f2b-49a0-8efe-62a844ac2b40","state":"ONLINE_RUNNING","deviceType":"HGO","mac":"","ipAddress":""}
 					mqttUsername + '/' + mqttClientId + '/status',  // Topic, 
 					'{"source":"' +  mqttClientId + '","state":"ONLINE_RUNNING","deviceType":"HGO","mac":"","ipAddress":""}', // Message, Options
-					{ qos:1, retain:true } //Options (json object)
+					{ qos:2, retain:true } //Options (json object)
 				);
 			}
 		} catch (err) {
@@ -2358,6 +2320,7 @@ class stbPlatform {
 			this.log('Change channel to %s [%s] on %s %s', channelId, channelName, deviceName, deviceId);
 			if (mqttUsername) {
 				this.mqttPublishMessage(
+					// the web client uses qos:2, so we should as well
 					mqttUsername + '/' + deviceId, 
 					// cannot get radio to work, sourceType is unclear
 					// [09/11/2022, 12:55:00] [EOSSTB] Processing channel: 518 1001 SV01301 Radio SRF 1
@@ -2366,9 +2329,10 @@ class stbPlatform {
 					// [09/11/2022, 12:55:00] [EOSSTB] Processing channel: 521 1004 SV01323 Radio SRF 1 BS
 					'{"id":"' + makeFormattedId(32) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
 					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
-					+ channelId + '"},"relativePosition":0,"speed":1}}'
+					+ channelId + '"},"relativePosition":0,"speed":1}}',
 					//+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"ott","source":{"channelId":"' 
 					//+ 'SV01301' + '"},"relativePosition":0,"speed":1}}',
+					{ qos:2, retain:true }
 				);
 			}
 		} catch (err) {
@@ -2385,10 +2349,12 @@ class stbPlatform {
 			if (this.config.debugLevel > 0) { this.log.warn('setMediaState: set state to %s for channelId %s on %s %s', speed, channelId, deviceId, deviceName); }
 			if (mqttUsername) {
 				this.mqttPublishMessage(
+					// the web client uses qos:2, so we should as well
 					mqttUsername + '/' + this.device.deviceId, 
 					'{"id":"' + makeFormattedId(32) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
 					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
-					+ channelId + '"},"relativePosition":0,"speed":' + speed + '}}'
+					+ channelId + '"},"relativePosition":0,"speed":' + speed + '}}',
+					{ qos:2, retain:true }
 				);
 			}
 		} catch (err) {
@@ -2407,9 +2373,11 @@ class stbPlatform {
 			if (this.config.debugLevel > 0) { this.log.warn('setPlayerPosition: deviceId:', deviceId); }
 			if (mqttUsername) {
 				this.mqttPublishMessage(
-				mqttUsername + '/' + deviceId, 
-				'{"id":"' + makeFormattedId(32) + '","type":"CPE.setPlayerPosition","source":{"clientId":"' + mqttClientId 
-				+ '","status":{"relativePosition":' + relativePosition + '}}"' 
+					// the web client uses qos:2, so we should as well
+					mqttUsername + '/' + deviceId, 
+					'{"id":"' + makeFormattedId(32) + '","type":"CPE.setPlayerPosition","source":{"clientId":"' + mqttClientId 
+					+ '","status":{"relativePosition":' + relativePosition + '}}"',
+					{ qos:2, retain:true }
 				);
 			}
 		} catch (err) {
@@ -2455,10 +2423,11 @@ class stbPlatform {
 					// send the key if not a wait()
 					if (!keyName.toLowerCase().startsWith('wait(')) {
 						this.log('sendKey: sending key %s to %s %s', keyName, deviceName, deviceId);
-
+						// the web client uses qos:2, so we should as well
 						this.mqttPublishMessage(
 							mqttUsername + '/' + deviceId, 
-							'{"id":"' + makeFormattedId(32) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}'
+							'{"id":"' + makeFormattedId(32) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}',
+							{ qos:2, retain:true }
 						);
 						this.log.debug('sendKey: send %s done', keyName);
 
@@ -2482,10 +2451,11 @@ class stbPlatform {
 				this.log.warn('getUiStatus deviceId %s', deviceId);
 			}
 			if (mqttUsername) {
+				// the web client uses qos:2, so we should as well
 				this.mqttPublishMessage(
 					mqttUsername + '/' + deviceId,
 					'{"source":"' + mqttClientId + '","id":"' + makeFormattedId(32) + '","type":"CPE.getUiStatus","runtimeType":"getUiStatus"}',
-					{ qos:1, retain:true }
+					{ qos:2, retain:true }
 				);
 			}
 		} catch (err) {
