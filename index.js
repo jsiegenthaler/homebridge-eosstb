@@ -3046,7 +3046,7 @@ class stbDevice {
 			.on('set', (newMediaState, callback) => { this.setTargetMediaState(newMediaState, callback); });
 
 		// extra characteristics added here are accessible in Shortcuts and Automations (both personal and home)
-		// gneral fault
+		// general fault
 		this.televisionService.getCharacteristic(Characteristic.StatusFault)
 			.on('get', this.getStatusFault.bind(this));
 		
