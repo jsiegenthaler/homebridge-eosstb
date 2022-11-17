@@ -3157,7 +3157,7 @@ class stbDevice {
 			}
 
 			// some channels are deliberately hidden, so assign a fictional channelId and disable them
-			if (chName.includes('HIDDEN_')) { // name contaisn 'HIDDEN_'
+			if (chName.includes('HIDDEN_')) { // name contains 'HIDDEN_'
 				chId = 'HIDDEN_' + i;
 				visState = Characteristic.CurrentVisibilityState.HIDDEN;
 				configState = Characteristic.IsConfigured.NOT_CONFIGURED;
