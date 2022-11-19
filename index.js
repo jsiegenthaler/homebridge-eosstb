@@ -4381,7 +4381,7 @@ class stbDevice {
 		// fired by the user changing a channel name in Home app accessory setup
 		//if (this.config.debugLevel > 1) { this.log.warn('%s: getInputName inputId %s', this.name, inputId); }
 		const inputName =(this.channelList[inputId-1] || {}).configuredName || ''; // Empty string if not found
-		if (this.config.debugLevel > -1) { 
+		if (this.config.debugLevel > 1) { 
 			this.log.warn("%s: getInputName for input %s returning '%s'", this.name, inputId, inputName);
 		}
 		callback(null, inputName);
@@ -4446,7 +4446,7 @@ class stbDevice {
 		// fired when the Home app is opened
 		const curChannel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId );  // this.currentChannelId is a string eg SV09038
 		currentChannelName = (curChannel || {}).name || ''; // Empty string if not found
-		if (this.config.debugLevel > -1) { this.log.warn("%s: getCurrentChannelName returning '%s'", this.name, currentChannelName); }
+		if (this.config.debugLevel > 1) { this.log.warn("%s: getCurrentChannelName returning '%s'", this.name, currentChannelName); }
 		callback(null, currentChannelName);
 	};
 
