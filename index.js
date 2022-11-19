@@ -3073,6 +3073,28 @@ class stbDevice {
 		this.televisionService.getCharacteristic(Characteristic.RemoteKey)
 			.on('set', this.setRemoteKey.bind(this));
 
+
+
+			
+		// Custom characteristics
+		// these are visible in Shortcuts with the name "Custom"
+		// add a custom hap characteristic for the active identifier name, appears as Custom in shortcuts
+		//this.log('Characteristic.Formats')
+		//this.log(Characteristic.Formats)
+		const BASE_UUID =   "-0000-3C36-E400-3C36E4FF0012"; // a random UUID used only for my plugin's characteristics, based on 3C36E4-EOSSTB-003656123456
+		// 											 export const BASE_UUID = "-0000-1000-8000-0026BB765291"; // Apple HomeKit base UUID
+		// var hapCharacteristic = new Characteristic(characteristic.displayName, characteristic.UUID, characteristic.props);
+		var hapCharacteristic = new Characteristic("Current Channel Name", "00000001" + BASE_UUID, {
+			format: Characteristic.Formats.STRING,
+			perms: [Characteristic.Perms.PAIRED_READ, Characteristic.Perms.NOTIFY]
+		})
+		hapCharacteristic.value = ''; // add a default empty value 
+		hapCharacteristic.on('get', this.getCurrentChannelName.bind(this));
+		this.televisionService.addCharacteristic(hapCharacteristic); // add the Characteristic to the televisionService
+		// once added, it can be retrieved with
+		//this.televisionService.getCharacteristic('Active Identifier Name')
+
+
 		//this.log('DEBUG:  this.televisionService')
 		//this.log(this.televisionService)
 
