@@ -4393,6 +4393,31 @@ class stbDevice {
 	};
 
 
+	// get current channel name (the TV channel name)
+	// custom characteristic, returns a string, the event updates the characteristic value automatically
+	async getCurrentChannelName(callback, currentChannelName) {
+		// fired by the user reading the Custom characteristic in Shortcuts
+		// fired when the accessory is first created and HomeKit requests a refresh
+		// fired when the icon is clicked in the Home app and HomeKit requests a refresh
+		// fired when the Home app is opened
+		if (this.config.debugLevel > -1) { this.log.warn('%s: getCurrentChannelName', this.name); }
+
+		currentChannelName = NO_CHANNEL_NAME; // default if nothing found
+		// can we make the code simpler when nothing is found?
+		// if not found, should return 
+		const curChannel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId + 'xxx' );  // this.currentChannelId is a string eg SV09038
+		this.log('curChannel')
+		this.log(curChannel)
+
+		//if (curChannel) { currentChannelName = curChannel.name; };
+		currentChannelName = curChannel.name;
+		this.log('currentChannelName', currentChannelName)
+		currentChannelName = curChannel.name || ''; // empty if not found
+		this.log('currentChannelName', currentChannelName)
+		if (this.config.debugLevel > -1) { this.log.warn("%s: getCurrentChannelName returning '%s'", this.name, currentChannelName); }
+		callback(null, currentChannelName);
+	};
+
 
 	// get input visibility state (of the TV channel in the accessory)
 	async getInputVisibilityState(inputId, callback) {
