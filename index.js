@@ -3078,13 +3078,25 @@ class stbDevice {
 			
 		// Custom characteristics
 		// these are visible in Shortcuts with the name "Custom"
-		// add a custom hap characteristic for the active identifier name, appears as Custom in shortcuts
-		//this.log('Characteristic.Formats')
-		//this.log(Characteristic.Formats)
+		var hapCharacteristic = {};
 		const BASE_UUID =   "-0000-3C36-E400-3C36E4FF0012"; // a random UUID used only for my plugin's characteristics, based on 3C36E4-EOSSTB-003656123456
 		// 											 export const BASE_UUID = "-0000-1000-8000-0026BB765291"; // Apple HomeKit base UUID
+
+		// add a custom hap characteristic for the current channel id, appears as Custom in shortcuts
 		// var hapCharacteristic = new Characteristic(characteristic.displayName, characteristic.UUID, characteristic.props);
-		var hapCharacteristic = new Characteristic("Current Channel Name", "00000001" + BASE_UUID, {
+		hapCharacteristic = new Characteristic("Current Channel Id", "00000001" + BASE_UUID, {
+			format: Characteristic.Formats.STRING,
+			perms: [Characteristic.Perms.PAIRED_READ, Characteristic.Perms.NOTIFY]
+		})
+		hapCharacteristic.value = ''; // add a default empty value 
+		hapCharacteristic.on('get', this.getCurrentChannelId.bind(this));
+		this.televisionService.addCharacteristic(hapCharacteristic); // add the Characteristic to the televisionService
+		// once added, it can be retrieved with
+		//this.televisionService.getCharacteristic('Current Channel Id')
+
+		// add a custom hap characteristic for the current channel name, appears as Custom in shortcuts
+		// var hapCharacteristic = new Characteristic(characteristic.displayName, characteristic.UUID, characteristic.props);
+		hapCharacteristic = new Characteristic("Current Channel Name", "00000002" + BASE_UUID, {
 			format: Characteristic.Formats.STRING,
 			perms: [Characteristic.Perms.PAIRED_READ, Characteristic.Perms.NOTIFY]
 		})
@@ -3092,7 +3104,7 @@ class stbDevice {
 		hapCharacteristic.on('get', this.getCurrentChannelName.bind(this));
 		this.televisionService.addCharacteristic(hapCharacteristic); // add the Characteristic to the televisionService
 		// once added, it can be retrieved with
-		//this.televisionService.getCharacteristic('Active Identifier Name')
+		//this.televisionService.getCharacteristic('Current Channel Name')
 
 
 		//this.log('DEBUG:  this.televisionService')
@@ -4345,7 +4357,7 @@ class stbDevice {
 	async setInput(input, callback) {
 		input = input ?? {} // ensure input is never null or undefined
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setInput input %s %s',this.name, input.id, input.name); }
-		callback(null); // for rapid response
+		callback(); // for rapid response
 		var currentChannelName = NO_CHANNEL_NAME;
 		const channel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId);
 		if (channel) { currentChannelName = channel.name; }
@@ -4368,18 +4380,13 @@ class stbDevice {
 	async getInputName(inputId, callback) {
 		// fired by the user changing a channel name in Home app accessory setup
 		//if (this.config.debugLevel > 1) { this.log.warn('%s: getInputName inputId %s', this.name, inputId); }
-
-		// need to read from stored cache, currently not implemented, TO-DO
-		var chName = NO_CHANNEL_NAME; // must have a value
-		if (this.channelList[inputId-1]) {
-			chName = this.channelList[inputId-1].configuredName;
+		const inputName =(this.channelList[inputId-1] || {}).configuredName || ''; // Empty string if not found
+		if (this.config.debugLevel > -1) { 
+			this.log.warn("%s: getInputName for input %s returning '%s'", this.name, inputId, inputName);
 		}
-		if (this.config.debugLevel > 1) { 
-			this.log.warn("%s: getInputName for input %s returning '%s'", this.name, inputId, chName);
-		}
-		callback(null, chName);
+		callback(null, inputName);
 	};
-
+	
 	// set input name (change the TV channel name)
 	async setInputName(inputId, newInputName, callback) {
 		// fired by the user changing a channel name in Home app accessory setup
@@ -4411,31 +4418,34 @@ class stbDevice {
 			//this.log('%s: Renamed channel %s from %s to %s (valid only for HomeKit)', this.name, inputId+1, oldInputName, newInputName);
 			this.log('%s: Renamed channel %s to %s (valid only for HomeKit)', this.name, inputId+1, newInputName);
 		}
-		callback(null);
+		callback();
+	};
+
+
+	// get current channel id (the TV channel identifier, a string)
+	// added in v2.0.2
+	// custom characteristic, returns a string, the event updates the characteristic value automatically
+	async getCurrentChannelId(callback, currentChannelId) {
+		// fired by the user reading the Custom characteristic in Shortcuts
+		// fired when the accessory is first created and HomeKit requests a refresh
+		// fired when the icon is clicked in the Home app and HomeKit requests a refresh
+		// fired when the Home app is opened
+		currentChannelId = this.currentChannelId || '';  // this.currentChannelId is a string eg SV09038. Empty string if not found
+		if (this.config.debugLevel > 1) { this.log.warn("%s: getCurrentChannelId returning '%s'", this.name, currentChannelId); }
+		callback(null, currentChannelId);
 	};
 
 
 	// get current channel name (the TV channel name)
+	// added in v2.0.2
 	// custom characteristic, returns a string, the event updates the characteristic value automatically
 	async getCurrentChannelName(callback, currentChannelName) {
 		// fired by the user reading the Custom characteristic in Shortcuts
 		// fired when the accessory is first created and HomeKit requests a refresh
 		// fired when the icon is clicked in the Home app and HomeKit requests a refresh
 		// fired when the Home app is opened
-		if (this.config.debugLevel > -1) { this.log.warn('%s: getCurrentChannelName', this.name); }
-
-		currentChannelName = NO_CHANNEL_NAME; // default if nothing found
-		// can we make the code simpler when nothing is found?
-		// if not found, should return 
-		const curChannel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId + 'xxx' );  // this.currentChannelId is a string eg SV09038
-		this.log('curChannel')
-		this.log(curChannel)
-
-		//if (curChannel) { currentChannelName = curChannel.name; };
-		currentChannelName = curChannel.name;
-		this.log('currentChannelName', currentChannelName)
-		currentChannelName = curChannel.name || ''; // empty if not found
-		this.log('currentChannelName', currentChannelName)
+		const curChannel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId );  // this.currentChannelId is a string eg SV09038
+		currentChannelName = (curChannel || {}).name || ''; // Empty string if not found
 		if (this.config.debugLevel > -1) { this.log.warn("%s: getCurrentChannelName returning '%s'", this.name, currentChannelName); }
 		callback(null, currentChannelName);
 	};
@@ -4469,7 +4479,7 @@ class stbDevice {
 		//not yet active
 		//this.platform.persistConfig(this.deviceId, this.channelList);
 
-		callback(null); // for rapid response
+		callback(); // for rapid response
 	}
 
 
@@ -4490,7 +4500,7 @@ class stbDevice {
 		if(this.currentClosedCaptionsState !== targetClosedCaptionsState){
 			this.log("setClosedCaptions: not yet implemented");
 		}
-		callback(null);
+		callback();
 	}
 
 
@@ -4521,7 +4531,7 @@ class stbDevice {
 		if(this.customPictureMode !== targetPictureMode){
 			this.log("setPictureMode: not yet implemented");
 		}
-		callback(null);
+		callback();
 	}
 
 
