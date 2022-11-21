@@ -1147,7 +1147,7 @@ class stbPlatform {
 												},
 											})
 											.then(response => {	
-												this.log('Step 4 of 7 response:',response.status, response.statusText);
+												this.log('Step 4 of 7: response:',response.status, response.statusText);
 												this.log.debug('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
 												this.log.debug('Step 4 of 7: response.data:',response.data);
 												//this.log('Step 4 response.headers:',response.headers);
