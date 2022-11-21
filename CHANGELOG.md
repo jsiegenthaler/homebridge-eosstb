@@ -17,6 +17,10 @@ Please report all bugs and problems.
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
 
 
+## 2.0.2-beta.1 (2022-11-21)
+* Bumped dependency "axios": "^1.1.3", needs good testing in all countries
+
+
 ## 2.0.1 (2022-11-19)
 * Increased reliability of mqtt messages by setting QoS
 * Optimised the GB session code
