@@ -14,31 +14,33 @@ const fsPromises = require('fs').promises;
 const path = require('path');
 const debug = require('debug')('eosstb') // https://github.com/debug-js/debug
 
-// good exanple of debug usage https://github.com/mqttjs/MQTT.js/blob/main/lib/client.js
+// good example of debug usage https://github.com/mqttjs/MQTT.js/blob/main/lib/client.js
 const mqtt = require('mqtt');  			// https://github.com/mqttjs
 const qs = require('qs')
 //const _ = require('underscore');
 
 
-const axios = require('axios').default;
-//const instance = axios.create(); // cannot create new instance in v1.1.x, do not know why. stay with v0.27.2 
+const axios = require('axios'); //.default;
 
-axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
 
 // axios-cookiejar-support v2.0.2 syntax
 const { wrapper: axiosCookieJarSupport } = require('axios-cookiejar-support'); // as of axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-
 const tough = require('tough-cookie');
 const cookieJar = new tough.CookieJar();
 
-const axiosWS = axios.create({
-	// axios-cookiejar-support v1.0.1 required config
-	//withCredentials: true, // deprecated since axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-	//jar: true //deprecated since axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 
+axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
+const axiosWS = axios.create({
 	// axios-cookiejar-support v2.0.2 required config
-	jar: cookieJar //added in axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
+	jar: cookieJar, //added in axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 });
+
+
+// console.log('axiosWS')
+// console.log( axiosWS)
+// console.log('axiosWS.defaults.headers')
+// console.log( axiosWS.defaults.headers)
+
 // remove default header in axios that causes trouble with Telenet
 delete axiosWS.defaults.headers.common["Accept"];
 delete axiosWS.defaults.headers.common;
@@ -1100,6 +1102,7 @@ class stbPlatform {
 								data: '{"username":"' + this.config.username + '","credential":"' + this.config.password + '"}',
 								method: "POST",
 								// minimum headers are "accept": "*/*",
+								// this header is slightly different to the defaul GET header
 								headers: {
 									"accept": "application/json; charset=UTF-8, */*",
 								},
@@ -1831,6 +1834,7 @@ class stbPlatform {
 						// subscribe to all householdId messages
 						parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
 						parent.mqttSubscribeToTopic(mqttUsername + '/status'); // experiment, may not be needed
+						parent.mqttSubscribeToTopic(mqttUsername + '/#'); // experiment subscribing to all levels
 						//parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status // dont subscribe to this, its all clientIds, floods with messages
 
 						// experimental support of recording status
