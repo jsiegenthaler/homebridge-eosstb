@@ -1834,7 +1834,6 @@ class stbPlatform {
 						// subscribe to all householdId messages
 						parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
 						parent.mqttSubscribeToTopic(mqttUsername + '/status'); // experiment, may not be needed
-						parent.mqttSubscribeToTopic(mqttUsername + '/#'); // experiment subscribing to all levels
 						//parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status // dont subscribe to this, its all clientIds, floods with messages
 
 						// experimental support of recording status
