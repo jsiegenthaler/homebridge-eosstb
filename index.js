@@ -14,31 +14,33 @@ const fsPromises = require('fs').promises;
 const path = require('path');
 const debug = require('debug')('eosstb') // https://github.com/debug-js/debug
 
-// good exanple of debug usage https://github.com/mqttjs/MQTT.js/blob/main/lib/client.js
+// good example of debug usage https://github.com/mqttjs/MQTT.js/blob/main/lib/client.js
 const mqtt = require('mqtt');  			// https://github.com/mqttjs
 const qs = require('qs')
 //const _ = require('underscore');
 
 
-const axios = require('axios').default;
-//const instance = axios.create(); // cannot create new instance in v1.1.x, do not know why. stay with v0.27.2 
+const axios = require('axios'); //.default;
 
-axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
 
 // axios-cookiejar-support v2.0.2 syntax
 const { wrapper: axiosCookieJarSupport } = require('axios-cookiejar-support'); // as of axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-
 const tough = require('tough-cookie');
 const cookieJar = new tough.CookieJar();
 
-const axiosWS = axios.create({
-	// axios-cookiejar-support v1.0.1 required config
-	//withCredentials: true, // deprecated since axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-	//jar: true //deprecated since axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 
+axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
+const axiosWS = axios.create({
 	// axios-cookiejar-support v2.0.2 required config
-	jar: cookieJar //added in axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
+	jar: cookieJar, //added in axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 });
+
+
+// console.log('axiosWS')
+// console.log( axiosWS)
+// console.log('axiosWS.defaults.headers')
+// console.log( axiosWS.defaults.headers)
+
 // remove default header in axios that causes trouble with Telenet
 delete axiosWS.defaults.headers.common["Accept"];
 delete axiosWS.defaults.headers.common;
@@ -1100,6 +1102,7 @@ class stbPlatform {
 								data: '{"username":"' + this.config.username + '","credential":"' + this.config.password + '"}',
 								method: "POST",
 								// minimum headers are "accept": "*/*",
+								// this header is slightly different to the defaul GET header
 								headers: {
 									"accept": "application/json; charset=UTF-8, */*",
 								},
@@ -1144,7 +1147,7 @@ class stbPlatform {
 												},
 											})
 											.then(response => {	
-												this.log('Step 4 of 7 response:',response.status, response.statusText);
+												this.log('Step 4 of 7: response:',response.status, response.statusText);
 												this.log.debug('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
 												this.log.debug('Step 4 of 7: response.data:',response.data);
 												//this.log('Step 4 response.headers:',response.headers);
@@ -1581,7 +1584,12 @@ class stbPlatform {
 		// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/1012345_ch/devices/3C36E4-EOSSTB-003656123456
 		const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
 		const data = {"settings": deviceSettings};
-		const config = {headers: {"x-cus": accessToken, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
+		// gb needs x-cus, x-oesp-token and x-oesp-username
+		config = {headers: {
+			"x-cus": this.session.householdId,
+			"x-oesp-token": this.session.accessToken,
+			"x-oesp-username": this.session.username
+		}}
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: PUT %s', url); }
 		axiosWS.put(url, data, config)
 			.then(response => {	
@@ -2191,8 +2199,8 @@ class stbPlatform {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
 								parent.currentMqttState = mqttState.error;
-								parent.log.warn('mqttClient: Error', err.syscall + ' ' + err.code + ' ' + (err.hostname || ''));
-								parent.log.debug('mqttClient: Error:', err); 
+								parent.log.warn('mqttClient: Error', (err.syscall || '') + ' ' + (err.code || '') + ' ' + (err.hostname || ''));
+								parent.log.warn('mqttClient: Error object:', err); 
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 								mqttClient.end();
