@@ -16,8 +16,8 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.0.2-beta.10 (2022-11-26)
-* Adapted axios to work with v1.2.0
+## 2.0.2-beta.11 (2022-11-26)
+* beta.11: Tring to get Axios v1.2.0 to work but it failled, rollback to v1.1.3
 * Fixed incorrect endpoint for UPC TV Polang
 * Fixed bug in setPersonalizationDataForDevice causing crash for GB users
 * Fixed minor logging issue
