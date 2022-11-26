@@ -1585,11 +1585,20 @@ class stbPlatform {
 		const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
 		const data = {"settings": deviceSettings};
 		// gb needs x-cus, x-oesp-token and x-oesp-username
-		config = {headers: {
-			"x-cus": this.session.householdId,
-			"x-oesp-token": this.session.accessToken,
-			"x-oesp-username": this.session.username
-		}}
+		let config={}
+		if (householdId.endsWith('gb')){
+			// gb needs x-cus, x-oesp-token and x-oesp-username
+			config = {headers: {
+				"x-cus": this.session.householdId,
+				"x-oesp-token": this.session.accessToken,
+				"x-oesp-username": this.session.username
+			}}
+		} else {
+			// other countries on new backend from Oct 2022 need just x-oesp-username
+			config = {headers: {
+				"x-oesp-username": this.session.username
+			}}
+		};
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: PUT %s', url); }
 		axiosWS.put(url, data, config)
 			.then(response => {	
