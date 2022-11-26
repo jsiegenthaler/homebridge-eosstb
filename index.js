@@ -1487,7 +1487,7 @@ class stbPlatform {
 			const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
 			// headers are in the web client
 			let config={}
-			if (householdId.endsWith('gb')){
+			if (this.config.country.toLowerCase() == 'gb'){
 				// gb needs x-cus, x-oesp-token and x-oesp-username
 				config = {headers: {
 					"x-cus": this.session.householdId,
@@ -1586,7 +1586,7 @@ class stbPlatform {
 		const data = {"settings": deviceSettings};
 		// gb needs x-cus, x-oesp-token and x-oesp-username
 		let config={}
-		if (this.session.householdId.endsWith('gb')){
+		if (this.config.country.toLowerCase() == 'gb'){
 			// gb needs x-cus, x-oesp-token and x-oesp-username
 			config = {headers: {
 				"x-cus": this.session.householdId,
