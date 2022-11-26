@@ -19,7 +19,8 @@ Please report all bugs and problems.
 
 ## 2.0.2-beta.4 (2022-11-26)
 * Fixed bug in setPersonalizationDataForDevice causing crash for GB users
-* Bumped Homebridge 
+* Bumped dependency "axios": "^1.2.0"
+* Bumped Homebridge "homebridge": ">=1.6.0",
 
 ## 2.0.2-beta.3 (2022-11-22)
 * Improved mqttClient error handling to try and catch an error
