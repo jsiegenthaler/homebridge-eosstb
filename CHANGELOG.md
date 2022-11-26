@@ -17,9 +17,12 @@ Please report all bugs and problems.
 * Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
 
 
+## 2.0.2-beta.4 (2022-11-26)
+* Fixed bug in setPersonalizationDataForDevice causing crash for GB users
+* Bumped Homebridge 
+
 ## 2.0.2-beta.3 (2022-11-22)
 * Improved mqttClient error handling to try and catch an error
-
 
 ## 2.0.2-beta.2 (2022-11-21)
 * Fixed minor logging issue
