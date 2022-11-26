@@ -2795,7 +2795,7 @@ class stbDevice {
 		this.currentClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		this.previousClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		this.currentMediaState = Characteristic.CurrentMediaState.STOP;
-		this.targetMediaState = Characteristic.CurrentMediaState.STOP;
+		this.targetMediaState = Characteristic.TargetMediaState.STOP;
 		this.currentPictureMode = Characteristic.PictureMode.STANDARD;
 		this.previousPictureMode = null;
 		this.currentRecordingState = recordingState.IDLE;
