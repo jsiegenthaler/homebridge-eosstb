@@ -2784,8 +2784,7 @@ class stbDevice {
 		this.configuredInputs = [];		// a list of inputs that have been renamed by the user. EXPERIMENTAL
 
 		//setup variables
-		this.lastPowerKeySent;				// stores when the power key was sent last to help in de-bounce
-		this.targetMediaState = Characteristic.TargetMediaState.STOP; // default until received by mqtt
+		this.lastPowerKeySent;			// stores when the power key was sent last to help in de-bounce
 		this.accessoryConfigured;		// true when the accessory is configured
 
 		// initial states. Will be updated by mqtt messages
