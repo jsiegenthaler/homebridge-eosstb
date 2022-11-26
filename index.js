@@ -13,14 +13,11 @@ const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
 const debug = require('debug')('eosstb') // https://github.com/debug-js/debug
-
 // good example of debug usage https://github.com/mqttjs/MQTT.js/blob/main/lib/client.js
+
 const mqtt = require('mqtt');  			// https://github.com/mqttjs
 const qs = require('qs')
-//const _ = require('underscore');
-
-
-const axios = require('axios'); //.default;
+const axios = require('axios').default;	// https://github.com/axios/axios
 
 
 // axios-cookiejar-support v2.0.2 syntax
@@ -30,16 +27,17 @@ const cookieJar = new tough.CookieJar();
 
 
 axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
+axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
 const axiosWS = axios.create({
 	// axios-cookiejar-support v2.0.2 required config
 	jar: cookieJar, //added in axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 });
 
 
-// console.log('axiosWS')
-// console.log( axiosWS)
-// console.log('axiosWS.defaults.headers')
-// console.log( axiosWS.defaults.headers)
+ console.log('axiosWS')
+ console.log( axiosWS)
+ console.log('axiosWS.defaults.headers')
+ console.log( axiosWS.defaults.headers)
 
 // remove default header in axios that causes trouble with Telenet
 delete axiosWS.defaults.headers.common["Accept"];
@@ -67,7 +65,7 @@ const countryBaseUrlArray = {
     'gb':       'https://prod.spark.virginmedia.com',
 	'ie':       'https://prod.spark.virginmediatv.ie',
     'nl': 		'https://prod.spark.ziggogo.tv',
-	'pl':		'https://prod.spark.unknown.pl',
+	'pl':		'https://prod.spark.upctv.pl',
 	'sk':		'https://prod.spark.upctv.sk',
 	// old endpoints:
     //'at': 	'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web', // v3 and v4 works old
