@@ -21,7 +21,7 @@ Please report all bugs and problems.
 * Fixed bug in setPersonalizationDataForDevice causing crash for GB users
 * Fixed minor logging issue
 * Improved mqttClient error handling to try and catch an error
-* Bumped dependency "axios": "^1.2.0"
+* Bumped dependency "axios": "^1.1.3"
 * Bumped Homebridge "homebridge": ">=1.6.0",
 
 
