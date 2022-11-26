@@ -14,7 +14,6 @@ Please report all bugs and problems.
 * Work on ideas for showing radio channels and using them -> STARTED. Possible only with KeyMacros. How should these appear in the channel list?
 * Fix potential problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
-* Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
 
 
 ## 2.0.2-beta.6 (2022-11-26)
