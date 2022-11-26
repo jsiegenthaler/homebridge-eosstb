@@ -1584,7 +1584,12 @@ class stbPlatform {
 		// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/1012345_ch/devices/3C36E4-EOSSTB-003656123456
 		const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
 		const data = {"settings": deviceSettings};
-		const config = {headers: {"x-cus": accessToken, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
+		// gb needs x-cus, x-oesp-token and x-oesp-username
+		config = {headers: {
+			"x-cus": this.session.householdId,
+			"x-oesp-token": this.session.accessToken,
+			"x-oesp-username": this.session.username
+		}}
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: PUT %s', url); }
 		axiosWS.put(url, data, config)
 			.then(response => {	
