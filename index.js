@@ -17,7 +17,6 @@ const debug = require('debug')('eosstb') // https://github.com/debug-js/debug
 
 const mqtt = require('mqtt');  			// https://github.com/mqttjs
 const qs = require('qs')
-const axios = require('axios').default;	// https://github.com/axios/axios
 
 
 // axios-cookiejar-support v2.0.2 syntax
@@ -26,18 +25,19 @@ const tough = require('tough-cookie');
 const cookieJar = new tough.CookieJar();
 
 
-axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
+const axios = require('axios').default;	// https://github.com/axios/axios
 axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
 const axiosWS = axios.create({
 	// axios-cookiejar-support v2.0.2 required config
 	jar: cookieJar, //added in axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 });
 
-
+/*
  console.log('axiosWS')
  console.log( axiosWS)
  console.log('axiosWS.defaults.headers')
  console.log( axiosWS.defaults.headers)
+ */
 
 // remove default header in axios that causes trouble with Telenet
 delete axiosWS.defaults.headers.common["Accept"];
