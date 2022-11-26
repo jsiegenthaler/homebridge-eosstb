@@ -16,7 +16,7 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.0.2-beta.7 (2022-11-26)
+## 2.0.2-beta.8 (2022-11-26)
 * Fixed bug in setPersonalizationDataForDevice causing crash for GB users
 * Fixed minor logging issue
 * Improved mqttClient error handling to try and catch a rare error
