@@ -1586,7 +1586,7 @@ class stbPlatform {
 		const data = {"settings": deviceSettings};
 		// gb needs x-cus, x-oesp-token and x-oesp-username
 		let config={}
-		if (householdId.endsWith('gb')){
+		if (this.session.householdId.endsWith('gb')){
 			// gb needs x-cus, x-oesp-token and x-oesp-username
 			config = {headers: {
 				"x-cus": this.session.householdId,
