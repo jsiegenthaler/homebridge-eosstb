@@ -37,8 +37,6 @@ const axiosWS = axios.create({
 delete axiosWS.defaults.headers.common["Accept"];
 delete axiosWS.defaults.headers.common;
 axiosWS.defaults.headers.post = {}; // ensure no default post header, upsets some logon routines
-//axiosWS.defaults.adapter = [ 'http' ]; // change from adapter: [ 'xhr', 'http' ] to just http due to GB
-//axiosWS.adapter = [ 'http' ]; // change from adapter: [ 'xhr', 'http' ] to just http due to GB
 // setup the cookieJar support with axiosWS
 axiosCookieJarSupport(axiosWS);
 
@@ -1015,7 +1013,6 @@ class stbPlatform {
 	// get session for GB only (special logon sequence)
 	getSessionGB() {
 		return new Promise((resolve, reject) => {
-			// this code is a copy of the be session code, adapted for gb
 			this.log('Creating %s GB session...',PLATFORM_NAME);
 			currentSessionState = sessionState.LOADING;
 
@@ -1077,8 +1074,6 @@ class stbPlatform {
 					this.log.debug('Step 2 of 7: get AUTH cookie ULM-JSESSIONID from',authAuthorizationUri);
 					axiosWS.get(authAuthorizationUri, {
 							jar: cookieJar,
-							// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-							//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
 							// unsure what minimum headers will here
 							headers: {
 								Accept: 'application/json, text/plain, */*'
@@ -1090,19 +1085,16 @@ class stbPlatform {
 			
 							// Step 3: # login
 							this.log('Step 3 of 7: logging in with username %s', this.config.username);
-							//this.log('Cookies for the auth url:',cookieJar.getCookies(GB_AUTH_URL));
 							currentSessionState = sessionState.LOGGING_IN;
 
-							// we just want to POST to 
+							// we want to POST to 
 							// 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
-							// 
 							const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
 							this.log.debug('Step 3 of 7: POST request will contain this data: {"username":"' + this.config.username + '","credential":"' + this.config.password + '"}');
 							axiosWS(GB_AUTH_URL,{
 							//axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
 								jar: cookieJar,
 								// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-								//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
 								data: '{"username":"' + this.config.username + '","credential":"' + this.config.password + '"}',
 								method: "POST",
 								// minimum headers are "accept": "*/*", "content-type": "application/json; charset=UTF-8",
@@ -1119,10 +1111,7 @@ class stbPlatform {
 									this.log('Step 3 of 7: response:',response.status, response.statusText);
 									//this.log.debug('Step 3 of 7: response.headers:',response.headers); 
 									//this.log.debug('Step 3 of 7: response.data:',response.data);
-									//this.log('Step 3 of 7: response.headers:',response.headers); 
-									//this.log('Step 3 of 7: response.data:',response.data);
 
-									//this.log('Step 3 of 7 response.headers:',response.headers);
 									// X-Redirect-Location
 									// https://id.virginmedia.com/oidc/authorize?response_type=code&state=8ce19449-6cc9-4a65-bcbc-cea7e1884733&nonce=49b0119d-1673-41c5-97b7-eb6092c60b40&client_id=9b471ffe-7ff5-497b-9059-8dcb7c0d66f5&redirect_uri=https://virgintvgo.virginmedia.com/obo_en/login_success&claims={"id_token":{"ukHouseholdId":null}}
 									var url = response.headers['x-redirect-location'] // must be lowercase
@@ -1131,275 +1120,7 @@ class stbPlatform {
 										currentSessionState = sessionState.DISCONNECTED;
 										this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 										return false;						
-									}								
-									//location is h??=... if success
-									//location is https?? if not authorised
-									//location is https:... error=session_expired if session has expired
-									if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
-										//this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
-										reject('Step 3 of 7: Unable to login: wrong credentials'); // reject the promise and return the error
-									} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
-										//this.log.warn('Step 3 of 7: Unable to login: session expired');
-										cookieJar.removeAllCookies();	// remove all the locally cached cookies
-										reject('Step 3 of 7: Unable to login: session expired'); // reject the promise and return the error
-									} else {
-										this.log.debug('Step 3 of 7: login successful');
-
-										// Step 4: # follow redirect url
-										this.log('Step 4 of 7: follow redirect url');
-										//this.log('Step 4 of 7: redirect url:', url);
-										axiosWS.get(url,{
-											jar: cookieJar,
-											maxRedirects: 0, // do not follow redirects
-											validateStatus: function (status) {
-												return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
-												},
-											})
-											.then(response => {	
-												this.log('Step 4 of 7: response:',response.status, response.statusText);
-												this.log.debug('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
-												this.log.debug('Step 4 of 7: response.data:',response.data);
-												//this.log('Step 4 response.headers:',response.headers);
-												url = response.headers.location;
-												if (!url) {		// robustness: fail if url missing
-													this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
-													currentSessionState = sessionState.DISCONNECTED;
-													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-													return false;						
-												}								
-				
-												// look for login_success?code=
-												if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
-													//this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
-													reject('Step 4 of 7: Unable to login: wrong credentials'); // reject the promise and return the error
-												} else if (url.indexOf('error=session_expired') > 0 ) {
-													//this.log.warn('Step 4 of 7: Unable to login: session expired');
-													cookieJar.removeAllCookies();	// remove all the locally cached cookies
-													reject('Step 4 of 7: Unable to login: session expired'); // reject the promise and return the error
-												} else {
-
-													// Step 5: # obtain authorizationCode
-													this.log('Step 5 of 7: extract authorizationCode');
-													/*
-													url = response.headers.location;
-													if (!url) {		// robustness: fail if url missing
-														this.log.warn('getSessionGB: Step 5: location url empty!');
-														currentSessionState = sessionState.DISCONNECTED;
-														this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-														return false;						
-													}				
-													*/				
-					
-													var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
-													var authorizationCode = codeMatches[1];
-													if (codeMatches.length !== 2 ) { // length must be 2 if code found
-														this.log.warn('Step 5 of 7: Unable to extract authorizationCode');
-													} else {
-														this.log('Step 5 of 7: authorizationCode OK');
-														this.log.debug('Step 5 of 7: authorizationCode:',authorizationCode);
-
-														// Step 6: # authorize again
-														this.log('Step 6 of 7: post auth data with valid code');
-														this.log.debug('Step 6 of 7: post auth data with valid code to',apiAuthorizationUrl);
-														currentSessionState = sessionState.AUTHENTICATING;
-														var payload = {'authorizationGrant':{
-															'authorizationCode':authorizationCode,
-															'validityToken':authValidtyToken,
-															'state':authState
-														}};
-														axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
-															.then(response => {	
-																this.log('Step 6 of 7: response:',response.status, response.statusText);
-																this.log.debug('Step 6 of 7: response.data:',response.data);
-																
-																auth = response.data;
-																this.log.debug('Step 6 of 7: refreshToken:',auth.refreshToken);
-
-																// Step 7: # get OESP code
-																this.log('Step 7 of 7: post refreshToken request');
-																this.log.debug('Step 7 of 7: post refreshToken request to',apiAuthorizationUrl);
-																payload = {'refreshToken':auth.refreshToken,'username':auth.username};
-																// must resolve to
-																// 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/session';',
-																var sessionUrl = GB_AUTH_OESP_URL + '/session';
-																axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
-																	.then(response => {	
-																		this.log('Step 7 of 7: response:',response.status, response.statusText);
-																		currentSessionState = sessionState.VERIFYING;
-																		
-																		this.log.debug('Step 7 of 7: response.headers:',response.headers); 
-																		this.log.debug('Step 7 of 7: response.data:',response.data); 
-																		this.log.debug('Cookies for the session:',cookieJar.getCookies(sessionUrl));
-
-																		// get device data from the session
-																		this.session = response.data;
-																		
-																		currentSessionState = sessionState.CONNECTED;
-																		this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-																		this.log('Session created');
-																		resolve(this.session.householdId) // resolve the promise with the householdId
-																	})
-																	// Step 7 http errors
-																	.catch(error => {
-																		//this.log.warn("Step 7 of 7: Unable to get OESP token:",error.response.status, error.response.statusText);
-																		this.log.debug("Step 7 of 7: error:",error);
-																		reject("Step 7 of 7: Unable to get OESP token: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-																	});
-															})
-															// Step 6 http errors
-															.catch(error => {
-																//this.log.warn("Step 6 of 7: Unable to authorize with oauth code, http error:",error);
-																reject("Step 6 of 7: Unable to authorize with oauth code, http error: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-															});	
-													};
-												};
-											})
-											// Step 4 http errors
-											.catch(error => {
-												//this.log.warn("Step 4 of 7: Unable to oauth authorize:",error.response.status, error.response.statusText);
-												this.log.debug("Step 4 of 7: error:",error);
-												reject("Step 4 of 7: Unable to oauth authorize: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-											});
-									};
-								})
-								// Step 3 http errors
-								.catch(error => {
-									//this.log.warn("Step 3 of 7: Unable to login:",error.response.status, error.response.statusText);
-									this.log.debug("Step 3 of 7: error:",error);
-									reject("Step 3 of 7: Unable to login: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-								});
-						})
-						// Step 2 http errors
-						.catch(error => {
-							//this.log.warn("Step 2 of 7: Unable to get authorizationUri:",error.response.status, error.response.statusText);
-							this.log.debug("Step 2 of 7: error:",error);
-							reject("Step 2 of 7: Could not get authorizationUri: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
-						});
-				})
-				// Step 1 http errors
-				.catch(error => {
-					//this.log('Failed to create GB session - check your internet connection');
-					//this.log.warn("Step 1 of 7: Could not get apiAuthorizationUrl:",error.response.status, error.response.statusText);
-					this.log("Step 1 of 7: error:",error);
-					reject("Step 1 of 7: Failed to create GB session - check your internet connection"); // reject the promise and return the error
-				});
-
-			currentSessionState = sessionState.DISCONNECTED;
-			this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-		})
-	}
-
-
-
-	// get session for GB only (special logon sequence)
-	getSessionGBold() {
-		return new Promise((resolve, reject) => {
-			// this code is a copy of the be session code, adapted for gb
-			this.log('Creating %s GB session...',PLATFORM_NAME);
-			currentSessionState = sessionState.LOADING;
-
-			//var cookieJarGB = new cookieJar();
-
-			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-			// axios interceptors to log request and response for debugging
-			// works on all following requests in this sub
-			axiosWS.interceptors.request.use(req => {
-				this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
-				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
-				'\nMethod:', req.method, '\nURL:', req.url, 
-				'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,
-				'\nParams:', req.params, '\nData:', req.data
-				);
-				this.log.warn(req); 
-				return req; // must return request
-			});
-			axiosWS.interceptors.response.use(res => {
-				this.log.warn('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
-				'\nHeaders:', res.headers, 
-				'\nUrl:', res.url, 
-				'\nData:', res.data, 
-				'\nLast Request:', res.request
-				);
-				this.log.warn(res); 
-				//this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:'); 
-				//if (cookieJar) { this.log(cookieJar.getCookies(res.url)); }// watch out for empty cookieJar
-				return res; // must return response
-			});
-			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-			// Step 1: # get authentication details
-			// https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
-			// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/authorization
-			// Recorded sequence step 1: https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true
-			let apiAuthorizationUrl = GB_AUTH_OESP_URL + '/authorization';
-			this.log('Step 1 of 7: get authentication details');
-			if (this.config.debugLevel > 1) { this.log.warn('Step 1 of 7: get authentication details from',apiAuthorizationUrl); }
-			axiosWS.get(apiAuthorizationUrl)
-				.then(response => {	
-					this.log('Step 1 of 7: response:',response.status, response.statusText);
-					this.log.debug('Step 1 of :7 response.data',response.data);
-					
-					// get the data we need for further steps
-					let auth = response.data;
-					let authState = auth.session.state;
-					let authAuthorizationUri = auth.session.authorizationUri;
-					let authValidtyToken = auth.session.validityToken;
-					this.log.debug('Step 1 of 7: results: authState',authState);
-					this.log.debug('Step 1 of 7: results: authAuthorizationUri',authAuthorizationUri);
-					this.log.debug('Step 1 of 7: results: authValidtyToken',authValidtyToken);
-
-					// Step 2: # follow authorizationUri to get AUTH cookie (ULM-JSESSIONID)
-					this.log('Step 2 of 7: get AUTH cookie');
-					this.log.debug('Step 2 of 7: get AUTH cookie from',authAuthorizationUri);
-					axiosWS.get(authAuthorizationUri, {
-							jar: cookieJar
-							// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-							//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
-						})
-						.then(response => {	
-							this.log('Step 2 of 7: response:',response.status, response.statusText);
-							//this.log.warn('Step 2 of 7 response.data',response.data); // an html logon page
-			
-							// Step 3: # login
-							this.log('Step 3 of 7: logging in with username %s', this.config.username);
-							//this.log('Cookies for the auth url:',cookieJar.getCookies(GB_AUTH_URL));
-							currentSessionState = sessionState.LOGGING_IN;
-
-							// we just want to POST to 
-							// 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
-							const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
-							this.log.debug('Step 3 of 7: POST request will contain this data: {"username":"' + this.config.username + '","credential":"' + this.config.password + '"}');
-							axiosWS(GB_AUTH_URL,{
-							//axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
-								jar: cookieJar,
-								// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-								//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
-								data: '{"username":"' + this.config.username + '","credential":"' + this.config.password + '"}',
-								method: "POST",
-								// minimum headers are "accept": "*/*",
-								// this header is slightly different to the defaul GET header
-								headers: {
-									"accept": "application/json; charset=UTF-8, */*",
-								},
-								maxRedirects: 0, // do not follow redirects
-								validateStatus: function (status) {
-									return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK. GB returns 200
-								},
-								})
-								.then(response => {	
-									this.log('Step 3 of 7: response:',response.status, response.statusText);
-									this.log.debug('Step 3 of 7: response.headers:',response.headers); 
-									this.log.debug('Step 3 of 7: response.data:',response.data);
-
-									//this.log('Step 3 of 7 response.headers:',response.headers);
-									var url = response.headers['x-redirect-location']
-									if (!url) {		// robustness: fail if url missing
-										this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
-										currentSessionState = sessionState.DISCONNECTED;
-										this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-										return false;						
-									}								
+									}
 									//location is h??=... if success
 									//location is https?? if not authorised
 									//location is https:... error=session_expired if session has expired
@@ -1426,7 +1147,6 @@ class stbPlatform {
 												this.log('Step 4 of 7: response:',response.status, response.statusText);
 												this.log.debug('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
 												this.log.debug('Step 4 of 7: response.data:',response.data);
-												//this.log('Step 4 response.headers:',response.headers);
 												url = response.headers.location;
 												if (!url) {		// robustness: fail if url missing
 													this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
