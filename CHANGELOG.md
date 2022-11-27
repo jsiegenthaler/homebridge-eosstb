@@ -16,7 +16,7 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.0.2-beta.18 (2022-11-27)
+## 2.0.2-beta.19 (2022-11-27)
 * Improved startup speed (sessionWatchdog starts faster)
 * Improved robustness for handling of user-defined box names if >14 characters
 * Improved mqttClient error handling to try and catch a rare error
