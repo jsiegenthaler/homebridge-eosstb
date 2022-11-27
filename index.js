@@ -32,28 +32,17 @@ const axiosWS = axios.create({
 	jar: cookieJar, //added in axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 });
 
-/*
- console.log('axiosWS')
- console.log( axiosWS)
- console.log('axiosWS.defaults.headers')
- console.log( axiosWS.defaults.headers)
- */
 
 // remove default header in axios that causes trouble with Telenet
-//delete axiosWS.defaults.headers.common["Accept"];
-//delete axiosWS.defaults.headers.common;
+delete axiosWS.defaults.headers.common["Accept"];
+delete axiosWS.defaults.headers.common;
 axiosWS.defaults.headers.post = {}; // ensure no default post header, upsets some logon routines
 //axiosWS.defaults.adapter = [ 'http' ]; // change from adapter: [ 'xhr', 'http' ] to just http due to GB
 //axiosWS.adapter = [ 'http' ]; // change from adapter: [ 'xhr', 'http' ] to just http due to GB
 // setup the cookieJar support with axiosWS
 axiosCookieJarSupport(axiosWS);
 
-/*
- console.log('axiosWS')
- console.log( axiosWS)
- console.log('axiosWS.adapter')
- console.log( axiosWS.adapter)
-*/
+
 
 // ++++++++++++++++++++++++++++++++++++++++++++
 // config start
@@ -357,12 +346,10 @@ class stbPlatform {
 			setTimeout(this.sessionWatchdog.bind(this),500); // wait 500ms then call this.sessionWatchdog
 
 			// the session watchdog creates a session when none exists, and recreates one if the session ever fails due to internet failure or anything else
-			// removed for GB testing
-			//this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
+			this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
 
 			// check for a channel list update every MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S seconds
-			// removed for GB testing
-			//this.checkChannelListInterval = setInterval(this.refreshMasterChannelList.bind(this),MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S * 1000);
+			this.checkChannelListInterval = setInterval(this.refreshMasterChannelList.bind(this),MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S * 1000);
 
 			debug('stbPlatform:apievent :: didFinishLaunching end of code block')
 			//this.log('stbPlatform: end of code block');
@@ -574,9 +561,8 @@ class stbPlatform {
 					this.log.debug('sessionWatchdog: ++++++ step 7: getJwtToken token was retrieved, token %s',jwToken)
 					this.log.debug('sessionWatchdog: ++++++ step 7: start mqtt client')
 					debug(debugPrefix + 'calling startMqttClient')
-					// turned off to debug GB session
-					//return this.startMqttClient(this, this.session.householdId, jwToken);  // returns true
-					return true // end the chain with a resolved promise
+					return this.startMqttClient(this, this.session.householdId, jwToken);  // returns true
+					//return true // end the chain with a resolved promise
 				})				
 				.catch(errorReason => {
 					// log any errors and set the currentSessionState
@@ -1033,20 +1019,6 @@ class stbPlatform {
 			this.log('Creating %s GB session...',PLATFORM_NAME);
 			currentSessionState = sessionState.LOADING;
 
-			//var cookieJarGB = new cookieJar();
-			//axiosWS.defaults.headers.post = {}; // ensure no default post header, upsets some logon routines
-			//axiosWS.adapter = [ 'http' ]; // change from adapter: [ 'xhr', 'http' ] to just http due to GB
-			
-			/*
-			this.log('axiosWS')
-			this.log( axiosWS)
-			this.log('axiosWS.adapter')
-			this.log( axiosWS.adapter)
-			this.log('axiosWS')
-			this.log( axiosWS)
-			*/
-			
-
 			 
 			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 			// axios interceptors to log request and response for debugging
@@ -1066,10 +1038,10 @@ class stbPlatform {
 				this.log.warn('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
 				'\nHeaders:', res.headers, 
 				'\nUrl:', res.url, 
-				'\nData:', res.data, 
+				//'\nData:', res.data, 
 				'\nLast Request:', res.request
 				);
-				this.log.warn(res); 
+				//this.log.warn(res); 
 				this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:'); 
 				if (cookieJar) { this.log(cookieJar); }// watch out for empty cookieJar
 				return res; // must return response
@@ -1133,11 +1105,10 @@ class stbPlatform {
 								//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
 								data: '{"username":"' + this.config.username + '","credential":"' + this.config.password + '"}',
 								method: "POST",
-								// minimum headers are "accept": "*/*",
-								// this header is slightly different to the defaul GET header
+								// minimum headers are "accept": "*/*", "content-type": "application/json; charset=UTF-8",
 								headers: {
-									Accept: 'application/json, text/plain, */*'
-									//"accept": "application/json; charset=UTF-8, */*",
+									"accept": "*/*", // mandatory
+									"content-type": "application/json; charset=UTF-8", // mandatory
 								},
 								maxRedirects: 0, // do not follow redirects
 								validateStatus: function (status) {
@@ -3669,7 +3640,7 @@ class stbDevice {
 				// new name is always in this.device.settings.deviceFriendlyName; 
 				//this.log('updateDeviceState this.name %s, this.device.settings.deviceFriendlyName %s', this.name, this.device.settings.deviceFriendlyName );
 				var oldDeviceName = this.name;
-				var currentDeviceName = this.device.settings.deviceFriendlyName + PLUGIN_ENV;;
+				var currentDeviceName = this.device.settings.deviceFriendlyName.substring(0, SETTOPBOX_NAME_MAXLEN - PLUGIN_ENV.length) + PLUGIN_ENV; // append DEV environment, limit to 14 chaR
 
 				var syncName = true; // default true		
 				if (configDevice && configDevice.syncName == false ) { syncName = configDevice.syncName; }
