@@ -16,15 +16,16 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.0.2-beta.11 (2022-11-26)
-* beta.11: Tring to get Axios v1.2.0 to work but it failled, rollback to v1.1.3
-* Fixed incorrect endpoint for UPC TV Polang
+## 2.0.2-beta.16 (2022-11-27)
+* Improved startup speed (sessionWatchdog starts faster)
+* Improved robustness for handling of user-defined box names if >14 characters
+* Improved mqttClient error handling to try and catch a rare error
+* Fixed incorrect endpoint for UPC TV Poland
 * Fixed bug in setPersonalizationDataForDevice causing crash for GB users
 * Fixed minor logging issue
-* Improved mqttClient error handling to try and catch a rare error
-* Corrected some default settings for TargetMediaState
+* Fixed default settings for TargetMediaState
 * Cleaned up some GB code
-* Bumped dependency "axios": "^1.1.3"
+* Bumped dependency "axios": "=1.1.3" (v1.2.0 currently does not work with GB sessions)
 * Bumped Homebridge "homebridge": ">=1.6.0",
 
 
