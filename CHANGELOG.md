@@ -16,7 +16,7 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.0.2-beta.16 (2022-11-27)
+## 2.0.2-beta.18 (2022-11-27)
 * Improved startup speed (sessionWatchdog starts faster)
 * Improved robustness for handling of user-defined box names if >14 characters
 * Improved mqttClient error handling to try and catch a rare error
@@ -25,7 +25,7 @@ Please report all bugs and problems.
 * Fixed minor logging issue
 * Fixed default settings for TargetMediaState
 * Cleaned up some GB code
-* Bumped dependency "axios": "=1.1.3" (v1.2.0 currently does not work with GB sessions)
+* Bumped dependency "axios": "^1.2.0"
 * Bumped Homebridge "homebridge": ">=1.6.0",
 
 
