@@ -13,32 +13,26 @@ const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
 const debug = require('debug')('eosstb') // https://github.com/debug-js/debug
+// good example of debug usage https://github.com/mqttjs/MQTT.js/blob/main/lib/client.js
 
-// good exanple of debug usage https://github.com/mqttjs/MQTT.js/blob/main/lib/client.js
 const mqtt = require('mqtt');  			// https://github.com/mqttjs
 const qs = require('qs')
-//const _ = require('underscore');
 
-
-const axios = require('axios').default;
-//const instance = axios.create(); // cannot create new instance in v1.1.x, do not know why. stay with v0.27.2 
-
-axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
 
 // axios-cookiejar-support v2.0.2 syntax
 const { wrapper: axiosCookieJarSupport } = require('axios-cookiejar-support'); // as of axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-
 const tough = require('tough-cookie');
 const cookieJar = new tough.CookieJar();
 
-const axiosWS = axios.create({
-	// axios-cookiejar-support v1.0.1 required config
-	//withCredentials: true, // deprecated since axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-	//jar: true //deprecated since axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 
+const axios = require('axios') //.default;	// https://github.com/axios/axios
+axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
+const axiosWS = axios.create({
 	// axios-cookiejar-support v2.0.2 required config
-	jar: cookieJar //added in axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
+	jar: cookieJar, //added in axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 });
+
+
 // remove default header in axios that causes trouble with Telenet
 delete axiosWS.defaults.headers.common["Accept"];
 delete axiosWS.defaults.headers.common;
@@ -65,7 +59,7 @@ const countryBaseUrlArray = {
     'gb':       'https://prod.spark.virginmedia.com',
 	'ie':       'https://prod.spark.virginmediatv.ie',
     'nl': 		'https://prod.spark.ziggogo.tv',
-	'pl':		'https://prod.spark.unknown.pl',
+	'pl':		'https://prod.spark.upctv.pl',
 	'sk':		'https://prod.spark.upctv.sk',
 	// old endpoints:
     //'at': 	'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web', // v3 and v4 works old
@@ -346,8 +340,8 @@ class stbPlatform {
 			this.log('%s v%s', PLUGIN_NAME, PLUGIN_VERSION);
 			debug('stbPlatform:apievent :: didFinishLaunching')
 
-			// call the session watchdog to create the session
-			this.sessionWatchdog.bind(this)
+			// call the session watchdog once to create the session initially
+			setTimeout(this.sessionWatchdog.bind(this),500); // wait 500ms then call this.sessionWatchdog
 
 			// the session watchdog creates a session when none exists, and recreates one if the session ever fails due to internet failure or anything else
 			this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
@@ -356,7 +350,7 @@ class stbPlatform {
 			this.checkChannelListInterval = setInterval(this.refreshMasterChannelList.bind(this),MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S * 1000);
 
 			debug('stbPlatform:apievent :: didFinishLaunching end of code block')
-			//this.log.debug('stbPlatform: end of code block');
+			//this.log('stbPlatform: end of code block');
 		});
 
 
@@ -441,10 +435,12 @@ class stbPlatform {
 		let watchdogInstance = 'sessionWatchdog(' + this.watchdogCounter + ')'; // set a log prefix for this instance of the watchdog to allow differentiation in the logs
 		let statusOverview = watchdogInstance + ':';
 		callback = true;
+		//this.log('++++ SESSION WATCHDOG STARTED ++++');
 
 		// standard debugging
 		let debugPrefix='\x1b[33msessionWatchdog :: ' // 33=yellow
 		debug(debugPrefix + 'started')
+		if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > started', watchdogInstance); }
 
 		//robustness: if session state ever gets disconnected due to session creation problems, ensure the mqtt status is always disconnected
 		if (currentSessionState == sessionState.DISCONNECTED) { 
@@ -504,7 +500,7 @@ class stbPlatform {
 		// detect if running on development environment
 		// customStoragePath: 'C:\\Users\\jochen\\.homebridge'
 		if ( this.api.user.customStoragePath.includes( 'jochen' ) ) { PLUGIN_ENV = ' DEV' }
-		if (PLUGIN_ENV) { this.log.warn('%s: %s running in %s environment with debugLevel %s', watchdogInstance, PLUGIN_NAME, PLUGIN_ENV.trim(), (this.config || {}).debugLevel || 0); }
+		if (PLUGIN_ENV) { this.log.debug('%s: %s running in %s environment with debugLevel %s', watchdogInstance, PLUGIN_NAME, PLUGIN_ENV.trim(), (this.config || {}).debugLevel || 0); }
 	
 
 		// if session does not exist, create the session, passing the country value
@@ -1017,12 +1013,10 @@ class stbPlatform {
 	// get session for GB only (special logon sequence)
 	getSessionGB() {
 		return new Promise((resolve, reject) => {
-			// this code is a copy of the be session code, adapted for gb
 			this.log('Creating %s GB session...',PLATFORM_NAME);
 			currentSessionState = sessionState.LOADING;
 
-			//var cookieJarGB = new cookieJar();
-
+			 
 			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 			// axios interceptors to log request and response for debugging
 			// works on all following requests in this sub
@@ -1030,10 +1024,11 @@ class stbPlatform {
 			axiosWS.interceptors.request.use(req => {
 				this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
 				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
-				'\nMethod:',req.method, '\nURL:', req.url, 
+				'\nMethod:', req.method, '\nURL:', req.url, 
 				'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,
 				'\nParams:', req.params, '\nData:', req.data
 				);
+				this.log.warn(req); 
 				return req; // must return request
 			});
 			axiosWS.interceptors.response.use(res => {
@@ -1041,10 +1036,11 @@ class stbPlatform {
 				'\nHeaders:', res.headers, 
 				'\nUrl:', res.url, 
 				//'\nData:', res.data, 
-				//'\nLast Request:', res.request
+				'\nLast Request:', res.request
 				);
-				//this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:'); 
-				//if (cookieJar) { this.log(cookieJar.getCookies(res.url)); }// watch out for empty cookieJar
+				//this.log.warn(res); 
+				this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:'); 
+				if (cookieJar) { this.log(cookieJar); }// watch out for empty cookieJar
 				return res; // must return response
 			});
 			*/
@@ -1054,41 +1050,44 @@ class stbPlatform {
 			// Step 1: # get authentication details
 			// https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
 			// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/authorization
+			// Recorded sequence step 1: https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true
+			// const GB_AUTH_OESP_URL = 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web';
 			let apiAuthorizationUrl = GB_AUTH_OESP_URL + '/authorization';
 			this.log('Step 1 of 7: get authentication details');
 			if (this.config.debugLevel > 1) { this.log.warn('Step 1 of 7: get authentication details from',apiAuthorizationUrl); }
 			axiosWS.get(apiAuthorizationUrl)
 				.then(response => {	
 					this.log('Step 1 of 7: response:',response.status, response.statusText);
-					this.log.debug('Step 1 of :7 response.data',response.data);
+					//this.log('Step 1 of 7: response.data',response.data);
 					
 					// get the data we need for further steps
 					let auth = response.data;
 					let authState = auth.session.state;
 					let authAuthorizationUri = auth.session.authorizationUri;
 					let authValidtyToken = auth.session.validityToken;
-					this.log.debug('Step 1 of 7: results: authState',authState);
-					this.log.debug('Step 1 of 7: results: authAuthorizationUri',authAuthorizationUri);
-					this.log.debug('Step 1 of 7: results: authValidtyToken',authValidtyToken);
+					//this.log('Step 1 of 7: results: authState',authState);
+					//this.log('Step 1 of 7: results: authAuthorizationUri',authAuthorizationUri);
+					//this.log('Step 1 of 7: results: authValidtyToken',authValidtyToken);
 
 					// Step 2: # follow authorizationUri to get AUTH cookie (ULM-JSESSIONID)
 					this.log('Step 2 of 7: get AUTH cookie');
-					this.log.debug('Step 2 of 7: get AUTH cookie from',authAuthorizationUri);
+					this.log.debug('Step 2 of 7: get AUTH cookie ULM-JSESSIONID from',authAuthorizationUri);
 					axiosWS.get(authAuthorizationUri, {
-							jar: cookieJar
-							// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-							//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
-						})
+							jar: cookieJar,
+							// unsure what minimum headers will here
+							headers: {
+								Accept: 'application/json, text/plain, */*'
+								//Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+							},						})
 						.then(response => {	
 							this.log('Step 2 of 7: response:',response.status, response.statusText);
 							//this.log.warn('Step 2 of 7 response.data',response.data); // an html logon page
 			
 							// Step 3: # login
 							this.log('Step 3 of 7: logging in with username %s', this.config.username);
-							//this.log('Cookies for the auth url:',cookieJar.getCookies(GB_AUTH_URL));
 							currentSessionState = sessionState.LOGGING_IN;
 
-							// we just want to POST to 
+							// we want to POST to 
 							// 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
 							const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
 							this.log.debug('Step 3 of 7: POST request will contain this data: {"username":"' + this.config.username + '","credential":"' + this.config.password + '"}');
@@ -1096,12 +1095,12 @@ class stbPlatform {
 							//axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
 								jar: cookieJar,
 								// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-								//ignoreCookieErrors: true // ignore the error triggered by the Domain=mint.dummydomain cookie, 
 								data: '{"username":"' + this.config.username + '","credential":"' + this.config.password + '"}',
 								method: "POST",
-								// minimum headers are "accept": "*/*",
+								// minimum headers are "accept": "*/*", "content-type": "application/json; charset=UTF-8",
 								headers: {
-									"accept": "application/json; charset=UTF-8, */*",
+									"accept": "*/*", // mandatory
+									"content-type": "application/json; charset=UTF-8", // mandatory
 								},
 								maxRedirects: 0, // do not follow redirects
 								validateStatus: function (status) {
@@ -1110,17 +1109,18 @@ class stbPlatform {
 								})
 								.then(response => {	
 									this.log('Step 3 of 7: response:',response.status, response.statusText);
-									this.log.debug('Step 3 of 7: response.headers:',response.headers); 
-									this.log.debug('Step 3 of 7: response.data:',response.data);
+									//this.log.debug('Step 3 of 7: response.headers:',response.headers); 
+									//this.log.debug('Step 3 of 7: response.data:',response.data);
 
-									//this.log('Step 3 of 7 response.headers:',response.headers);
-									var url = response.headers['x-redirect-location']
+									// X-Redirect-Location
+									// https://id.virginmedia.com/oidc/authorize?response_type=code&state=8ce19449-6cc9-4a65-bcbc-cea7e1884733&nonce=49b0119d-1673-41c5-97b7-eb6092c60b40&client_id=9b471ffe-7ff5-497b-9059-8dcb7c0d66f5&redirect_uri=https://virgintvgo.virginmedia.com/obo_en/login_success&claims={"id_token":{"ukHouseholdId":null}}
+									var url = response.headers['x-redirect-location'] // must be lowercase
 									if (!url) {		// robustness: fail if url missing
 										this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
 										currentSessionState = sessionState.DISCONNECTED;
 										this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 										return false;						
-									}								
+									}
 									//location is h??=... if success
 									//location is https?? if not authorised
 									//location is https:... error=session_expired if session has expired
@@ -1144,10 +1144,9 @@ class stbPlatform {
 												},
 											})
 											.then(response => {	
-												this.log('Step 4 of 7 response:',response.status, response.statusText);
+												this.log('Step 4 of 7: response:',response.status, response.statusText);
 												this.log.debug('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
 												this.log.debug('Step 4 of 7: response.data:',response.data);
-												//this.log('Step 4 response.headers:',response.headers);
 												url = response.headers.location;
 												if (!url) {		// robustness: fail if url missing
 													this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
@@ -1484,7 +1483,7 @@ class stbPlatform {
 			const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
 			// headers are in the web client
 			let config={}
-			if (householdId.endsWith('gb')){
+			if (this.config.country.toLowerCase() == 'gb'){
 				// gb needs x-cus, x-oesp-token and x-oesp-username
 				config = {headers: {
 					"x-cus": this.session.householdId,
@@ -1581,7 +1580,21 @@ class stbPlatform {
 		// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/1012345_ch/devices/3C36E4-EOSSTB-003656123456
 		const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
 		const data = {"settings": deviceSettings};
-		const config = {headers: {"x-cus": accessToken, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
+		// gb needs x-cus, x-oesp-token and x-oesp-username
+		let config={}
+		if (this.config.country.toLowerCase() == 'gb'){
+			// gb needs x-cus, x-oesp-token and x-oesp-username
+			config = {headers: {
+				"x-cus": this.session.householdId,
+				"x-oesp-token": this.session.accessToken,
+				"x-oesp-username": this.session.username
+			}}
+		} else {
+			// other countries on new backend from Oct 2022 need just x-oesp-username
+			config = {headers: {
+				"x-oesp-username": this.session.username
+			}}
+		};
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: PUT %s', url); }
 		axiosWS.put(url, data, config)
 			.then(response => {	
@@ -2191,8 +2204,8 @@ class stbPlatform {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
 								parent.currentMqttState = mqttState.error;
-								parent.log.warn('mqttClient: Error', err.syscall + ' ' + err.code + ' ' + (err.hostname || ''));
-								parent.log.debug('mqttClient: Error:', err); 
+								parent.log.warn('mqttClient: Error', (err.syscall || '') + ' ' + (err.code || '') + ' ' + (err.hostname || ''));
+								parent.log.warn('mqttClient: Error object:', err); 
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 								mqttClient.end();
@@ -2749,13 +2762,14 @@ class stbDevice {
 		this.deviceId = this.device.deviceId
 		this.profileId = -1; // default -1
 
-		// set default name on restart
-		this.name = this.device.settings.deviceFriendlyName + PLUGIN_ENV; // append DEV environment
+		// set default name on restart, max 14 char
+		// In dev environment, truncate user defined name to ensure DEV is included as a tag for dev environment
+		this.name = this.device.settings.deviceFriendlyName.substring(0, SETTOPBOX_NAME_MAXLEN - PLUGIN_ENV.length) + PLUGIN_ENV; // append DEV environment
 
-		// allow user override of device name via config
+		// allow user override of device name via config, but limit to max 14 char
 		if (this.config.devices) {
 			const configDevice = this.config.devices.find(device => device.deviceId === this.deviceId);
-			if (configDevice && configDevice.name) { this.name = configDevice.name; }
+			if (configDevice && configDevice.name) { this.name = configDevice.name.substring(0, SETTOPBOX_NAME_MAXLEN); }
 		}
 
 		
@@ -2767,8 +2781,7 @@ class stbDevice {
 		this.configuredInputs = [];		// a list of inputs that have been renamed by the user. EXPERIMENTAL
 
 		//setup variables
-		this.lastPowerKeySent;				// stores when the power key was sent last to help in de-bounce
-		this.targetMediaState = Characteristic.TargetMediaState.STOP; // default until received by mqtt
+		this.lastPowerKeySent;			// stores when the power key was sent last to help in de-bounce
 		this.accessoryConfigured;		// true when the accessory is configured
 
 		// initial states. Will be updated by mqtt messages
@@ -2778,7 +2791,7 @@ class stbDevice {
 		this.currentClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		this.previousClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		this.currentMediaState = Characteristic.CurrentMediaState.STOP;
-		this.targetMediaState = Characteristic.CurrentMediaState.STOP;
+		this.targetMediaState = Characteristic.TargetMediaState.STOP;
 		this.currentPictureMode = Characteristic.PictureMode.STANDARD;
 		this.previousPictureMode = null;
 		this.currentRecordingState = recordingState.IDLE;
@@ -3381,7 +3394,7 @@ class stbDevice {
 				// new name is always in this.device.settings.deviceFriendlyName; 
 				//this.log('updateDeviceState this.name %s, this.device.settings.deviceFriendlyName %s', this.name, this.device.settings.deviceFriendlyName );
 				var oldDeviceName = this.name;
-				var currentDeviceName = this.device.settings.deviceFriendlyName + PLUGIN_ENV;;
+				var currentDeviceName = this.device.settings.deviceFriendlyName.substring(0, SETTOPBOX_NAME_MAXLEN - PLUGIN_ENV.length) + PLUGIN_ENV; // append DEV environment, limit to 14 chaR
 
 				var syncName = true; // default true		
 				if (configDevice && configDevice.syncName == false ) { syncName = configDevice.syncName; }
@@ -3796,16 +3809,16 @@ class stbDevice {
 					this.log.debug("%s: channel.linearProducts %s", this.name, channel.linearProducts)
 					this.platform.entitlements.entitlements.forEach((subscribedlEntitlement) => {
 						if (channel.linearProducts.includes(subscribedlEntitlement.id)){
-							this.log("%s: channel channelId %s, linearProducts includes subscribedlEntitlement.id %s, channel is entitled", this.name, channel.id, subscribedlEntitlement.id)
+							this.log.debug("%s: channel channelId %s, linearProducts includes subscribedlEntitlement.id %s, channel is entitled", this.name, channel.id, subscribedlEntitlement.id)
 							isEntitled = true;
 					}
 					});
 					if (isEntitled){
 						subscribedChIds.push( channel.id ); 
-						this.log("%s: %s %s is entitled, pushed to subscribedChIds, subscribedChIds.length now %s", this.name, channel.id, channel.name, subscribedChIds.length)
+						this.log.debug("%s: %s %s is entitled, pushed to subscribedChIds, subscribedChIds.length now %s", this.name, channel.id, channel.name, subscribedChIds.length)
 				}
 				});
-				this.log("%s: subscribedChIds.length", this.name, subscribedChIds.length)
+				this.log.debug("%s: subscribedChIds.length", this.name, subscribedChIds.length)
 			}
 			if (this.config.debugLevel > 1) { 
 				this.log("%s: Subscribed channel list loaded with %s channels", this.name, subscribedChIds.length)

@@ -4,7 +4,7 @@ See the [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/ma
 Please restart Homebridge after every plugin update.
 
 # IMPORTANT NOTICE
-This is a major update due to the change in endpoints in the backend systems that occured on 13.10.2022.
+This (v2.x) is a major update over v1.x due to the change in endpoints in the backend systems that occured on 13.10.2022.
 Please report all bugs and problems.
 
 
@@ -14,7 +14,19 @@ Please report all bugs and problems.
 * Work on ideas for showing radio channels and using them -> STARTED. Possible only with KeyMacros. How should these appear in the channel list?
 * Fix potential problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
-* Update axios to 1.1.x (once axios runs properly, 1.1.3 has some bugs) See https://github.com/axios/axios
+
+
+## 2.0.2 (2022-11-28)
+* Improved startup speed (sessionWatchdog starts faster)
+* Improved robustness for handling of user-defined box names if >14 characters
+* Improved mqttClient error handling to try and catch a rare error
+* Fixed incorrect endpoint for UPC TV Poland
+* Fixed bug in setPersonalizationDataForDevice causing crash for GB users
+* Fixed minor logging issue
+* Fixed default settings for TargetMediaState
+* Cleaned up some GB code
+* Bumped dependency "axios": "^1.2.0"
+* Bumped Homebridge "homebridge": ">=1.6.0",
 
 
 ## 2.0.2-beta.1 (2022-11-19)
