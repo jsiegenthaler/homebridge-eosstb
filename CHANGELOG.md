@@ -16,6 +16,10 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
+## 2.x.x (2022-12-05)
+* Added custom charateristics: Currentchannel Id and Current Channel Name, useful in automations
+
+
 ## 2.0.2 (2022-11-28)
 * Improved startup speed (sessionWatchdog starts faster)
 * Improved robustness for handling of user-defined box names if >14 characters
