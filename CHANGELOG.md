@@ -16,6 +16,11 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
+## 2.0.3-beta-1 (2022-12-xx)
+* Fixed model detection of HUMAX EOS1008R boxes as used in GB
+* Fixed detection of Status Active to properly show mqtt active or not.
+
+
 ## 2.0.2 (2022-11-28)
 * Improved startup speed (sessionWatchdog starts faster)
 * Improved robustness for handling of user-defined box names if >14 characters

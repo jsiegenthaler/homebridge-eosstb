@@ -1942,8 +1942,9 @@ class stbPlatform {
 											stbState = mqttMessage.state;
 										}
 										// Box setting: StandbyPowerConsumption = FastStart / ActiveStart / EcoSlowstart
-										// In FastStart the box goes to ONLINE_STANDBY when turned off, and can be turned on again over mqtt
-										// In ActiveStart the box goes to ONLINE_STANDBY when turned off, and maybe changes after time? test this. 
+										// "Fast start":  when turned off, goes to ONLINE_STANDBY and stays there. Box can be turned on via mqtt
+										// "Active start": when turned off, stays at ONLINE_STANDBY for 5min, then goes to OFFLINE_NETWORK_STANDBY. box can be turned on via ??
+										// "Eco (slow start)": when turned off, stays at ONLINE_STANDBY for 5min, then goes to OFFLINE. Box cannot be turned on by mqtt. Physical remote turns on via IR
 										switch (stbState) {
 											case 'ONLINE_RUNNING':	// ONLINE_RUNNING: power is on
 												currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
@@ -1954,12 +1955,12 @@ class stbPlatform {
 												currPowerState = Characteristic.Active.INACTIVE;
 												currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
 												break;
-											case 'OFFLINE_NETWORK_STANDBY': // OFFLINE_NETWORK_STANDBY: power is off, device is still reachable on the network
-												currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
+											case 'OFFLINE_NETWORK_STANDBY': // OFFLINE_NETWORK_STANDBY: power is off, device is still reachable on the network but cannot be turned on by mqtt
+												currStatusActive = Characteristic.Active.INACTIVE; // bool, 0 = not active, 1 = active
 												currPowerState = Characteristic.Active.INACTIVE;
 												currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
 												break;
-											case 'OFFLINE':			// OFFLINE: power is off, device is not reachable over the network
+											case 'OFFLINE':			// OFFLINE: power is off, device is not reachable over the network, cannot be turned on by mqtt
 												currStatusActive = Characteristic.Active.INACTIVE; // bool, 0 = not active, 1 = active
 												currPowerState = Characteristic.Active.INACTIVE;
 												currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
@@ -2917,37 +2918,54 @@ class stbDevice {
 			// 000378-EOSSTB-003893xxxxxx 	Ireland
 			// 3C36E4-EOSSTB-003792xxxxxx  	Belgium
 			// 3C36E4-EOSSTB-003713xxxxxx 	Great Britain with productType: 'TV360'
-			// 3C36E4-EOSSTB-003713xxxxxx 	Great Britain with productType: 'TV360',
+			// 000378-EOSSTB-003938xxxxxx 	Great Britain with productType: 'TV360', HUMAX EOS1008R
 			// 000378-EOS2STB-008420xxxxxx 	Belgium
-			case '3C36E4': case '000378':
+			case '3C36E4': // ARRIS DCX960
 				switch (deviceType[1]) {
-					case 'EOS2STB':
-						// new EOS2STB released March 2022 is a HUMAX 2008C-STB-TN
+					case 'EOS2STB':	// new EOS2STB released March 2022 (is a )HUMAX 2008C-STB-TN)
 						manufacturer = 'HUMAX'; 
 						model = '2008C-STB-TN [' + (this.device.productType || this.device.deviceType || '') + ']';
 						break;
-					case 'EOSSTB':
+					case 'EOSSTB':	// most common DCX960 box
 					default:
-						// GB devices have deviceType=GATEWAY and productType=TV360
 						manufacturer = 'ARRIS'; 
 						model = 'DCX960';
 						break;
 				}
-				// EOSSTB and EOS2STB both use deviceId as serial number
-				// CH & NL uses EOS as platformType, GB uses HORIZON
-				manufacturer = manufacturer + ' [' + (this.device.platformType || '') + ']'; 
-				 // GB has a productType, CH & NL have no productType but they have deviceType.
-				model = model + ' [' + (this.device.productType || this.device.deviceType || '') + ']'
-				serialnumber = this.device.deviceId; // same as shown on TV
-				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
 				break;
-
-			default:
-				manufacturer = this.device.platformType || PLATFORM_NAME;
-				model = this.device.productType || this.device.deviceType || PLUGIN_NAME;
-				serialnumber = this.device.deviceId; // same as shown on TV
-				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
+			
+			case '000378': // HUMAX EOS1008R & 2008C-STB-TN
+				switch (deviceType[1]) {
+					case 'EOS2STB':	// new EOS2STB released March 2022 is a HUMAX 2008C-STB-TN
+						manufacturer = 'HUMAX'; 
+						model = '2008C-STB-TN [' + (this.device.productType || this.device.deviceType || '') + ']';
+						break;
+					case 'EOSSTB':	// new EOS2STB released March 2022 is a HUMAX 2008C-STB-TN
+						manufacturer = 'HUMAX'; 
+						model = 'EOS1008R [' + (this.device.productType || this.device.deviceType || '') + ']';
+						break;
+					default:		// default 
+						manufacturer = 'HUMAX'; 
+						model = '?';
+						break;
+				}
+				break;
 		}
+
+		// add platform type to manufacturer
+		// CH & NL uses EOS as platformType, GB uses HORIZON
+		if (manufacturer) { manufacturer = manufacturer + ' [' + (this.device.platformType || '') + ']'; } 
+
+		// GB has a productType, CH & NL have no productType but they have deviceType.
+		// GB devices have deviceType=GATEWAY and productType=TV360
+		if (model) { model = model + ' [' + (this.device.productType || this.device.deviceType || '') + ']'; } 
+
+		// fallback to current device, then to platform
+		manufacturer = manufacturer || this.device.platformType || PLATFORM_NAME;
+		model = model || this.device.productType || this.device.deviceType || PLUGIN_NAME;
+		serialnumber = serialnumber || this.device.deviceId; // EOSSTB and EOS2STB both use deviceId as serial number
+		firmwareRevision = firmwareRevision || configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
+
 		this.log("%s: Set Manufacturer to %s", this.name, manufacturer);
 		this.log("%s: Set Model to %s", this.name, model);
 		this.log("%s: Set Serial Number to %s", this.name, serialnumber);
@@ -2997,7 +3015,7 @@ class stbDevice {
 			.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT) // NO_FAULT or GENERAL_FAULT
 			.setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE) // NOT_IN_USE or IN_USE
 			.setCharacteristic(Characteristic.ProgramMode, Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED) // NO_PROGRAM_SCHEDULED or PROGRAM_SCHEDULED or PROGRAM_SCHEDULED_MANUAL_MODE_
-			.setCharacteristic(Characteristic.StatusActive, Characteristic.Active.ACTIVE) // bool, 0 = NotStatusActive, 1=StatusActive
+			.setCharacteristic(Characteristic.StatusActive, Characteristic.Active.ACTIVE) // bool, 0 = false = NotStatusActive, non-zero = true = StatusActive
 			.setCharacteristic(Characteristic.InputDeviceType, Characteristic.InputDeviceType.TV)
 			;
 				
