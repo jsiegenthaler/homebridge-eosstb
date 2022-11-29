@@ -74,7 +74,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 * [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116....1.6.0, earlier versions not tested.
 * A TV subscription from one of the supported countries and TV providers.
 * An online account for viewing TV in the web app (often part of your TV package), see the table above.
-* The ARRIS DCX960 or HUMAX 2008C-STB-xx mediabox, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" or "EOS2STB" and marketed under different names in different countries. 
+* The ARRIS DCX960 or HUMAX EOS1008R or HUMAX 2008C-STB-xx set-top box, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" or "EOS2STB" and marketed under different names in different countries. 
 * The set-top box should be set to **SYSTEM** > **Standby power consumption** = **Fast start** to ensure it is always online and can respond to switch-on requests from HomeKit.
 * For GB and IE users: if using an ARRIS DCX960, it must be running the TV 360 software, and not the older TiVo V6 software as found in GB and IE. TiVo V6 is not supported by this plugin, but GB users can [upgrade to TV 360 by contacting Virgin Media](https://www.virginmedia.com/shop/customer/virgin-tv-360-upgrade).
 
