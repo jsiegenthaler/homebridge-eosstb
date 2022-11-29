@@ -16,7 +16,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/jsiegenthaler/homebridge-eosstb)](https://github.com/jsiegenthaler/homebridge-eosstb/issues)
 [![donate](https://badgen.net/badge/donate/paypal/91BE09)](https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468)
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960 or HUMAX 2008C-STB-xx) running on the Magenta AT / Telenet BE / Sunrise CH / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960 or HUMAX EOS1008R or HUMAX 2008C-STB-xx) running on the Magenta AT / Telenet BE / Sunrise CH / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
 | iOS/iPadOS 16 Accessory Tiles | Older iOS/iPadOS Accessory Tiles |
 |   :---:   |   :---:   |
@@ -38,7 +38,7 @@ If you like this plugin, consider making a donation or buying me a coffee!<br>
 Due to the adding of features and functions, this Readme applies from v2.0.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
 
 # Works in Your Country (If you are with Magenta / Sunrise / Telenet / Virgin Media / Vodafone / Ziggo)
-As [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) (the operator of the Horizon TV platform) operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 or HUMAX 2008C-STB-xx set-top box are:
+As [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) (the operator of the Horizon TV platform) operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 or HUMAX EOS1008R or HUMAX 2008C-STB-xx set-top box are:
 
 | Country | TV Provider | Web App | Box Name | Plugin Status |
 | ------- | ----------- | ------- | -------- | ------------- |
@@ -74,7 +74,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 * [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116....1.6.0, earlier versions not tested.
 * A TV subscription from one of the supported countries and TV providers.
 * An online account for viewing TV in the web app (often part of your TV package), see the table above.
-* The ARRIS DCX960 or HUMAX EOS1008R or HUMAX 2008C-STB-xx set-top box, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" or "EOS2STB" and marketed under different names in different countries. 
+* An ARRIS DCX960 or HUMAX EOS1008R or HUMAX 2008C-STB-xx set-top box, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB" or "EOS2STB" and marketed under different names in different countries. 
 * The set-top box should be set to **SYSTEM** > **Standby power consumption** = **Fast start** to ensure it is always online and can respond to switch-on requests from HomeKit.
 * For GB and IE users: if using an ARRIS DCX960, it must be running the TV 360 software, and not the older TiVo V6 software as found in GB and IE. TiVo V6 is not supported by this plugin, but GB users can [upgrade to TV 360 by contacting Virgin Media](https://www.virginmedia.com/shop/customer/virgin-tv-360-upgrade).
 
