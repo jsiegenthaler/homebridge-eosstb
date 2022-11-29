@@ -348,7 +348,7 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 * **volDownCommand**: The bash command to decrease the volume of the TV. This command is sent when the Apple TV Remote is open and you press the Volume Down button on your device. Optional.
 
-* **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple Apple TV Remote, this plugin integrates it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
+* **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple TV Remote, this plugin integrates it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
 
 
 
