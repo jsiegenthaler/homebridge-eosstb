@@ -951,7 +951,14 @@ class stbPlatform {
 															'state':authState
 														}};
 														//this.log('Cookies for the session:',cookieJar.getCookies(apiAuthorizationUrl));
-														axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
+														axiosWS.post(apiAuthorizationUrl, payload, {
+																jar: cookieJar,
+																// minimum headers are "accept": "*/*", "content-type": "application/json; charset=UTF-8",
+																headers: {
+																	"accept": "*/*", // mandatory
+																	"content-type": "application/json; charset=UTF-8", // mandatory
+																}
+															})
 															.then(response => {	
 																this.log('Step 6 of 6: response:',response.status, response.statusText);
 																	

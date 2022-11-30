@@ -16,9 +16,13 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.0.3-beta-1 (2022-12-xx)
+## 2.0.4-beta-1 (2022-12-xx)
 * Fixed model detection of HUMAX EOS1008R boxes as used in GB
 * Fixed detection of Status Active to properly show mqtt active or not.
+
+
+## 2.0.3 (2022-11-29)
+* Fixed Telenet login for BE users
 
 
 ## 2.0.2 (2022-11-28)
