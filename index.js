@@ -2234,7 +2234,7 @@ class stbPlatform {
 				
 				
 				if (this.config.debugLevel > 0) { 
-					this.log("mqttClient: end of code block");
+					this.log.warn("mqttClient: end of code block");
 				}
 				resolve(mqttClient.connected); // return the promise with the connected state
 
