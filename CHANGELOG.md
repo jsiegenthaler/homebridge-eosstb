@@ -20,6 +20,10 @@ Please report all bugs and problems.
 * Added custom charateristics: Currentchannel Id and Current Channel Name, useful in automations
 
 
+## 2.0.3 (2022-11-29)
+* Fixed Telenet login for BE users
+
+
 ## 2.0.2 (2022-11-28)
 * Improved startup speed (sessionWatchdog starts faster)
 * Improved robustness for handling of user-defined box names if >14 characters
