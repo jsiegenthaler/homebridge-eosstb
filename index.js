@@ -2582,8 +2582,8 @@ class stbPlatform {
 					} else {
 						errReason = error; 
 					}
-					this.log('%s', (errReason || ''));
-					this.log.debug(`getRecordingState get ongoing recordings error:`, error);
+					this.log,warn('%s', (errReason || ''));
+					this.log.debug(`getRecordingState error:`, error);
 					return false, error;
 				});
 
@@ -2696,7 +2696,7 @@ class stbPlatform {
 					} else {
 						errReason = error; 
 					}
-					this.log('%s', (errReason || ''));
+					this.log.warn('%s', (errReason || ''));
 					this.log.debug(`getRecordingBookings error:`, error);
 
 					return false, error;
@@ -3711,7 +3711,7 @@ class stbDevice {
 
 			
 			// now load the mostWatched list for this profile
-			this.refreshDeviceMostWatchedChannels(wantedProfile.profileId); // async function
+			this.getMostWatchedChannels(wantedProfile.profileId); // async function
 
 			// get the wanted profile configured on the stb
 			this.profileId = wantedProfile.profileId
@@ -4071,51 +4071,57 @@ class stbDevice {
 		}		
 	}
 
-	// get the most watched channels for the deviceId profileId
+	// get the most watched channels for the profileId
 	// this is for the web session type as of 13.10.2022
-	async refreshDeviceMostWatchedChannels(profileId, callback) {
-		if (this.config.debugLevel > 1) { this.log("%s: refreshDeviceMostWatchedChannels started with %s", this.name, profileId); }
-		const profile = this.customer.profiles.find(profile => profile.profileId === profileId);
-		this.log("%s: Refreshing most watched channels for profile '%s'", this.name, (profile || {}).name);
+	async getMostWatchedChannels(profileId, callback) {
+		try {
+			if (this.config.debugLevel > 1) { this.log("%s: getMostWatchedChannels started with %s", this.name, profileId); }
+			const profile = this.customer.profiles.find(profile => profile.profileId === profileId);
+			this.log("%s: Refreshing most watched channels for profile '%s'", this.name, (profile || {}).name);
 
-		// 	https://prod.spark.sunrisetv.ch/eng/web/linear-service/v1/mostWatchedChannels?cityId=401&productClass=Orion-DASH"
-		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v1/mostWatchedChannels';
-		// add url standard parameters
-		url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
-		url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
-		if (this.config.debugLevel > 2) { this.log.warn('refreshDeviceMostWatchedChannels: loading from',url); }
+			// 	https://prod.spark.sunrisetv.ch/eng/web/linear-service/v1/mostWatchedChannels?cityId=401&productClass=Orion-DASH"
+			let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v1/mostWatchedChannels';
+			// add url standard parameters
+			url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
+			url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
+			if (this.config.debugLevel > 2) { this.log.warn('getMostWatchedChannels: loading from',url); }
 
-		const config = {headers: {
-			"x-oesp-username": this.platform.session.username, // not sure if needed
-			"x-profile": profile.profileId
-		}};
-		if (this.config.debugLevel > 0) { this.log.warn('refreshDeviceMostWatchedChannels: GET %s', url); }
-		// this.log('getMostWatchedChannels: GET %s', url);
-		axiosWS.get(url, config)
-			.then(response => {	
-				if (this.config.debugLevel > 2) { this.log.warn('refreshDeviceMostWatchedChannels: %s: response: %s %s', profile.name, response.status, response.statusText); }
-				if (this.config.debugLevel > 2) { 
-					this.log.warn('refreshDeviceMostWatchedChannels: %s: response data:', profile.name);
-					this.log.warn(response.data);
-				}
-				this.mostWatched = response.data; // store the entire mostWatched data for future use in this.mostWatched
-				this.log("%s: MostWatched list refreshed with %s channels", this.name, this.mostWatched.length);
+			const config = {headers: {
+				"x-oesp-username": this.platform.session.username, // not sure if needed
+				"x-profile": profile.profileId
+			}};
+			if (this.config.debugLevel > 0) { this.log.warn('getMostWatchedChannels: GET %s', url); }
+			// this.log('getMostWatchedChannels: GET %s', url);
+			axiosWS.get(url, config)
+				.then(response => {	
+					if (this.config.debugLevel > 0) { this.log.warn('getMostWatchedChannels: Profile %s: response: %s %s', profile.name, response.status, response.statusText); }
+					if (this.config.debugLevel > 2) { 
+						this.log.warn('getMostWatchedChannels: %s: response data:', profile.name);
+						this.log.warn(response.data);
+					}
+					this.mostWatched = response.data; // store the entire mostWatched data for future use in this.mostWatched
+					this.log("%s: MostWatched list refreshed with %s channels", this.name, this.mostWatched.length);
 
-				return false;
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'Failed to refresh most watched channel data for ' + profileId + ' ' + profile.name + ' - check your internet connection:'
-				if (error.isAxiosError) { 
-					errReason = error.code + ': ' + (error.hostname || ''); 
-					// if no connection then set session to disconnected to force a session reconnect
-					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
-				}
-				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug(`refreshDeviceMostWatchedChannels error:`, error);
-				return false, error;
-			});		
-		return false;
+					return false;
+				})
+				.catch(error => {
+					let errText, errReason;
+					errText = 'Failed to refresh most watched channel data for ' + profileId + ' ' + profile.name + ' - check your internet connection:'
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+						// if no connection then set session to disconnected to force a session reconnect
+						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+					}
+					this.log.warn('%s %s', errText, (errReason || ''));
+					this.log.debug(`getMostWatchedChannels error:`, error);
+					return false, error;
+				});		
+			return false;
+
+		} catch (err) {
+			this.log.error("Error trapped in getMostWatchedChannels:", err.message);
+			this.log.error(err);
+		}		
 	}
 
 	getMaxSources(callback) {
