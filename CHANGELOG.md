@@ -16,9 +16,10 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.0.4-beta-1 (2022-12-xx)
+## 2.0.4-beta-3 (2022-12-02)
 * Fixed model detection of HUMAX EOS1008R boxes as used in GB
 * Fixed detection of Status Active to properly show mqtt active or not.
+* Improved error handling invarious subroutines
 
 
 ## 2.0.3 (2022-11-29)
