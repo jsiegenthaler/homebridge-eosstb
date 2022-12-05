@@ -85,7 +85,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports).
 
-* **Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple supports), allowing you to control switch-on and channel selection in Home Automations, Shorcuts and Personal Automations.
+* **Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple supports), allowing you to control switch-on and channel selection in Home Automations, Shortcuts and Personal Automations.
 
 * **Synchronised Set-Top Box Name**: Changing the name of the set-top box in the Home app changes it on the TV and backend systems in real time, and vice-versa. No reboot required. You can turn off the sync if desired in the config.
 
