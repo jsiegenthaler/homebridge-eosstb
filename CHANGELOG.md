@@ -16,7 +16,7 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.0.4-beta-5 (2022-12-05)
+## 2.0.4 (2022-12-05)
 * Fixed model detection of HUMAX EOS1008R boxes
 * Fixed detection of Status Active to properly show mqtt active or not using Status Active in the Home app
 * Added keyevent NextUserProfile to config.json as a selectable remote key
