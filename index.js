@@ -1836,14 +1836,11 @@ class stbPlatform {
 						// purchaseService and watchlistService are not needed, but add if desired if we want to monitor these services
 						parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService');
 						parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService');
+						//parent.mqttSubscribeToTopic(mqttUsername + '/#'); // everything! multilevel wildcard
 
 						// bookmarkService is not needed
 						//parent.mqttSubscribeToTopic(mqttUsername + '/bookmarkService');
 						
-						//parent.mqttSubscribeToTopic(mqttUsername + '/radioStatus'); // a guess
-						//parent.mqttSubscribeToTopic(mqttUsername + '/audioStatus'); // a guess
-
-						// initiate the EOS session by turning on the HGO platform
 						// this is needed to trigger the backend to send us channel change messages when the channel is changed on the box
 						parent.setHgoOnlineRunning(mqttUsername, mqttClientId);
 						parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId); // subscribe to mqttClientId to get channel data
@@ -1851,9 +1848,12 @@ class stbPlatform {
 						// subscribe to all householdId messages
 						parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
 						parent.mqttSubscribeToTopic(mqttUsername + '/status'); // experiment, may not be needed
-						//parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status // dont subscribe to this, its all clientIds, floods with messages
+						//parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status = wildcard, and status for any topis, dont subscribe to this, its all clientIds, floods with messages
 
 						// experimental support of recording status
+						// + is a wildcard, and will subscribe to localRecordings from any topic
+						// + Symbol represents a single-level wildcard in a MQTT topic and # symbol represents the multi-level wild card in a MQTT Topic.
+						// refer https://www.hivemq.com/blog/mqtt-essentials-part-5-mqtt-topics-best-practices/
 						parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings');
 						parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings/capacity');
 
@@ -1863,6 +1863,7 @@ class stbPlatform {
 							parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId);
 							// subscribe to our householdId/deviceId/status
 							parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/status');
+							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/#'); // wildcard # = any topic for the box, but does not reveal any more than what we know
 							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/audioStatus'); // a guess
 							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/radioStatus'); // a guess
 							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/source'); // a guess
@@ -1870,6 +1871,7 @@ class stbPlatform {
 							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/audio'); // a guess
 						});
 
+						// initiate the EOS session by turning on the HGO platform
 						// and request the initial UI status for each device
 						// hmm do we really need this now that HGO has been deprecated as web client?
 						parent.devices.forEach((device) => {
@@ -1895,20 +1897,12 @@ class stbPlatform {
 
 								let mqttMessage = JSON.parse(message);
 								if (parent.config.debugLevel > 0) {
-									parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: \r\n%s', topic, mqttMessage);
+									parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: (next log entry)', topic,);
 									parent.log.warn(mqttMessage);
 								}
 
 								// variables for just in this function
 								var deviceId, stbState, currPowerState, currMediaState, currChannelId, currSourceType, profileDataChanged, currRecordingState, currStatusActive, currInputDeviceType, currInputSourceType;
-
-								// and request the UI status for each device
-								// 14.03.2021 does not respond, disabling for now...
-								// need to poll at regular intervals maybe?
-								//parent.devices.forEach((device) => {
-									// send a getuiStatus request
-									//parent.getUiStatus(device.deviceId, mqttClientId);
-								//});
 
 								// handle personalizationService messages
 								// Topic: Topic: 107xxxx_ch/personalizationService
@@ -1949,8 +1943,9 @@ class stbPlatform {
 											stbState = mqttMessage.state;
 										}
 										// Box setting: StandbyPowerConsumption = FastStart / ActiveStart / EcoSlowstart
-										// In FastStart the box goes to ONLINE_STANDBY when turned off, and can be turned on again over mqtt
-										// In ActiveStart the box goes to ONLINE_STANDBY when turned off, and maybe changes after time? test this. 
+										// "Fast start":  when turned off, goes to ONLINE_STANDBY and stays there. Box can be turned on via mqtt
+										// "Active start": when turned off, stays at ONLINE_STANDBY for 5min, then goes to OFFLINE_NETWORK_STANDBY. box can be turned on via ??
+										// "Eco (slow start)": when turned off, stays at ONLINE_STANDBY for 5min, then goes to OFFLINE. Box cannot be turned on by mqtt. Physical remote turns on via IR
 										switch (stbState) {
 											case 'ONLINE_RUNNING':	// ONLINE_RUNNING: power is on
 												currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
@@ -1961,12 +1956,12 @@ class stbPlatform {
 												currPowerState = Characteristic.Active.INACTIVE;
 												currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
 												break;
-											case 'OFFLINE_NETWORK_STANDBY': // OFFLINE_NETWORK_STANDBY: power is off, device is still reachable on the network
-												currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
+											case 'OFFLINE_NETWORK_STANDBY': // OFFLINE_NETWORK_STANDBY: power is off, device is still reachable on the network but cannot be turned on by mqtt
+												currStatusActive = Characteristic.Active.INACTIVE; // bool, 0 = not active, 1 = active
 												currPowerState = Characteristic.Active.INACTIVE;
 												currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
 												break;
-											case 'OFFLINE':			// OFFLINE: power is off, device is not reachable over the network
+											case 'OFFLINE':			// OFFLINE: power is off, device is not reachable over the network, cannot be turned on by mqtt
 												currStatusActive = Characteristic.Active.INACTIVE; // bool, 0 = not active, 1 = active
 												currPowerState = Characteristic.Active.INACTIVE;
 												currMediaState = Characteristic.CurrentMediaState.STOP; // set media to STOP when power is off
@@ -2233,7 +2228,7 @@ class stbPlatform {
 				
 				
 				if (this.config.debugLevel > 0) { 
-					this.log("mqttClient: end of code block");
+					this.log.warn("mqttClient: end of code block");
 				}
 				resolve(mqttClient.connected); // return the promise with the connected state
 
@@ -2581,8 +2576,8 @@ class stbPlatform {
 					} else {
 						errReason = error; 
 					}
-					this.log('%s', (errReason || ''));
-					this.log.debug(`getRecordingState get ongoing recordings error:`, error);
+					this.log,warn('%s', (errReason || ''));
+					this.log.debug(`getRecordingState error:`, error);
 					return false, error;
 				});
 
@@ -2695,7 +2690,7 @@ class stbPlatform {
 					} else {
 						errReason = error; 
 					}
-					this.log('%s', (errReason || ''));
+					this.log.warn('%s', (errReason || ''));
 					this.log.debug(`getRecordingBookings error:`, error);
 
 					return false, error;
@@ -2924,37 +2919,54 @@ class stbDevice {
 			// 000378-EOSSTB-003893xxxxxx 	Ireland
 			// 3C36E4-EOSSTB-003792xxxxxx  	Belgium
 			// 3C36E4-EOSSTB-003713xxxxxx 	Great Britain with productType: 'TV360'
-			// 3C36E4-EOSSTB-003713xxxxxx 	Great Britain with productType: 'TV360',
+			// 000378-EOSSTB-003938xxxxxx 	Great Britain with productType: 'TV360', HUMAX EOS1008R
 			// 000378-EOS2STB-008420xxxxxx 	Belgium
-			case '3C36E4': case '000378':
+			case '3C36E4': // ARRIS DCX960
 				switch (deviceType[1]) {
-					case 'EOS2STB':
-						// new EOS2STB released March 2022 is a HUMAX 2008C-STB-TN
+					case 'EOS2STB':	// new EOS2STB released March 2022 (is a )HUMAX 2008C-STB-TN)
 						manufacturer = 'HUMAX'; 
 						model = '2008C-STB-TN [' + (this.device.productType || this.device.deviceType || '') + ']';
 						break;
-					case 'EOSSTB':
+					case 'EOSSTB':	// most common DCX960 box
 					default:
-						// GB devices have deviceType=GATEWAY and productType=TV360
 						manufacturer = 'ARRIS'; 
 						model = 'DCX960';
 						break;
 				}
-				// EOSSTB and EOS2STB both use deviceId as serial number
-				// CH & NL uses EOS as platformType, GB uses HORIZON
-				manufacturer = manufacturer + ' [' + (this.device.platformType || '') + ']'; 
-				 // GB has a productType, CH & NL have no productType but they have deviceType.
-				model = model + ' [' + (this.device.productType || this.device.deviceType || '') + ']'
-				serialnumber = this.device.deviceId; // same as shown on TV
-				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
 				break;
-
-			default:
-				manufacturer = this.device.platformType || PLATFORM_NAME;
-				model = this.device.productType || this.device.deviceType || PLUGIN_NAME;
-				serialnumber = this.device.deviceId; // same as shown on TV
-				firmwareRevision = configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
+			
+			case '000378': // HUMAX EOS1008R & 2008C-STB-TN
+				switch (deviceType[1]) {
+					case 'EOS2STB':	// new EOS2STB released March 2022 is a HUMAX 2008C-STB-TN
+						manufacturer = 'HUMAX'; 
+						model = '2008C-STB-TN [' + (this.device.productType || this.device.deviceType || '') + ']';
+						break;
+					case 'EOSSTB':	// new EOS2STB released March 2022 is a HUMAX 2008C-STB-TN
+						manufacturer = 'HUMAX'; 
+						model = 'EOS1008R [' + (this.device.productType || this.device.deviceType || '') + ']';
+						break;
+					default:		// default 
+						manufacturer = 'HUMAX'; 
+						model = '?';
+						break;
+				}
+				break;
 		}
+
+		// add platform type to manufacturer
+		// CH & NL uses EOS as platformType, GB uses HORIZON
+		if (manufacturer) { manufacturer = manufacturer + ' [' + (this.device.platformType || '') + ']'; } 
+
+		// GB has a productType, CH & NL have no productType but they have deviceType.
+		// GB devices have deviceType=GATEWAY and productType=TV360
+		if (model) { model = model + ' [' + (this.device.productType || this.device.deviceType || '') + ']'; } 
+
+		// fallback to current device, then to platform
+		manufacturer = manufacturer || this.device.platformType || PLATFORM_NAME;
+		model = model || this.device.productType || this.device.deviceType || PLUGIN_NAME;
+		serialnumber = serialnumber || this.device.deviceId; // EOSSTB and EOS2STB both use deviceId as serial number
+		firmwareRevision = firmwareRevision || configDevice.firmwareRevision || ver[0]; // must be numeric. Non-numeric values are not displayed
+
 		this.log("%s: Set Manufacturer to %s", this.name, manufacturer);
 		this.log("%s: Set Model to %s", this.name, model);
 		this.log("%s: Set Serial Number to %s", this.name, serialnumber);
@@ -3004,7 +3016,7 @@ class stbDevice {
 			.setCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT) // NO_FAULT or GENERAL_FAULT
 			.setCharacteristic(Characteristic.InUse, Characteristic.InUse.NOT_IN_USE) // NOT_IN_USE or IN_USE
 			.setCharacteristic(Characteristic.ProgramMode, Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED) // NO_PROGRAM_SCHEDULED or PROGRAM_SCHEDULED or PROGRAM_SCHEDULED_MANUAL_MODE_
-			.setCharacteristic(Characteristic.StatusActive, Characteristic.Active.ACTIVE) // bool, 0 = NotStatusActive, 1=StatusActive
+			.setCharacteristic(Characteristic.StatusActive, Characteristic.Active.ACTIVE) // bool, 0 = false = NotStatusActive, non-zero = true = StatusActive
 			.setCharacteristic(Characteristic.InputDeviceType, Characteristic.InputDeviceType.TV)
 			;
 				
@@ -3727,7 +3739,7 @@ class stbDevice {
 
 			
 			// now load the mostWatched list for this profile
-			this.refreshDeviceMostWatchedChannels(wantedProfile.profileId); // async function
+			this.getMostWatchedChannels(wantedProfile.profileId); // async function
 
 			// get the wanted profile configured on the stb
 			this.profileId = wantedProfile.profileId
@@ -4087,51 +4099,57 @@ class stbDevice {
 		}		
 	}
 
-	// get the most watched channels for the deviceId profileId
+	// get the most watched channels for the profileId
 	// this is for the web session type as of 13.10.2022
-	async refreshDeviceMostWatchedChannels(profileId, callback) {
-		if (this.config.debugLevel > 1) { this.log("%s: refreshDeviceMostWatchedChannels started with %s", this.name, profileId); }
-		const profile = this.customer.profiles.find(profile => profile.profileId === profileId);
-		this.log("%s: Refreshing most watched channels for profile '%s'", this.name, (profile || {}).name);
+	async getMostWatchedChannels(profileId, callback) {
+		try {
+			if (this.config.debugLevel > 1) { this.log("%s: getMostWatchedChannels started with %s", this.name, profileId); }
+			const profile = this.customer.profiles.find(profile => profile.profileId === profileId);
+			this.log("%s: Refreshing most watched channels for profile '%s'", this.name, (profile || {}).name);
 
-		// 	https://prod.spark.sunrisetv.ch/eng/web/linear-service/v1/mostWatchedChannels?cityId=401&productClass=Orion-DASH"
-		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v1/mostWatchedChannels';
-		// add url standard parameters
-		url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
-		url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
-		if (this.config.debugLevel > 2) { this.log.warn('refreshDeviceMostWatchedChannels: loading from',url); }
+			// 	https://prod.spark.sunrisetv.ch/eng/web/linear-service/v1/mostWatchedChannels?cityId=401&productClass=Orion-DASH"
+			let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v1/mostWatchedChannels';
+			// add url standard parameters
+			url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
+			url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
+			if (this.config.debugLevel > 2) { this.log.warn('getMostWatchedChannels: loading from',url); }
 
-		const config = {headers: {
-			"x-oesp-username": this.platform.session.username, // not sure if needed
-			"x-profile": profile.profileId
-		}};
-		if (this.config.debugLevel > 0) { this.log.warn('refreshDeviceMostWatchedChannels: GET %s', url); }
-		// this.log('getMostWatchedChannels: GET %s', url);
-		axiosWS.get(url, config)
-			.then(response => {	
-				if (this.config.debugLevel > 2) { this.log.warn('refreshDeviceMostWatchedChannels: %s: response: %s %s', profile.name, response.status, response.statusText); }
-				if (this.config.debugLevel > 2) { 
-					this.log.warn('refreshDeviceMostWatchedChannels: %s: response data:', profile.name);
-					this.log.warn(response.data);
-				}
-				this.mostWatched = response.data; // store the entire mostWatched data for future use in this.mostWatched
-				this.log("%s: MostWatched list refreshed with %s channels", this.name, this.mostWatched.length);
+			const config = {headers: {
+				"x-oesp-username": this.platform.session.username, // not sure if needed
+				"x-profile": profile.profileId
+			}};
+			if (this.config.debugLevel > 0) { this.log.warn('getMostWatchedChannels: GET %s', url); }
+			// this.log('getMostWatchedChannels: GET %s', url);
+			axiosWS.get(url, config)
+				.then(response => {	
+					if (this.config.debugLevel > 0) { this.log.warn('getMostWatchedChannels: Profile %s: response: %s %s', profile.name, response.status, response.statusText); }
+					if (this.config.debugLevel > 2) { 
+						this.log.warn('getMostWatchedChannels: %s: response data:', profile.name);
+						this.log.warn(response.data);
+					}
+					this.mostWatched = response.data; // store the entire mostWatched data for future use in this.mostWatched
+					this.log("%s: MostWatched list refreshed with %s channels", this.name, this.mostWatched.length);
 
-				return false;
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'Failed to refresh most watched channel data for ' + profileId + ' ' + profile.name + ' - check your internet connection:'
-				if (error.isAxiosError) { 
-					errReason = error.code + ': ' + (error.hostname || ''); 
-					// if no connection then set session to disconnected to force a session reconnect
-					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
-				}
-				this.log('%s %s', errText, (errReason || ''));
-				this.log.debug(`refreshDeviceMostWatchedChannels error:`, error);
-				return false, error;
-			});		
-		return false;
+					return false;
+				})
+				.catch(error => {
+					let errText, errReason;
+					errText = 'Failed to refresh most watched channel data for ' + profileId + ' ' + profile.name + ' - check your internet connection:'
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+						// if no connection then set session to disconnected to force a session reconnect
+						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+					}
+					this.log.warn('%s %s', errText, (errReason || ''));
+					this.log.debug(`getMostWatchedChannels error:`, error);
+					return false, error;
+				});		
+			return false;
+
+		} catch (err) {
+			this.log.error("Error trapped in getMostWatchedChannels:", err.message);
+			this.log.error(err);
+		}		
 	}
 
 	getMaxSources(callback) {

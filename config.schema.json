@@ -204,6 +204,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -236,6 +237,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -269,6 +271,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -301,6 +304,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -334,6 +338,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -366,6 +371,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -398,6 +404,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -430,6 +437,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -463,6 +471,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -496,6 +505,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -529,6 +539,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -561,6 +572,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -595,6 +607,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -627,6 +640,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -660,6 +674,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -692,6 +707,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
@@ -725,6 +741,7 @@
                         "oneOf": [
                             { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
                             { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
                             { "title": "ArrowUp", "enum": ["ArrowUp"] },
                             { "title": "ArrowDown", "enum": ["ArrowDown"] },
                             { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
