@@ -16,8 +16,8 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.x.x (2022-12-xx)
-* Added custom charateristics: Currentchannel Id and Current Channel Name, useful in automations
+## 2.0.5-beta.0 (2022-12-06)
+* Added custom characteristics: Current Channel Id and Current Channel Name, useful in automations
 
 
 ## 2.0.4 (2022-12-05)
