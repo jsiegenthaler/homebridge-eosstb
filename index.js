@@ -1836,14 +1836,11 @@ class stbPlatform {
 						// purchaseService and watchlistService are not needed, but add if desired if we want to monitor these services
 						parent.mqttSubscribeToTopic(mqttUsername + '/purchaseService');
 						parent.mqttSubscribeToTopic(mqttUsername + '/watchlistService');
+						//parent.mqttSubscribeToTopic(mqttUsername + '/#'); // everything! multilevel wildcard
 
 						// bookmarkService is not needed
 						//parent.mqttSubscribeToTopic(mqttUsername + '/bookmarkService');
 						
-						//parent.mqttSubscribeToTopic(mqttUsername + '/radioStatus'); // a guess
-						//parent.mqttSubscribeToTopic(mqttUsername + '/audioStatus'); // a guess
-
-						// initiate the EOS session by turning on the HGO platform
 						// this is needed to trigger the backend to send us channel change messages when the channel is changed on the box
 						parent.setHgoOnlineRunning(mqttUsername, mqttClientId);
 						parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId); // subscribe to mqttClientId to get channel data
@@ -1851,9 +1848,12 @@ class stbPlatform {
 						// subscribe to all householdId messages
 						parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
 						parent.mqttSubscribeToTopic(mqttUsername + '/status'); // experiment, may not be needed
-						//parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status // dont subscribe to this, its all clientIds, floods with messages
+						//parent.mqttSubscribeToTopic(mqttUsername + '/+/status'); // subscribe to householdId/+/status = wildcard, and status for any topis, dont subscribe to this, its all clientIds, floods with messages
 
 						// experimental support of recording status
+						// + is a wildcard, and will subscribe to localRecordings from any topic
+						// + Symbol represents a single-level wildcard in a MQTT topic and # symbol represents the multi-level wild card in a MQTT Topic.
+						// refer https://www.hivemq.com/blog/mqtt-essentials-part-5-mqtt-topics-best-practices/
 						parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings');
 						parent.mqttSubscribeToTopic(mqttUsername + '/+/localRecordings/capacity');
 
@@ -1863,6 +1863,7 @@ class stbPlatform {
 							parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId);
 							// subscribe to our householdId/deviceId/status
 							parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/status');
+							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/#'); // wildcard # = any topic for the box, but does not reveal any more than what we know
 							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/audioStatus'); // a guess
 							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/radioStatus'); // a guess
 							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/source'); // a guess
@@ -1870,6 +1871,7 @@ class stbPlatform {
 							//parent.mqttSubscribeToTopic(mqttUsername + '/' + device.deviceId + '/audio'); // a guess
 						});
 
+						// initiate the EOS session by turning on the HGO platform
 						// and request the initial UI status for each device
 						// hmm do we really need this now that HGO has been deprecated as web client?
 						parent.devices.forEach((device) => {
@@ -1895,20 +1897,12 @@ class stbPlatform {
 
 								let mqttMessage = JSON.parse(message);
 								if (parent.config.debugLevel > 0) {
-									parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: \r\n%s', topic, mqttMessage);
+									parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: (next log entry)', topic,);
 									parent.log.warn(mqttMessage);
 								}
 
 								// variables for just in this function
 								var deviceId, stbState, currPowerState, currMediaState, currChannelId, currSourceType, profileDataChanged, currRecordingState, currStatusActive, currInputDeviceType, currInputSourceType;
-
-								// and request the UI status for each device
-								// 14.03.2021 does not respond, disabling for now...
-								// need to poll at regular intervals maybe?
-								//parent.devices.forEach((device) => {
-									// send a getuiStatus request
-									//parent.getUiStatus(device.deviceId, mqttClientId);
-								//});
 
 								// handle personalizationService messages
 								// Topic: Topic: 107xxxx_ch/personalizationService
