@@ -28,7 +28,6 @@ const cookieJar = new tough.CookieJar();
 const axios = require('axios') //.default;	// https://github.com/axios/axios
 axios.defaults.xsrfCookieName = undefined; // change  xsrfCookieName: 'XSRF-TOKEN' to  xsrfCookieName: undefined, we do not want this default,
 const axiosWS = axios.create({
-	// axios-cookiejar-support v2.0.2 required config
 	jar: cookieJar, //added in axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 });
 
