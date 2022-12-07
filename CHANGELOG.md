@@ -15,7 +15,7 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.1.0 (2022-12-07)
+## 2.1.0-alpha.1 (2022-12-07)
 * KeyMacro support added, needs good testing. Planned for release in v2.1.x
 
 
