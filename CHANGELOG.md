@@ -11,9 +11,12 @@ Please report all bugs and problems.
 # Bug Fixes and Improvements
 
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
-* Work on ideas for showing radio channels and using them -> STARTED. Possible only with KeyMacros. How should these appear in the channel list?
 * Fix potential problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
+
+
+## 2.1.0 (2022-12-07)
+* KeyMacro support added, needs good testing. Planned for release in v2.1.x
 
 
 ## 2.0.4 (2022-12-05)
