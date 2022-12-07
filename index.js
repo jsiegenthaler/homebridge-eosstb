@@ -3680,7 +3680,6 @@ class stbDevice {
 					maxSources = Math.min(configDevice.maxChannels || maxSources, maxSources);
 				}
 			}
-			//this.log("%s: Setting maxSources to %s", this.name, maxSources);
 
 
 			// get a user configured Profile, if it exists, otherwise we will use the default Profile for the channel list
@@ -3852,6 +3851,16 @@ class stbDevice {
 				this.log("%s: Hiding     channels %s to %s", this.name, maxChs + 1, maxSources);
 			}
 
+			// check for any custom keymacros, they consume slots at the end of the channelList
+			this.log.debug("%s: Checking for KeyMacros", this.name);
+			let keyMacros = [];
+			if (this.config.channels) {
+				keyMacros = this.config.channels.filter(channel => {
+					if (channel.channelKeyMacro) { return true; }
+				})
+				this.log.debug("%s: Found keyMacros: %s", this.name, keyMacros.length);
+			}
+
 
 			// loop and load all channels from the subscribedChIds in the order defined by the array
 			//this.log("Loading all subscribed channels")
@@ -3893,10 +3902,27 @@ class stbDevice {
 					this.log.debug("%s: Index %s: Found %s %s in master channel list", this.name, i, channel.id, channel.name);
 				}
 
-				// load this channel as an input
+				// check if this slot needs to be occupied by a keyMacro, and if so, set the channel
+				let k = 0;
+				if (i < maxSources && i > (maxSources - keyMacros.length) - 1) {
+					k = keyMacros.length - (maxSources -  i);
+					this.log.debug("%s: Index %s: Need to load keyMacro %s", this.name, i, k);
+					this.log.debug("%s: Index %s: Load this keyMacro: %s", this.name, i, keyMacros[k]);
+					channel = {
+						"id": '$KeyMacro' + (k+1),
+						"name": keyMacros[k].channelName,
+						"logicalChannelNumber": 20000 + i,
+						"linearProducts": 0,
+						"keyMacro": keyMacros[k].channelKeyMacro,
+					  }
+				}
+
+
+				// load this channel/keyMacros as an input
 				//this.log("loading input %s of %s", i + 1, maxSources)
 				//this.log.warn("%s: Index %s: Checking if %s %s can be loaded", this.name, i, channel.id, channel.name);
 				if (i < maxSources) {
+					this.log.debug("%s: Index %s: Refreshing channel", this.name, i);
 
 					// add the user-defined name if one exists
 					if (customChannel && customChannel.name) { channel.name = customChannel.name; }
@@ -3929,9 +3955,13 @@ class stbDevice {
 							this.log.warn("Adding %s %s to input %s at index %s",channel.id, channel.name, i+1, i);
 						}
 						this.inputServices[i].name = channel.configuredName;
-						this.inputServices[i].subtype = 'input_' + channel.id; // string, input_SV09038 etc
-						//this.inputServices[i].subtype = 'input_' + i+1; // integer, generates input_1 for index 0
-						//this.log.warn("DEBUG: input %s subtype set to %s %s",i+1, channel.id, this.inputServices[i].subtype);
+						if (channel.channelKeyMacro) {
+							// key macro
+							this.inputServices[i].subtype = 'keyMacro_KM' + k+1; // string, keyMacro_KM1 etc
+						} else {
+							// normal channel input
+							this.inputServices[i].subtype = 'input_' + channel.id; // string, input_SV09038 etc
+						}
 
 						// Name can only be set for SharedProfile where order can never be changed
 						if (this.profileid == 0) {
@@ -3942,8 +3972,12 @@ class stbDevice {
 							.updateCharacteristic(Characteristic.CurrentVisibilityState, channel.visibilityState)
 							.updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
 						//inputService.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
+						//this.log.warn('this.inputServices[i]')
+						//this.log.warn(this.inputServices[i])
 					}
 				}
+
+
 			});
 
 			// after loading all the channels, reset the ActiveIdentifier (uint32) to the right Identifier (uint32), as it may have moved slots
@@ -3958,33 +3992,6 @@ class stbDevice {
 				if (this.televisionService) {
 					this.televisionService.updateCharacteristic(Characteristic.ActiveIdentifier, NO_INPUT_ID);
 				}
-			}
-
-			// load any custom key macros: in work, not for publich consumption yet
-			if (this.config.channels && 1==0) {
-				this.config.channels.forEach((customChannel, i) => {
-				this.log("In forEach loop, processing config channel index %s %s", i, customChannel)
-
-				this.log(customChannel)
-				// first look in the config channels list for any user-defined custom channel name
-				if (customChannel.channelKeyMacro){
-					this.log("%s: Found Key Macro in config channels:", this.name, customChannel.channelKeyMacro, customChannel.channelName)
-					let i = this.inputServices.length
-					this.log("inputService %s is set to", i-1);
-					this.log(this.inputServices[i-1]);
-					this.inputServices[i]
-						.name = customChannel.channelName
-						//.subtype = 'input_KM' + 20000 + i; // string, input_KM20000 + channel offset. KM=KeyMacro
-					this.inputServices[i].updateCharacteristic(Characteristic.Name, customChannel.channelName) // stays unchanged at Input 01 etc
-						.updateCharacteristic(Characteristic.ConfiguredName, customChannel.channelName)
-						.updateCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.SHOWN)
-						.updateCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED);
-					
-					this.log("inputService %s is set to", i);
-					this.log(this.inputServices[i]);
-
-				}
-				})
 			}
 
 
@@ -4056,7 +4063,7 @@ class stbDevice {
 
 			}
 
-			this.log("%s: Channel list refreshed with %s channels", this.name, Math.min(maxChs, maxSources));
+			this.log("%s: Channel list refreshed with %s channels (including %s key macros)", this.name, Math.min(maxChs, maxSources), keyMacros.length);
 			return false;
 
 		} catch (err) {
@@ -4366,11 +4373,13 @@ class stbDevice {
 		const channel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId);
 		if (channel) { currentChannelName = channel.name; }
 
-		//this.log.warn("setInput: go to input %s", input)
-		//this.log.warn(channel)
 
 		// robustness: only try to switch channel if an input.id exists
-		if (input.id){
+		if (input.id && input.id.startsWith('$KeyMacro')){
+			this.log('%s: Sending KeyMacro [%s] "%s"', this.name, input.name, input.keyMacro);
+			this.platform.sendKey(this.deviceId, this.name, input.keyMacro);
+			
+		} else if (input.id){
 			this.log('%s: Change channel from %s [%s] to %s [%s]', this.name, this.currentChannelId, currentChannelName, input.id, input.name);
 			this.platform.switchChannel(this.deviceId, this.name, input.id, input.name);
 		} else {
