@@ -4460,7 +4460,7 @@ class stbDevice {
 
 
 	// get current channel id (the TV channel identifier, a string)
-	// added in v2.0.3
+	// added in v2.1.0
 	// custom characteristic, returns a string, the event updates the characteristic value automatically
 	async getCurrentChannelId(callback, currentChannelId) {
 		// fired by the user reading the Custom characteristic in Shortcuts
@@ -4474,7 +4474,7 @@ class stbDevice {
 
 
 	// get current channel name (the TV channel name)
-	// added in v2.0.3
+	// added in v2.1.0
 	// custom characteristic, returns a string, the event updates the characteristic value automatically
 	async getCurrentChannelName(callback, currentChannelName) {
 		// fired by the user reading the Custom characteristic in Shortcuts
