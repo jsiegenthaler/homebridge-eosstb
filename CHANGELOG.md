@@ -16,6 +16,10 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
+## 2.0.5-beta.0 (2022-12-06)
+* Added custom characteristics: Current Channel Id and Current Channel Name, useful in automations
+
+
 ## 2.0.4 (2022-12-05)
 * Fixed model detection of HUMAX EOS1008R boxes
 * Fixed detection of Status Active to properly show mqtt active or not using Status Active in the Home app
@@ -39,6 +43,12 @@ Please report all bugs and problems.
 * Cleaned up some GB code
 * Bumped dependency "axios": "^1.2.0"
 * Bumped Homebridge "homebridge": ">=1.6.0",
+
+
+## 2.0.2-beta.1 (2022-11-19)
+* Added custom characteristic Current Channel Id
+* Added custom characteristic Current Channel Name
+* Optimised some code
 
 
 ## 2.0.1 (2022-11-19)
