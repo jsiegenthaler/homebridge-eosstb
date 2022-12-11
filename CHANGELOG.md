@@ -15,8 +15,9 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.1.0-alpha.1 (2022-12-07)
+## 2.1.0-alpha.2 (2022-12-11)
 * KeyMacro support added, needs good testing. Planned for release in v2.1.x
+* Added custom characteristics: Current Channel Id and Current Channel Name, useful in automations
 
 
 ## 2.0.4 (2022-12-05)
@@ -42,6 +43,12 @@ Please report all bugs and problems.
 * Cleaned up some GB code
 * Bumped dependency "axios": "^1.2.0"
 * Bumped Homebridge "homebridge": ">=1.6.0",
+
+
+## 2.0.2-beta.1 (2022-11-19)
+* Added custom characteristic Current Channel Id
+* Added custom characteristic Current Channel Name
+* Optimised some code
 
 
 ## 2.0.1 (2022-11-19)
