@@ -4482,6 +4482,7 @@ class stbDevice {
 		// fired when the icon is clicked in the Home app and HomeKit requests a refresh
 		// fired when the Home app is opened
 		const curChannel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId );  // this.currentChannelId is a string eg SV09038
+		// consider setting to Radio if radio is playing
 		currentChannelName = (curChannel || {}).name || ''; // Empty string if not found
 		if (this.config.debugLevel > 1) { this.log.warn("%s: getCurrentChannelName returning '%s'", this.name, currentChannelName); }
 		callback(null, currentChannelName);
