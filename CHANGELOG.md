@@ -18,6 +18,7 @@ Please report all bugs and problems.
 
 ## 2.1.0-beta.1 (2022-12-11)
 * Added custom characteristics: Current Channel Id and Current Channel Name, useful in automations
+* Updated iOS version references
 
 
 ## 2.0.4 (2022-12-05)
