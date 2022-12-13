@@ -18,6 +18,7 @@ Please report all bugs and problems.
 ## 2.1.0-alpha.2 (2022-12-11)
 * KeyMacro support added, needs good testing. Planned for release in v2.1.0
 * Added custom characteristics: Current Channel Id and Current Channel Name, useful in automations
+* Updated iOS version references
 
 
 ## 2.0.4 (2022-12-05)
