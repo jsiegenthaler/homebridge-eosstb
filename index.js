@@ -2419,7 +2419,7 @@ class stbPlatform {
 						this.log.debug('sendKey: reading delay from %s', keyName);
 						waitDelay = keyName.toLowerCase().replace('wait(', '').replace(')','');
 						if (waitDelay == ''){ waitDelay = 200; } // default 200ms
-						if (waitDelay > 10000){ waitDelay = 10000; } // max 10000ms
+						if (waitDelay > 20000){ waitDelay = 20000; } // max 20000ms
 						this.log.debug('sendKey: delay read as %s', waitDelay);
 					}
 					// else if not first key and previous key was not wait, and next key is not wait, then set a default delay of 100 ms
