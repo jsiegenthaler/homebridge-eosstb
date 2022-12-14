@@ -15,7 +15,7 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.1.0-alpha.2 (2022-12-11)
+## 2.1.0-alpha.2 (2022-12-14)
 * KeyMacro support added, needs good testing. Planned for release in v2.1.0
 * Added custom characteristics: Current Channel Id and Current Channel Name, useful in automations
 * Updated iOS version references
