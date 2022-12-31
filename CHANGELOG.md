@@ -15,10 +15,12 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.1.0-alpha.2 (2022-12-14)
+## 2.1.0-alpha.3 (2022-12-13)
 * KeyMacro support added, needs good testing. Planned for release in v2.1.0
 * Added custom characteristics: Current Channel Id and Current Channel Name, useful in automations
 * Updated iOS version references
+* Bumped dependency "axios": "^1.2.2"
+* Bumped dependency "axios-cookiejar-support": "^4.0.5"
 
 
 ## 2.0.4 (2022-12-05)
@@ -54,8 +56,7 @@ Please report all bugs and problems.
 
 ## 2.0.1 (2022-11-19)
 * Increased reliability of mqtt messages by setting QoS
-* Optimised the GB session code
-* Removed some left over debug code
+* Optimised the GB session code Removed some left over debug code
 
 
 ## 2.0.0 (2022-11-14)
