@@ -261,6 +261,10 @@ Example extended configuration as used on the author with his Samsung TV (where 
                 },
             "channels": [
                 {
+                    "channelKeyMacro": "Escape Escape Escape Escape Escape wait(500) MediaTopMenu wait(1000) ArrowRight ArrowRight Enter wait(1000) ArrowDown wait(1500) Enter wait(2000) Enter",
+                    "channelName": "Last Played Radio via AppMenu"
+                },
+                {
                     "channelId": "SV09690",
                     "channelName": "Netflix"
                 }
@@ -361,7 +365,9 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
 
 * **channelId**: The channelId, as defined by the TV provider. Unknown channelIds will appear in the Homebridge log.
 
-* **channelNames**: Allows you to add unknown channel names, or to rename any channel as you wish. Required as some channels (e.g., Netflix) are not published on the master channel list. If a channel displays in the Home app like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
+* **channelKeyMacro**: The channel key macro (key sequence) to send. If channelKeyMacro is present, channelId is ignored.
+
+* **channelNames**: Allows you to add unknown channel names, names for key macros, or to rename any channel as you wish. Required as some channels (e.g., Netflix) are not published on the master channel list. If a channel displays in the Home app like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
 
 
 * Telenet BE: 
