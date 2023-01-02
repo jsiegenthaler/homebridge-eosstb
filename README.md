@@ -103,7 +103,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Default Profile Support**: The default profile on start-up of the set-top box is used for the channel list if no other profile is configured for the plugin.
 
-* **Powerful Key Macros**: You can program key macros to control your set-top box, including accessing content such as radio channels that cannot be access directly via channel number.
+* **Powerful Key Macros**: You can program key macros to control your set-top box, including accessing content such as radio channels that cannot be accessed directly via channel number.
 
 * **Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute (TV dependent). The triple-press timing is configurable.
 
