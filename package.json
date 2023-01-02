@@ -6,7 +6,7 @@
   "version": "2.1.0-beta.1",
   "platformname": "eosstb",
   "dependencies": {
-    "axios-cookiejar-support": "^4.0.5",
+    "axios-cookiejar-support": "^4.0.6",
     "axios": "^1.2.2",
     "debug": "^4.3.4",
     "mqtt": "^4.3.7",
