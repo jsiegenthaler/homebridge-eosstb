@@ -226,7 +226,7 @@ Example minimum (mandatory) configuration:
     ]
 ```
 
-Example extended configuration as used on the author with his Samsung TV (where x.x.x.x is the IP address of the TV). An extended configuration allows you to customise the behaviour of each set-top box device. You must identify the devices by their deviceId:
+Example extended configuration as used on the author with his EOSSTB set-top box. An extended configuration allows you to customise the behaviour of each set-top box device. You must identify the devices by their deviceId:
 
 ```js
     "platforms": [
