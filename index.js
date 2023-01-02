@@ -2405,46 +2405,117 @@ class stbPlatform {
 		try {
 			if (this.config.debugLevel > 0) { this.log.warn('sendKey: keySequence %s, deviceName %s, deviceId %s', keySequence, deviceName, deviceId); }
 			if (mqttUsername) {
+				let hasJustBooted = false; // indicates if the box just booted up during this keyMacro
+				let keyCanBeSkippedAfterBootup = false; // indicates if the current key can be skipped
+				let firstNonEscapeOrWaitKeyFound = false; // indicates if a non-escape or non-wait key was found
 
 				let keyArray = keySequence.trim().split(' ');
-				if (keyArray.length > 1) { this.log('sendKey: processing keySequence %s for %s %s', keySequence, deviceName, deviceId); }
+				if (keyArray.length > 1) { this.log('sendKey: processing keySequence for %s: "%s"', deviceName, keySequence); }
 				// supported key1 key2 key3 wait() wait(100)
 				for (let i = 0; i < keyArray.length; i++) {
 					const keyName = keyArray[i].trim();
 					this.log('sendKey: processing key %s of %s: %s', i+1, keyArray.length, keyName);
-					
-					// if a wait appears, use it
-					let waitDelay; // default
-					if (keyName.toLowerCase().startsWith('wait(')) {
-						this.log.debug('sendKey: reading delay from %s', keyName);
-						waitDelay = keyName.toLowerCase().replace('wait(', '').replace(')','');
-						if (waitDelay == ''){ waitDelay = 200; } // default 200ms
-						if (waitDelay > 20000){ waitDelay = 20000; } // max 20000ms
-						this.log.debug('sendKey: delay read as %s', waitDelay);
-					}
-					// else if not first key and previous key was not wait, and next key is not wait, then set a default delay of 100 ms
-					 else if (i>0 && i<keyArray.length-1 && !(keyArray[i-1] || '').toLowerCase().startsWith('wait(') && !(keyArray[i+1] || '').toLowerCase().startsWith('wait(')) {
-						this.log.debug('sendKey: not first key and neiher previous key %s nor next key %s is wait(). Setting default wait of 100 ms', keyArray[i-1], keyArray[i+1]);
-						waitDelay = 100;
+					const defaultWaitDelay = 200; // default 200ms
+					const maxWaitDelay = 20000; // default 200ms
+					const waitReadyDelayStep = 500; // the ms wait time in each waitReady loop
+					const maxWaitReadyLoops = maxWaitDelay / waitReadyDelayStep; // the max loop iterations to wait for ready
+					const currKeyIsEscapeOrWait = 
+						keyName.toLowerCase().startsWith('wait(') 		// current key is a wait
+						|| keyName.toLowerCase() == 'escape';			// or current key is an Escape
+					if (!firstNonEscapeOrWaitKeyFound && !currKeyIsEscapeOrWait) {
+						firstNonEscapeOrWaitKeyFound = true;			// first non-escape or non-wait key found
 					} 
-		
-					// add a wait if waitDelay is defined
-					if (waitDelay) {
-						this.log('sendKey: waiting %s ms', waitDelay);
-						await waitprom(waitDelay);
-						this.log.debug('sendKey: wait %s done', waitDelay);
+					keyCanBeSkippedAfterBootup = false; 				// reset for each key
+
+
+					// for all keys except Power:
+					// check if box is ready (up and running), if not, loop until we hit maxWaitDelay, waiting waitReadyDelayStep ms each loop
+					// loop only while i < maxWaitReadyLoops and current media state = STOP
+					// The device changes CurrentMediaState from STOP to PLAY when it has powered up and is streaming TV
+					// CurrentMediaState=STOP only occurs when the set-top box is turned off, so is a good indicator that it is streaming content
+					// TEST THIS WITH NETFLIX!
+					if (keyName.toLowerCase() != 'power') {
+						const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
+						// detect CurrentMediaState=STOP to show box has just booted
+						if (this.stbDevices[deviceIndex].currentMediaState == Characteristic.CurrentMediaState.STOP) { 
+							this.log('sendKey: key %s: waiting for ready for %s', i+1, deviceName);
+							for (let j=0; 
+								j<maxWaitReadyLoops
+								&& this.stbDevices[deviceIndex].currentMediaState == Characteristic.CurrentMediaState.STOP;
+								j++) {
+								hasJustBooted  = true; 				// indicates that the box just booted up during this keyMacro
+								await waitprom(waitReadyDelayStep); // wait waitReadyDelayStep ms on each loop
+								this.log,debug('sendKey: key %s: loop %s: wait %s ms done, hasJustBooted %s, currentMediaState %s', i+1, j, hasJustBooted, waitReadyDelayStep, currentMediaStateName[this.stbDevices[deviceIndex].currentMediaState]);
+							}
+							this.log('sendKey: key %s: waiting one more delay of %s ms', i+1, waitReadyDelayStep);
+							await waitprom(waitReadyDelayStep); // wait waitReadyDelayStep ms one last time to ensure we have one wait after change from STOP to PLAY
+							this.log('sendKey: key %s: waiting for ready done, hasJustBooted %s, currentMediaState %s', i+1, hasJustBooted, currentMediaStateName[this.stbDevices[deviceIndex].currentMediaState]);
+						}
 					}
+
+					
+
+					// check if current key can be skipped.
+					// leading Escape and wait keys can be skipped after a bootup to speed up the selection of a radio channel using a scene
+					// any skipping must stop when the first non-Escape and non-wait key is found
+					this.log.debug('sendKey: key %s: keyArray.length %s, prevKey %s, currKey %s, nextKey %s', i+1, keyArray.length, keyArray[i-1], keyArray[i], keyArray[i+1])
+					if (	hasJustBooted 						// box has just booted
+							&& currKeyIsEscapeOrWait			// current key is escape or wait
+							&& !firstNonEscapeOrWaitKeyFound	// have not yet found the first non-escape or non-wait key
+						) {
+						keyCanBeSkippedAfterBootup = true; 		// we can skip this key as it is a wait or escape 
+					}
+
+
+					// to help with debug
+					this.log.debug('sendKey: key %s: hasJustBooted %s, currKeyIsEscapeOrWait %s, firstNonEscapeOrWaitKeyFound %s, keyCanBeSkippedAfterBootup %s', i+1, hasJustBooted, currKeyIsEscapeOrWait, firstNonEscapeOrWaitKeyFound, keyCanBeSkippedAfterBootup);
+
+
+					// process any wait command if found
+					// but ignore if keyCanBeSkippedAfterBootup
+					let waitDelay;
+					if (keyName.toLowerCase().startsWith('wait(') && !keyCanBeSkippedAfterBootup) {
+						this.log.debug('sendKey: key %s: reading delay from %s', i+1, keyName);
+						// accepts wait(), wait(n)
+						waitDelay = keyName.toLowerCase().replace('wait(', '').replace(')','');
+						if (waitDelay == ''){ waitDelay = defaultWaitDelay; } // default wait
+						if (waitDelay > maxWaitDelay){ waitDelay = maxWaitDelay; } // max wait
+						this.log.debug('sendKey: key %s: delay read as %s', i+1, waitDelay);
+					}
+					// else if not key can be skipped, and not first key and previous key was not wait, and current key is not wait, then set a default delay of defaultWaitDelay ms
+					else if (	!keyCanBeSkippedAfterBootup
+								&& i>0 
+								//&& i<keyArray.length-1 
+								&& !(keyArray[i-1] || '').toLowerCase().startsWith('wait(') && !(keyArray[i] || '').toLowerCase().startsWith('wait(')
+							) {
+						this.log.debug('sendKey: key %s: not keyCanBeSkippedAfterBootup and not first key and neither previous key %s nor current key %s is wait(). Setting default wait of %s ms', i+1, keyArray[i-1], keyArray[i], defaultWaitDelay);
+						waitDelay = defaultWaitDelay;
+					} 
+
 		
-					// send the key if not a wait()
-					if (!keyName.toLowerCase().startsWith('wait(')) {
-						this.log('sendKey: sending key %s to %s %s', keyName, deviceName, deviceId);
+					// add a wait if a waitDelay is set
+					//this.log('sendKey: key %s: waitDelay', i+1, waitDelay);
+					if (waitDelay) {
+						this.log('sendKey: key %s: waiting %s ms', i+1, waitDelay);
+						await waitprom(waitDelay);
+						this.log.debug('sendKey: key %s: wait done', i+1);
+					}
+
+		
+					// send the key
+					if (hasJustBooted && keyCanBeSkippedAfterBootup) {
+						// when a box has just booted, leading Escapes and waits can be skipped until the first non-Escape and non-wait comand
+						this.log('sendKey: key %s: box has just booted, skipping key %s', i+1, keyName);
+					} else if (!keyName.toLowerCase().startsWith('wait(')) {
+						// send the key if not a wait
+						this.log('sendKey: key %s: sending key %s to %s %s', i+1, keyName, deviceName, deviceId);
 						// the web client uses qos:2, so we should as well
 						this.mqttPublishMessage(
 							mqttUsername + '/' + deviceId, 
 							'{"id":"' + makeFormattedId(32) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}',
 							{ qos:2, retain:true }
 						);
-						this.log.debug('sendKey: send %s done', keyName);
+						this.log.debug('sendKey: key %s: send %s done', i+1, keyName);
 
 					}
 		
@@ -2790,6 +2861,7 @@ class stbDevice {
 		this.currentPowerState = Characteristic.Active.INACTIVE;
 		this.previousPowerState = Characteristic.Active.INACTIVE;
 		this.currentChannelId = NO_CHANNEL_ID; // string eg SV09038
+		this.lastKeyMacroChannelId = null; // string eg $KeyMacro1
 		this.currentClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		this.previousClosedCaptionsState = Characteristic.ClosedCaptions.DISABLED;
 		this.currentMediaState = Characteristic.CurrentMediaState.STOP;
@@ -3357,6 +3429,13 @@ class stbDevice {
 			if (statusActive != null) { this.currentStatusActive = statusActive; }
 			if (inputDeviceType != null) { this.currentInputDeviceType = inputDeviceType; }
 			if (inputSourceType != null) { this.currentInputSourceType = inputSourceType; }
+
+			// force the keyMacro channel if a keyMacro was last selected as the input
+			if (this.lastKeyMacroChannelId) { 
+				//this.log('forcing currentChannelId to this.lastKeyMacroChannelId', this.lastKeyMacroChannelId)
+				this.currentChannelId = this.lastKeyMacroChannelId; 
+			}
+
 			
 			
 			
@@ -3615,34 +3694,38 @@ class stbDevice {
 				*/
 				// check for change of InputDeviceType state: (a characteristic of Input Source)
 
-				let curInp = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + this.currentChannelId ) + 1;
+				//this.log('looking for input subtype ', 'input_' + this.currentChannelId)
+				let currInputIndex = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + this.currentChannelId );
+				let currinputNumber = currInputIndex + 1;
+				if (currInputIndex < 0) { currInputIndex = null; currinputNumber = null; }
+				//this.log('found input index %s input %s subtype %s', currInputIndex, currInputIndex+1, (this.inputServices[currInputIndex] || {}).subtype)
 				if (this.previousInputDeviceType !== this.currentInputDeviceType) {
 					this.log('%s: Input Device Type changed on input %s %s from %s [%s] to %s [%s]', 
 						this.name,
-						curInp,
+						currinputNumber,
 						this.currentChannelId,
 						this.previousInputDeviceType, Object.keys(Characteristic.InputDeviceType)[this.previousInputDeviceType + 1],
 						this.currentInputDeviceType, Object.keys(Characteristic.InputDeviceType)[this.currentInputDeviceType + 1]
 						);
 				}
 				//this.televisionService.getCharacteristic(Characteristic.InputDeviceType).updateValue(this.currentInputDeviceType);
-				this.inputServices[curInp].getCharacteristic(Characteristic.InputDeviceType).updateValue(this.currentInputDeviceType);
+				if (currInputIndex) { this.inputServices[currInputIndex].getCharacteristic(Characteristic.InputDeviceType).updateValue(this.currentInputDeviceType); }
 				this.previousInputDeviceType = this.currentInputDeviceType;
 
 				// check for change of InputSourceType state: (a characteristic of Input Source)
 				if (this.previousInputSourceType !== this.currentInputSourceType) {
 					this.log('%s: Input Source Type changed on input %s %s from %s [%s] to %s [%s]',
 						this.name,
-						curInp,
+						currinputNumber,
 						this.currentChannelId,
 						this.previousInputSourceType, Object.keys(Characteristic.InputSourceType)[this.previousInputSourceType + 1],
 						this.currentInputSourceType, Object.keys(Characteristic.InputSourceType)[this.currentInputSourceType + 1]);
 				}
 				// [12/11/2022, 12:22:37] [homebridge-eosstb] This plugin generated a warning from the characteristic 'Input Source Type': Characteristic not in required or optional characteristic section for service Television. Adding anyway.. See https://homebridge.io/w/JtMGR for more info.
-				this.inputServices[curInp].getCharacteristic(Characteristic.InputSourceType).updateValue(this.currentInputSourceType); // generates Homebridge warning
+				if (currInputIndex) { this.inputServices[currInputIndex].getCharacteristic(Characteristic.InputSourceType).updateValue(this.currentInputSourceType); } // generates Homebridge warning
 				this.previousInputSourceType = this.currentInputSourceType;
-				//this.log('++++DEBUG: this.inputServices[curInp]')
-				//this.log(this.inputServices[curInp])
+				//this.log('++++DEBUG: this.inputServices[currInputIndex]')
+				//this.log(this.inputServices[currInputIndex])
 
 				// +++++++++++++++ end of Input Service characteristics ++++++++++++++
 
@@ -4403,18 +4486,19 @@ class stbDevice {
 		input = input ?? {} // ensure input is never null or undefined
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setInput input %s %s',this.name, input.id, input.name); }
 		callback(); // for rapid response
-		var currentChannelName = NO_CHANNEL_NAME;
-		const channel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId);
-		if (channel) { currentChannelName = channel.name; }
+		// get current channel, also finds keyMacro channels
+		let channel = this.channelList.find(channel => channel.id === this.currentChannelId);
+		// if not found look in the master channel list
+		if (!channel) { channel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId); }
 
-
-		// robustness: only try to switch channel if an input.id exists
+		// robustness: only try to switch channel if an input.id exists. handle KeyMacros
+		this.log('%s: Change channel from %s [%s] to %s [%s]', this.name, this.currentChannelId, (channel || {}).name || NO_CHANNEL_NAME, input.id, input.name);
 		if (input.id && input.id.startsWith('$KeyMacro')){
-			this.log('%s: Sending KeyMacro [%s] "%s"', this.name, input.name, input.keyMacro);
+			this.lastKeyMacroChannelId = input.id; // remember last keyMacro id
 			this.platform.sendKey(this.deviceId, this.name, input.keyMacro);
 			
 		} else if (input.id){
-			this.log('%s: Change channel from %s [%s] to %s [%s]', this.name, this.currentChannelId, currentChannelName, input.id, input.name);
+			this.lastKeyMacroChannelId = null; // clear last keyMacro channelId
 			this.platform.switchChannel(this.deviceId, this.name, input.id, input.name);
 		} else {
 			this.log.warn('%s: setInput called with no input.id', this.name);
