@@ -15,12 +15,14 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.1.0-beta.1 (2023-01-01)
-* KeyMacro support added, needs good testing. Planned for release in v2.1.0
+## 2.1.0-beta.1 (2023-01-02)
+* KeyMacro support added. Planned for release in v2.1.0
 * Added custom characteristics: Current Channel Id and Current Channel Name, useful in automations
+* Fixed bug where Input Device Type was not always correctly logged
+* Fixed bug where Input Source Type was not always correctly logged
 * Updated iOS version references
 * Bumped dependency "axios": "^1.2.2"
-* Bumped dependency "axios-cookiejar-support": "^4.0.5"
+* Bumped dependency "axios-cookiejar-support": "^4.0.6"
 
 
 ## 2.0.4 (2022-12-05)
