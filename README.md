@@ -262,7 +262,7 @@ Example extended configuration as used on the author with his EOSSTB set-top box
             "channels": [
                 {
                     "channelKeyMacro": "TV MediaTopMenu wait(1000) ArrowRight ArrowRight Enter wait(1000) ArrowDown wait(1500) Enter wait(2000) Enter",
-                    "channelName": "Last Played Radio via AppMenu"
+                    "channelName": "Last Played Radio"
                 },
                 {
                     "channelId": "SV09690",
