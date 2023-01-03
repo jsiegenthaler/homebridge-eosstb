@@ -83,6 +83,8 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Full Remote-Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, fast-forward, rewind, channel up/down, volume and mute commands. All keys are fully configurable for single-tap and double-tap.
 
+* **Powerful Key Macros**: You can program key macros to control your set-top box. Key macros are powerful ways of accessing any content such as radio channels that cannot be accessed directly via a channel number.
+
 * **Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports).
 
 * **Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple supports), allowing you to control switch-on and channel selection in Home Automations, Shortcuts and Personal Automations.
@@ -102,8 +104,6 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 * **Optional Channel Numbers**: If you wish, you can display a channel number before the channel name. As this consumes some space on the Home app tile, it is off by default.
 
 * **Default Profile Support**: The default profile on start-up of the set-top box is used for the channel list if no other profile is configured for the plugin.
-
-* **Powerful Key Macros**: You can program key macros to control your set-top box, including accessing content such as radio channels that cannot be access directly via channel number.
 
 * **Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute (TV dependent). The triple-press timing is configurable.
 
@@ -226,7 +226,7 @@ Example minimum (mandatory) configuration:
     ]
 ```
 
-Example extended configuration as used on the author with his Samsung TV (where x.x.x.x is the IP address of the TV). An extended configuration allows you to customise the behaviour of each set-top box device. You must identify the devices by their deviceId:
+Example extended configuration as used on the author with his EOSSTB set-top box. An extended configuration allows you to customise the behaviour of each set-top box device. You must identify the devices by their deviceId:
 
 ```js
     "platforms": [
@@ -260,6 +260,10 @@ Example extended configuration as used on the author with his Samsung TV (where 
                     "maxChannels": 50
                 },
             "channels": [
+                {
+                    "channelKeyMacro": "TV MediaTopMenu wait(1000) ArrowRight ArrowRight Enter wait(1000) ArrowDown wait(1500) Enter wait(2000) Enter",
+                    "channelName": "Last Played Radio via AppMenu"
+                },
                 {
                     "channelId": "SV09690",
                     "channelName": "Netflix"
@@ -361,7 +365,9 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
 
 * **channelId**: The channelId, as defined by the TV provider. Unknown channelIds will appear in the Homebridge log.
 
-* **channelNames**: Allows you to add unknown channel names, or to rename any channel as you wish. Required as some channels (e.g., Netflix) are not published on the master channel list. If a channel displays in the Home app like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
+* **channelKeyMacro**: The channel key macro (key sequence) to send. If channelKeyMacro is present, channelId is ignored.
+
+* **channelNames**: Allows you to add unknown channel names, names for key macros, or to rename any channel as you wish. Required as some channels (e.g., Netflix) are not published on the master channel list. If a channel displays in the Home app like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
 
 
 * Telenet BE: 
