@@ -4077,7 +4077,6 @@ class stbDevice {
 					// update accesory only when configured, as this.inputServices[i] can only be updated when it exists
 					if (this.accessoryConfigured) { 
 						// update existing services
-						this.log.warn("Adding %s %s to input %s at index %s",channel.id, channel.name, i+1, i);
 						if (this.config.debugLevel > 2) { 
 							this.log.warn("Adding %s %s to input %s at index %s",channel.id, channel.name, i+1, i);
 						}
