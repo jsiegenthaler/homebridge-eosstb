@@ -174,7 +174,7 @@ The table shows the default key mappings. You can map any Apple TV Remote button
 The volume controls do not control the set-top box directly, as the set-top box has no volume capability. The set-top box physical remote actually sends IR commands to your TV. If you can control your TV volume via a network connection then the volume controls can be used to send volume commands to your TV via the raspberry pi. This is what the author uses.
 
 
-## Using Profiles to better manage your Channel List
+## Using Profiles to Better Manage your Channel List
 Many TV providers provide hundreds of TV channels. The Home app is limited to 100 "services", which are TV channels or reserved for system control. This limits the maximum possible channels to 95, and thus the plugin will load the first 95 subscribed channels found, ignoring all non-subscribed channels. 
 
 If the channels you wish to have in the Home app are not within the first 95 subscribed channels in your TV providers channel list, then you can create a profile on the set-top box, and configure the profile with the channels you want, in the order you want. Enter the same profile name in the plugin config **Profile Name**, and the plugin will load the channels from that profile.
@@ -188,7 +188,7 @@ The profile used by the plugin does not have to be the same as the set-top box's
 The config item **Channel Sort By** allows the channels to be sorted by **Channel Order** (the standard channel order as shown on the TV) or by **Most Watched**. Most Watched is reported by the backend systems and is profile-based. It is not clear how often this list is updated, however for a TV subscription with many channels, this may be a preferable option to show your most watched channels at the top of the channel list.
 
 ## Using Key Macros to Access Extra Capabilities
-You can program key macros to access any function of your set-top box. This is particularly useful to select radio channels. See the [Wiki Key Macros page](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/Key-Macros) for full details. 
+You can program key macros to access any function of your set-top box. This is particularly useful to select radio channels. Key macros are loaded at the end of the channel list. See the [Wiki Key Macros page](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/Key-Macros) for full details. 
 
 
 
