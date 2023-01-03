@@ -17,6 +17,7 @@ Please report all bugs and problems.
 
 ## 2.1.0-beta.1 (2023-01-02)
 * KeyMacro support added. Planned for release in v2.1.0
+* Added TV as a skippable key on bootup
 * Added custom characteristics: Current Channel Id and Current Channel Name, useful in automations
 * Fixed bug where Input Device Type was not always correctly logged
 * Fixed bug where Input Source Type was not always correctly logged
