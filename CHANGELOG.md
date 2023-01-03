@@ -3,11 +3,6 @@ All notable changes to this project will be documented in this file.
 See the [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md) for full plugin documentation.
 Please restart Homebridge after every plugin update.
 
-# IMPORTANT NOTICE
-This (v2.x) is a major update over v1.x due to the change in endpoints in the backend systems that occured on 13.10.2022.
-Please report all bugs and problems.
-
-
 # Bug Fixes and Improvements
 
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
