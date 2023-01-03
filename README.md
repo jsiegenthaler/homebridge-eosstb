@@ -83,7 +83,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Full Remote-Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, fast-forward, rewind, channel up/down, volume and mute commands. All keys are fully configurable for single-tap and double-tap.
 
-* **Powerful Key Macros**: You can program key macros to control your set-top box. Key macros are powerful ays of accessing any content such as radio channels that cannot be accessed directly via a channel number.
+* **Powerful Key Macros**: You can program key macros to control your set-top box. Key macros are powerful ways of accessing any content such as radio channels that cannot be accessed directly via a channel number.
 
 * **Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports).
 
