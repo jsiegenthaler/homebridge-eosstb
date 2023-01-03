@@ -11,14 +11,20 @@ Please report all bugs and problems.
 # Bug Fixes and Improvements
 
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
-* Work on ideas for showing radio channels and using them -> STARTED. Possible only with KeyMacros. How should these appear in the channel list?
 * Fix potential problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
 * Implement refreshToken capabilities
 
 
-## 2.1.0-beta.1 (2022-12-11)
+## 2.1.0-beta.2 (2023-01-03)
+* KeyMacro support added. Planned for release in v2.1.0
+* Added TV as a skippable key on bootup
 * Added custom characteristics: Current Channel Id and Current Channel Name, useful in automations
+* Added preparation for reading current program name (future feature)
+* Fixed bug where Input Device Type was not always correctly logged
+* Fixed bug where Input Source Type was not always correctly logged
 * Updated iOS version references
+* Bumped dependency "axios": "^1.2.2"
+* Bumped dependency "axios-cookiejar-support": "^4.0.6"
 
 
 ## 2.0.4 (2022-12-05)
@@ -54,8 +60,7 @@ Please report all bugs and problems.
 
 ## 2.0.1 (2022-11-19)
 * Increased reliability of mqtt messages by setting QoS
-* Optimised the GB session code
-* Removed some left over debug code
+* Optimised the GB session code Removed some left over debug code
 
 
 ## 2.0.0 (2022-11-14)

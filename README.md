@@ -83,6 +83,8 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Full Remote-Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, fast-forward, rewind, channel up/down, volume and mute commands. All keys are fully configurable for single-tap and double-tap.
 
+* **Powerful Key Macros**: You can program key macros to control your set-top box. Key macros are powerful ways of accessing any content such as radio channels that cannot be accessed directly via a channel number.
+
 * **Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports).
 
 * **Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple supports), allowing you to control switch-on and channel selection in Home Automations, Shortcuts and Personal Automations.
@@ -185,6 +187,10 @@ The profile used by the plugin does not have to be the same as the set-top box's
 ## Sorting the Channel list
 The config item **Channel Sort By** allows the channels to be sorted by **Channel Order** (the standard channel order as shown on the TV) or by **Most Watched**. Most Watched is reported by the backend systems and is profile-based. It is not clear how often this list is updated, however for a TV subscription with many channels, this may be a preferable option to show your most watched channels at the top of the channel list.
 
+## Using Key Macros to Access Extra Capabilities
+You can program key macros to access any function of your set-top box. This is particularly useful to select radio channels. See the [Wiki Key Macros page](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/Key-Macros) for full details. 
+
+
 
 ## Limitations
 ### Channel Count
@@ -194,9 +200,6 @@ Services used in this set-top box accessory are:
 2. Television service (for controlling the TV accessory)
 3. Speaker service (for the controlling the TV accessory volume)
 4. Input service. The input (TV channels) utilises one service per input. The maximum possible channels (inputs) are thus 100 - 3 = 97. I have limited the inputs to maximum 95, but you can override this in the config (helpful to reduce log entries when debugging). The inputs are hard limited to 95 inputs.
-
-### Web App Controllers Take Over Sometimes
-The eosstb plugin emulates the TV service web app. If the web app is started on a web browser on a laptop or PC, the backend systems may prefer the web app to HomeKit, and disconnect HomeKit from the mqtt session. The mqtt session will try and reconnect if it gets disconnected.
 
 ### Media State (Play/Pause) Limitations
 The eosstb plugin can detect the current and target media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 16.2) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
@@ -223,7 +226,7 @@ Example minimum (mandatory) configuration:
     ]
 ```
 
-Example extended configuration as used on the author with his Samsung TV (where x.x.x.x is the IP address of the TV). An extended configuration allows you to customise the behaviour of each set-top box device. You must identify the devices by their deviceId:
+Example extended configuration as used on the author with his EOSSTB set-top box. An extended configuration allows you to customise the behaviour of each set-top box device. You must identify the devices by their deviceId:
 
 ```js
     "platforms": [
@@ -257,6 +260,10 @@ Example extended configuration as used on the author with his Samsung TV (where 
                     "maxChannels": 50
                 },
             "channels": [
+                {
+                    "channelKeyMacro": "TV MediaTopMenu wait(1000) ArrowRight ArrowRight Enter wait(1000) ArrowDown wait(1500) Enter wait(2000) Enter",
+                    "channelName": "Last Played Radio via AppMenu"
+                },
                 {
                     "channelId": "SV09690",
                     "channelName": "Netflix"
@@ -358,7 +365,9 @@ Some channels such as Netflix are actually apps on the set-top box, and not norm
 
 * **channelId**: The channelId, as defined by the TV provider. Unknown channelIds will appear in the Homebridge log.
 
-* **channelNames**: Allows you to add unknown channel names, or to rename any channel as you wish. Required as some channels (e.g., Netflix) are not published on the master channel list. If a channel displays in the Home app like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
+* **channelKeyMacro**: The channel key macro (key sequence) to send. If channelKeyMacro is present, channelId is ignored.
+
+* **channelNames**: Allows you to add unknown channel names, names for key macros, or to rename any channel as you wish. Required as some channels (e.g., Netflix) are not published on the master channel list. If a channel displays in the Home app like this: "Channel SV09690", then check your TV to see the channel name, and add it to the config. An example is provided for Netflix. Optional, unknown channels are displayed as "Channel xxxxxxx" where xxxxxxx is the channelId.
 
 
 * Telenet BE: 
