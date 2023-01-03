@@ -1349,6 +1349,7 @@ class stbPlatform {
 						if (this.config.debugLevel > 2) { this.log('Processing channel:',i,channel.logicalChannelNumber,channel.id, channel.name); } // for debug purposes
 						// log the detail of logicalChannelNumber 60 nicktoons, for which I have no subscription, as a test of entitlements
 						//if (this.config.debugLevel > 0) { if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); } }
+						//if (this.config.debugLevel > 0) { if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); } }
 						this.masterChannelList.push({
 							id: channel.id, 
 							name: cleanNameForHomeKit(channel.name),
@@ -1901,7 +1902,7 @@ class stbPlatform {
 								}
 
 								// variables for just in this function
-								var deviceId, stbState, currPowerState, currMediaState, currChannelId, currSourceType, profileDataChanged, currRecordingState, currStatusActive, currInputDeviceType, currInputSourceType;
+								var deviceId, stbState, currPowerState, currMediaState, currChannelId, currEventId, currSourceType, profileDataChanged, currRecordingState, currStatusActive, currInputDeviceType, currInputSourceType;
 
 								// handle personalizationService messages
 								// Topic: Topic: 107xxxx_ch/personalizationService
@@ -2047,6 +2048,7 @@ class stbPlatform {
 											// Careful: source is not always present in the data
 											if (playerState.source) {
 												currChannelId = playerState.source.channelId || NO_CHANNEL_ID; // must be a string
+												currEventId = playerState.source.eventId; // the title (program) id
 												if (parent.config.debugLevel > 0 && parent.masterChannelList) {
 													let currentChannelName; // let is scoped to the current {} block
 													let curChannel = parent.masterChannelList.find(channel => channel.id === currChannelId); 
@@ -2119,8 +2121,8 @@ class stbPlatform {
 
 
 								// update the device on every message
-								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currSourceType, profileDataChanged, Characteristic.StatusFault.NO_FAULT, null, currStatusActive, currInputDeviceType, currInputSourceType);
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventid, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currEventId, currSourceType, profileDataChanged, Characteristic.StatusFault.NO_FAULT, null, currStatusActive, currInputDeviceType, currInputSourceType);
 						
 								//end of try
 							} catch (err) {
@@ -2138,12 +2140,12 @@ class stbPlatform {
 						// https://github.com/mqttjs/MQTT.js#event-close
 						mqttClient.on('close', function () {
 							try {
-								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
 								parent.currentMqttState = mqttState.closed;
 								parent.log('mqttClient: Connection closed');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								if (!isShuttingDown) {
-									parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+									parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 								}
 							} catch (err) {
 								parent.log.error("Error trapped in mqttClient close event:", err.message);
@@ -2156,10 +2158,10 @@ class stbPlatform {
 						// https://github.com/mqttjs/MQTT.js#event-reconnect
 						mqttClient.on('reconnect', function () {
 							try {
-								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
 								parent.currentMqttState = mqttState.reconnected;
 								parent.log('mqttClient: Reconnect started');
-								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 							} catch (err) {
 								parent.log.error("Error trapped in mqttClient reconnect event:", err.message);
 								parent.log.error(err);
@@ -2171,11 +2173,11 @@ class stbPlatform {
 						// https://github.com/mqttjs/MQTT.js#event-disconnect
 						mqttClient.on('disconnect', function () {
 							try {
-								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
 								parent.currentMqttState = mqttState.disconnected;
 								parent.log('mqttClient: Disconnect command received');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
-								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 							} catch (err) {
 								parent.log.error("Error trapped in mqttClient disconnect event:", err.message);
 								parent.log.error(err);
@@ -2187,11 +2189,11 @@ class stbPlatform {
 						// https://github.com/mqttjs/MQTT.js#event-disconnect
 						mqttClient.on('offline', function () {
 							try {
-								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
 								parent.currentMqttState = mqttState.offline;
 								parent.log('mqttClient: Client is offline');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
-								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 							} catch (err) {
 								parent.log.error("Error trapped in mqttClient offline event:", err.message);
 								parent.log.error(err);
@@ -2203,12 +2205,12 @@ class stbPlatform {
 						// https://github.com/mqttjs/MQTT.js#event-error
 						mqttClient.on('error', function(err) {
 							try {
-								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
 								parent.currentMqttState = mqttState.error;
 								parent.log.warn('mqttClient: Error', (err.syscall || '') + ' ' + (err.code || '') + ' ' + (err.hostname || ''));
 								parent.log.warn('mqttClient: Error object:', err); 
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
-								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
+								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 								mqttClient.end();
 								return false;
 							} catch (err) {
@@ -2255,15 +2257,15 @@ class stbPlatform {
 
 	// handle the state change of the device, calling the updateDeviceState of the relevant device
 	// handles multiple devices by deviceId, should the user have more than one device
-	mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType) {
+	mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType) {
 		try {
 			if (this.config.debugLevel > 1) { 
-				this.log.warn('mqttDeviceStateHandler: calling updateDeviceState with deviceId %s, powerState %s, mediaState %s, channelId %s, sourceType %s, profileDataChanged %s, statusFault %s, programMode %s, statusActive %s, currInputDeviceType %s, currInputSourceType %s', deviceId, powerState, mediaState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
+				this.log.warn('mqttDeviceStateHandler: calling updateDeviceState with deviceId %s, powerState %s, mediaState %s, channelId %s, eventId %s, sourceType %s, profileDataChanged %s, statusFault %s, programMode %s, statusActive %s, currInputDeviceType %s, currInputSourceType %s', deviceId, powerState, mediaState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
 			}
 			const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
 			if (deviceIndex > -1 && this.stbDevices.length > 0) { 
 				//this.log.warn('mqttDeviceStateHandler: stbDevices found, calling updateDeviceState');
-				this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
+				this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
 			}
 		} catch (err) {
 			this.log.error("Error trapped in mqttDeviceStateHandler:", err.message);
@@ -2407,7 +2409,8 @@ class stbPlatform {
 			if (mqttUsername) {
 				let hasJustBooted = false; // indicates if the box just booted up during this keyMacro
 				let keyCanBeSkippedAfterBootup = false; // indicates if the current key can be skipped
-				let firstNonEscapeOrWaitKeyFound = false; // indicates if a non-escape or non-wait key was found
+				let firstNonSkippableKeyFound = false; // indicates if a non-skippable key was found
+				let defaultWaitDelayActive = false;	// indicates if the default wait delay is being used
 
 				let keyArray = keySequence.trim().split(' ');
 				if (keyArray.length > 1) { this.log('sendKey: processing keySequence for %s: "%s"', deviceName, keySequence); }
@@ -2419,13 +2422,15 @@ class stbPlatform {
 					const maxWaitDelay = 20000; // default 200ms
 					const waitReadyDelayStep = 500; // the ms wait time in each waitReady loop
 					const maxWaitReadyLoops = maxWaitDelay / waitReadyDelayStep; // the max loop iterations to wait for ready
-					const currKeyIsEscapeOrWait = 
+					const currKeyIsEscapeOrTvOrWait = 
 						keyName.toLowerCase().startsWith('wait(') 		// current key is a wait
-						|| keyName.toLowerCase() == 'escape';			// or current key is an Escape
-					if (!firstNonEscapeOrWaitKeyFound && !currKeyIsEscapeOrWait) {
-						firstNonEscapeOrWaitKeyFound = true;			// first non-escape or non-wait key found
+						|| keyName.toLowerCase() == 'escape'			// or current key is an Escape
+						|| keyName.toLowerCase() == 'tv';				// or current key is TV
+					if (!firstNonSkippableKeyFound && !currKeyIsEscapeOrTvOrWait) {
+						firstNonSkippableKeyFound = true;				// first non-escape or non-wait key found
 					} 
 					keyCanBeSkippedAfterBootup = false; 				// reset for each key
+					defaultWaitDelayActive = false;						// reset for each key
 
 
 					// for all keys except Power:
@@ -2445,9 +2450,9 @@ class stbPlatform {
 								j++) {
 								hasJustBooted  = true; 				// indicates that the box just booted up during this keyMacro
 								await waitprom(waitReadyDelayStep); // wait waitReadyDelayStep ms on each loop
-								this.log,debug('sendKey: key %s: loop %s: wait %s ms done, hasJustBooted %s, currentMediaState %s', i+1, j, hasJustBooted, waitReadyDelayStep, currentMediaStateName[this.stbDevices[deviceIndex].currentMediaState]);
+								this.log.debug('sendKey: key %s: loop %s: wait %s ms done, hasJustBooted %s, currentMediaState %s', i+1, j, hasJustBooted, waitReadyDelayStep, currentMediaStateName[this.stbDevices[deviceIndex].currentMediaState]);
 							}
-							this.log('sendKey: key %s: waiting one more delay of %s ms', i+1, waitReadyDelayStep);
+							this.log.debug('sendKey: key %s: waiting one more delay of %s ms', i+1, waitReadyDelayStep);
 							await waitprom(waitReadyDelayStep); // wait waitReadyDelayStep ms one last time to ensure we have one wait after change from STOP to PLAY
 							this.log('sendKey: key %s: waiting for ready done, hasJustBooted %s, currentMediaState %s', i+1, hasJustBooted, currentMediaStateName[this.stbDevices[deviceIndex].currentMediaState]);
 						}
@@ -2460,15 +2465,15 @@ class stbPlatform {
 					// any skipping must stop when the first non-Escape and non-wait key is found
 					this.log.debug('sendKey: key %s: keyArray.length %s, prevKey %s, currKey %s, nextKey %s', i+1, keyArray.length, keyArray[i-1], keyArray[i], keyArray[i+1])
 					if (	hasJustBooted 						// box has just booted
-							&& currKeyIsEscapeOrWait			// current key is escape or wait
-							&& !firstNonEscapeOrWaitKeyFound	// have not yet found the first non-escape or non-wait key
+							&& currKeyIsEscapeOrTvOrWait		// current key is escape or tv or wait
+							&& !firstNonSkippableKeyFound		// have not yet found the first non-skippable key
 						) {
 						keyCanBeSkippedAfterBootup = true; 		// we can skip this key as it is a wait or escape 
 					}
 
 
 					// to help with debug
-					this.log.debug('sendKey: key %s: hasJustBooted %s, currKeyIsEscapeOrWait %s, firstNonEscapeOrWaitKeyFound %s, keyCanBeSkippedAfterBootup %s', i+1, hasJustBooted, currKeyIsEscapeOrWait, firstNonEscapeOrWaitKeyFound, keyCanBeSkippedAfterBootup);
+					this.log.debug('sendKey: key %s: hasJustBooted %s, currKeyIsEscapeOrTvOrWait %s, firstNonSkippableKeyFound %s, keyCanBeSkippedAfterBootup %s', i+1, hasJustBooted, currKeyIsEscapeOrTvOrWait, firstNonSkippableKeyFound, keyCanBeSkippedAfterBootup);
 
 
 					// process any wait command if found
@@ -2489,6 +2494,7 @@ class stbPlatform {
 								&& !(keyArray[i-1] || '').toLowerCase().startsWith('wait(') && !(keyArray[i] || '').toLowerCase().startsWith('wait(')
 							) {
 						this.log.debug('sendKey: key %s: not keyCanBeSkippedAfterBootup and not first key and neither previous key %s nor current key %s is wait(). Setting default wait of %s ms', i+1, keyArray[i-1], keyArray[i], defaultWaitDelay);
+						defaultWaitDelayActive = true;
 						waitDelay = defaultWaitDelay;
 					} 
 
@@ -2496,7 +2502,7 @@ class stbPlatform {
 					// add a wait if a waitDelay is set
 					//this.log('sendKey: key %s: waitDelay', i+1, waitDelay);
 					if (waitDelay) {
-						this.log('sendKey: key %s: waiting %s ms', i+1, waitDelay);
+						if (!defaultWaitDelayActive) { this.log('sendKey: key %s: waiting %s ms', i+1, waitDelay); } // reduce logging in minimum mode if default wait
 						await waitprom(waitDelay);
 						this.log.debug('sendKey: key %s: wait done', i+1);
 					}
@@ -3384,19 +3390,20 @@ class stbDevice {
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// update the device state changed to async
-	//async updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, callback) {
-	async updateDeviceState(powerState, mediaState, recordingState, channelId, sourceType, profileDataChanged, statusFault, programMode, statusActive, inputDeviceType, inputSourceType, callback) {
+	//async updateDeviceState(powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, callback) {
+	async updateDeviceState(powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, inputDeviceType, inputSourceType, callback) {
 			try {
 			// runs at the very start, and then every few seconds, so don't log it unless debugging
 			// doesn't get the data direct from the settop box, but rather: gets it from the this.currentPowerState and this.currentChannelId variables
 			// which are received by the mqtt messages, which occurs very often
 			if (this.config.debugLevel > 0) {
-				this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], recordingState %s [%s], channelId %s, sourceType %s, profileDataChanged %s, statusFault %s [%s], programMode %s [%s], statusActive %s [%s], inputDeviceType %s [%s], inputSourceType %s [%s]', 
+				this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], recordingState %s [%s], channelId %s, eventId %s, sourceType %s, profileDataChanged %s, statusFault %s [%s], programMode %s [%s], statusActive %s [%s], inputDeviceType %s [%s], inputSourceType %s [%s]', 
 					this.name, 
 					powerState, 
 					mediaState, currentMediaStateName[mediaState], 
 					recordingState, recordingStateName[recordingState], // custom characteristic
 					channelId,
+					eventId,
 					sourceType,
 					profileDataChanged,
 					statusFault, Object.keys(Characteristic.StatusFault)[statusFault + 1], 
@@ -3422,6 +3429,7 @@ class stbDevice {
 			if (mediaState != null) { this.currentMediaState = mediaState; }
 			if (recordingState != null) { this.currentRecordingState = recordingState; }
 			if (channelId != null) { this.currentChannelId = channelId; }
+			if (eventId != null) { this.currentEventId = eventId; }
 			if (sourceType != null) { this.currentSourceType = sourceType; }
 			this.profileDataChanged = profileDataChanged || false;
 			if (statusFault != null) { this.currentStatusFault = statusFault; }
@@ -3678,6 +3686,7 @@ class stbDevice {
 					this.televisionService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(currentActiveIdentifier);
 					this.previousActiveIdentifier = this.currentActiveIdentifier;
 				}
+
 
 
 				// +++++++++++++++ Input Service characteristics ++++++++++++++
@@ -4035,7 +4044,7 @@ class stbDevice {
 				}
 
 
-				// load this channel/keyMacros as an input
+				// load this channel/keyMacro as an input
 				//this.log("loading input %s of %s", i + 1, maxSources)
 				//this.log.warn("%s: Index %s: Checking if %s %s can be loaded", this.name, i, channel.id, channel.name);
 				if (i < maxSources) {
@@ -4068,17 +4077,20 @@ class stbDevice {
 					// update accesory only when configured, as this.inputServices[i] can only be updated when it exists
 					if (this.accessoryConfigured) { 
 						// update existing services
+						this.log.warn("Adding %s %s to input %s at index %s",channel.id, channel.name, i+1, i);
 						if (this.config.debugLevel > 2) { 
 							this.log.warn("Adding %s %s to input %s at index %s",channel.id, channel.name, i+1, i);
 						}
 						this.inputServices[i].name = channel.configuredName;
+						/*
 						if (channel.channelKeyMacro) {
 							// key macro
 							this.inputServices[i].subtype = 'keyMacro_KM' + k+1; // string, keyMacro_KM1 etc
 						} else {
 							// normal channel input
-							this.inputServices[i].subtype = 'input_' + channel.id; // string, input_SV09038 etc
 						}
+						*/
+						this.inputServices[i].subtype = 'input_' + channel.id; // string, input_SV09038 etc
 
 						// Name can only be set for SharedProfile where order can never be changed
 						if (this.profileid == 0) {
