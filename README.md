@@ -188,7 +188,7 @@ The profile used by the plugin does not have to be the same as the set-top box's
 The config item **Channel Sort By** allows the channels to be sorted by **Channel Order** (the standard channel order as shown on the TV) or by **Most Watched**. Most Watched is reported by the backend systems and is profile-based. It is not clear how often this list is updated, however for a TV subscription with many channels, this may be a preferable option to show your most watched channels at the top of the channel list.
 
 ## Using Key Macros to Access Extra Capabilities
-You can program key macros to access any function of your set-top box. This is particularly useful to select radio channels. See the [Wiki Key Macros page](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/Key-Macros) for full details. 
+You can program key macros to access any function of your set-top box. This is particularly useful to select radio channels. Key macros are loaded at the end of the channel list. See the [Wiki Key Macros page](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/Key-Macros) for full details. 
 
 
 
