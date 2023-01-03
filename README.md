@@ -83,6 +83,8 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Full Remote-Control Support**: The Apple TV Remote in your iOS device can control your set-top box; including power, menu navigation, play, pause, fast-forward, rewind, channel up/down, volume and mute commands. All keys are fully configurable for single-tap and double-tap.
 
+* **Powerful Key Macros**: You can program key macros to control your set-top box. Key macros are powerful ays of accessing any content such as radio channels that cannot be accessed directly via a channel number.
+
 * **Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports).
 
 * **Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple supports), allowing you to control switch-on and channel selection in Home Automations, Shortcuts and Personal Automations.
@@ -102,8 +104,6 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 * **Optional Channel Numbers**: If you wish, you can display a channel number before the channel name. As this consumes some space on the Home app tile, it is off by default.
 
 * **Default Profile Support**: The default profile on start-up of the set-top box is used for the channel list if no other profile is configured for the plugin.
-
-* **Powerful Key Macros**: You can program key macros to control your set-top box, including accessing content such as radio channels that cannot be accessed directly via channel number.
 
 * **Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute (TV dependent). The triple-press timing is configurable.
 
