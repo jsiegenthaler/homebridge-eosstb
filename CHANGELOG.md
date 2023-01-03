@@ -6,7 +6,7 @@ Please restart Homebridge after every plugin update.
 # Bug Fixes and Improvements
 
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
-* Fix potential problem with getPersonalizationData failing after plugin has been running overnight with ERR_BAD_REQUEST
+* Add ability to log and read current program name
 * Implement refreshToken capabilities
 
 
