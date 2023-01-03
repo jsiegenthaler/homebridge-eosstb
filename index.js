@@ -3872,13 +3872,6 @@ class stbDevice {
 			// clear the array
 			this.channelList = [];
 
-			// limit the amount to load
-			const maxChs = Math.min(subscribedChIds.length, maxSources);
-			this.log("%s: Refreshing channels 1 to %s", this.name, maxChs);
-			if (maxChs < maxSources) {
-				this.log("%s: Hiding     channels %s to %s", this.name, maxChs + 1, maxSources);
-			}
-
 			// check for any custom keymacros, they consume slots at the end of the channelList
 			this.log.debug("%s: Checking for KeyMacros", this.name);
 			let keyMacros = [];
@@ -3889,53 +3882,73 @@ class stbDevice {
 				this.log.debug("%s: Found keyMacros: %s", this.name, keyMacros.length);
 			}
 
+			// limit the amount to load to all the channels and all the keyMacros
+			// keyMacros will occupy top slots of channel list
+			const maxChs = Math.min(subscribedChIds.length + keyMacros.length, maxSources);
+			const firstKeyMacroSlot = Math.max(maxChs - keyMacros.length,0); // never go below index 0
+			//this.log("%s: Loading %s channels, starting at channel 1", this.name, subscribedChIds.length);
+			this.log("%s: Loading %s key macros, starting at channel %s ", this.name, keyMacros.length, firstKeyMacroSlot+1);
+
+			// show log of what will be loaded, very useful for debugging
+			this.log("%s: Refreshing channels 1 to %s", this.name, maxChs);
+			if (maxChs < maxSources) {
+				this.log("%s: Hiding     channels %s to %s", this.name, maxChs + 1, maxSources);
+			}
 
 			// loop and load all channels from the subscribedChIds in the order defined by the array
 			//this.log("Loading all subscribed channels")
-			subscribedChIds.forEach((subscribedChId, i) => {
+			for ( let i = 0; i < maxChs; i++ ) {
+			//subscribedChIds.forEach((subscribedChId, i) => {
 				//this.log("In forEach loop, processing index %s %s", i, subscribedChId)
 
 				// find the channel to load.
 				var channel = {};
 				var customChannel = {};
-				
-				// first look in the config channels list for any user-defined custom channel name
-				if (this.config.channels) {
-					customChannel = this.config.channels.find(channel => channel.id === subscribedChId);
-					if ((customChannel || {}).name) { 
-						customChannel.name = cleanNameForHomeKit(customChannel.name)
-						this.log("%s: Found %s in config channels, setting name to %s", this.name, subscribedChId, customChannel.name);
-					} else {					
-						customChannel = {}; 
-					}
-				}
-
-				// check if the subscribedChId exists in the master channel list, if not, push it, using the user-defined name if one exists, and channelNumber >10000
-				this.log.debug("%s: Index %s: Finding %s in master channel list", this.name, i, subscribedChId);
-				channel = this.platform.masterChannelList.find(channel => channel.id === subscribedChId); 
-				if (!channel) {
-					const newChName = customChannel.name || "Channel " + subscribedChId; 
-					this.log("%s: Unknown channel %s [%s] discovered. Adding to the master channel list", this.name, subscribedChId, newChName);
-					this.platform.masterChannelList.push({
-						id: subscribedChId, 
-						name: newChName,
-						logicalChannelNumber: 10000 + this.platform.masterChannelList.length, // integer
-						linearProducts: this.platform.entitlements.entitlements[0].id // must be a valid entitlement id
-					});
-					// refresh channel as the not found channel will now be in the masterChannelList
-					channel = this.platform.masterChannelList.find(channel => channel.id === subscribedChId); 
-					channel.configuredName = channel.name; // set a configured name same as name 
-				} else {
-					// show some useful debug data
-					this.log.debug("%s: Index %s: Found %s %s in master channel list", this.name, i, channel.id, channel.name);
-				}
-
-				// check if this slot needs to be occupied by a keyMacro, and if so, set the channel
 				let k = 0;
-				if (i < maxSources && i > (maxSources - keyMacros.length) - 1) {
-					k = keyMacros.length - (maxSources -  i);
-					this.log.debug("%s: Index %s: Need to load keyMacro %s", this.name, i, k);
-					this.log.debug("%s: Index %s: Load this keyMacro: %s", this.name, i, keyMacros[k]);
+
+				// load a channel if we are in the range of channel numbers not assigned to keymacros
+				if ( i < firstKeyMacroSlot ) {
+					// this slot needs to be occupied by a channel
+
+					// first look in the config channels list for any user-defined custom channel name
+					if (this.config.channels) {
+						customChannel = this.config.channels.find(channel => channel.id === subscribedChIds[i]);
+						if ((customChannel || {}).name) { 
+							customChannel.name = cleanNameForHomeKit(customChannel.name)
+							this.log("%s: Found %s in config channels, setting name to %s", this.name, customChannel.id, customChannel.name);
+						} else {					
+							customChannel = {}; 
+						}
+					}
+
+
+					// check if the subscribedChId exists in the master channel list, if not, push it, using the user-defined name if one exists, and channelNumber >10000
+					this.log.debug("%s: Index %s: Finding %s in master channel list", this.name, i, subscribedChIds[i]);
+					channel = this.platform.masterChannelList.find(channel => channel.id === subscribedChIds[i]); 
+					if (!channel) {
+						const newChName = customChannel.name || "Channel " + subscribedChIds[i]; 
+						this.log("%s: Unknown channel %s [%s] discovered. Adding to the master channel list", this.name, subscribedChIds[i], newChName);
+						this.platform.masterChannelList.push({
+							id: subscribedChIds[i], 
+							name: newChName,
+							logicalChannelNumber: 10000 + this.platform.masterChannelList.length, // integer
+							linearProducts: this.platform.entitlements.entitlements[0].id // must be a valid entitlement id
+						});
+						// refresh channel as the not found channel will now be in the masterChannelList
+						channel = this.platform.masterChannelList.find(channel => channel.id === subscribedChIds[i]); 
+						channel.configuredName = channel.name; // set a configured name same as name 
+					} else {
+						// show some useful debug data
+						this.log.debug("%s: Index %s: Found %s %s in master channel list", this.name, i, channel.id, channel.name);
+					}
+					this.log.debug("%s: Index %s: Loading channel %s %s", this.name, i, i+1, channel.name);
+				
+				} else {
+
+					// this slot needs to be occupied by a keyMacro
+					k = i - firstKeyMacroSlot
+					this.log.debug("%s: Index %s: Loading channel %s keyMacro %s %s", this.name, i, i+1, k+1, keyMacros[k].channelName);
+					this.log,debug("%s: Index %s: Load this keyMacro: %s", this.name, i, keyMacros[k]);
 					channel = {
 						"id": '$KeyMacro' + (k+1),
 						"name": keyMacros[k].channelName,
@@ -3947,9 +3960,9 @@ class stbDevice {
 
 
 				// load this channel/keyMacro as an input
-				//this.log("loading input %s of %s", i + 1, maxSources)
+				//this.log("loading input %s of %s", i + 1, maxChs)
 				//this.log.warn("%s: Index %s: Checking if %s %s can be loaded", this.name, i, channel.id, channel.name);
-				if (i < maxSources) {
+				if (i < maxChs) {
 					this.log.debug("%s: Index %s: Refreshing channel", this.name, i);
 
 					// add the user-defined name if one exists
@@ -4000,7 +4013,7 @@ class stbDevice {
 				}
 
 
-			});
+			};
 
 			// after loading all the channels, reset the ActiveIdentifier (uint32) to the right Identifier (uint32), as it may have moved slots
 			// subtype: 'input_SV09038',
@@ -4030,7 +4043,7 @@ class stbDevice {
 						var appsToload = this.platform.profiles[this.profileId].recentlyUsedApps;
 						appsToload.forEach( (appId, i) => {
 							this.log("loading app", i, appId);
-							if (i <= maxSources) {
+							if (i <= maxChs) {
 								// get the channel
 								var foundIndex = this.platform.masterChannelList.findIndex(channel => channel.id === appId);
 								//this.log("foundIndex", foundIndex);
@@ -4498,7 +4511,7 @@ class stbDevice {
 		// }
 		const visibilityState = this.inputServices[inputId-1].getCharacteristic(Characteristic.CurrentVisibilityState).value;
 		if (this.config.debugLevel > 2) {
-			this.log.warn('%s: getInputVisibilityState for input %s returning %s [%s]', this.name, inputId, visibilityState, Object.keys(Characteristic.CurrentVisibilityState)[visibilityState + 1]);
+			this.log.warn('%s: getInputVisibilityState input %s returning %s [%s]', this.name, inputId, visibilityState, Object.keys(Characteristic.CurrentVisibilityState)[visibilityState + 1]);
 		}
 		callback(null, visibilityState);
 	}
