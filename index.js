@@ -1379,103 +1379,6 @@ class stbPlatform {
 		})
 	}
 
-	// load all available TV channels at regular intervals into an array
-	// new version using endpoints available from 13.10.2022
-	// the masterChannelList contains all possible channels, bith subscribed and non-subscribed channels
-	async refreshMasterChannelListPrev(callback) {
-		// called by refreshMasterChannelList (state handler), thus runs at polling interval
-
-		// exit immediately if the session does not exist
-		if (currentSessionState != sessionState.CONNECTED) { 
-			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not exist, exiting'); }
-			return false;
-		}
-
-		// exit immediately if channel list has not expired
-		if (this.masterChannelListExpiryDate > Date.now()) {
-			if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString()); }
-			return false;
-		}
-
-		if (this.config.debugLevel > 1) {
-			this.log.warn('refreshMasterChannelList: Refreshing master channel list...');
-		}
-
-		// only continue if a session was created. If the internet conection is down then we have no session
-		//if (currentSessionState != sessionState.CONNECTED) { return; }
-		
-		// channels can be retrieved for the country without having a mqtt session going  but then the list is not relevant for the user's locationId
-		// so you should add the user's locationId as a parameter, and this needs the accessToken
-		// syntax:
-		// https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/channels?byLocationId=41043&includeInvisible=true&includeNotEntitled=true&personalised=true&sort=channelNumber
-		// https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH
-		/*
-		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/channels';
-		url = url + '?byLocationId=' + this.session.locationId // locationId needed to get user-specific list
-		url = url + '&includeInvisible=true' // includeInvisible
-		url = url + '&includeNotEntitled=true' // includeNotEntitled
-		url = url + '&personalised=true' // personalised
-		url = url + '&sort=channelNumber' // sort
-		*/
-		//url = 'https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH'
-		let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v2/channels';
-		url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
-		url = url + '&language=en'; // language
-		url = url + '&entitled=true'; // testing! 760 with all, 
-		url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
-		//url = url + '&includeNotEntitled=false' // includeNotEntitled testing to see if this parameter is accepted
-		if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: loading inputs from',url); }
-
-		// call the webservice to get all available channels
-		const axiosConfig = {
-			method: 'GET',
-			url: url
-		};
-		axiosWS(axiosConfig)
-			.then(response => {
-				//this.log(response.data);
-				if (this.config.debugLevel > 2) { this.log.warn('refreshMasterChannelList: Processing %s channels...', response.data.length); }
-
-				// set the masterChannelListExpiryDate to expire at now + MASTER_CHANNEL_LIST_VALID_FOR_S
-				this.masterChannelListExpiryDate =new Date(new Date().getTime() + (MASTER_CHANNEL_LIST_VALID_FOR_S * 1000));
-				//this.log('MasterChannelList valid until',this.masterChannelListExpiryDate.toLocaleString())
-			
-				// load the channel list with all channels found
-				this.masterChannelList = [];
-				const channels = response.data;
-				this.log.debug('Channels to process:',channels.length);
-				for(let i=0; i<channels.length; i++) {
-					const channel = channels[i];
-					// if (this.config.debugLevel > 0) { this.log('Loading channel:',i,channel.logicalChannelNumber,channel.id, channel.name); } // for debug purposes
-					// log the detail of logicalChannelNumber 60 nicktoons, for which I have no subscription, as a test of entitlements
-					//if (this.config.debugLevel > 0) { if (channel.logicalChannelNumber == 60){ this.log('DEV: Logging Channel 60 to check entitlements :',channel); } }
-					this.masterChannelList.push({
-						id: channel.id, 
-						name: cleanNameForHomeKit(channel.name),
-						logicalChannelNumber: channel.logicalChannelNumber, 
-						linearProducts: channel.linearProducts				
-					});
-				}
-					
-				if (this.config.debugLevel > 0) {
-					this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', this.masterChannelList.length, this.masterChannelListExpiryDate.toLocaleString());
-				}
-				return true;
-
-			})
-			.catch(error => {
-				let errText, errReason;
-				errText = 'Failed to refresh the master channel list - check your internet connection:'
-				if (error.isAxiosError) { 
-					errReason = error.code + ': ' + (error.hostname || ''); 
-					// if no connection then set session to disconnected to force a session reconnect
-					if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
-				}
-				this.log('%s %s', errText, (errReason || ''));
-				this.log.warn(`refreshMasterChannelList error:`, error);
-				return error;
-			});
-	}
 
 
 	// get Personalization Data via web request GET
@@ -3440,7 +3343,6 @@ class stbDevice {
 
 			// force the keyMacro channel if a keyMacro was last selected as the input
 			if (this.lastKeyMacroChannelId) { 
-				//this.log('forcing currentChannelId to this.lastKeyMacroChannelId', this.lastKeyMacroChannelId)
 				this.currentChannelId = this.lastKeyMacroChannelId; 
 			}
 
@@ -4081,14 +3983,6 @@ class stbDevice {
 							this.log.warn("Adding %s %s to input %s at index %s",channel.id, channel.name, i+1, i);
 						}
 						this.inputServices[i].name = channel.configuredName;
-						/*
-						if (channel.channelKeyMacro) {
-							// key macro
-							this.inputServices[i].subtype = 'keyMacro_KM' + k+1; // string, keyMacro_KM1 etc
-						} else {
-							// normal channel input
-						}
-						*/
 						this.inputServices[i].subtype = 'input_' + channel.id; // string, input_SV09038 etc
 
 						// Name can only be set for SharedProfile where order can never be changed
@@ -4502,7 +4396,7 @@ class stbDevice {
 		// if not found look in the master channel list
 		if (!channel) { channel = this.platform.masterChannelList.find(channel => channel.id === this.currentChannelId); }
 
-		// robustness: only try to switch channel if an input.id exists. handle KeyMacros
+		// robustness: only try to switch channel if an input.id exists. Handle KeyMacros
 		this.log('%s: Change channel from %s [%s] to %s [%s]', this.name, this.currentChannelId, (channel || {}).name || NO_CHANNEL_NAME, input.id, input.name);
 		if (input.id && input.id.startsWith('$KeyMacro')){
 			this.lastKeyMacroChannelId = input.id; // remember last keyMacro id
