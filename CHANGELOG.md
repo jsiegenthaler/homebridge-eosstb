@@ -15,10 +15,11 @@ Please report all bugs and problems.
 * Implement refreshToken capabilities
 
 
-## 2.1.0-beta.1 (2023-01-02)
+## 2.1.0-beta.2 (2023-01-03)
 * KeyMacro support added. Planned for release in v2.1.0
 * Added TV as a skippable key on bootup
 * Added custom characteristics: Current Channel Id and Current Channel Name, useful in automations
+* Added preparation for reading current program name (future feature)
 * Fixed bug where Input Device Type was not always correctly logged
 * Fixed bug where Input Source Type was not always correctly logged
 * Updated iOS version references
