@@ -13,8 +13,10 @@ Please restart Homebridge after every plugin update.
 ## 2.1.x (2023-01-xx)
 * Added logging of current program name and end time
 * Added custom characteristics: Current Program Name Current Program End Time, useful in automations
-* Fixed bug where InputSourceType and InputDeviceType were not being set correctly for shortcut actions
 
+
+## 2.1.1 (2023-01-05)
+* Fixed bug where InputSourceType and InputDeviceType values were not correctly read
 
 
 ## 2.1.0 (2023-01-03)
