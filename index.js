@@ -4714,7 +4714,7 @@ class stbDevice {
 		if (this.config.debugLevel > 1) { 
 			this.log.warn('%s: getInputSourceType returning %s [%s]', this.name, this.currentInputSourceType, Object.keys(Characteristic.InputSourceType)[this.currentInputSourceType + 1]);
 		}
-		callback(null, 0);
+		callback(null, this.currentInputSourceType);
 	}
 
 	// get InputDeviceType state
@@ -4724,7 +4724,7 @@ class stbDevice {
 		if (this.config.debugLevel > 1) { 
 			this.log.warn('%s: getInputDeviceType returning %s [%s]', this.name, this.currentInputDeviceType, Object.keys(Characteristic.InputDeviceType)[this.currentInputDeviceType + 1]);
 		}
-		callback(null, 0);
+		callback(null, this.currentInputDeviceType);
 	}
 
 
