@@ -10,6 +10,10 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
+## 2.1.1 (2023-01-05)
+* Fixed bug where InputSourceType and InputDeviceType values were not correctly read
+
+
 ## 2.1.0 (2023-01-03)
 * Added KeyMacro support
 * Added custom characteristics: Current Channel Id and Current Channel Name, useful in automations
