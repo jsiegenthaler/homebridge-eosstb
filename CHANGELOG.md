@@ -10,6 +10,10 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
+## 2.1.2 (2023-01-08)
+* Fixed bug causing the plugin to crash when logging an error in getRecordingState
+
+
 ## 2.1.1 (2023-01-05)
 * Fixed bug where InputSourceType and InputDeviceType values were not correctly read
 
