@@ -1971,7 +1971,7 @@ class stbPlatform {
 						// this is needed to trigger the backend to send us channel change messages when the channel is changed on the box
 						parent.setHgoOnlineRunning(mqttUsername, mqttClientId);
 						parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId); // subscribe to mqttClientId to get channel data
-						parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId + '/+'); // subscribe to all for this mqttClientId
+						//parent.mqttSubscribeToTopic(mqttUsername + '/' + mqttClientId + '/+'); // subscribe to all for this mqttClientId
 
 						// subscribe to all householdId messages
 						parent.mqttSubscribeToTopic(mqttUsername); // subscribe to householdId
@@ -2031,7 +2031,7 @@ class stbPlatform {
 								}
 
 								// variables for just in this function
-								var deviceId, stbState, currPowerState, currMediaState, currChannelId, currEventId, currSourceType, profileDataChanged, currRecordingState, currStatusActive, currInputDeviceType, currInputSourceType;
+								var deviceId, stbState, currPowerState, currMediaState, currChannelId, currPlayerState, currSourceType, profileDataChanged, currRecordingState, currStatusActive, currInputDeviceType, currInputSourceType;
 
 								// handle personalizationService messages
 								// Topic: Topic: 107xxxx_ch/personalizationService
@@ -2177,7 +2177,8 @@ class stbPlatform {
 											// Careful: source is not always present in the data
 											if (playerState.source) {
 												currChannelId = playerState.source.channelId || NO_CHANNEL_ID; // must be a string
-												currEventId = playerState.source.eventId; // the title (program) id
+												//currEventId = playerState.source.eventId; // the title (program) id
+												currPlayerState = playerState; // save the entire playerState
 												if (parent.config.debugLevel > 0 && parent.masterChannelList) {
 													let currentChannelName; // let is scoped to the current {} block
 													let curChannel = parent.masterChannelList.find(channel => channel.id === currChannelId); 
@@ -2250,8 +2251,8 @@ class stbPlatform {
 
 
 								// update the device on every message
-								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventid, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currEventId, currSourceType, profileDataChanged, Characteristic.StatusFault.NO_FAULT, null, currStatusActive, currInputDeviceType, currInputSourceType);
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, playerState, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								parent.mqttDeviceStateHandler(deviceId, currPowerState, currMediaState, currRecordingState, currChannelId, currPlayerState, currSourceType, profileDataChanged, Characteristic.StatusFault.NO_FAULT, null, currStatusActive, currInputDeviceType, currInputSourceType);
 						
 								//end of try
 							} catch (err) {
@@ -2269,7 +2270,7 @@ class stbPlatform {
 						// https://github.com/mqttjs/MQTT.js#event-close
 						mqttClient.on('close', function () {
 							try {
-								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, playerState, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
 								parent.currentMqttState = mqttState.closed;
 								parent.log('mqttClient: Connection closed');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
@@ -2287,7 +2288,7 @@ class stbPlatform {
 						// https://github.com/mqttjs/MQTT.js#event-reconnect
 						mqttClient.on('reconnect', function () {
 							try {
-								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, playerState, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
 								parent.currentMqttState = mqttState.reconnected;
 								parent.log('mqttClient: Reconnect started');
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
@@ -2302,7 +2303,7 @@ class stbPlatform {
 						// https://github.com/mqttjs/MQTT.js#event-disconnect
 						mqttClient.on('disconnect', function () {
 							try {
-								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, playerState, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
 								parent.currentMqttState = mqttState.disconnected;
 								parent.log('mqttClient: Disconnect command received');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
@@ -2318,7 +2319,7 @@ class stbPlatform {
 						// https://github.com/mqttjs/MQTT.js#event-disconnect
 						mqttClient.on('offline', function () {
 							try {
-								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, playerState, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
 								parent.currentMqttState = mqttState.offline;
 								parent.log('mqttClient: Client is offline');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
@@ -2334,7 +2335,7 @@ class stbPlatform {
 						// https://github.com/mqttjs/MQTT.js#event-error
 						mqttClient.on('error', function(err) {
 							try {
-								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
+								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, playerState, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
 								parent.currentMqttState = mqttState.error;
 								parent.log.warn('mqttClient: Error', (err.syscall || '') + ' ' + (err.code || '') + ' ' + (err.hostname || ''));
 								parent.log.warn('mqttClient: Error object:', err); 
@@ -2386,15 +2387,15 @@ class stbPlatform {
 
 	// handle the state change of the device, calling the updateDeviceState of the relevant device
 	// handles multiple devices by deviceId, should the user have more than one device
-	mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType) {
+	mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, playerState, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType) {
 		try {
 			if (this.config.debugLevel > 1) { 
-				this.log.warn('mqttDeviceStateHandler: calling updateDeviceState with deviceId %s, powerState %s, mediaState %s, channelId %s, eventId %s, sourceType %s, profileDataChanged %s, statusFault %s, programMode %s, statusActive %s, currInputDeviceType %s, currInputSourceType %s', deviceId, powerState, mediaState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
+				this.log.warn('mqttDeviceStateHandler: calling updateDeviceState with deviceId %s, powerState %s, mediaState %s, channelId %s, playerState %s, sourceType %s, profileDataChanged %s, statusFault %s, programMode %s, statusActive %s, currInputDeviceType %s, currInputSourceType %s', deviceId, powerState, mediaState, channelId, playerState, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
 			}
 			const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
 			if (deviceIndex > -1 && this.stbDevices.length > 0) { 
 				//this.log.warn('mqttDeviceStateHandler: stbDevices found, calling updateDeviceState');
-				this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
+				this.stbDevices[deviceIndex].updateDeviceState(powerState, mediaState, recordingState, channelId, playerState, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType); 
 			}
 		} catch (err) {
 			this.log.error("Error trapped in mqttDeviceStateHandler:", err.message);
@@ -3332,20 +3333,20 @@ class stbDevice {
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// update the device state changed to async
-	//async updateDeviceState(powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, callback) {
-	async updateDeviceState(powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, inputDeviceType, inputSourceType, callback) {
+	//async updateDeviceState(powerState, mediaState, recordingState, channelId, playerState, sourceType, profileDataChanged, callback) {
+	async updateDeviceState(powerState, mediaState, recordingState, channelId, playerState, sourceType, profileDataChanged, statusFault, programMode, statusActive, inputDeviceType, inputSourceType, callback) {
 			try {
 			// runs at the very start, and then every few seconds, so don't log it unless debugging
 			// doesn't get the data direct from the settop box, but rather: gets it from the this.currentPowerState and this.currentChannelId variables
 			// which are received by the mqtt messages, which occurs very often
 			if (this.config.debugLevel > 0) {
-				this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], recordingState %s [%s], channelId %s, eventId %s, sourceType %s, profileDataChanged %s, statusFault %s [%s], programMode %s [%s], statusActive %s [%s], inputDeviceType %s [%s], inputSourceType %s [%s]', 
+				this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], recordingState %s [%s], channelId %s, playerState %s, sourceType %s, profileDataChanged %s, statusFault %s [%s], programMode %s [%s], statusActive %s [%s], inputDeviceType %s [%s], inputSourceType %s [%s]', 
 					this.name, 
 					powerState, 
 					mediaState, currentMediaStateName[mediaState], 
 					recordingState, recordingStateName[recordingState], // custom characteristic
 					channelId,
-					eventId,
+					playerState,
 					sourceType,
 					profileDataChanged,
 					statusFault, Object.keys(Characteristic.StatusFault)[statusFault + 1], 
@@ -3371,7 +3372,6 @@ class stbDevice {
 			if (mediaState != null) { this.currentMediaState = mediaState; }
 			if (recordingState != null) { this.currentRecordingState = recordingState; }
 			if (channelId != null) { this.currentChannelId = channelId; }
-			if (eventId != null) { this.currentEventId = eventId; }
 			if (sourceType != null) { this.currentSourceType = sourceType; }
 			this.profileDataChanged = profileDataChanged || false;
 			if (statusFault != null) { this.currentStatusFault = statusFault; }
@@ -3379,6 +3379,15 @@ class stbDevice {
 			if (statusActive != null) { this.currentStatusActive = statusActive; }
 			if (inputDeviceType != null) { this.currentInputDeviceType = inputDeviceType; }
 			if (inputSourceType != null) { this.currentInputSourceType = inputSourceType; }
+
+			// playerState is an object
+			if (playerState != null) { 
+				this.log('playerState', playerState)
+				// for sourceType: 'linear', the chanel is in source.eventId
+				// for sourceType: 'nDVR', the chanel is in source.recordingId
+				this.currentEventId = playerState.source.eventId || playerState.source.recordingId; 
+			}
+
 
 			// force the keyMacro channel if a keyMacro was last selected as the input
 			if (this.lastKeyMacroChannelId) { 
@@ -3657,7 +3666,8 @@ class stbDevice {
 				// if we have an event change, get the replayEvent and set the timer to refresh the ui status
 				// if the 
 				if ((this.previousEventId || {}) != (this.currentEventId || {}) && this.currentEventId != null) {
-					// replay event has changed, clear any outstanding times
+				//if (this.currentEventId != null) {
+						// replay event has changed, clear any outstanding times
 					this.log.warn('%s: checking current timer:', this.name, this.refreshUiStatusTimer);
 					this.log.warn('%s: checking current program name:', this.name, this.currentProgramName);
 					if (this.refreshUiStatusTimer != null) {
@@ -3670,7 +3680,8 @@ class stbDevice {
 					this.log('calling getReplayEvent for ', this.currentEventId);
 					await this.platform.getReplayEvent(this.currentEventId, currentEvent)
 						.then((currentEvent) => {
-							//this.log('currentEvent', currentEvent);
+							this.log('currentEvent', currentEvent);
+							this.currentEvent = currentEvent;
 							const eventStartTime = new Date(currentEvent.startTime * 1000);
 							const eventEndTime = new Date(currentEvent.endTime * 1000);
 							this.log.warn('%s: currentEvent title', this.name, currentEvent.title);
@@ -3680,8 +3691,17 @@ class stbDevice {
 							const nowDate = new Date();
 							this.log('%s: secs until end of event', this.name, (eventEndTime - nowDate) / 1000)
 							this.log('%s: milliSecs until end of event', this.name, (eventEndTime - nowDate))
-							this.refreshUiStatusTimer = setTimeout(this.refreshDeviceUiStatus.bind(this), eventEndTime - nowDate)
-							this.log('%s: getUiStatus scheduled for %s using timerId %s', this.name, eventEndTime.toLocaleString(), this.refreshUiStatusTimer)
+
+							// end time is original scheduled end time
+
+							// replace events can have end time in the past, so check for positive end time:
+							const remainingDuration = eventEndTime - nowDate;
+							if (remainingDuration > 0) {
+								this.refreshUiStatusTimer = setTimeout(this.refreshDeviceUiStatus.bind(this), remainingDuration)
+								this.log('%s: getUiStatus scheduled for %s using timerId %s', this.name, eventEndTime.toLocaleString(), this.refreshUiStatusTimer)
+							} else {
+								this.log('%s: getUiStatus not scheduled as remainingDuration is negative:', this.name, remainingDuration)
+							}
 							this.currentProgramName = currentEvent.title; // store on the object
 							this.currentProgramEndTime = new Date(currentEvent.endTime * 1000);; // in unix epoch time in milliseconds
 							this.remainingDuration = (eventEndTime - nowDate) / 1000; // in seconds
