@@ -2556,7 +2556,7 @@ class stbPlatform {
 					} else {
 						errReason = error; 
 					}
-					this.log,warn('%s', (errReason || ''));
+					this.log.warn('%s', (errReason || ''));
 					this.log.debug(`getRecordingState error:`, error);
 					return false, error;
 				});
