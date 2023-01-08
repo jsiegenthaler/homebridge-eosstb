@@ -3948,7 +3948,7 @@ class stbDevice {
 					// this slot needs to be occupied by a keyMacro
 					k = i - firstKeyMacroSlot
 					this.log.debug("%s: Index %s: Loading channel %s keyMacro %s %s", this.name, i, i+1, k+1, keyMacros[k].channelName);
-					this.log,debug("%s: Index %s: Load this keyMacro: %s", this.name, i, keyMacros[k]);
+					this.log.debug("%s: Index %s: Load this keyMacro: %s", this.name, i, keyMacros[k]);
 					channel = {
 						"id": '$KeyMacro' + (k+1),
 						"name": keyMacros[k].channelName,
