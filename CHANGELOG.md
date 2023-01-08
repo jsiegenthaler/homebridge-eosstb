@@ -11,7 +11,7 @@ Please restart Homebridge after every plugin update.
 
 
 ## 2.1.2 (2023-01-08)
-* Fixed bug causing the plugin to crash when logging an error in getRecordingState
+* Fixed bug causing the plugin to crash when logging an error in getRecordingState and refreshDeviceChannelList
 
 
 ## 2.1.1 (2023-01-05)
