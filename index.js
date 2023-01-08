@@ -4894,8 +4894,8 @@ class stbDevice {
 	async getRemainingDuration(callback) {
 		// useful in Shortcuts and Automations
 		// RemainingDuration is limited by Apple to 0 to 3600 seconds, and expects an integer
-		const datetimeNow = new Date();
-		let remainingDurSeconds = Math.min( Math.round((this.currentProgramEndTime - datetimeNow) / 1000) || 0, 3600); // must be between 0 and 3600
+		const currentTime = new Date();
+		let remainingDurSeconds = Math.min( Math.round((this.currentProgramEndTime - currentTime) / 1000) || 0, 3600); // must be between 0 and 3600
 		// remainingDurSeconds can be less than 0 so limit to maximum of 0 or value
 		remainingDurSeconds = Math.max(remainingDurSeconds, 0)
 		if (this.config.debugLevel > 0) { 
