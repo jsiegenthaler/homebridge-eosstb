@@ -14,6 +14,9 @@ Please restart Homebridge after every plugin update.
 * Added logging of current program name and end time
 * Added custom characteristics: Current Program Name Current Program End Time, useful in automations
 
+## 2.1.2 (2023-01-08)
+* Fixed bug causing the plugin to crash when logging an error in getRecordingState and refreshDeviceChannelList
+
 
 ## 2.1.1 (2023-01-05)
 * Fixed bug where InputSourceType and InputDeviceType values were not correctly read
