@@ -10,6 +10,12 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
+## 2.2.0-alpha.1 (2023-01-10)
+* Added detection of new ARRIS VIP5002W set-top box as seen in NL in January 2023
+* Altered handling of recording data to cater for boxes without DVR features, such as the ARRIS VIP5002W set-top box
+* Updated device manufacturer names to reflect official manufacturer names as recorded in OUI docs
+
+
 ## 2.1.2 (2023-01-08)
 * Fixed bug causing the plugin to crash when logging an error in getRecordingState and refreshDeviceChannelList
 
