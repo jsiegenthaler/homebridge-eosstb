@@ -542,7 +542,7 @@ class stbPlatform {
 						this.log.debug('sessionWatchdog: ++++++ step 5: calling getRecordingState with householdId %s', this.session.householdId)
 						return this.getRecordingState(this.session.householdId) // returns true when successful
 					}
-					return trfalseue
+					return true
 				})
 				.then((objRecordingStateFound) => {
 					this.log.debug('sessionWatchdog: ++++++ step 6: recording state data was retrieved, objRecordingStateFound: %s',objRecordingStateFound)
