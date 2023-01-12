@@ -10,6 +10,10 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
+## 2.2.0-alpha.3 (2023-01-12)
+* Adapted code to cater for new Apollo box not returning username in the session connect, causing 401 Unauthorised errors
+
+
 ## 2.2.0-alpha.2 (2023-01-11)
 * Fixed a stupid typo bug
 
