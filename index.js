@@ -776,6 +776,8 @@ class stbPlatform {
 					this.log.debug('Session accessToken:', this.session.accessToken);
 					this.log.debug('Session refreshToken:', this.session.refreshToken);
 					this.log.debug('Session refreshTokenExpiry:', this.session.refreshTokenExpiry);
+					// New APLSTB Apollo box on NL does not return username in during session logon, so store username from settings if missing
+					if (this.session.username == '') { this.session.username = this.config.username; }
 					currentSessionState = sessionState.CONNECTED;
 					this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
 					this.log('Session %s', sessionStateName[currentSessionState]);
@@ -985,6 +987,8 @@ class stbPlatform {
 																	
 																// get device data from the session
 																this.session = response.data;
+																// New APLSTB Apollo box on NL does not return username in during session logon, so store username from settings if missing
+																if (this.session.username == '') { this.session.username = this.config.username; }
 																this.log('Session created');
 																currentSessionState = sessionState.CONNECTED;
 																this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
@@ -1252,6 +1256,8 @@ class stbPlatform {
 
 																		// get device data from the session
 																		this.session = response.data;
+																		// New APLSTB Apollo box on NL does not return username in during session logon, so store username from settings if missing
+																		if (this.session.username == '') { this.session.username = this.config.username; }
 																		
 																		currentSessionState = sessionState.CONNECTED;
 																		this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
