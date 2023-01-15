@@ -5000,7 +5000,6 @@ class stbDevice {
 			if (this.readyToSendRemoteKeyPress){ 
 				// send immediately
 				this.log('%s: setRemoteKey: sending key %s now', this.name, keyName);
-				//this.platform.sendKey(this.deviceId, this.name, keyName);
 				this.platform.sendKey(this.deviceId, this.name, keyName);
 				this.pendingKeyPress = -1; // clear any pending key press
 			} else {
@@ -5013,7 +5012,6 @@ class stbDevice {
 					this.log.debug('%s: setRemoteKey: setTimeout delay completed, checking sendRemoteKeyPressAfterDelay for %s', this.name, keyName);
 					if (this.sendRemoteKeyPressAfterDelay){ 
 						this.log.debug('%s: setRemoteKey: setTimeout delay completed, sending %s', this.name, keyName);
-						//this.platform.sendKey(this.deviceId, this.name, keyName);
 						this.platform.sendKey(this.deviceId, this.name, keyName);
 						
 						this.log.debug('%s: setRemoteKey: setTimeout delay completed, key %s sent, resetting readyToSendRemoteKeyPress', this.name, keyName);
