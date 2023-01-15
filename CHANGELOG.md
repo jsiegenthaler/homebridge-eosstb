@@ -12,6 +12,8 @@ Please restart Homebridge after every plugin update.
 
 ## 2.1.3 (2023-01-15)
 * Fixed bug causing 'Target Media State': characteristic was supplied illegal value #91
+* Fixed handling of Target Media State
+* Fixed some debug logging
 
 
 ## 2.1.2 (2023-01-08)
