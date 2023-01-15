@@ -10,6 +10,10 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
+## 2.1.3 (2023-01-15)
+* Fixed bug causing 'Target Media State': characteristic was supplied illegal value #91
+
+
 ## 2.1.2 (2023-01-08)
 * Fixed bug causing the plugin to crash when logging an error in getRecordingState and refreshDeviceChannelList
 
