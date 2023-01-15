@@ -135,7 +135,7 @@ const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATIN
 const sessionStateName = ["DISCONNECTED", "LOADING", "LOGGING_IN", "AUTHENTICATING", "VERIFYING", "AUTHENTICATED", "CONNECTED"]; // custom
 const mqttState = { disconnected: 0, offline: 1, closed: 2, connected: 3, reconnected: 4, error: 5, end: 6, messagereceived: 7, packetsent: 8, packetreceived: 9 }; // custom
 const mqttStateName = [ "DISCONNECTED", "OFFLINE", "CLOSED", "CONNECTED", "RECONNECTED", "ERROR", "END", "MESSAGERECEIVED", "PACKETSENT", "PACKETRECEIVED" ]; // custom
-const currentMediaStateName = ["PLAY", "PAUSE", "STOP", "UNKNOWN3", "LOADING", "INTERRUPTED"]; // characteristic is non contiguous
+const currentMediaStateName = ["PLAY", "PAUSE", "STOP", "UNKNOWN3", "LOADING", "INTERRUPTED"]; // characteristic is non-contiguous so must be a custom array
 const powerStateName = ["OFF", "ON"]; // custom
 const recordingState = { IDLE: 0, ONGOING_NDVR: 1, ONGOING_LOCALDVR: 2 }; // custom
 const recordingStateName = ["IDLE", "ONGOING_NDVR", "ONGOING_LOCALDVR"]; // custom
@@ -4618,16 +4618,16 @@ class stbDevice {
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		// must never return null, so send STOP as default value
 		if (this.config.debugLevel > 1) {
-			this.log.warn('%s: getTargetMediaState returning %s [%s]', this.name, this.targetMediaState, currentMediaStateName[this.targetMediaState]);
+			this.log.warn('%s: getTargetMediaState returning %s [%s]', this.name, this.targetMediaState, Object.keys(Characteristic.TargetMediaState)[this.targetMediaState + 1]);
 		}
-		callback(null, this.currentMediaState);
+		callback(null, this.targetMediaState);
 	}
 
 	// set target media state
 	async setTargetMediaState(targetState, callback) {
 		// The current Home app (iOS 16.0) does not support setting this characteristic, thus is never fired
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
-		if (this.config.debugLevel > 1) { this.log.warn('%s: setTargetMediaState this.targetMediaState:',this.name, targetState, currentMediaStateName[targetState]); }
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setTargetMediaState targetState:',this.name, targetState, Object.keys(Characteristic.TargetMediaState)[targetState + 1]); }
 		callback(null); // for rapid response
 		switch (targetState) {
 			case Characteristic.TargetMediaState.PLAY:
