@@ -3648,6 +3648,12 @@ class stbDevice {
 						this.name,
 						oldMediaState, currentMediaStateName[oldMediaState],
 						this.currentMediaState, currentMediaStateName[this.currentMediaState]);
+
+					// set targetMediaState to same as currentMediaState as long as currentMediaState is <= 2 (supports 0 PLAY, 1 PAUSE, 2 STOP)
+					if (this.currentMediaState <= Characteristic.TargetMediaState.STOP) {
+						this.targetMediaState = this.currentMediaState
+						this.televisionService.getCharacteristic(Characteristic.TargetMediaState).updateValue(this.targetMediaState);
+					}
 				}
 				this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.currentMediaState);
 				this.previousMediaState = this.currentMediaState;
