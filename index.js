@@ -2362,42 +2362,6 @@ class stbPlatform {
 					}
 
 
-					
-					// check if we need to set target media state to one of PLAY, PAUSE and STOP
-					// MediaPlayPause: toggles between PLAY and PAUSE depending on current value of TargetMediaState
-					// MediaPlay: sets PLAY
-					// MediaPause: sets PAUSE
-					// MediaStop: sets STOP
-					if (!keyCanBeSkippedAfterBootup && (['MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaStop'].indexOf(keyName) >= 0)) {
-						let targetMediaState;
-						switch (keyName) {
-							case 'MediaPlayPause':
-								// toggle from PLAY to PAUSE and vice versa
-								if (this.stbDevices[deviceIndex].targetMediaState == Characteristic.TargetMediaState.PLAY) { 
-									targetMediaState = Characteristic.TargetMediaState.PAUSE;
-								} else if (this.stbDevices[deviceIndex].targetMediaState == Characteristic.TargetMediaState.PAUSE) { 
-									targetMediaState = Characteristic.TargetMediaState.PLAY;
-								}
-								break;
-				
-							case 'MediaPlay':
-								targetMediaState = Characteristic.TargetMediaState.PLAY;
-								break;
-					
-							case 'MediaPause':
-								targetMediaState = Characteristic.TargetMediaState.PAUSE;
-								break;
-				
-							case 'MediaStop':
-								targetMediaState = Characteristic.TargetMediaState.STOP;
-								break;
-						}
-						// set the target media state via the setTargetMediaState function
-						this.stbDevices[deviceIndex].setTargetMediaState(targetMediaState, true);
-					}
-					
-
-
 					// check if current key can be skipped.
 					// leading Escape and wait keys can be skipped after a bootup to speed up the selection of a radio channel using a scene
 					// any skipping must stop when the first non-Escape and non-wait key is found
@@ -2461,6 +2425,39 @@ class stbPlatform {
 						);
 						this.log.debug('sendKey: key %s: send %s done', i+1, keyName);
 
+						// set the Target Media State after key has been sent
+						// check if we need to set target media state to one of PLAY, PAUSE and STOP
+						// MediaPlayPause: toggles between PLAY and PAUSE depending on current value of TargetMediaState
+						// MediaPlay: sets PLAY
+						// MediaPause: sets PAUSE
+						// MediaStop: sets STOP
+						if (!keyCanBeSkippedAfterBootup && (['MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaStop'].indexOf(keyName) >= 0)) {
+							let targetMediaState;
+							switch (keyName) {
+								case 'MediaPlayPause':
+									// toggle from PLAY to PAUSE and vice versa
+									if (this.stbDevices[deviceIndex].targetMediaState == Characteristic.TargetMediaState.PLAY) { 
+										targetMediaState = Characteristic.TargetMediaState.PAUSE;
+									} else if (this.stbDevices[deviceIndex].targetMediaState == Characteristic.TargetMediaState.PAUSE) { 
+										targetMediaState = Characteristic.TargetMediaState.PLAY;
+									}
+									break;
+					
+								case 'MediaPlay':
+									targetMediaState = Characteristic.TargetMediaState.PLAY;
+									break;
+						
+								case 'MediaPause':
+									targetMediaState = Characteristic.TargetMediaState.PAUSE;
+									break;
+					
+								case 'MediaStop':
+									targetMediaState = Characteristic.TargetMediaState.STOP;
+									break;
+							}
+							// set the target media state via the setTargetMediaState function
+							this.stbDevices[deviceIndex].setTargetMediaState(targetMediaState, true);
+						}
 					}
 		
 				} // end for loop
