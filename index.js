@@ -132,23 +132,17 @@ const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
 
 // state constants. Need to add an array for any characteristic that is not an array, or the array is not contiguous
 const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 }; // custom
-const sessionStateName = ["DISCONNECTED", "LOADING", "LOGGING_IN", "AUTHENTICATING", "VERIFYING", "AUTHENTICATED", "CONNECTED"]; // custom
 const mqttState = { disconnected: 0, offline: 1, closed: 2, connected: 3, reconnected: 4, error: 5, end: 6, messagereceived: 7, packetsent: 8, packetreceived: 9 }; // custom
 const mqttStateName = [ "DISCONNECTED", "OFFLINE", "CLOSED", "CONNECTED", "RECONNECTED", "ERROR", "END", "MESSAGERECEIVED", "PACKETSENT", "PACKETRECEIVED" ]; // custom
-const currentMediaStateName = ["PLAY", "PAUSE", "STOP", "UNKNOWN3", "LOADING", "INTERRUPTED"]; // characteristic is non contiguous
 const powerStateName = ["OFF", "ON"]; // custom
 const recordingState = { IDLE: 0, ONGOING_NDVR: 1, ONGOING_LOCALDVR: 2 }; // custom
-const recordingStateName = ["IDLE", "ONGOING_NDVR", "ONGOING_LOCALDVR"]; // custom
 const statusActiveName = ["NOT_ACTIVE", "ACTIVE"]; // characteristic is boolean, not an array
 
 Object.freeze(sessionState);
-Object.freeze(sessionStateName);
 Object.freeze(mqttState);
 Object.freeze(mqttStateName);
-Object.freeze(currentMediaStateName);
 Object.freeze(powerStateName);
 Object.freeze(recordingState);
-Object.freeze(recordingStateName);
 Object.freeze(statusActiveName);
 
 
@@ -213,6 +207,16 @@ function makeFormattedId(length) {
 function getTimestampInSeconds() {
 	return Math.floor(Date.now() / 1000)
 };
+
+
+// transform current media state of 0,1,2,4,5 to 1,2,3,4,5 to work with Object.keys
+function currentMediaStateName(currentMediaState) {
+	let i = (currentMediaState + 1); // get the bew index
+	if (i > 3) { i=i-1 }; // modify if > 3 to get 1,2,3,4,5
+	return Object.keys(Characteristic.CurrentMediaState)[i];
+};
+
+
 
 
 // clean a name so it is acceptable for HomeKit
@@ -313,6 +317,7 @@ class stbPlatform {
 		if (!this.config.username) { this.log.warn( configWarningText.replace('{configItemName}','username'), PLUGIN_NAME); return; }
 		if (!this.config.password) { this.log.warn( configWarningText.replace('{configItemName}','password'), PLUGIN_NAME); return; }
 
+		this.log('object name', Object.keys(sessionState)[0]);
 
 		// session flags
 		currentSessionState = sessionState.DISCONNECTED;
@@ -449,7 +454,7 @@ class stbPlatform {
 
 
 		if (this.config.debugLevel > 0) { 
-			statusOverview = statusOverview + ' sessionState=' + sessionStateName[currentSessionState]
+			statusOverview = statusOverview + ' sessionState=' + Object.keys(sessionState)[currentSessionState]
 			statusOverview = statusOverview + ' mqttState=' + mqttStateName[this.currentMqttState]
 			statusOverview = statusOverview + ' mqttClient.connected=' + mqttClient.connected
 			statusOverview = statusOverview + ' sessionWatchdogRunning=' + this.sessionWatchdogRunning
@@ -486,7 +491,7 @@ class stbPlatform {
 			return;
 
 		} else { 
-			// session is not connected and is not in a state between connected and disconnected, so it is disconnected. Continue
+			// session is not connected and is not in a state between connected and disconnected, so it is disconnected. ContinuecurrentMediaStateName(
 			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session and mqtt not connected, %s will try to connect now...', watchdogInstance); }
 
 		}
@@ -505,7 +510,7 @@ class stbPlatform {
 		// if session does not exist, create the session, passing the country value
 		let errorTitle;
 		if (currentSessionState == sessionState.DISCONNECTED ) { 
-			this.log('Session %s. Starting session connection process', sessionStateName[currentSessionState]);
+			this.log('Session %s. Starting session connection process', Object.keys(sessionState)[currentSessionState]);
 			if (this.config.debugLevel > 2) { this.log.warn('%s: attempting to create session', watchdogInstance); }
 
 			// asnyc startup sequence with chain of promises
@@ -780,7 +785,7 @@ class stbPlatform {
 					if (this.session.username == '') { this.session.username = this.config.username; }
 					currentSessionState = sessionState.CONNECTED;
 					this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-					this.log('Session %s', sessionStateName[currentSessionState]);
+					this.log('Session %s', Object.keys(sessionState)[currentSessionState]);
 					resolve(this.session.householdId) // resolve the promise with the householdId
 				})
 				.catch(error => {
@@ -1711,7 +1716,7 @@ class stbPlatform {
 						}
 
 						// update the device state. Set StatusFault to nofault as connection is working
-						this.log('%s: Recording state: ongoing recordings found: local %s, network %s, current Recording State %s [%s]', device.settings.deviceFriendlyName + PLUGIN_ENV, localOngoingRecordings, networkOngoingRecordings, currRecordingState, recordingStateName[currRecordingState]);
+						this.log('%s: Recording state: ongoing recordings found: local %s, network %s, current Recording State %s [%s]', device.settings.deviceFriendlyName + PLUGIN_ENV, localOngoingRecordings, networkOngoingRecordings, currRecordingState, Object.keys(recordingState)[currRecordingState]);
 						//   mqttDeviceStateHandler(deviceId, 			powerState, mediaState, recordingState, 	channelId, 	eventId, 	sourceType, profileDataChanged, statusFault, 	programMode, statusActive, currInputDeviceType, currInputSourceType) {
 						this.mqttDeviceStateHandler(device.deviceId, 	null, 		null, 		currRecordingState, null, 		null, 		null, 		null, 				Characteristic.StatusFault.NO_FAULT ); // update this device						
 
@@ -2641,11 +2646,11 @@ class stbPlatform {
 								j++) {
 								hasJustBooted  = true; 				// indicates that the box just booted up during this keyMacro
 								await waitprom(waitReadyDelayStep); // wait waitReadyDelayStep ms on each loop
-								this.log.debug('sendKey: key %s: loop %s: wait %s ms done, hasJustBooted %s, currentMediaState %s', i+1, j, hasJustBooted, waitReadyDelayStep, currentMediaStateName[this.stbDevices[deviceIndex].currentMediaState]);
+								this.log.debug('sendKey: key %s: loop %s: wait %s ms done, hasJustBooted %s, currentMediaState %s', i+1, j, hasJustBooted, waitReadyDelayStep, currentMediaStateName(this.stbDevices[deviceIndex].currentMediaState));
 							}
 							this.log.debug('sendKey: key %s: waiting one more delay of %s ms', i+1, waitReadyDelayStep);
 							await waitprom(waitReadyDelayStep); // wait waitReadyDelayStep ms one last time to ensure we have one wait after change from STOP to PLAY
-							this.log('sendKey: key %s: waiting for ready done, hasJustBooted %s, currentMediaState %s', i+1, hasJustBooted, currentMediaStateName[this.stbDevices[deviceIndex].currentMediaState]);
+							this.log('sendKey: key %s: waiting for ready done, hasJustBooted %s, currentMediaState %s', i+1, hasJustBooted, currentMediaStateName(this.stbDevices[deviceIndex].currentMediaState));
 						}
 					}
 
@@ -3361,18 +3366,18 @@ class stbDevice {
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// update the device state changed to async
-	//async updateDeviceState(powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, callback) {
-	async updateDeviceState(powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, inputDeviceType, inputSourceType, callback) {
+	//async updateDeviceState(powerState, mediaState, recState, channelId, eventId, sourceType, profileDataChanged, callback) {
+	async updateDeviceState(powerState, mediaState, recState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, inputDeviceType, inputSourceType, callback) {
 		try {
 			// runs at the very start, and then every few seconds, so don't log it unless debugging
 			// doesn't get the data direct from the settop box, but rather: gets it from the this.currentPowerState and this.currentChannelId variables
 			// which are received by the mqtt messages, which occurs very often
 			if (this.config.debugLevel > 0) {
-				this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], recordingState %s [%s], channelId %s, eventId %s, sourceType %s, profileDataChanged %s, statusFault %s [%s], programMode %s [%s], statusActive %s [%s], inputDeviceType %s [%s], inputSourceType %s [%s]', 
+				this.log.warn('%s: updateDeviceState: powerState %s, mediaState %s [%s], recState %s [%s], channelId %s, eventId %s, sourceType %s, profileDataChanged %s, statusFault %s [%s], programMode %s [%s], statusActive %s [%s], inputDeviceType %s [%s], inputSourceType %s [%s]', 
 					this.name, 
 					powerState, 
-					mediaState, currentMediaStateName[mediaState], 
-					recordingState, recordingStateName[recordingState], // custom characteristic
+					mediaState, currentMediaStateName(mediaState), 
+					recState, Object.keys(recordingState)[recState], // custom characteristic
 					channelId,
 					eventId,
 					sourceType,
@@ -3398,7 +3403,7 @@ class stbDevice {
 			// grab the input variables
 			if (powerState != null) { this.currentPowerState = powerState; }
 			if (mediaState != null) { this.currentMediaState = mediaState; }
-			if (recordingState != null) { this.currentRecordingState = recordingState; }
+			if (recState != null) { this.currentRecordingState = recState; }
 			if (channelId != null) { this.currentChannelId = channelId; }
 			if (eventId != null) { this.currentEventId = eventId; }
 			if (sourceType != null) { this.currentSourceType = sourceType; }
@@ -3445,8 +3450,8 @@ class stbDevice {
 				this.log.warn('%s: updateDeviceState: currentPowerState %s, currentMediaState %s [%s], currentRecordingState %s [%s], currentChannelId %s [%s], currentSourceType %s, currentClosedCaptionsState %s [%s], currentPictureMode %s [%s], profileDataChanged %s, currentStatusFault %s [%s], currentProgramMode %s [%s], currentStatusActive %s', 
 					this.name, 
 					this.currentPowerState, 
-					this.currentMediaState, currentMediaStateName[this.currentMediaState], 
-					this.currentRecordingState, recordingStateName[this.currentRecordingState],
+					this.currentMediaState, currentMediaStateName(this.currentMediaState), 
+					this.currentRecordingState, Object.keys(recordingState)[this.currentRecordingState],
 					this.currentChannelId, currentChannelName,
 					this.currentSourceType,
 					this.currentClosedCaptionsState, Object.keys(Characteristic.ClosedCaptions)[this.currentClosedCaptionsState + 1],
@@ -3557,8 +3562,8 @@ class stbDevice {
 					if (this.previousRecordingState !== this.currentRecordingState) {
 						this.log('%s: Recording State changed from %s [%s] to %s [%s]', 
 							this.name,
-							this.previousRecordingState, recordingStateName[this.previousRecordingState],
-							this.currentRecordingState, recordingStateName[this.currentRecordingState]);
+							this.previousRecordingState, Object.keys(recordingState)[this.previousRecordingState],
+							this.currentRecordingState, Object.keys(recordingState)[this.currentRecordingState]);
 					}
 					//this.log("configDevice.customPictureMode found %s, setting PictureMode to %s", (configDevice || {}).customPictureMode, this.currentRecordingState);
 					this.customPictureMode = this.currentRecordingState;
@@ -3714,8 +3719,8 @@ class stbDevice {
 				if (oldMediaState !== this.currentMediaState) {
 					this.log('%s: Media state changed from %s [%s] to %s [%s]', 
 						this.name,
-						oldMediaState, currentMediaStateName[oldMediaState],
-						this.currentMediaState, currentMediaStateName[this.currentMediaState]);
+						oldMediaState, currentMediaStateName(oldMediaState),
+						this.currentMediaState, currentMediaStateName(this.currentMediaState));
 				}
 				this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.currentMediaState);
 				this.previousMediaState = this.currentMediaState;
@@ -4633,7 +4638,7 @@ class stbDevice {
 				configDevice = this.config.devices.find(device => device.deviceId == this.deviceId);
 			}
 			if ((configDevice || {}).customPictureMode == 'recordingState') {
-				this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.customPictureMode, recordingStateName[this.customPictureMode]); 
+				this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.customPictureMode, Object.keys(recordingState)[this.customPictureMode]); 
 			} else {
 				this.log.warn('%s: getPictureMode returning %s [%s]', this.name, this.customPictureMode, Object.keys(Characteristic.PictureMode)[this.customPictureMode + 1] );
 			}
@@ -4675,7 +4680,7 @@ class stbDevice {
 		// The current Home app (iOS 16.0) does not support setting this characteristic, thus is never fired
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		if (this.config.debugLevel > 1) { 
-			this.log.warn('%s: getCurrentMediaState returning %s [%s]', this.name, this.currentMediaState, currentMediaStateName[this.currentMediaState]);
+			this.log.warn('%s: getCurrentMediaState returning %s [%s]', this.name, this.currentMediaState, currentMediaStateName(this.currentMediaState));
 		}
 		callback(null, this.currentMediaState);
 	}
@@ -4686,7 +4691,7 @@ class stbDevice {
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
 		// must never return null, so send STOP as default value
 		if (this.config.debugLevel > 1) {
-			this.log.warn('%s: getTargetMediaState returning %s [%s]', this.name, this.targetMediaState, currentMediaStateName[this.targetMediaState]);
+			this.log.warn('%s: getTargetMediaState returning %s [%s]', this.name, this.targetMediaState, currentMediaStateName(this.targetMediaState));
 		}
 		callback(null, this.currentMediaState);
 	}
@@ -4695,7 +4700,7 @@ class stbDevice {
 	async setTargetMediaState(targetState, callback) {
 		// The current Home app (iOS 16.0) does not support setting this characteristic, thus is never fired
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
-		if (this.config.debugLevel > 1) { this.log.warn('%s: setTargetMediaState this.targetMediaState:',this.name, targetState, currentMediaStateName[targetState]); }
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setTargetMediaState this.targetMediaState:',this.name, targetState, currentMediaStateName(targetState)); }
 		callback(null); // for rapid response
 		switch (targetState) {
 			case Characteristic.TargetMediaState.PLAY:
