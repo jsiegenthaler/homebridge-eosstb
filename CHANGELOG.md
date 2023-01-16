@@ -10,14 +10,14 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
-## 2.2.0-alpha.4 (2023-01-xx)
+## 2.2.0-alpha.4 (2023-01-16)
 * Updated Readme to invlude the new ARRIS VIP5002W box
+* Disabled change: "Altered handling of recording data to cater for boxes without DVR features, such as the ARRIS VIP5002W set-top box" as this was not the root cause
 
 ## 2.2.0-alpha.3 (2023-01-12)
 ** WARNING REBASE THE CODE FROM MASTER 2.1.3 **
 * Adapted code to cater for new Apollo box not returning username in the session connect, causing 401 Unauthorised errors
 * Improved code to be more efficient when logging object values
-
 
 ## 2.2.0-alpha.2 (2023-01-11)
 * Fixed a stupid typo bug
