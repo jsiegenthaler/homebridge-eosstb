@@ -2562,7 +2562,7 @@ class stbPlatform {
 			if (mqttUsername) {
 				this.mqttPublishMessage(
 					// the web client uses qos:2, so we should as well
-					mqttUsername + '/' + this.device.deviceId, 
+					mqttUsername + '/' + deviceId, 
 					'{"id":"' + makeFormattedId(32) + '","type":"CPE.pushToTV","source":{"clientId":"' + mqttClientId 
 					+ '","friendlyDeviceName":"HomeKit"},"status":{"sourceType":"linear","source":{"channelId":"' 
 					+ channelId + '"},"relativePosition":0,"speed":' + speed + '}}',
@@ -2635,8 +2635,8 @@ class stbPlatform {
 					// The device changes CurrentMediaState from STOP to PLAY when it has powered up and is streaming TV
 					// CurrentMediaState=STOP only occurs when the set-top box is turned off, so is a good indicator that it is streaming content
 					// TEST THIS WITH NETFLIX!
+					const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
 					if (keyName.toLowerCase() != 'power') {
-						const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
 						// detect CurrentMediaState=STOP to show box has just booted
 						if (this.stbDevices[deviceIndex].currentMediaState == Characteristic.CurrentMediaState.STOP) { 
 							this.log('sendKey: key %s: waiting for ready for %s', i+1, deviceName);
@@ -2654,7 +2654,6 @@ class stbPlatform {
 						}
 					}
 
-					
 
 					// check if current key can be skipped.
 					// leading Escape and wait keys can be skipped after a bootup to speed up the selection of a radio channel using a scene
@@ -2719,6 +2718,39 @@ class stbPlatform {
 						);
 						this.log.debug('sendKey: key %s: send %s done', i+1, keyName);
 
+						// set the Target Media State after key has been sent
+						// check if we need to set target media state to one of PLAY, PAUSE and STOP
+						// MediaPlayPause: toggles between PLAY and PAUSE depending on current value of TargetMediaState
+						// MediaPlay: sets PLAY
+						// MediaPause: sets PAUSE
+						// MediaStop: sets STOP
+						if (!keyCanBeSkippedAfterBootup && (['MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaStop'].indexOf(keyName) >= 0)) {
+							let targetMediaState;
+							switch (keyName) {
+								case 'MediaPlayPause':
+									// toggle from PLAY to PAUSE and vice versa
+									if (this.stbDevices[deviceIndex].targetMediaState == Characteristic.TargetMediaState.PLAY) { 
+										targetMediaState = Characteristic.TargetMediaState.PAUSE;
+									} else if (this.stbDevices[deviceIndex].targetMediaState == Characteristic.TargetMediaState.PAUSE) { 
+										targetMediaState = Characteristic.TargetMediaState.PLAY;
+									}
+									break;
+					
+								case 'MediaPlay':
+									targetMediaState = Characteristic.TargetMediaState.PLAY;
+									break;
+						
+								case 'MediaPause':
+									targetMediaState = Characteristic.TargetMediaState.PAUSE;
+									break;
+					
+								case 'MediaStop':
+									targetMediaState = Characteristic.TargetMediaState.STOP;
+									break;
+							}
+							// set the target media state via the setTargetMediaState function
+							this.stbDevices[deviceIndex].setTargetMediaState(targetMediaState, true);
+						}
 					}
 		
 				} // end for loop
@@ -3129,7 +3161,7 @@ class stbDevice {
 		// wanted media state (play, pause etc)
 		this.televisionService.getCharacteristic(Characteristic.TargetMediaState)
 			.on('get', this.getTargetMediaState.bind(this))
-			.on('set', (newMediaState, callback) => { this.setTargetMediaState(newMediaState, callback); });
+			.on('set', (newMediaState, callback) => { this.setTargetMediaState(newMediaState, false, callback); });
 
 		// extra characteristics added here are accessible in Shortcuts and Automations (both personal and home)
 		// general fault
@@ -3680,13 +3712,13 @@ class stbDevice {
 
 				//this.log('looking for input subtype ', 'input_' + this.currentChannelId)
 				let currInputIndex = this.inputServices.findIndex( InputSource => InputSource.subtype == 'input_' + this.currentChannelId );
-				let currinputNumber = currInputIndex + 1;
-				if (currInputIndex < 0) { currInputIndex = null; currinputNumber = null; }
+				let currInputNumber = currInputIndex + 1;
+				if (currInputIndex < 0) { currInputIndex = null; currInputNumber = null; }
 				//this.log('found input index %s input %s subtype %s', currInputIndex, currInputIndex+1, (this.inputServices[currInputIndex] || {}).subtype)
 				if (this.previousInputDeviceType !== this.currentInputDeviceType) {
 					this.log('%s: Input Device Type changed on input %s %s from %s [%s] to %s [%s]', 
 						this.name,
-						currinputNumber,
+						currInputNumber,
 						this.currentChannelId,
 						this.previousInputDeviceType, Object.keys(Characteristic.InputDeviceType)[this.previousInputDeviceType + 1],
 						this.currentInputDeviceType, Object.keys(Characteristic.InputDeviceType)[this.currentInputDeviceType + 1]
@@ -3700,7 +3732,7 @@ class stbDevice {
 				if (this.previousInputSourceType !== this.currentInputSourceType) {
 					this.log('%s: Input Source Type changed on input %s %s from %s [%s] to %s [%s]',
 						this.name,
-						currinputNumber,
+						currInputNumber,
 						this.currentChannelId,
 						this.previousInputSourceType, Object.keys(Characteristic.InputSourceType)[this.previousInputSourceType + 1],
 						this.currentInputSourceType, Object.keys(Characteristic.InputSourceType)[this.currentInputSourceType + 1]);
@@ -3715,12 +3747,18 @@ class stbDevice {
 
 
 				// check for change of current media state
-				var oldMediaState = this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).value;
-				if (oldMediaState !== this.currentMediaState) {
-					this.log('%s: Media state changed from %s [%s] to %s [%s]', 
+				var prevCurrentMediaState = this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).value;
+				if (prevCurrentMediaState !== this.currentMediaState) {
+					this.log('%s: Current Media state changed from %s [%s] to %s [%s]', 
 						this.name,
-						oldMediaState, currentMediaStateName(oldMediaState),
-						this.currentMediaState, currentMediaStateName(this.currentMediaState));
+						prevCurrentMediaState, currentMediaStateName[prevCurrentMediaState],
+						this.currentMediaState, currentMediaStateName[this.currentMediaState]);
+
+					// set targetMediaState to same as currentMediaState as long as currentMediaState is <= 2 (supports 0 PLAY, 1 PAUSE, 2 STOP)
+					if (this.currentMediaState <= Characteristic.TargetMediaState.STOP) {
+						this.targetMediaState = this.currentMediaState
+						this.televisionService.getCharacteristic(Characteristic.TargetMediaState).updateValue(this.targetMediaState);
+					}
 				}
 				this.televisionService.getCharacteristic(Characteristic.CurrentMediaState).updateValue(this.currentMediaState);
 				this.previousMediaState = this.currentMediaState;
@@ -4693,29 +4731,44 @@ class stbDevice {
 		if (this.config.debugLevel > 1) {
 			this.log.warn('%s: getTargetMediaState returning %s [%s]', this.name, this.targetMediaState, currentMediaStateName(this.targetMediaState));
 		}
-		callback(null, this.currentMediaState);
+		callback(null, this.targetMediaState);
 	}
 
 	// set target media state
-	async setTargetMediaState(targetState, callback) {
+	async setTargetMediaState(targetMediaState, logChangeOnly, callback) {
 		// The current Home app (iOS 16.0) does not support setting this characteristic, thus is never fired
 		// cannot be controlled by Apple Home app, but could be controlled by other HomeKit apps
-		if (this.config.debugLevel > 1) { this.log.warn('%s: setTargetMediaState this.targetMediaState:',this.name, targetState, currentMediaStateName(targetState)); }
-		callback(null); // for rapid response
-		switch (targetState) {
-			case Characteristic.TargetMediaState.PLAY:
-				this.log('setTargetMediaState: Set media to PLAY for', this.currentChannelId);
-				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 1) // set to 1, play at normal speed
-				break;
-			case Characteristic.TargetMediaState.PAUSE:
-				this.log('setTargetMediaState: Set media to PAUSE for', this.currentChannelId);
-				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 0) // set to 0, pause/stop
-				break;
-			case Characteristic.TargetMediaState.STOP:
-				this.log('setTargetMediaState: Set media to STOP for', this.currentChannelId);
-				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, 0) // set to 0, pause/stop
-				break;
+		// can be controlled by the Apple TV Remote Control, and is called when changing Play / Pause / Stop 
+		// logChangeOnly = TRUE: only the changes are logged, no media state change occurs. Needed when sending remote keypresses to prevent double commands
+		if (this.config.debugLevel > 1) { this.log.warn('%s: setTargetMediaState targetMediaState:',this.name, targetMediaState, Object.keys(Characteristic.TargetMediaState)[targetMediaState + 1]); }
+
+		var prevTargetMediaState = this.televisionService.getCharacteristic(Characteristic.TargetMediaState).value;
+		if (prevTargetMediaState !== targetMediaState) {
+			this.targetMediaState = targetMediaState;
+			this.log('%s: Target Media state changed from %s [%s] to %s [%s]', 
+				this.name,
+				prevTargetMediaState, Object.keys(Characteristic.TargetMediaState)[prevTargetMediaState + 1],
+				targetMediaState, Object.keys(Characteristic.TargetMediaState)[targetMediaState + 1]);
+		}
+		if (!logChangeOnly){
+			// send the setMediaState command if we are not just logging the change
+			const boxMediaStatePAUSE=0, boxMediaStatePLAY= 1; // the set-top box matching media states
+			let newBoxMediaState;
+			switch (targetMediaState) {
+				case Characteristic.TargetMediaState.PLAY:
+					newBoxMediaState = boxMediaStatePLAY;
+					break;
+				case Characteristic.TargetMediaState.PAUSE:
+					newBoxMediaState = boxMediaStatePAUSE;
+					break;
+				case Characteristic.TargetMediaState.STOP:
+					newBoxMediaState = boxMediaStatePAUSE;
+					break;
+				}
+				if (this.config.debugLevel > 1) { this.log('setTargetMediaState: Set media to %s for', Object.keys(Characteristic.TargetMediaState)[targetMediaState + 1], this.currentChannelId); }
+				this.platform.setMediaState(this.deviceId, this.name, this.currentChannelId, newBoxMediaState);
 			}
+		if (callback && typeof(callback) === 'function') {  callback(); } // for rapid response
 	}
 
 
@@ -4734,8 +4787,6 @@ class stbDevice {
 	async setDisplayOrder(displayOrder, callback) {
 		// fired when the user clicks away from the iOS Device TV Remote Control, regardless of which TV was selected
 		// fired when the icon is clicked in the Home app and the Home app requests a refresh
-		// this.currentChannelId is updated by the polling mechanisn
-		// must return a valid index, and must never return null
 		if (this.config.debugLevel > 1) { this.log.warn('%s: setDisplayOrder displayOrder',this.name, displayOrder); }
 		callback(null);
 	}
@@ -5019,7 +5070,6 @@ class stbDevice {
 			if (this.readyToSendRemoteKeyPress){ 
 				// send immediately
 				this.log('%s: setRemoteKey: sending key %s now', this.name, keyName);
-				//this.platform.sendKey(this.deviceId, this.name, keyName);
 				this.platform.sendKey(this.deviceId, this.name, keyName);
 				this.pendingKeyPress = -1; // clear any pending key press
 			} else {
@@ -5031,8 +5081,7 @@ class stbDevice {
 					// check if can be sent. Only send if sendRemoteKeyPressAfterDelay is still set. It may have been reset by another key press
 					this.log.debug('%s: setRemoteKey: setTimeout delay completed, checking sendRemoteKeyPressAfterDelay for %s', this.name, keyName);
 					if (this.sendRemoteKeyPressAfterDelay){ 
-						this.log('%s: setRemoteKey: setTimeout delay completed, sending %s', this.name, keyName);
-						//this.platform.sendKey(this.deviceId, this.name, keyName);
+						this.log.debug('%s: setRemoteKey: setTimeout delay completed, sending %s', this.name, keyName);
 						this.platform.sendKey(this.deviceId, this.name, keyName);
 						
 						this.log.debug('%s: setRemoteKey: setTimeout delay completed, key %s sent, resetting readyToSendRemoteKeyPress', this.name, keyName);
