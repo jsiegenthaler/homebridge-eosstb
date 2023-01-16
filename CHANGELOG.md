@@ -10,10 +10,10 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
-## 2.1.3-beta.1 (2023-01-15)
-* Fixed bug causing 'Target Media State': characteristic was supplied illegal value #91
+## 2.1.3-beta.2 (2023-01-16)
+* Fixed bug: 'Target Media State': characteristic was supplied illegal value #91
 * Fixed bug in setMediaState
-* Fixed some debug logging
+* Improved some debug logging
 * Improved handling of Target Media State
 
 
