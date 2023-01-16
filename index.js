@@ -541,24 +541,24 @@ class stbPlatform {
 				.then((objChannels) => {
 					this.log.debug('sessionWatchdog: ++++++ step 5: masterchannelList data was retrieved, channels found: %s',objChannels.length)
 					// it appears that a box needs the PVR feature enabled to access recording state
-					const pvrFeatureFound = this.entitlements.features.find(feature => (feature === 'PVR'));
-					this.log.debug('sessionWatchdog: ++++++ step 5: foundPvrEntitlement %s', pvrFeatureFound);
-					if (pvrFeatureFound) {
-						this.log.debug('sessionWatchdog: ++++++ step 5: calling getRecordingState with householdId %s', this.session.householdId)
-						return this.getRecordingState(this.session.householdId) // returns true when successful
-					}
-					return true
+					//const pvrFeatureFound = this.entitlements.features.find(feature => (feature === 'PVR'));
+					//this.log.debug('sessionWatchdog: ++++++ step 5: foundPvrEntitlement %s', pvrFeatureFound);
+					//if (pvrFeatureFound) {
+					this.log.debug('sessionWatchdog: ++++++ step 5: calling getRecordingState with householdId %s', this.session.householdId)
+					return this.getRecordingState(this.session.householdId) // returns true when successful
+					//}
+					//return true
 				})
 				.then((objRecordingStateFound) => {
 					this.log.debug('sessionWatchdog: ++++++ step 6: recording state data was retrieved, objRecordingStateFound: %s',objRecordingStateFound)
 					// it appears that a box needs the PVR feature enabled to access recording state
-					const pvrFeatureFound = this.entitlements.features.find(feature => (feature === 'PVR'));
-					this.log.debug('sessionWatchdog: ++++++ step 6: foundPvrEntitlement %s', pvrFeatureFound);
-					if (pvrFeatureFound) {
-						this.log.debug('sessionWatchdog: ++++++ step 6: calling getRecordingBookings with householdId %s', this.session.householdId)
-						return this.getRecordingBookings(this.session.householdId) // returns true when successful
-					}
-					return false
+					//const pvrFeatureFound = this.entitlements.features.find(feature => (feature === 'PVR'));
+					//this.log.debug('sessionWatchdog: ++++++ step 6: foundPvrEntitlement %s', pvrFeatureFound);
+					//if (pvrFeatureFound) {
+					this.log.debug('sessionWatchdog: ++++++ step 6: calling getRecordingBookings with householdId %s', this.session.householdId)
+					return this.getRecordingBookings(this.session.householdId) // returns true when successful
+					//}
+					//return false
 				})
 				.then((objRecordingBookingsFound) => {
 					this.log.debug('sessionWatchdog: ++++++ step 7: recording bookings data was retrieved, objRecordingBookingsFound: %s',objRecordingBookingsFound)
@@ -3751,8 +3751,8 @@ class stbDevice {
 				if (prevCurrentMediaState !== this.currentMediaState) {
 					this.log('%s: Current Media state changed from %s [%s] to %s [%s]', 
 						this.name,
-						prevCurrentMediaState, currentMediaStateName[prevCurrentMediaState],
-						this.currentMediaState, currentMediaStateName[this.currentMediaState]);
+						prevCurrentMediaState, currentMediaStateName(prevCurrentMediaState),
+						this.currentMediaState, currentMediaStateName(this.currentMediaState));
 
 					// set targetMediaState to same as currentMediaState as long as currentMediaState is <= 2 (supports 0 PLAY, 1 PAUSE, 2 STOP)
 					if (this.currentMediaState <= Characteristic.TargetMediaState.STOP) {
@@ -5069,7 +5069,7 @@ class stbDevice {
 		if (keyName) {
 			if (this.readyToSendRemoteKeyPress){ 
 				// send immediately
-				this.log('%s: setRemoteKey: sending key %s now', this.name, keyName);
+				this.log.debug('%s: setRemoteKey: sending key %s now', this.name, keyName);
 				this.platform.sendKey(this.deviceId, this.name, keyName);
 				this.pendingKeyPress = -1; // clear any pending key press
 			} else {
