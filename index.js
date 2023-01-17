@@ -782,7 +782,12 @@ class stbPlatform {
 					this.log.debug('Session refreshToken:', this.session.refreshToken);
 					this.log.debug('Session refreshTokenExpiry:', this.session.refreshTokenExpiry);
 					// New APLSTB Apollo box on NL does not return username in during session logon, so store username from settings if missing
-					if (this.session.username == '') { this.session.username = this.config.username; }
+					if (this.session.username == '') { 
+						this.log.debug('Session username empty, setting to %s', this.config.username);
+						this.session.username = this.config.username; 
+					} else {
+						this.log.debug('Session username not empty: %s', this.session.username);
+					}
 					currentSessionState = sessionState.CONNECTED;
 					this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
 					this.log('Session %s', Object.keys(sessionState)[currentSessionState]);
@@ -1645,6 +1650,7 @@ class stbPlatform {
 			this.log("Refreshing recording state for householdId %s", householdId);
 
 			// headers for the connection
+			this.log("getRecordingState: this.session.username %s, this.config.username %s", this.session.username, this.config.username);
 			const config = {
 					headers: {
 						"x-cus": this.session.householdId, 
@@ -1665,7 +1671,7 @@ class stbPlatform {
 					// log at level 1, 2
 					if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: response: %s %s', response.status, response.statusText); }
 					if (this.config.debugLevel > 1) { 
-						this.log.warn('getRecordingState: response data (saved to ???):');
+						this.log.warn('getRecordingState: response data:');
 						this.log.warn(response.data);
 					}
 
@@ -2227,6 +2233,7 @@ class stbPlatform {
 													break;
 												case 'replay': 	// replay TV
 												case 'nDVR':	// network DVR
+												case 'localDVR':	// local DVR
 												case 'lDVR':	// local DVR
 												case 'LDVR':	// local DVR
 													currInputDeviceType = Characteristic.InputDeviceType.PLAYBACK; // replay TV
@@ -2711,9 +2718,16 @@ class stbPlatform {
 						// send the key if not a wait
 						this.log('sendKey: key %s: sending key %s to %s %s', i+1, keyName, deviceName, deviceId);
 						// the web client uses qos:2, so we should as well
+						// 1076582_ch/3C36E4-EOSSTB-003656579806..
+						//{"source":"6a93bac6-5402-42a7-9d8a-c7a93e00e68e","id":"864cf658-2d7b-46eb-a065-6d44c129989f","status":{"w3cKey":"Escape","eventType":"keyDownUp"},"type":"CPE.KeyEvent","runtimeType":"key"}
+
 						this.mqttPublishMessage(
 							mqttUsername + '/' + deviceId, 
+							// format prior to 17.01.2022
 							'{"id":"' + makeFormattedId(32) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}',
+							// format from 17.01.2022, client v
+							//{"source":"6a93bac6-5402-42a7-9d8a-c7a93e00e68e","id":"864cf658-2d7b-46eb-a065-6d44c129989f","status":{"w3cKey":"Escape","eventType":"keyDownUp"},"type":"CPE.KeyEvent","runtimeType":"key"}
+		 					// '{"source":"' + mqttClientId + '","id":"' + makeFormattedId(32) + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"},"type":"CPE.KeyEvent","runtimeType":"key"}',
 							{ qos:2, retain:true }
 						);
 						this.log.debug('sendKey: key %s: send %s done', i+1, keyName);
