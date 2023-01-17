@@ -10,6 +10,9 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
+## 2.2.0-alpha.6 (2023-01-17)
+* Added more debugging, added oesptoken to getrecordingstatus
+
 ## 2.2.0-alpha.5 (2023-01-17)
 * Added extra detection of localDVR
 * Tracking down a username issue in startup with getRecordingState
