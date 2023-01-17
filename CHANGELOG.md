@@ -10,6 +10,11 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
+## 2.2.0-alpha.5 (2023-01-17)
+* Added extra detection of localDVR
+* Tracking down a username issue in startup with getRecordingState
+
+
 ## 2.2.0-alpha.4 (2023-01-16)
 * Updated Readme to invlude the new ARRIS VIP5002W box
 * Disabled change: "Altered handling of recording data to cater for boxes without DVR features, such as the ARRIS VIP5002W set-top box" as this was not the root cause
