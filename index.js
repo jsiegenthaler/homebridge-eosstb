@@ -1654,7 +1654,7 @@ class stbPlatform {
 			const config = {
 					headers: {
 						"x-cus": this.session.householdId, 
-						//"x-oesp-token": this.session.accessToken,  // no longer needed
+						"x-oesp-token": this.session.accessToken,  // no longer needed, reinstated for NL 2.2.0-alpha.6
 						"x-oesp-username": this.session.username
 					}
 				};
@@ -2724,10 +2724,10 @@ class stbPlatform {
 						this.mqttPublishMessage(
 							mqttUsername + '/' + deviceId, 
 							// format prior to 17.01.2022
-							'{"id":"' + makeFormattedId(32) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}',
+							//'{"id":"' + makeFormattedId(32) + '","type":"CPE.KeyEvent","source":"' + mqttClientId + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"}}',
 							// format from 17.01.2022, client v
 							//{"source":"6a93bac6-5402-42a7-9d8a-c7a93e00e68e","id":"864cf658-2d7b-46eb-a065-6d44c129989f","status":{"w3cKey":"Escape","eventType":"keyDownUp"},"type":"CPE.KeyEvent","runtimeType":"key"}
-		 					// '{"source":"' + mqttClientId + '","id":"' + makeFormattedId(32) + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"},"type":"CPE.KeyEvent","runtimeType":"key"}',
+		 					'{"source":"' + mqttClientId + '","id":"' + makeFormattedId(32) + '","status":{"w3cKey":"' + keyName + '","eventType":"keyDownUp"},"type":"CPE.KeyEvent","runtimeType":"key"}',
 							{ qos:2, retain:true }
 						);
 						this.log.debug('sendKey: key %s: send %s done', i+1, keyName);
