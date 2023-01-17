@@ -10,6 +10,9 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
+## 2.2.0-alpha.7 (2023-01-17)
+* Added handling of 402 Payment Required for getRecordingStatus & Bookings
+
 ## 2.2.0-alpha.6 (2023-01-17)
 * Added more debugging, added oesptoken to getrecordingstatus
 
