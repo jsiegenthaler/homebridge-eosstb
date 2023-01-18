@@ -132,15 +132,13 @@ const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
 
 // state constants. Need to add an array for any characteristic that is not an array, or the array is not contiguous
 const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 }; // custom
-const mqttState = { disconnected: 0, offline: 1, closed: 2, connected: 3, reconnected: 4, error: 5, end: 6, messagereceived: 7, packetsent: 8, packetreceived: 9 }; // custom
-const mqttStateName = [ "DISCONNECTED", "OFFLINE", "CLOSED", "CONNECTED", "RECONNECTED", "ERROR", "END", "MESSAGERECEIVED", "PACKETSENT", "PACKETRECEIVED" ]; // custom
+const mqttState = { DISCONNECTED: 0, OFFLINE: 1, CLOSED: 2, CONNECTED: 3, RECONNECTED: 4, ERROR: 5, END: 6, MESSAGERECEIVED: 7, PACKETSENT: 8, PACKETRECEIVED: 9 }; // custom
 const powerStateName = ["OFF", "ON"]; // custom
 const recordingState = { IDLE: 0, ONGOING_NDVR: 1, ONGOING_LOCALDVR: 2 }; // custom
-const statusActiveName = ["NOT_ACTIVE", "ACTIVE"]; // characteristic is boolean, not an array
+const statusActiveName = ["NOT_ACTIVE", "ACTIVE"]; // ccustom, haracteristic is boolean, not an array
 
 Object.freeze(sessionState);
 Object.freeze(mqttState);
-Object.freeze(mqttStateName);
 Object.freeze(powerStateName);
 Object.freeze(recordingState);
 Object.freeze(statusActiveName);
@@ -320,7 +318,7 @@ class stbPlatform {
 		// session flags
 		currentSessionState = sessionState.DISCONNECTED;
 		mqttClient.connected = false;
-		this.currentMqttState = mqttState.disconnected;
+		this.currentMqttState = mqttState.DISCONNECTED;
 		this.sessionWatchdogRunning = false;
 		this.watchdogCounter = 0;
 		this.mqttClientConnecting = false;
@@ -447,13 +445,13 @@ class stbPlatform {
 		//robustness: if session state ever gets disconnected due to session creation problems, ensure the mqtt status is always disconnected
 		if (currentSessionState == sessionState.DISCONNECTED) { 
 			this.mqttClientConnecting = false;
-			this.currentMqttState = mqttState.disconnected;
+			this.currentMqttState = mqttState.DISCONNECTED;
 		}
 
 
 		if (this.config.debugLevel > 0) { 
 			statusOverview = statusOverview + ' sessionState=' + Object.keys(sessionState)[currentSessionState]
-			statusOverview = statusOverview + ' mqttState=' + mqttStateName[this.currentMqttState]
+			statusOverview = statusOverview + ' mqttState=' + Object.keys(mqttState)[this.currentMqttState]
 			statusOverview = statusOverview + ' mqttClient.connected=' + mqttClient.connected
 			statusOverview = statusOverview + ' sessionWatchdogRunning=' + this.sessionWatchdogRunning
 		}
@@ -556,7 +554,7 @@ class stbPlatform {
 						this.log.debug('sessionWatchdog: ++++++ step 6: calling getRecordingBookings with householdId %s', this.session.householdId)
 						this.getRecordingBookings(this.session.householdId) // returns true when successful
 					}
-					return false
+					return true
 				})
 				.then((objRecordingBookingsFound) => {
 					this.log.debug('sessionWatchdog: ++++++ step 7: recording bookings data was retrieved, objRecordingBookingsFound: %s',objRecordingBookingsFound)
@@ -2060,7 +2058,7 @@ class stbPlatform {
 				mqttClient.on('connect', function () {
 					try {
 						parent.log("mqttClient: Connected: %s", mqttClient.connected);
-						parent.currentMqttState = mqttState.connected;
+						parent.currentMqttState = mqttState.CONNECTED;
 						parent.mqttClientConnecting = false;
 
 						// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
@@ -2125,7 +2123,7 @@ class stbPlatform {
 							try {
 
 								// store some mqtt diagnostic data
-								parent.currentMqttState = mqttState.connected; // set to connected on every message received event
+								parent.currentMqttState = mqttState.CONNECTED; // set to connected on every message received event
 								parent.lastMqttMessageReceived = Date.now();
 
 								let mqttMessage = JSON.parse(message);
@@ -2374,7 +2372,7 @@ class stbPlatform {
 						mqttClient.on('close', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.currentMqttState = mqttState.closed;
+								parent.currentMqttState = mqttState.CLOSED;
 								parent.log('mqttClient: Connection closed');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								if (!isShuttingDown) {
@@ -2392,7 +2390,7 @@ class stbPlatform {
 						mqttClient.on('reconnect', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.currentMqttState = mqttState.reconnected;
+								parent.currentMqttState = mqttState.RECONNECTED;
 								parent.log('mqttClient: Reconnect started');
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 							} catch (err) {
@@ -2407,7 +2405,7 @@ class stbPlatform {
 						mqttClient.on('disconnect', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.currentMqttState = mqttState.disconnected;
+								parent.currentMqttState = mqttState.DISCONNECTED;
 								parent.log('mqttClient: Disconnect command received');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
@@ -2423,7 +2421,7 @@ class stbPlatform {
 						mqttClient.on('offline', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.currentMqttState = mqttState.offline;
+								parent.currentMqttState = mqttState.OFFLINE;
 								parent.log('mqttClient: Client is offline');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
@@ -2439,7 +2437,7 @@ class stbPlatform {
 						mqttClient.on('error', function(err) {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.currentMqttState = mqttState.error;
+								parent.currentMqttState = mqttState.ERROR;
 								parent.log.warn('mqttClient: Error', (err.syscall || '') + ' ' + (err.code || '') + ' ' + (err.hostname || ''));
 								parent.log.warn('mqttClient: Error object:', err); 
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
