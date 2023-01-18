@@ -10,34 +10,13 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
-## 2.2.0-alpha.7 (2023-01-17)
-* Added handling of 402 Payment Required for getRecordingStatus & Bookings
-
-## 2.2.0-alpha.6 (2023-01-17)
-* Added more debugging, added oesptoken to getrecordingstatus
-
-## 2.2.0-alpha.5 (2023-01-17)
-* Added extra detection of localDVR
-* Tracking down a username issue in startup with getRecordingState
-
-
-## 2.2.0-alpha.4 (2023-01-16)
-* Updated Readme to invlude the new ARRIS VIP5002W box
-* Disabled change: "Altered handling of recording data to cater for boxes without DVR features, such as the ARRIS VIP5002W set-top box" as this was not the root cause
-* Improved some logging messages
-
-## 2.2.0-alpha.3 (2023-01-12)
-** WARNING REBASE THE CODE FROM MASTER 2.1.3 **
-* Adapted code to cater for new Apollo box not returning username in the session connect, causing 401 Unauthorised errors
-* Improved code to be more efficient when logging object values
-
-## 2.2.0-alpha.2 (2023-01-11)
-* Fixed a stupid typo bug
-
-## 2.2.0-alpha.1 (2023-01-10)
-* Added detection of new ARRIS VIP5002W set-top box as seen in NL in January 2023 (new functionality, hence bump of minor version)
-* Altered handling of recording data to cater for boxes without DVR features, such as the ARRIS VIP5002W set-top box
-* Updated device manufacturer names to reflect official manufacturer names as recorded in OUI docs
+## 2.2.0-beta.1 (2023-01-18)
+* Added support for new ARRIS VIP5002W set-top box as seen in NL in January 2023
+* Added support for households which do not have recording entitlements
+* Updated device manufacturer names
+* Improved detection of local DVR
+* Improved logging code
+* Bumped dependency "axios": "^1.2.3"
 
 
 ## 2.1.3 (2023-01-16)
