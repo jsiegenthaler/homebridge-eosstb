@@ -317,8 +317,6 @@ class stbPlatform {
 		if (!this.config.username) { this.log.warn( configWarningText.replace('{configItemName}','username'), PLUGIN_NAME); return; }
 		if (!this.config.password) { this.log.warn( configWarningText.replace('{configItemName}','password'), PLUGIN_NAME); return; }
 
-		this.log('object name', Object.keys(sessionState)[0]);
-
 		// session flags
 		currentSessionState = sessionState.DISCONNECTED;
 		mqttClient.connected = false;
@@ -540,25 +538,25 @@ class stbPlatform {
 				})
 				.then((objChannels) => {
 					this.log.debug('sessionWatchdog: ++++++ step 5: masterchannelList data was retrieved, channels found: %s',objChannels.length)
-					// it appears that a box needs the PVR feature enabled to access recording state
-					//const pvrFeatureFound = this.entitlements.features.find(feature => (feature === 'PVR'));
-					//this.log.debug('sessionWatchdog: ++++++ step 5: foundPvrEntitlement %s', pvrFeatureFound);
-					//if (pvrFeatureFound) {
-					this.log.debug('sessionWatchdog: ++++++ step 5: calling getRecordingState with householdId %s', this.session.householdId)
-					return this.getRecordingState(this.session.householdId) // returns true when successful
-					//}
-					//return true
+					// Recording needs entitlements of PVR or LOCALDVR
+					const pvrFeatureFound = this.entitlements.features.find(feature => (feature === 'PVR' || feature === 'LOCALDVR'));
+					this.log.debug('sessionWatchdog: ++++++ step 5: foundPvrEntitlement %s', pvrFeatureFound);
+					if (pvrFeatureFound) {
+						this.log.debug('sessionWatchdog: ++++++ step 5: calling getRecordingState with householdId %s', this.session.householdId)
+						this.getRecordingState(this.session.householdId) // returns true when successful
+					}
+					return true
 				})
 				.then((objRecordingStateFound) => {
 					this.log.debug('sessionWatchdog: ++++++ step 6: recording state data was retrieved, objRecordingStateFound: %s',objRecordingStateFound)
-					// it appears that a box needs the PVR feature enabled to access recording state
-					//const pvrFeatureFound = this.entitlements.features.find(feature => (feature === 'PVR'));
-					//this.log.debug('sessionWatchdog: ++++++ step 6: foundPvrEntitlement %s', pvrFeatureFound);
-					//if (pvrFeatureFound) {
-					this.log.debug('sessionWatchdog: ++++++ step 6: calling getRecordingBookings with householdId %s', this.session.householdId)
-					return this.getRecordingBookings(this.session.householdId) // returns true when successful
-					//}
-					//return false
+					// Recording needs entitlements of PVR or LOCALDVR
+					const pvrFeatureFound = this.entitlements.features.find(feature => (feature === 'PVR' || feature === 'LOCALDVR'));
+					this.log.debug('sessionWatchdog: ++++++ step 6: foundPvrEntitlement %s', pvrFeatureFound);
+					if (pvrFeatureFound) {
+						this.log.debug('sessionWatchdog: ++++++ step 6: calling getRecordingBookings with householdId %s', this.session.householdId)
+						this.getRecordingBookings(this.session.householdId) // returns true when successful
+					}
+					return false
 				})
 				.then((objRecordingBookingsFound) => {
 					this.log.debug('sessionWatchdog: ++++++ step 7: recording bookings data was retrieved, objRecordingBookingsFound: %s',objRecordingBookingsFound)
@@ -679,7 +677,7 @@ class stbPlatform {
 				resolve( this.stbDevices ); // resolve the promise with the stbDevices object
 			}
 
-			this.log.debug('discoverDevices: end of code block')
+			//this.log.debug('discoverDevices: end of code block')
 		})
 	}
 
@@ -781,12 +779,12 @@ class stbPlatform {
 					this.log.debug('Session accessToken:', this.session.accessToken);
 					this.log.debug('Session refreshToken:', this.session.refreshToken);
 					this.log.debug('Session refreshTokenExpiry:', this.session.refreshTokenExpiry);
-					// New APLSTB Apollo box on NL does not return username in during session logon, so store username from settings if missing
+					// Robustness: Observed that new APLSTB Apollo box on NL did not always return username during session logon, so store username from settings if missing
 					if (this.session.username == '') { 
 						this.log.debug('Session username empty, setting to %s', this.config.username);
 						this.session.username = this.config.username; 
 					} else {
-						this.log.debug('Session username not empty: %s', this.session.username);
+						this.log.debug('Session username exists: %s', this.session.username);
 					}
 					currentSessionState = sessionState.CONNECTED;
 					this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
@@ -1429,21 +1427,28 @@ class stbPlatform {
 		return new Promise((resolve, reject) => {
 			this.log('Refreshing recordings');
 
-			// execute the calls with a promise chain
-			const errorTitle = 'Failed to refresh recordings';
-			this.log.debug('refreshRecordings: ++++++ step 1: calling getRecordingState with householdId %s ', householdId)
-			this.getRecordingState(householdId)
-				.then(() => {
-					this.log.debug('refreshRecordings: ++++++ step 2: calling getRecordingBookings with householdId %s ', householdId)
-					this.getRecordingBookings(householdId) // returns customer object, with devices and profiles, stores object in this.customer
-					resolve( true ); // resolve the promise
-				})
-				.catch(errorReason => {
-					// log any errors and set the currentSessionState
-					this.log.warn(errorTitle + ' - %s', errorReason);
-					reject(errorReason);
-				});
-			this.log.debug('refreshRecordings: ++++++ step 1: calling getRecordingState with householdId %s ',householdId)
+			// can only refresh recordings if entitled to recordings
+			const pvrFeatureFound = this.entitlements.features.find(feature => (feature === 'PVR' || feature === 'LOCALDVR'));
+			this.log.debug('refreshRecordings: foundPvrEntitlement %s', pvrFeatureFound);
+			if (pvrFeatureFound) {
+				// execute the calls with a promise chain
+				const errorTitle = 'Failed to refresh recordings';
+				this.log.debug('refreshRecordings: ++++++ step 1: calling getRecordingState with householdId %s ', householdId)
+				this.getRecordingState(householdId)
+					.then(() => {
+						this.log.debug('refreshRecordings: ++++++ step 2: calling getRecordingBookings with householdId %s ', householdId)
+						this.getRecordingBookings(householdId) // returns customer object, with devices and profiles, stores object in this.customer
+						resolve( true ); // resolve the promise
+					})
+					.catch(errorReason => {
+						// log any errors and set the currentSessionState
+						this.log.warn(errorTitle + ' - %s', errorReason);
+						reject(errorReason);
+					});
+			} else {
+				this.log.debug('refreshRecordings: no recordings entitlement found');
+			}
+			return true
 
 		})
 	}
@@ -1649,12 +1654,18 @@ class stbPlatform {
 		return new Promise((resolve, reject) => {
 			this.log("Refreshing recording state for householdId %s", householdId);
 
+			// getRecordingState: backend will return a 402 Payment Required error if an attempt was made to get recording status when the customer is not entitled:
+			// 	httpStatusCode: 402,
+    		// 	statusCode: 1031,
+    		//	message: 'Customer disabled',
+    		//	details: 'Customer entitlements token must contain one of the features: PVR, LOCALDVR',
+			// so handle the 402 error cleanly
+
 			// headers for the connection
-			this.log("getRecordingState: this.session.username %s, this.config.username %s", this.session.username, this.config.username);
 			const config = {
 				headers: {
 					"x-cus": this.session.householdId, 
-					"x-oesp-token": this.session.accessToken,  // no longer needed, reinstated for NL 2.2.0-alpha.6
+					//"x-oesp-token": this.session.accessToken,  // no longer needed
 					"x-oesp-username": this.session.username
 				},
 				validateStatus: function (status) {
@@ -1766,6 +1777,13 @@ class stbPlatform {
 	async getRecordingBookings(householdId, callback) {
 		return new Promise((resolve, reject) => {
 			this.log("Refreshing recording bookings for householdId %s", householdId);
+
+			// getRecordingState: backend will return a 402 Payment Required error if an attempt was made to get recording status when the customer is not entitled:
+			// 	httpStatusCode: 402,
+    		// 	statusCode: 1031,
+    		//	message: 'Customer disabled',
+    		//	details: 'Customer entitlements token must contain one of the features: PVR, LOCALDVR',
+			// so handle the 402 error cleanly
 
 			// headers for the connection
 			const config = {
