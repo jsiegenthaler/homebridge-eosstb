@@ -14,9 +14,9 @@ Please restart Homebridge after every plugin update.
 * Added support for new ARRIS VIP5002W set-top box as seen in NL in January 2023
 * Added support for households which do not have recording entitlements
 * Updated device manufacturer names
-* Update iOS version references
-* Update set-top box model references
-* Update set-top box version references
+* Updated iOS version references
+* Updated set-top box model references
+* Updated set-top box version references
 * Improved detection of local DVR
 * Improved logging code
 * Bumped dependency "axios": "^1.2.5"
