@@ -10,7 +10,7 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
-## 2.2.0-beta.4 (2023-01-27)
+## 2.2.0 (2023-01-28)
 * Added support for new ARRIS VIP5002W set-top box as seen in NL in January 2023
 * Added support for households which do not have recording entitlements
 * Updated device manufacturer names
