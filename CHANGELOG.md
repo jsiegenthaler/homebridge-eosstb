@@ -14,6 +14,24 @@ Please restart Homebridge after every plugin update.
 * Added logging of current program name and end time
 * Added custom characteristics: Current Program Name Current Program End Time, useful in automations
 
+## 2.2.0 (2023-01-28)
+* Added support for new ARRIS VIP5002W set-top box as seen in NL in January 2023
+* Added support for households which do not have recording entitlements
+* Updated device manufacturer names
+* Updated iOS version references
+* Updated set-top box model references
+* Updated set-top box version references
+* Improved detection of local DVR
+* Improved logging code
+* Bumped dependency "axios": "^1.2.5"
+
+
+## 2.1.3 (2023-01-16)
+* Fixed bug: 'Target Media State': characteristic was supplied illegal value #91
+* Fixed bug in setMediaState
+* Improved handling of Target Media State
+
+
 ## 2.1.2 (2023-01-08)
 * Fixed bug causing the plugin to crash when logging an error in getRecordingState and refreshDeviceChannelList
 

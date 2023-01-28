@@ -3,11 +3,11 @@
   "displayName": "Homebridge EOSSTB",
   "description": "homebridge-plugin - Add your set-top box to Homekit (for Magenta AT, Telenet BE, Sunrise CH, Virgin Media GB & IE, Ziggo NL)",
   "author": "Jochen Siegenthaler (https://github.com/jsiegenthaler/)",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "platformname": "eosstb",
   "dependencies": {
     "axios-cookiejar-support": "^4.0.6",
-    "axios": "^1.2.2",
+    "axios": "^1.2.5",
     "debug": "^4.3.4",
     "mqtt": "^4.3.7",
     "qs": "^6.11.0",
@@ -63,10 +63,12 @@
     "Horizon TV",
     "Arris",
     "DCX960",
+    "VIP5002W",
     "HUMAX",
     "2008C",
     "2008C-STB",
-    "2008C-STB-TN"
+    "2008C-STB-TN",
+    "EOS1008R"
   ],
   "license": "MIT",
   "main": "index.js",
