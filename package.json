@@ -66,9 +66,11 @@
     "VIP5002W",
     "HUMAX",
     "2008C",
+    "2008CSTB",
     "2008C-STB",
     "2008C-STB-TN",
-    "EOS1008R"
+    "EOS1008R",
+    "APLSTB"
   ],
   "license": "MIT",
   "main": "index.js",
