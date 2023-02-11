@@ -13,6 +13,7 @@ Please restart Homebridge after every plugin update.
 * Fixed issue #96 with failled mqtt session not reconnecting automatically
 * Cleaned up and optimized some code
 * Bumped dependency "axios": "^1.3.2"
+* Improved readme layout
 
 
 ## 2.2.0 (2023-01-28)
