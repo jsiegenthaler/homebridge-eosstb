@@ -87,9 +87,9 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Powerful Key Macros**: You can program key macros to control your set-top box. Key macros are powerful ways of accessing any content such as radio channels that cannot be accessed directly via a channel number.
 
-* **Siri Support** You can control your box with Siri (to the extent of what Apple Siri supports).
+* **Siri Support** You can control your set-top box with Siri (to the extent of what Apple Siri supports).
 
-* **Shortcuts Support** You can read and control your box with Shortcuts and HomeKit automations (to the extent of what Apple supports), allowing you to control switch-on and channel selection in Home Automations, Shortcuts and Personal Automations.
+* **Shortcuts Support** You can read and control your set-top box with Shortcuts and HomeKit automations (to the extent of what Apple supports), allowing you to control switch-on and channel selection in Home Automations, Shortcuts and Personal Automations, as well as read a lot of status information from your set-top box.
 
 * **Synchronised Set-Top Box Name**: Changing the name of the set-top box in the Home app changes it on the TV and backend systems in real time, and vice-versa. No reboot required. You can turn off the sync if desired in the config.
 
@@ -101,7 +101,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Master Channel List Refreshed Daily**: The master channel list is refreshed daily, ensuring it is always up to date.
 
-* **Ignores Non-Subscribed Channels**: Only the channels you subscribe to are shown in the Home app, saving you valuable slots in the limited Home app channel list.
+* **Ignores Non-Subscribed Channels**: Only the channels you subscribe to are shown in the Home app, saving you valuable slots in the Home app channel list.
 
 * **Optional Channel Numbers**: If you wish, you can display a channel number before the channel name. As this consumes some space on the Home app tile, it is off by default.
 
