@@ -132,13 +132,11 @@ const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
 
 // state constants. Need to add an array for any characteristic that is not an array, or the array is not contiguous
 const sessionState = { DISCONNECTED: 0, LOADING: 1, LOGGING_IN: 2, AUTHENTICATING: 3, VERIFYING: 4, AUTHENTICATED: 5, CONNECTED: 6 }; // custom
-const mqttState = { DISCONNECTED: 0, OFFLINE: 1, CLOSED: 2, CONNECTED: 3, RECONNECTED: 4, ERROR: 5, END: 6, MESSAGERECEIVED: 7, PACKETSENT: 8, PACKETRECEIVED: 9 }; // custom
 const powerStateName = ["OFF", "ON"]; // custom
 const recordingState = { IDLE: 0, ONGOING_NDVR: 1, ONGOING_LOCALDVR: 2 }; // custom
 const statusActiveName = ["NOT_ACTIVE", "ACTIVE"]; // ccustom, haracteristic is boolean, not an array
 
 Object.freeze(sessionState);
-Object.freeze(mqttState);
 Object.freeze(powerStateName);
 Object.freeze(recordingState);
 Object.freeze(statusActiveName);
@@ -318,7 +316,6 @@ class stbPlatform {
 		// session flags
 		currentSessionState = sessionState.DISCONNECTED;
 		mqttClient.connected = false;
-		this.currentMqttState = mqttState.DISCONNECTED;
 		this.sessionWatchdogRunning = false;
 		this.watchdogCounter = 0;
 		this.mqttClientConnecting = false;
@@ -433,38 +430,36 @@ class stbPlatform {
 		// If no session exists: prepares the session, then prepares the device
 		this.watchdogCounter++; // increment global counter by 1
 		let watchdogInstance = 'sessionWatchdog(' + this.watchdogCounter + ')'; // set a log prefix for this instance of the watchdog to allow differentiation in the logs
-		let statusOverview = watchdogInstance + ':';
+		let statusOverview = '';
 		callback = true;
 		//this.log('++++ SESSION WATCHDOG STARTED ++++');
 
 		// standard debugging
 		let debugPrefix='\x1b[33msessionWatchdog :: ' // 33=yellow
 		debug(debugPrefix + 'started')
-		if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > started', watchdogInstance); }
+		if (this.config.debugLevel > 2) { this.log.warn('%s: Started watchdog instance %s', watchdogInstance, this.watchdogCounter); }
 
 		//robustness: if session state ever gets disconnected due to session creation problems, ensure the mqtt status is always disconnected
 		if (currentSessionState == sessionState.DISCONNECTED) { 
 			this.mqttClientConnecting = false;
-			this.currentMqttState = mqttState.DISCONNECTED;
 		}
 
 
 		if (this.config.debugLevel > 0) { 
 			statusOverview = statusOverview + ' sessionState=' + Object.keys(sessionState)[currentSessionState]
-			statusOverview = statusOverview + ' mqttState=' + Object.keys(mqttState)[this.currentMqttState]
 			statusOverview = statusOverview + ' mqttClient.connected=' + mqttClient.connected
 			statusOverview = statusOverview + ' sessionWatchdogRunning=' + this.sessionWatchdogRunning
 		}
 
 		// exit if shutting down
 		if (isShuttingDown) { 
-			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Homebridge is shutting down, exiting %s without action', watchdogInstance); }
+			if (this.config.debugLevel > 2) { this.log.warn(watchdogInstance + ': Homebridge is shutting down, exiting %s without action', watchdogInstance); }
 			return;
 		}
 
 		// exit if a previous session is still running
 		if (this.sessionWatchdogRunning) { 
-			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Previous sessionWatchdog still working, exiting %s without action', watchdogInstance); }
+			if (this.config.debugLevel > 2) { this.log.warn(watchdogInstance + ': Previous sessionWatchdog still working, exiting %s without action', watchdogInstance); }
 			return;
 
 		// as we are called regularly by setInterval, check connection status and exit without action if required
@@ -472,29 +467,29 @@ class stbPlatform {
 			// session is connected, check mqtt state
 
 			if (mqttClient.connected) { 
-				if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session and mqtt connected, exiting %s without action', watchdogInstance); }
+				if (this.config.debugLevel > 2) { this.log.warn(watchdogInstance + ': Session and mqtt connected, exiting %s without action', watchdogInstance); }
 				return; 
 			} else if (this.mqttClientConnecting) { 
-				if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session connected but mqtt still connecting, exiting %s without action', watchdogInstance); }
+				if (this.config.debugLevel > 2) { this.log.warn(watchdogInstance + ': Session connected but mqtt still connecting, exiting %s without action', watchdogInstance); }
 				return; 
 			} else {
-				if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session connected but mqtt not connected, %s will try to reconnect mqtt now...', watchdogInstance); }
+				if (this.config.debugLevel > 2) { this.log.warn(watchdogInstance + ': Session connected but mqtt not connected, %s will try to reconnect mqtt now...', watchdogInstance); }
 			}
 
 		} else if (currentSessionState != sessionState.DISCONNECTED) { 
 			// session is not disconnected, meaning it is between connected and disconnected, ie: a connection is in progress
-			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session still connecting, exiting %s without action', watchdogInstance); }
+			if (this.config.debugLevel > 2) { this.log.warn(watchdogInstance + ': Session still connecting, exiting %s without action', watchdogInstance); }
 			return;
 
 		} else { 
 			// session is not connected and is not in a state between connected and disconnected, so it is disconnected. ContinuecurrentMediaStateName(
-			if (this.config.debugLevel > 2) { this.log.warn(statusOverview + ' > Session and mqtt not connected, %s will try to connect now...', watchdogInstance); }
+			if (this.config.debugLevel > 2) { this.log.warn(watchdogInstance + ': Session and mqtt not connected, %s will try to connect now...', watchdogInstance); }
 
 		}
 
 		// the watchdog will now attempt to reconnect the session. Flag that the watchdog is running
 		this.sessionWatchdogRunning = true;
-		if (this.config.debugLevel > 2) { this.log.warn('%s: sessionWatchdogRunning=%s', watchdogInstance, this.sessionWatchdogRunning); }
+		if (this.config.debugLevel > 2) { this.log.warn('%s: Status: sessionWatchdogRunning=%s', watchdogInstance, this.sessionWatchdogRunning); }
 		
 
 		// detect if running on development environment
@@ -507,73 +502,73 @@ class stbPlatform {
 		let errorTitle;
 		if (currentSessionState == sessionState.DISCONNECTED ) { 
 			this.log('Session %s. Starting session connection process', Object.keys(sessionState)[currentSessionState]);
-			if (this.config.debugLevel > 2) { this.log.warn('%s: attempting to create session', watchdogInstance); }
+			if (this.config.debugLevel > 2) { this.log.warn('%s: Attempting to create session', watchdogInstance); }
 
 			// asnyc startup sequence with chain of promises
-			this.log.debug('sessionWatchdog: ++++ step 1: calling createSession')
+			this.log.debug('%s: ++++ step 1: calling createSession', watchdogInstance)
 			errorTitle = 'Failed to create session';
 			debug(debugPrefix + 'calling createSession')
 			await this.createSession(this.config.country.toLowerCase()) // returns householdId, stores session in this.session
 				.then((sessionHouseholdId) => {
-					this.log.debug('sessionWatchdog: ++++++ step 2: session was created, connected to sessionHouseholdId %s', sessionHouseholdId)
-					this.log.debug('sessionWatchdog: ++++++ step 2: calling getPersonalizationData with sessionHouseholdId %s ',sessionHouseholdId)
+					this.log.debug('%s: ++++++ step 2: session was created, connected to sessionHouseholdId %s', watchdogInstance, sessionHouseholdId)
+					this.log.debug('%s: ++++++ step 2: calling getPersonalizationData with sessionHouseholdId %s ', watchdogInstance, sessionHouseholdId)
 					this.log('Discovering platform...');
 					errorTitle = 'Failed to discover platform';
 					debug(debugPrefix + 'calling getPersonalizationData')
 					return this.getPersonalizationData(this.session.householdId) // returns customer object, with devices and profiles, stores object in this.customer
 				})
 				.then((objCustomer) => {
-					this.log.debug('sessionWatchdog: ++++++ step 3: personalization data was retrieved, customerId %s customerStatus %s',objCustomer.customerId, objCustomer.customerStatus)
-					this.log.debug('sessionWatchdog: ++++++ step 3: calling getEntitlements with customerId %s ',objCustomer.customerId)
+					this.log.debug('%s: ++++++ step 3: personalization data was retrieved, customerId %s customerStatus %s', watchdogInstance, objCustomer.customerId, objCustomer.customerStatus)
+					this.log.debug('%s: ++++++ step 3: calling getEntitlements with customerId %s ', watchdogInstance, objCustomer.customerId)
 					debug(debugPrefix + 'calling getEntitlements')
 					return this.getEntitlements(this.customer.customerId) // returns customer object
 				})
 				.then((objEntitlements) => {
-					this.log.debug('sessionWatchdog: ++++++ step 4: entitlements data was retrieved, objEntitlements.token %s',objEntitlements.token)
-					this.log.debug('sessionWatchdog: ++++++ step 4: calling refreshMasterChannelList')
+					this.log.debug('%s: ++++++ step 4: entitlements data was retrieved, objEntitlements.token %s', watchdogInstance, objEntitlements.token)
+					this.log.debug('%s: ++++++ step 4: calling refreshMasterChannelList', watchdogInstance)
 					debug(debugPrefix + 'calling refreshMasterChannelList')
 					return this.refreshMasterChannelList() // returns entitlements object
 				})
 				.then((objChannels) => {
-					this.log.debug('sessionWatchdog: ++++++ step 5: masterchannelList data was retrieved, channels found: %s',objChannels.length)
+					this.log.debug('%s: ++++++ step 5: masterchannelList data was retrieved, channels found: %s', watchdogInstance, objChannels.length)
 					// Recording needs entitlements of PVR or LOCALDVR
 					const pvrFeatureFound = this.entitlements.features.find(feature => (feature === 'PVR' || feature === 'LOCALDVR'));
-					this.log.debug('sessionWatchdog: ++++++ step 5: foundPvrEntitlement %s', pvrFeatureFound);
+					this.log.debug('%s: ++++++ step 5: foundPvrEntitlement %s', watchdogInstance, pvrFeatureFound);
 					if (pvrFeatureFound) {
-						this.log.debug('sessionWatchdog: ++++++ step 5: calling getRecordingState with householdId %s', this.session.householdId)
+						this.log.debug('%s: ++++++ step 5: calling getRecordingState with householdId %s', watchdogInstance, this.session.householdId)
 						this.getRecordingState(this.session.householdId) // returns true when successful
 					}
 					return true
 				})
 				.then((objRecordingStateFound) => {
-					this.log.debug('sessionWatchdog: ++++++ step 6: recording state data was retrieved, objRecordingStateFound: %s',objRecordingStateFound)
+					this.log.debug('%s: ++++++ step 6: recording state data was retrieved, objRecordingStateFound: %s', watchdogInstance, objRecordingStateFound)
 					// Recording needs entitlements of PVR or LOCALDVR
 					const pvrFeatureFound = this.entitlements.features.find(feature => (feature === 'PVR' || feature === 'LOCALDVR'));
-					this.log.debug('sessionWatchdog: ++++++ step 6: foundPvrEntitlement %s', pvrFeatureFound);
+					this.log.debug('%s: ++++++ step 6: foundPvrEntitlement %s', watchdogInstance, pvrFeatureFound);
 					if (pvrFeatureFound) {
-						this.log.debug('sessionWatchdog: ++++++ step 6: calling getRecordingBookings with householdId %s', this.session.householdId)
+						this.log.debug('%s: ++++++ step 6: calling getRecordingBookings with householdId %s', watchdogInstance, this.session.householdId)
 						this.getRecordingBookings(this.session.householdId) // returns true when successful
 					}
 					return true
 				})
 				.then((objRecordingBookingsFound) => {
-					this.log.debug('sessionWatchdog: ++++++ step 7: recording bookings data was retrieved, objRecordingBookingsFound: %s',objRecordingBookingsFound)
-					this.log.debug('sessionWatchdog: ++++++ step 7: calling discoverDevices')
+					this.log.debug('%s: ++++++ step 7: recording bookings data was retrieved, objRecordingBookingsFound: %s', watchdogInstance, objRecordingBookingsFound)
+					this.log.debug('%s: ++++++ step 7: calling discoverDevices', watchdogInstance)
 					errorTitle = 'Failed to discover devices';
 					debug(debugPrefix + 'calling discoverDevices')
 					return this.discoverDevices() // returns stbDevices object 
 				})
 				.then((objStbDevices) => {
 					this.log('Discovery completed');
-					this.log.debug('sessionWatchdog: ++++++ step 8: devices found:', this.devices.length )
-					this.log.debug('sessionWatchdog: ++++++ step 8: calling getJwtToken')
+					this.log.debug('%s: ++++++ step 8: devices found:', watchdogInstance, this.devices.length)
+					this.log.debug('%s: ++++++ step 8: calling getJwtToken', watchdogInstance)
 					errorTitle = 'Failed to start mqtt session';
 					debug(debugPrefix + 'calling getJwtToken')
 					return this.getJwtToken(this.session.username, this.session.accessToken, this.session.householdId);
 				})
 				.then((jwToken) => {
-					this.log.debug('sessionWatchdog: ++++++ step 9: getJwtToken token was retrieved, token %s',jwToken)
-					this.log.debug('sessionWatchdog: ++++++ step 9: start mqtt client')
+					this.log.debug('%s: ++++++ step 9: getJwtToken token was retrieved, token %s', watchdogInstance, jwToken)
+					this.log.debug('%s: ++++++ step 9: start mqtt client', watchdogInstance)
 					debug(debugPrefix + 'calling startMqttClient')
 					return this.startMqttClient(this, this.session.householdId, jwToken);  // returns true
 				})				
@@ -585,10 +580,11 @@ class stbPlatform {
 					return true
 				});	
 			debug(debugPrefix + 'end of promise chain')
-			//this.log.debug('sessionWatchdog: ++++++ end of promise chain')
-			//this.log.debug('sessionWatchdog: ++++ create session promise chain completed')
+			this.log.debug('%s: ++++++ End of promise chain', watchdogInstance)
+			//this.log.debug('%s: ++++ create session promise chain completed', watchdogInstance)
 		}
 
+		if (this.config.debugLevel > 2) { this.log.warn('%s: Exiting sessionWatchdog', watchdogInstance,); }
 		debug(debugPrefix + 'exiting sessionWatchdog')
 		//this.log('Exiting sessionWatchdog')
 		this.sessionWatchdogRunning = false;
@@ -1545,7 +1541,7 @@ class stbPlatform {
 					//this.refreshMasterChannelList(); // async function, processing continues, must load after customer data is loaded
 
 					//this.log.warn('getPersonalizationData: all done, returnng customerStatus: %s', this.customer.customerStatus);
-					esolver(this.customer); // resolve the promise with the customer object
+					resolve(this.customer); // resolve the promise with the customer object
 				})
 				.catch(error => {
 					let errReason;
@@ -2057,8 +2053,7 @@ class stbPlatform {
 				// https://github.com/mqttjs/MQTT.js#event-connect
 				mqttClient.on('connect', function () {
 					try {
-						parent.log("mqttClient: Connected: %s", mqttClient.connected);
-						parent.currentMqttState = mqttState.CONNECTED;
+						parent.log("mqttClient: %s", mqttClient.connected ? 'Connected' : 'Disconnected' ); // Conditional (ternary) operator: condition ? trueValue : FalseValue
 						parent.mqttClientConnecting = false;
 
 						// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
@@ -2123,7 +2118,6 @@ class stbPlatform {
 							try {
 
 								// store some mqtt diagnostic data
-								parent.currentMqttState = mqttState.CONNECTED; // set to connected on every message received event
 								parent.lastMqttMessageReceived = Date.now();
 
 								let mqttMessage = JSON.parse(message);
@@ -2372,7 +2366,6 @@ class stbPlatform {
 						mqttClient.on('close', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.currentMqttState = mqttState.CLOSED;
 								parent.log('mqttClient: Connection closed');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								if (!isShuttingDown) {
@@ -2390,7 +2383,6 @@ class stbPlatform {
 						mqttClient.on('reconnect', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.currentMqttState = mqttState.RECONNECTED;
 								parent.log('mqttClient: Reconnect started');
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 							} catch (err) {
@@ -2405,7 +2397,6 @@ class stbPlatform {
 						mqttClient.on('disconnect', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.currentMqttState = mqttState.DISCONNECTED;
 								parent.log('mqttClient: Disconnect command received');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
@@ -2421,7 +2412,6 @@ class stbPlatform {
 						mqttClient.on('offline', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.currentMqttState = mqttState.OFFLINE;
 								parent.log('mqttClient: Client is offline');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
@@ -2437,9 +2427,8 @@ class stbPlatform {
 						mqttClient.on('error', function(err) {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.currentMqttState = mqttState.ERROR;
 								parent.log.warn('mqttClient: Error', (err.syscall || '') + ' ' + (err.code || '') + ' ' + (err.hostname || ''));
-								parent.log.warn('mqttClient: Error object:', err); 
+								parent.log.debug('mqttClient: Error object:', err); 
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 								mqttClient.end();
