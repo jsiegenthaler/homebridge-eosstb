@@ -9,8 +9,10 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 * Implement refreshToken capabilities
 
-## 2.2.0 (2023-02-11)
-* Fixed issue with failled mqtt session not reconnecting automatically 
+## 2.2.1 (2023-02-11)
+* Fixed issue #96 with failled mqtt session not reconnecting automatically
+* Cleaned up and optimized some code
+* Bumped dependency "axios": "^1.3.2"
 
 
 ## 2.2.0 (2023-01-28)
