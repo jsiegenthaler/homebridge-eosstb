@@ -672,7 +672,7 @@ class stbPlatform {
 					}	
 
 				};
-				resolve( this.stbDevices ); // resolve the promise with the stbDevices object
+				resolve(this.stbDevices); // resolve the promise with the stbDevices object
 			}
 
 			//this.log.debug('discoverDevices: end of code block')
@@ -1331,13 +1331,13 @@ class stbPlatform {
 			// exit immediately if the session does not exist
 			if (currentSessionState != sessionState.CONNECTED) { 
 				if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not exist, exiting'); }
-				return false;
+				resolve(true);
 			}
 
 			// exit immediately if channel list has not expired
 			if (this.masterChannelListExpiryDate > Date.now()) {
 				if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString()); }
-				return false;
+				resolve(true);
 			}
 
 			this.log('Refreshing master channel list');
@@ -1398,7 +1398,7 @@ class stbPlatform {
 					if (this.config.debugLevel > 0) {
 						this.log.warn('refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s', this.masterChannelList.length, this.masterChannelListExpiryDate.toLocaleString());
 					}
-					resolve( this.masterChannelList ); // resolve the promise with the masterChannelList object
+					resolve(this.masterChannelList); // resolve the promise with the masterChannelList object
 
 				})
 				.catch(error => {
@@ -1436,7 +1436,7 @@ class stbPlatform {
 					.then(() => {
 						this.log.debug('refreshRecordings: ++++++ step 2: calling getRecordingBookings with householdId %s ', householdId)
 						this.getRecordingBookings(householdId) // returns customer object, with devices and profiles, stores object in this.customer
-						resolve( true ); // resolve the promise
+						resolve(true); // resolve the promise
 					})
 					.catch(errorReason => {
 						// log any errors and set the currentSessionState
@@ -1446,7 +1446,7 @@ class stbPlatform {
 			} else {
 				this.log.debug('refreshRecordings: no recordings entitlement found');
 			}
-			return true
+			resolve(true); // resolve the promise
 
 		})
 	}
@@ -1545,7 +1545,7 @@ class stbPlatform {
 					//this.refreshMasterChannelList(); // async function, processing continues, must load after customer data is loaded
 
 					//this.log.warn('getPersonalizationData: all done, returnng customerStatus: %s', this.customer.customerStatus);
-					resolve( this.customer ); // resolve the promise with the customer object
+					esolver(this.customer); // resolve the promise with the customer object
 				})
 				.catch(error => {
 					let errReason;
@@ -1629,7 +1629,7 @@ class stbPlatform {
 						this.log.warn('getEntitlements: entitlements found:', this.entitlements.entitlements.length);
 					}
 					//his.log('getEntitlements: returning entitlements object');
-					resolve( this.entitlements ); // resolve the promise with the customer object
+					resolve(this.entitlements); // resolve the promise with the customer object
 				})
 				.catch(error => {
 					let errReason;
@@ -1743,7 +1743,7 @@ class stbPlatform {
 
 						});
 					}
-					resolve( this.currentRecordingState ); // resolve the promise
+					resolve(this.currentRecordingState); // resolve the promise
 				})
 
 				.catch(error => {
@@ -1871,7 +1871,7 @@ class stbPlatform {
 
 						});
 					}
-					resolve( this.currentRecordingState ); // resolve the promise
+					resolve(this.currentRecordingState); // resolve the promise
 				})
 
 				.catch(error => {
@@ -1923,7 +1923,7 @@ class stbPlatform {
 					this.log.warn('getExperimentalEndpoint: response: %s %s', response.status, response.statusText);
 					this.log.warn(response.data);
 					return true
-					//resolve( true ); // resolve the promise with the customer object
+					//resolve(true); // resolve the promise with the customer object
 				})
 				.catch(error => {
 					let errReason;
@@ -1994,7 +1994,7 @@ class stbPlatform {
 					}
 					//this.jwtToken = response.data.token; // store the token
 					mqttUsername = householdId; // used in sendKey to ensure that mqtt is connected
-					resolve( response.data.token ); // resolve with the tokwn
+					resolve(response.data.token); // resolve with the tokwn
 					//this.startMqttClient(this, householdId, response.data.token);  // this starts the mqtt session
 					
 				})
