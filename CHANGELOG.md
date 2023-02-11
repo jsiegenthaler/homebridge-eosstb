@@ -9,6 +9,9 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 * Implement refreshToken capabilities
 
+## 2.2.0 (2023-02-11)
+* Fixed issue with failled mqtt session not reconnecting automatically 
+
 
 ## 2.2.0 (2023-01-28)
 * Added support for new ARRIS VIP5002W set-top box as seen in NL in January 2023
