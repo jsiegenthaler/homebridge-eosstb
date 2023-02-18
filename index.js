@@ -123,7 +123,7 @@ const NO_CHANNEL_ID = 'ID_UNKNOWN'; // id for a channel not in the channel list,
 const NO_CHANNEL_NAME = 'UNKNOWN'; // name for a channel not in the channel list
 const MAX_INPUT_SOURCES = 95; // max input services. Default = 95. Cannot be more than 96 (100 - all other services)
 const SESSION_WATCHDOG_INTERVAL_MS = 15000; // session watchdog interval in millisec. Default = 15000 (15s)
-const MASTER_CHANNEL_LIST_VALID_FOR_S = 86400; // master channel list starts valid for 24 hours from last refresh = 86400 seconds
+const MASTER_CHANNEL_LIST_VALID_FOR_S = 86400; // master channel list stays valid for 24 hours from last refresh. 24hr = 86400 seconds
 const MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S = 3600; // master channel list refresh check interval, in seconds. Default = 3600 (1hr) (increased from 600)
 const SETTOPBOX_NAME_MINLEN = 3; // min len of the set-top box name
 const SETTOPBOX_NAME_MAXLEN = 14; // max len of the set-top box name
@@ -1328,12 +1328,14 @@ class stbPlatform {
 			if (currentSessionState != sessionState.CONNECTED) { 
 				if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Session does not exist, exiting'); }
 				resolve(true);
+				return
 			}
 
 			// exit immediately if channel list has not expired
 			if (this.masterChannelListExpiryDate > Date.now()) {
 				if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString()); }
 				resolve(true);
+				return
 			}
 
 			this.log('Refreshing master channel list');
@@ -1362,7 +1364,11 @@ class stbPlatform {
 			// call the webservice to get all available channels
 			const axiosConfig = {
 				method: 'GET',
-				url: url
+				url: url,
+				headers: {
+					accept: '*/*',
+					'x-oesp-username': this.session.username
+				}
 			};
 			axiosWS(axiosConfig)
 				.then(response => {
@@ -1433,11 +1439,13 @@ class stbPlatform {
 						this.log.debug('refreshRecordings: ++++++ step 2: calling getRecordingBookings with householdId %s ', householdId)
 						this.getRecordingBookings(householdId) // returns customer object, with devices and profiles, stores object in this.customer
 						resolve(true); // resolve the promise
+						return;
 					})
 					.catch(errorReason => {
 						// log any errors and set the currentSessionState
 						this.log.warn(errorTitle + ' - %s', errorReason);
 						reject(errorReason);
+						return;
 					});
 			} else {
 				this.log.debug('refreshRecordings: no recordings entitlement found');
@@ -1889,7 +1897,7 @@ class stbPlatform {
 						this.log.warn(error)
 					}
 					reject(errReason);
-					});		
+				});		
 		})
 	}
 
