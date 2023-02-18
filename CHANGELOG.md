@@ -9,6 +9,11 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 * Implement refreshToken capabilities
 
+
+## 2.2.2 (2023-02-18)
+* Fixed bug causing 401 unauthorized when refreshing the master channel list
+
+
 ## 2.2.1 (2023-02-11)
 * Fixed issue #96 with failled mqtt session not reconnecting automatically
 * Cleaned up and optimized some code
