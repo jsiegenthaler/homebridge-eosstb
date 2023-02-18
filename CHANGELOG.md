@@ -12,6 +12,7 @@ Please restart Homebridge after every plugin update.
 
 ## 2.2.2 (2023-02-18)
 * Fixed bug causing 401 unauthorized when refreshing the master channel list
+* Bumped dependency "axios": "^1.3.3"
 
 
 ## 2.2.1 (2023-02-11)
