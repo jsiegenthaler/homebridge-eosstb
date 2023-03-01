@@ -10,6 +10,10 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
+## 2.2.3 (2023-03-01)
+* Bumped dependency "axios": "^1.3.4",
+
+
 ## 2.2.2 (2023-02-18)
 * Fixed bug causing 401 unauthorized when refreshing the master channel list
 * Bumped dependency "axios": "^1.3.3"
