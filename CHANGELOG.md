@@ -12,6 +12,7 @@ Please restart Homebridge after every plugin update.
 
 ## 2.2.4 (2023-03-11)
 * Bumped dependency "qs": "^6.11.1",
+* Bumped dependency "node": ">=16.19.1"
 
 
 ## 2.2.3 (2023-03-01)
