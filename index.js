@@ -12,11 +12,11 @@ const PLUGIN_VERSION = packagejson.version;
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
-const debug = require('debug')('eosstb') // https://github.com/debug-js/debug
+const debug = require('debug')('eosstb'); // https://github.com/debug-js/debug
 // good example of debug usage https://github.com/mqttjs/MQTT.js/blob/main/lib/client.js
 
 const mqtt = require('mqtt');  			// https://github.com/mqttjs
-const qs = require('qs')
+const qs = require('qs');				// https://github.com/ljharb/qs
 
 
 // axios-cookiejar-support v2.0.2 syntax
