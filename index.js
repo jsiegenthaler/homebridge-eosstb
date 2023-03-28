@@ -602,7 +602,6 @@ class stbPlatform {
 			if (!this.devices || !this.devices[0].settings) {
 				this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
 				this.sessionWatchdogRunning = false;
-				if (this.config.debugLevel > 2) { this.log.warn('%s: session connected but no devices found. Exiting %s with sessionWatchdogRunning=%s', watchdogInstance, watchdogInstance, this.sessionWatchdogRunning); }
 				//this.log('Failed to find any devices. The backend systems may be down, or you have no supported devices on your customer account')
 				reject('No devices found. The backend systems may be down, or you have no supported devices on your customer account')
 
@@ -1499,23 +1498,26 @@ class stbPlatform {
 				
 					// update all the devices in the array. Don't trust the index order in the Personalization Data message
 					//this.log('getPersonalizationData: this.stbDevices.length:', this.stbDevices.length)
-					this.devices.forEach((device) => {
-						if (this.config.debugLevel > 2) { // DEBUG
-							this.log.warn('getPersonalizationData: device settings for device %s:', device.deviceId);
-							this.log.warn(device.settings);
-							this.log.warn('getPersonalizationData: device capabilities for device %s:', device.deviceId);
-							this.log.warn(device.capabilities);
-						}
-						const deviceId = device.deviceId;
-						const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
-						if (deviceIndex > -1 && this.stbDevices[deviceIndex]) { 
-							this.stbDevices[deviceIndex].device = device;
-							this.stbDevices[deviceIndex].customer = this.customer; // store entire customer object
+					if (this.stbDevices.length > 0) {
+						this.devices.forEach((device) => {
+							if (this.config.debugLevel > 2) { // DEBUG
+								this.log.warn('getPersonalizationData: device settings for device %s:', device.deviceId);
+								this.log.warn(device.settings);
+								this.log.warn('getPersonalizationData: device capabilities for device %s:', device.deviceId);
+								this.log.warn(device.capabilities);
+							}
+							const deviceId = device.deviceId;
+							const deviceIndex = this.devices.findIndex(device => device.deviceId == deviceId)
+							if (deviceIndex > -1 && this.stbDevices[deviceIndex]) { 
+								this.stbDevices[deviceIndex].device = device;
+								this.stbDevices[deviceIndex].customer = this.customer; // store entire customer object
+	
+								//   mqttDeviceStateHandler(deviceId, 			powerState, mediaState, recordingState, channelId, 	eventId, 	sourceType, profileDataChanged, statusFault, 	programMode, statusActive, currInputDeviceType, currInputSourceType) {
+								this.mqttDeviceStateHandler(device.deviceId, 	null, 		null, 		null, 			null, 		null, 		null, 		true, 				Characteristic.StatusFault.NO_FAULT ); // update this device
+							}
+						});
 
-							//   mqttDeviceStateHandler(deviceId, 			powerState, mediaState, recordingState, channelId, 	eventId, 	sourceType, profileDataChanged, statusFault, 	programMode, statusActive, currInputDeviceType, currInputSourceType) {
-							this.mqttDeviceStateHandler(device.deviceId, 	null, 		null, 		null, 			null, 		null, 		null, 		true, 				Characteristic.StatusFault.NO_FAULT ); // update this device
-						}
-					});
+					}
 					
 
 					// profiles are an array named profiles, store entire array in this.profiles
