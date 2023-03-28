@@ -11,7 +11,7 @@ Please restart Homebridge after every plugin update.
 
 
 ## 2.2.5 (2023-03-28)
-* Improved robustness when no settop boxes detected in the user profile
+* Improved robustness when no set-top boxes detected in the user profile
 * Updated iOS version references
 * Minor improvements to the Readme
 
