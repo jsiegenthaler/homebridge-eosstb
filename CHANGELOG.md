@@ -10,6 +10,12 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
+## 2.2.5 (2023-03-28)
+* Improved robustness when no settop boxes detected in the user profile
+* Updated iOS version references
+* Minor improvements to the Readme
+
+
 ## 2.2.4 (2023-03-11)
 * Bumped dependency "qs": "^6.11.1",
 * Bumped dependency "node": ">=16.19.1"
