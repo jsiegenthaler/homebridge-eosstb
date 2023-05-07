@@ -10,6 +10,11 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
+## 2.2.6 (2023-05-07)
+* Fixed some minor logging typos
+* Updated Homebridge version references
+
+
 ## 2.2.5 (2023-03-28)
 * Improved robustness when no set-top boxes detected in the user profile
 * Updated iOS version references
