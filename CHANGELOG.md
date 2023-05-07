@@ -13,6 +13,7 @@ Please restart Homebridge after every plugin update.
 ## 2.2.6 (2023-05-07)
 * Fixed some minor logging typos
 * Updated Homebridge version references
+* Bumped dependency "axios": "^1.4.0",
 
 
 ## 2.2.5 (2023-03-28)
