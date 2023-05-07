@@ -999,7 +999,7 @@ class stbPlatform {
 															.catch(error => {
 																//this.log.warn("Step 6 of 6: Unable to authorize with oauth code:", error.response.status, error.response.statusText);
 																this.log.debug("Step 6 of 6: Unable to authorize with oauth code:",error);
-																reject("Step 6 of 6: Step 6 of 6: Unable to authorize with oauth code: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+																reject("Step 6 of 6: Unable to authorize with oauth code: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
 															});	
 														};
 													};
@@ -1008,7 +1008,8 @@ class stbPlatform {
 											.catch(error => {
 												//this.log.warn("Step 4 of 6: Unable to oauth authorize:", error.response.status, error.response.statusText);
 												this.log.debug("Step 4 of 6: Unable to oauth authorize:",error);
-												reject("Step 2 of 6: Step 4 of 6: Unable to oauth authorize: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+												//reject("Step 4 of 6: Unable to oauth authorize: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+												reject("Step 4 of 6: Unable to oauth authorize: " + error); // reject the promise and return the error
 											});
 									};
 								})
