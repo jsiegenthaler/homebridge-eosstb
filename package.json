@@ -11,12 +11,13 @@
     "debug": "^4.3.4",
     "mqtt": "^4.3.7",
     "qs": "^6.11.1",
+    "semver": "^7.5.0",
     "tough-cookie": "^4.1.2"
   },
   "deprecated": false,
   "engines": {
-    "homebridge": ">=1.6.0",
-    "node": ">=16.19.1"
+    "homebridge": "^1.6.1",
+    "node": "^18.16.0"
   },
   "homepage": "https://github.com/jsiegenthaler/homebridge-eosstb#readme",
   "keywords": [
