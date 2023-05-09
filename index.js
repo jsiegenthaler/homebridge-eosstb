@@ -14,6 +14,7 @@ const fsPromises = require('fs').promises;
 const path = require('path');
 const debug = require('debug')('eosstb'); // https://github.com/debug-js/debug
 // good example of debug usage https://github.com/mqttjs/MQTT.js/blob/main/lib/client.js
+const semver = require('semver')		// https://github.com/npm/node-semver
 
 const mqtt = require('mqtt');  			// https://github.com/mqttjs
 const qs = require('qs');				// https://github.com/ljharb/qs
@@ -306,6 +307,9 @@ class stbPlatform {
 		this.api = api;
     	this.stbDevices = []; // store stbDevice in this.stbDevices
 
+		// show some useful version info
+		this.log.info('%s v%s, node %s, homebridge v%s', packagejson.name, packagejson.version, process.version, this.api.serverVersion)
+
 		// only load if configured and mandatory items exist. Homebridge checks for platform itself, and name is not critical
 		if (!this.config) { this.log.warn('%s config missing. Initialization aborted.', PLUGIN_NAME); return; }
 		const configWarningText = '%s config incomplete: "{configItemName}" missing. Initialization aborted.';
@@ -334,7 +338,6 @@ class stbPlatform {
 		//this.api.on('didFinishLaunching', () => {
 		this.api.on('didFinishLaunching', async () => {
 			if (this.config.debugLevel > 2) { this.log.warn('API event: didFinishLaunching'); }
-			this.log('%s v%s', PLUGIN_NAME, PLUGIN_VERSION);
 			debug('stbPlatform:apievent :: didFinishLaunching')
 
 			// call the session watchdog once to create the session initially
