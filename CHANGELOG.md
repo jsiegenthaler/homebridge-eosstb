@@ -10,11 +10,12 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
-## 2.2.6 (2023-05-08)
+## 2.2.6 (2023-05-19)
 * Fixed some minor logging typos
-* Added logging of important version info
+* Added logging of version info
 * Updated engine version references
 * Bumped dependency "axios": "^1.4.0",
+* Bumped dependency "qs": "^6.11.2",
 
 
 ## 2.2.5 (2023-03-28)
