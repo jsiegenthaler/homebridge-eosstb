@@ -306,6 +306,7 @@ class stbPlatform {
 		this.config = config;
 		this.api = api;
     	this.stbDevices = []; // store stbDevice in this.stbDevices
+		this.masterChannelList = [];
 
 		// show some useful version info
 		this.log.info('%s v%s, node %s, homebridge v%s', packagejson.name, packagejson.version, process.version, this.api.serverVersion)
@@ -347,7 +348,23 @@ class stbPlatform {
 			this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
 
 			// check for a channel list update every MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S seconds
-			this.checkChannelListInterval = setInterval(this.refreshMasterChannelList.bind(this),MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S * 1000);
+			//this.checkChannelListInterval = setInterval(this.refreshMasterChannelList.bind(this),MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S * 1000);
+
+
+			this.checkChannelListInterval = setInterval(() => {
+				// refreshMasterChannelList is an async function returning a promise, so handle any rejects
+				this.refreshMasterChannelList()
+					.then( response => {
+						if (this.config.debugLevel >= 0) { 
+							this.log.warn('stbPlatform: refreshMasterChannelList completed OK'); 
+						}
+					})
+					.catch(error => {
+						if (this.config.debugLevel >= 0) {
+							this.log.warn('stbPlatform: could not refresh master channel list:', error);
+						}
+					})
+			}, MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S * 1000 ) // need to pass ms
 
 			debug('stbPlatform:apievent :: didFinishLaunching end of code block')
 			//this.log('stbPlatform: end of code block');
@@ -1370,6 +1387,7 @@ class stbPlatform {
 				url: url,
 				headers: {
 					accept: '*/*',
+					"x-oesp-token": this.session.accessToken, // to try and avoid the 401 auth issues
 					'x-oesp-username': this.session.username
 				}
 			};
@@ -1377,6 +1395,11 @@ class stbPlatform {
 				.then(response => {
 					if (this.config.debugLevel > 0) { this.log.warn('refreshMasterChannelList: response: %s %s', response.status, response.statusText); }
 					//this.log(response.data);
+
+					// the header contains the following:
+					// Cache-Control: max-age=600, public, stale-if-error=43200
+					// this could be used to set expiry date...
+
 
 					// set the masterChannelListExpiryDate to expire at now + MASTER_CHANNEL_LIST_VALID_FOR_S
 					this.masterChannelListExpiryDate =new Date(new Date().getTime() + (MASTER_CHANNEL_LIST_VALID_FOR_S * 1000));
@@ -1420,7 +1443,6 @@ class stbPlatform {
 				});
 		})
 	}
-
 
 
 
