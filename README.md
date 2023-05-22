@@ -72,7 +72,7 @@ In January 2023, an ARRIS VIP5002W appeared, which identifies itself as an APLST
 This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or Ziggo any other affiliate of [UPC](https://en.wikipedia.org/wiki/UPC_Broadband). It is neither endorsed nor supported nor developed by [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) or any affiliates. [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
-* An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1...16.4, earlier versions not tested.
+* An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1...16.5, earlier versions not tested.
 * [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116....1.6.1, earlier versions not tested.
 * A TV subscription from one of the supported countries and TV providers.
 * An online account for viewing TV in the web app (often part of your TV package), see the table above.
@@ -115,7 +115,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
-* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 16.4). Hopefully, Apple will add support for these features in the future. You can however use this data in Home Automations or the Shortcuts app.
+* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 16.5). Hopefully, Apple will add support for these features in the future. You can however use this data in Home Automations or the Shortcuts app.
 
 
 
@@ -136,7 +136,7 @@ The set-top box accessory is exposed as a separate external accessory and each s
 4. **Add Accessory**: tap **More options...** to add the accessory manually.
 5. **Select an Accessory to Add to \<HomeName\>**: Select the accessory you want to add. You should see your set-top box here. If not, check your Homebridge config.
 6. Accept the **Uncertified Accessory** warning by tapping **Add Anyway**.
-7. **Enter HomeKit Setup Code**: Enter the **HomeKit Setup Code** (displayed in Homebridge under the QR code, format XXX-XX-XXX), or use the device's camera to scan the QR code in Homebridge and tap **Continue**.
+7. **Enter HomeKit Setup Code**: Enter the **HomeKit Setup Code** (displayed in Homebridge under the QR code, format XXXX-XXXX), or use the device's camera to scan the QR code in Homebridge and tap **Continue**.
 8. **Set-Top Box Location**: Select a room for your new accessory and tap **Continue**.
 9. **Set-Top Box Name**: Give your set-top box a different name if you wish (synchronised to your real set-top box, you can change this in the Home app later) and tap **Continue**.
 10. **Name TV Input Sources**: Re-name your TV input sources if you wish (you can change these in the Home app later) and tap **Continue**.
@@ -204,13 +204,13 @@ Services used in this set-top box accessory are:
 4. Input service. The input (TV channels) utilises one service per input. The maximum possible channels (inputs) are thus 100 - 3 = 97. I have limited the inputs to maximum 95, but you can override this in the config (helpful to reduce log entries when debugging). The inputs are hard limited to 95 inputs.
 
 ### Media State (Play/Pause) Limitations
-The eosstb plugin can detect the target and current media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed only for current media state when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 16.4) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
+The eosstb plugin can detect the target and current media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed only for current media state when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 16.5) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ### Recording State Limitations
 The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but the eosstb plugin uses it to set the inUse charateristic if the set-top box is turned on or is recording to the local HDD. This is useful in Shortcuts or Automations.
 
 ### Closed Captions Limitations
-The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 16.4) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
+The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 16.5) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ## Configuration
 Add a new platform to the platforms section of your homebridge `config.json`.
