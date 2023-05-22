@@ -10,7 +10,7 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
-## 2.2.7 (2023-05-22)
+## 2.2.8 (2023-05-22)
 * Updated iOS version references
 * Fixed bug causing Homebridge crash when master channel list is not yet loaded
 * Fixed bug causing Homebridge crash when any error occurs in refresh of master channel list
