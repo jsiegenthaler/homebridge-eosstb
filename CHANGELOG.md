@@ -12,6 +12,7 @@ Please restart Homebridge after every plugin update.
 
 ## 2.2.9 (2023-05-29)
 * Fixed bug with access token expiring causing 401 unauthorised errors when refreshing channel list
+* Cleaned up some code
 
 
 ## 2.2.8 (2023-05-22)
