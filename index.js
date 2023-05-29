@@ -352,18 +352,28 @@ class stbPlatform {
 
 
 			this.checkChannelListInterval = setInterval(() => {
-				// refreshMasterChannelList is an async function returning a promise, so handle any rejects
-				this.refreshMasterChannelList()
-					.then( response => {
-						if (this.config.debugLevel >= 0) { 
-							this.log.warn('stbPlatform: refreshMasterChannelList completed OK'); 
-						}
-					})
-					.catch(error => {
-						if (this.config.debugLevel >= 0) {
-							this.log.warn('stbPlatform: could not refresh master channel list:', error);
-						}
-					})
+				// check if master channel list has expired. If it has, refresh auth token, then refresh channel list
+				if (this.config.debugLevel >= 1) { this.log.warn('stbPlatform: checkChannelListInterval Start'); }
+				if (this.masterChannelListExpiryDate <= Date.now()) {
+					// must check and refresh auth token before each call to refresh master channel list
+					this.refreshAccessToken()
+						.then(response => {
+							if (this.config.debugLevel >= 1) { this.log.warn('stbPlatform: refreshAccessToken completed OK'); }
+							return this.refreshMasterChannelList()
+						})
+						.then(response => {
+							if (this.config.debugLevel >= 1) { this.log.warn('stbPlatform: refreshMasterChannelList completed OK'); }
+							return true
+						})
+						.catch(error => {
+							if (error.code) {
+								this.log.warn('stbPlatform: checkChannelListInterval Error', (error.syscall || '') + ' ' + (error.code || '') + ' ' + (error.config.url || error.hostname || ''));
+							} else {
+								this.log.warn('stbPlatform: checkChannelListInterval Error', error);
+							}
+						})
+						if (this.config.debugLevel >= 1) { this.log.warn('stbPlatform: checkChannelListInterval end'); }
+				}
 			}, MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S * 1000 ) // need to pass ms
 
 			debug('stbPlatform:apievent :: didFinishLaunching end of code block')
@@ -581,17 +591,17 @@ class stbPlatform {
 				.then((objStbDevices) => {
 					this.log('Discovery completed');
 					this.log.debug('%s: ++++++ step 8: devices found:', watchdogInstance, this.devices.length)
-					this.log.debug('%s: ++++++ step 8: calling getJwtToken', watchdogInstance)
+					this.log.debug('%s: ++++++ step 8: calling getMqttToken', watchdogInstance)
 					errorTitle = 'Failed to start mqtt session';
-					debug(debugPrefix + 'calling getJwtToken')
-					return this.getJwtToken(this.session.username, this.session.accessToken, this.session.householdId);
+					debug(debugPrefix + 'calling getMqttToken')
+					return this.getMqttToken(this.session.username, this.session.accessToken, this.session.householdId);
 				})
-				.then((jwToken) => {
-					this.log.debug('%s: ++++++ step 9: getJwtToken token was retrieved, token %s', watchdogInstance, jwToken)
+				.then((mqttToken) => {
+					this.log.debug('%s: ++++++ step 9: getMqttToken token was retrieved, token %s', watchdogInstance, mqttToken)
 					this.log.debug('%s: ++++++ step 9: start mqtt client', watchdogInstance)
 					debug(debugPrefix + 'calling startMqttClient')
-					return this.startMqttClient(this, this.session.householdId, jwToken);  // returns true
-				})				
+					return this.startMqttClient(this, this.session.householdId, mqttToken);  // returns true
+				})
 				.catch(errorReason => {
 					// log any errors and set the currentSessionState
 					this.log.warn(errorTitle + ' - %s', errorReason);
@@ -695,6 +705,73 @@ class stbPlatform {
 	}
 
 
+	// get a new access token
+	async refreshAccessToken() {
+		return new Promise((resolve, reject) => {
+
+			// exit immediately if access token has not expired
+			if (this.session.accessTokenExpiry > Date.now()) {
+				if (this.config.debugLevel >= 1) { this.log.warn('refreshAccessToken: Access token has not expired yet. Next refresh will occur after %s', this.session.accessTokenExpiry.toLocaleString()); }
+				resolve(true);
+				return
+			}
+
+			if (this.config.debugLevel >= 1) { this.log.warn('refreshAccessToken: Access token has expired at %s. Requesting refresh', this.session.accessTokenExpiry.toLocaleString()); }
+
+			const axiosConfig = {
+				method: 'POST',
+				// https://prod.spark.sunrisetv.ch/auth-service/v1/authorization/refresh
+				url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/authorization/refresh',
+				headers: {
+					'x-oesp-username': this.session.username
+				}, 
+				jar: cookieJar,
+				data: {
+					refreshToken: this.session.refreshToken,
+					username: this.config.username
+				}
+			};
+
+			if (this.config.debugLevel >=1) { this.log.warn('refreshAccessToken: Post auth refresh request to',axiosConfig.url); }
+			axiosWS(axiosConfig)
+				.then(response => {	
+					if (this.config.debugLevel >= 2) { 
+						this.log('refreshAccessToken: auth refresh response:',response.status, response.statusText);
+						this.log('refreshAccessToken: response data (saved to this.session):');
+						this.log(response.data); 
+						//this.log(response.headers); 
+					}
+					this.session = response.data;
+
+					// add an expiry date for the access token: 2 min (120000ms) after created date
+					this.session.accessTokenExpiry = new Date(new Date().getTime() + 2*60000);
+
+					// check if householdId exists, if so, we have authenticated ok
+					if (this.session.householdId) { currentSessionState = sessionState.AUTHENTICATED; }
+					this.log.debug('Session username:', this.session.username);
+					this.log.debug('Session householdId:', this.session.householdId);
+					this.log.debug('Session accessToken:', this.session.accessToken);
+					this.log.debug('Session accessTokenExpiry:', this.session.accessTokenExpiry);
+					this.log.debug('Session refreshToken:', this.session.refreshToken);
+					this.log.debug('Session refreshTokenExpiry:', this.session.refreshTokenExpiry);
+					// Robustness: Observed that new APLSTB Apollo box on NL did not always return username during session logon, so store username from settings if missing
+					if (this.session.username == '') { 
+						this.log.debug('Session username empty, setting to %s', this.config.username);
+						this.session.username = this.config.username; 
+					} else {
+						this.log.debug('Session username exists: %s', this.session.username);
+					}
+					currentSessionState = sessionState.CONNECTED;
+					this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+					resolve(this.session.householdId) // resolve the promise with the householdId
+				})
+				.catch(error => {
+					this.log.debug('refreshAccessToken: error:', error);
+					reject(error); // reject the promise and return the error
+				});
+		})
+	}
+
 
 	// select the right session to create
 	async createSession(country) {
@@ -785,11 +862,16 @@ class stbPlatform {
 						this.log(response.data); 
 					}
 					this.session = response.data;
+
+					// add an expiry date for the access token: 2 min (120000ms) after created date
+					this.session.accessTokenExpiry = new Date(new Date().getTime() + 2*60000);
+
 					// check if householdId exists, if so, we have authenticated ok
 					if (this.session.householdId) { currentSessionState = sessionState.AUTHENTICATED; }
 					this.log.debug('Session username:', this.session.username);
 					this.log.debug('Session householdId:', this.session.householdId);
 					this.log.debug('Session accessToken:', this.session.accessToken);
+					this.log.debug('Session accessTokenExpiry:', this.session.accessTokenExpiry);
 					this.log.debug('Session refreshToken:', this.session.refreshToken);
 					this.log.debug('Session refreshTokenExpiry:', this.session.refreshTokenExpiry);
 					// Robustness: Observed that new APLSTB Apollo box on NL did not always return username during session logon, so store username from settings if missing
@@ -812,8 +894,10 @@ class stbPlatform {
 						errReason = 'try again later: ' + error.response.status + ' ' + (error.response.statusText || '');
 					} else if (error.response && error.response.status) {
 						errReason = 'check your internet connection: ' + error.response.status + ' ' + (error.response.statusText || '');
-					} else {
+					} else if (error.code) {
 						errReason = 'check your internet connection: ' + error.code + ' ' + (error.hostname || '');
+					} else {
+						errReason = 'unexpected error: ' + error;
 					}
 					//this.log('%s %s', errText, (errReason || ''));
 					this.log.debug('getSession: error:', error);
@@ -1353,7 +1437,7 @@ class stbPlatform {
 
 			// exit immediately if channel list has not expired
 			if (this.masterChannelListExpiryDate > Date.now()) {
-				if (this.config.debugLevel > 1) { this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString()); }
+				if (this.config.debugLevel >= 1) { this.log.warn('refreshMasterChannelList: Master channel list has not expired yet. Next refresh will occur after %s', this.masterChannelListExpiryDate.toLocaleString()); }
 				resolve(true);
 				return
 			}
@@ -1987,28 +2071,28 @@ class stbPlatform {
 	// START session handler mqtt
   	//+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-	// get a Json Web Token
-	async getJwtToken(oespUsername, accessToken, householdId){
+	// get the mqtt token
+	async getMqttToken(oespUsername, accessToken, householdId){
 		return new Promise((resolve, reject) => {
-			this.log.debug("Getting jwt token for householdId %s", householdId);
+			this.log.debug("Getting mqtt token for householdId %s", householdId);
 			// get a JSON web token from the supplied accessToken and householdId
-			if (this.config.debugLevel > 1) { this.log.warn('getJwtToken'); }
+			if (this.config.debugLevel > 1) { this.log.warn('getMqttToken'); }
 			// robustness checks
 			if (currentSessionState !== sessionState.CONNECTED) {
-				this.log.warn('Cannot get JWT token: currentSessionState incorrect:', currentSessionState);
+				this.log.warn('Cannot get mqtt token: currentSessionState incorrect:', currentSessionState);
 				return false;
 			}
 			if (!accessToken) {
-				this.log.warn('Cannot get JWT token: accessToken not set');
+				this.log.warn('Cannot get mqtt token: accessToken not set');
 				return false;
 			}
 
-			//this.log.warn('getJwtToken disabled while I build channel list');
+			//this.log.warn('getMqttToken disabled while I build channel list');
 			//return false;
 
-			const jwtAxiosConfig = {
+			const mqttAxiosConfig = {
 				method: 'GET',
-				url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/tokens/jwt',
+				//url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/tokens/jwt', prior to October 2022
 				// examples of auth-service/v1/mqtt/token urls:
 				// https://prod.spark.ziggogo.tv/auth-service/v1/mqtt/token
 				// https://prod.spark.sunrisetv.ch/auth-service/v1/mqtt/token
@@ -2018,23 +2102,22 @@ class stbPlatform {
 					'X-OESP-Username': oespUsername, 
 				}
 			};
-			this.log.debug("getJwtToken: jwtAxiosConfig:", jwtAxiosConfig)
-			axiosWS(jwtAxiosConfig)
+			this.log.debug("getMqttToken: mqttAxiosConfig:", mqttAxiosConfig)
+			axiosWS(mqttAxiosConfig)
 				.then(response => {	
 					if (this.config.debugLevel > 0) { 
-						this.log.warn("getJwtToken: response.data:", response.data)
+						this.log.warn("getMqttToken: response.data:", response.data)
 					}
-					//this.jwtToken = response.data.token; // store the token
 					mqttUsername = householdId; // used in sendKey to ensure that mqtt is connected
-					resolve(response.data.token); // resolve with the tokwn
+					resolve(response.data.token); // resolve with the token
 					//this.startMqttClient(this, householdId, response.data.token);  // this starts the mqtt session
 					
 				})
 				.catch(error => {
-					this.log.debug('getJwtToken error details:', error);
+					this.log.debug('getMqttToken error details:', error);
 					// set session flag to disconnected to force a session reconnect
 					currentSessionState = sessionState.DISCONNECTED;
-					reject('Failed to get jwtToken: ', error.code + ' ' + (error.hostname || ''));
+					reject('Failed to get mqtt token: ', error.code + ' ' + (error.hostname || ''));
 				});			
 		})
 	}
