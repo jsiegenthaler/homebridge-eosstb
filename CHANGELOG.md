@@ -10,6 +10,10 @@ Please restart Homebridge after every plugin update.
 * Implement refreshToken capabilities
 
 
+## 2.2.9 (2023-05-29)
+* Fixed bug with access token expiring causing 401 unauthorised errors when refreshing channel list
+
+
 ## 2.2.8 (2023-05-22)
 * Updated iOS version references
 * Fixed bug causing Homebridge crash when master channel list is not yet loaded
