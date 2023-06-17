@@ -330,7 +330,7 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 ##### Channel Display
 
-* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the default profile on startup, as configured on the set-top box. The plugin loads the first 95 subscribed channels found, which is a limitation of HomeKit. To manage your favourte channels within the constraint of 95 channels, create a profile on your set-top box, and use the profile name in the plugin config. If your profile is changed to the set-top box, the changes will be pushed to HomeKit. Channels should stay in a consistent channel order as the channel number is used in HomeKit scenes, not the channel name.
+* **profile**: The profile name to use to load the channel list for the device. Optional, defaults to the default profile on startup, as configured on the set-top box. The plugin loads the first 95 subscribed channels found, which is a limitation of HomeKit. To manage your favourite channels within the constraint of 95 channels, create a profile on your set-top box, and use the profile name in the plugin config. If your profile is changed to the set-top box, the changes will be pushed to HomeKit. Channels should stay in a consistent channel order as the channel number is used in HomeKit scenes, not the channel name.
 
 * **channelOrder**: The method to sort the channels in the channel list in the Home app. Available values are: Channel order = "channelOrder", Most Watched = "mostWatched". Case sensitive. Optional, defaults to channelOrder.
 
