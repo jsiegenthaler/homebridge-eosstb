@@ -14,8 +14,9 @@ Please restart Homebridge after every plugin update.
 * Added config items masterChannelListValidFor to allow easy tuning of timer periods
 * Fixed minor typos and improved some text in README.md
 * Fixed ReferenceError bug #107
-* Bumped dependency "semver": "^7.5.4",
+* Bumped dependency "semver": "^7.5.4"
 * Bumped dependency "tough-cookie": "^4.1.3"
+* Bumped dependency "node": ">=18.17.0"
 
 
 ## 2.2.9 (2023-05-29)
