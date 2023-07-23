@@ -239,7 +239,7 @@ Example extended configuration as used on the author with his EOSSTB set-top box
             "username": "yourTvProviderUsername",
             "password": "yourTvProviderPassword",
             "doublePressTime": 250,
-            "doublePressDelayTime": 300,
+            "triplePressTime": 800,
             "masterChannelRefreshCheckInterval": 60,
             "debugLevel": 0,
             "devices": [
@@ -295,6 +295,8 @@ Mandatory config items must always exist. These are used to establish the sessio
 #### Optional
 
 * **name**: The platform name that appears in the Homebridge logs. In many countries the platform is called Horizon, but you can name it to anything. Optional, defaults to "EOSSTB".
+
+* **doublePressTime**: The amount of time in ms to detect double-press of a button. Used for double-press features, such as double-press of Info generates Guide. Optional, defaults to 300ms.
 
 * **triplePressTime**: The amount of time in ms to detect triple-press of a button. Used for triple-press features, such as triple-press of Volume Down generates Mute. Optional, defaults to 800ms.
 
