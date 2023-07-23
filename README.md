@@ -238,7 +238,9 @@ Example extended configuration as used on the author with his EOSSTB set-top box
             "country": "ch",
             "username": "yourTvProviderUsername",
             "password": "yourTvProviderPassword",
-            "triplePressTime": 800,
+            "doublePressTime": 250,
+            "doublePressDelayTime": 300,
+            "masterChannelRefreshCheckInterval": 60,
             "debugLevel": 0,
             "devices": [
                 {
