@@ -9,7 +9,7 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 
-## 2.2.10-beta.16 (2023-07-23)
+## 2.2.10 (2023-07-23)
 * Improved authentication refresh
 * Added config items masterChannelListValidFor to allow easy tuning of timer periods
 * Fixed minor typos and improved some text in README.md
