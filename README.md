@@ -107,7 +107,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Default Profile Support**: The default profile on start-up of the set-top box is used for the channel list if no other profile is configured for the plugin.
 
-* **Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent press of Volume Up or Volume Down cancels the mute (TV dependent). The triple-press timing is configurable.
+* **Intelligent Mute**: Clicking Volume Down on your iOS device three times in rapid succession sends a Mute command to your TV. A subsequent tap of Volume Up or Volume Down cancels the mute (TV dependent). The triple-tap timing is configurable.
 
 * **Robust Session Handler**: If the web session or mqtt sessions are lost, the plugin will automatically try to reconnect.
 
@@ -238,7 +238,7 @@ Example extended configuration as used on the author with his EOSSTB set-top box
             "country": "ch",
             "username": "yourTvProviderUsername",
             "password": "yourTvProviderPassword",
-            "doublePressTime": 300,
+            "doublePressTime": 250,
             "triplePressTime": 800,
             "masterChannelRefreshCheckInterval": 60,
             "debugLevel": 0,
@@ -296,9 +296,9 @@ Mandatory config items must always exist. These are used to establish the sessio
 
 * **name**: The platform name that appears in the Homebridge logs. In many countries the platform is called Horizon, but you can name it to anything. Optional, defaults to "EOSSTB".
 
-* **doublePressTime**: The amount of time in ms to detect double-press of a button. Used for double-press features, such as double-press of Info generates Guide. Optional, defaults to 300ms.
+* **doublePressTime**: The amount of time in ms to detect double-tap of a button. Used for double-tap or triple-press features, such as double-tap of Info generates Guide. Optional, defaults to 250ms.
 
-* **triplePressTime**: The amount of time in ms to detect triple-press of a button. Used for triple-press features, such as triple-press of Volume Down generates Mute. Optional, defaults to 800ms.
+* **triplePressTime**: The amount of time in ms to detect triple-tap of a button. Used for triple-tap or triple-press features, such as triple-press of Volume Down generates Mute. Optional, defaults to 800ms.
 
 * **masterChannelListValidFor**: Amount of time in seconds that the master channel list stays valid for. Default 1800s.
 
