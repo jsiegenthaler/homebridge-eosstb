@@ -4607,7 +4607,8 @@ class stbDevice {
 		}
 			
 		// check for triple press of volDown, send setMute if tripleVolDownPress less than triplePressTime of 800ms
-		const tripleVolDownPressThreshold = (this.config.triplePressTime || 800);
+		var triplePressTime = this.config.triplePressTime || DEFAULT_TRIPLE_PRESS_DELAY_TIME; // default to DEFAULT_TRIPLE_PRESS_DELAY_TIME if nothing found
+		const tripleVolDownPressThreshold = (this.config.triplePressTime || triplePressTime);
 		this.log.debug("setVolume: volumeSelectorValue %s, current tripleVolDownPress %s, comparing to tripleVolDownPressThreshold %s", volumeSelectorValue, tripleVolDownPress, tripleVolDownPressThreshold)
 		if (volumeSelectorValue === Characteristic.VolumeSelector.DECREMENT && tripleVolDownPress < tripleVolDownPressThreshold) {
 			this.log('%s: Volume Down triple-press detected. Setting Mute', this.name);
@@ -5039,6 +5040,7 @@ class stbDevice {
 		}
 
 		const DEFAULT_DOUBLE_PRESS_DELAY_TIME = 300; // default, in case config missing
+		const DEFAULT_TRIPLE_PRESS_DELAY_TIME = 800; // default, in case config missing
 
 		// do the button layer mapping
 		// get any user-defined button remaps
@@ -5158,7 +5160,7 @@ class stbDevice {
 		lastPressTime[CURRENT_PRESS] = this.lastRemoteKeyPress0[remoteKey];
 
 		var doublePressTime = this.config.doublePressTime || DEFAULT_DOUBLE_PRESS_DELAY_TIME; // default to DEFAULT_DOUBLE_PRESS_DELAY_TIME if nothing found
-		//var triplePressTime = this.config.triplePressTime || 450; // for possible future use
+		var triplePressTime = this.config.triplePressTime || DEFAULT_TRIPLE_PRESS_DELAY_TIME; // default to DEFAULT_TRIPLE_PRESS_DELAY_TIME if nothing found
 
 
 		// write lastkeyPress to the array
