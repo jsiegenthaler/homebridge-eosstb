@@ -17,7 +17,7 @@
   "deprecated": false,
   "engines": {
     "homebridge": "^1.6.1",
-    "node": "^18.16.0"
+    "node": "^18.17.0"
   },
   "homepage": "https://github.com/jsiegenthaler/homebridge-eosstb#readme",
   "keywords": [
