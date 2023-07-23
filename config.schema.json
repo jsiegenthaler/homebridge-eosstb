@@ -56,7 +56,7 @@
         "doublePressTime": {
             "title": "Double-Press Time",
             "type": "integer",
-            "description": "The amount of time in ms to detect double-press or double-tap of an iOS remote control button. Default: 250ms",
+            "description": "The amount of time in ms to detect double-tap of an iOS remote control button. Default: 250ms",
             "default": 250,
             "placeholder": 250,
             "required": true
@@ -65,17 +65,8 @@
         "triplePressTime": {
             "title": "Triple-Press Time",
             "type": "integer",
-            "description": "The amount of time in ms to detect triple-press of an iOS remote control button. Default: 800ms.",
+            "description": "The amount of time in ms to detect triple-tap of an iOS remote control button. Default: 800ms.",
             "placeholder": 800
-        },
-
-        "doublePressDelayTime": {
-            "title": "Double-Press Delay Time",
-            "type": "integer",
-            "description": "The amount of time in ms to wait for the next iOS remote control button before giving up and sending the current button. Default: 300ms",
-            "default": 300,
-            "placeholder": 300,
-            "required": true
         },
 
         "masterChannelListValidFor": {
@@ -879,7 +870,7 @@
             "items": [
                 "name",
                 "doublePressTime",
-                "doublePressDelayTime",
+                "triplePressTime",
                 "masterChannelListValidFor",
                 "debugLevel"
             ]
