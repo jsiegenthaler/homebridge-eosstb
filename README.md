@@ -261,7 +261,7 @@ Example extended configuration as used on the author with his EOSSTB set-top box
                     "showChannelNumbers": false,
                     "maxChannels": 50
                 },
-            ]
+            ],
             "channels": [
                 {
                     "channelKeyMacro": "TV MediaTopMenu wait(2000) ArrowRight ArrowRight Enter wait(1000) ArrowDown wait(1500) Enter wait(2000) Enter",
