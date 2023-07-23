@@ -56,7 +56,7 @@
         "doublePressTime": {
             "title": "Double-Press Time",
             "type": "integer",
-            "description": "The amount of time in ms to detect double-press or double-tap of an iOS remote control button. Default 250ms",
+            "description": "The amount of time in ms to detect double-press or double-tap of an iOS remote control button. Default: 250ms",
             "default": 250,
             "placeholder": 250,
             "required": true
@@ -72,10 +72,17 @@
         "doublePressDelayTime": {
             "title": "Double-Press Delay Time",
             "type": "integer",
-            "description": "The amount of time in ms to wait for the next iOS remote control button before giving up and sending the current button. Default 300ms",
+            "description": "The amount of time in ms to wait for the next iOS remote control button before giving up and sending the current button. Default: 300ms",
             "default": 300,
             "placeholder": 300,
             "required": true
+        },
+
+        "masterChannelListValidFor": {
+            "title": "Master Channel List Validity Time",
+            "type": "integer",
+            "description": "The amount of time in seconds that the master channel list is valid. Channel list is refreshed when the time expires. Default: 1800s.",
+            "placeholder": 1800
         },
 
         "debugLevel": {
@@ -871,9 +878,9 @@
             "expanded": false,
             "items": [
                 "name",
-                "channelOrder",
                 "doublePressTime",
                 "doublePressDelayTime",
+                "masterChannelListValidFor",
                 "debugLevel"
             ]
         },
