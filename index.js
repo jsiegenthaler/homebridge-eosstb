@@ -4607,6 +4607,7 @@ class stbDevice {
 		}
 			
 		// check for triple press of volDown, send setMute if tripleVolDownPress less than triplePressTime of 800ms
+		const DEFAULT_TRIPLE_PRESS_DELAY_TIME = 800; // default, in case config missing
 		var triplePressTime = this.config.triplePressTime || DEFAULT_TRIPLE_PRESS_DELAY_TIME; // default to DEFAULT_TRIPLE_PRESS_DELAY_TIME if nothing found
 		const tripleVolDownPressThreshold = (this.config.triplePressTime || triplePressTime);
 		this.log.debug("setVolume: volumeSelectorValue %s, current tripleVolDownPress %s, comparing to tripleVolDownPressThreshold %s", volumeSelectorValue, tripleVolDownPress, tripleVolDownPressThreshold)
