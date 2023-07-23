@@ -7,7 +7,15 @@ Please restart Homebridge after every plugin update.
 
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
 * Add ability to log and read current program name
-* Implement refreshToken capabilities
+
+
+## 2.2.10-beta.14 (2023-07-23)
+* Improved authentication refresh
+* Added config items masterChannelListValidFor to allow easy tuning of timer periods
+* Fixed minor typos in README.md
+* Fixed ReferenceError bug #107
+* Bumped dependency "semver": "^7.5.4",
+* Bumped dependency "tough-cookie": "^4.1.3"
 
 
 ## 2.2.9 (2023-05-29)
