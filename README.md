@@ -261,6 +261,7 @@ Example extended configuration as used on the author with his EOSSTB set-top box
                     "showChannelNumbers": false,
                     "maxChannels": 50
                 },
+            ]
             "channels": [
                 {
                     "channelKeyMacro": "TV MediaTopMenu wait(2000) ArrowRight ArrowRight Enter wait(1000) ArrowDown wait(1500) Enter wait(2000) Enter",
@@ -294,6 +295,8 @@ Mandatory config items must always exist. These are used to establish the sessio
 * **name**: The platform name that appears in the Homebridge logs. In many countries the platform is called Horizon, but you can name it to anything. Optional, defaults to "EOSSTB".
 
 * **triplePressTime**: The amount of time in ms to detect triple-press of a button. Used for triple-press features, such as triple-press of Volume Down generates Mute. Optional, defaults to 800ms.
+
+* **masterChannelListValidFor**: Amount of time in seconds that the master channel list stays valid for. Default 1800s.
 
 * **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Extra debug messages above level 0 are shown in the Homebridge log in the warning colour, normally yellow. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
 
