@@ -9,6 +9,11 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 
+## 2.2.11 (2023-08-04)
+* Updated iOS references in README.md
+* Bumped dependency "mqtt": "^5.0.2"
+
+
 ## 2.2.10 (2023-07-23)
 * Improved authentication refresh
 * Added config items masterChannelListValidFor to allow easy tuning of timer periods
