@@ -838,7 +838,12 @@ class stbPlatform {
 				method: 'POST',
 				url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/authorization',
 				headers: {
-					"x-device-code": "web" // mandatory
+					"accept": "*/*", // added 07.08.2023
+					"content-type": "application/json; charset=utf-8", // added 07.08.2023
+					"x-device-code": "web", // mandatory
+					//'x-oesp-username': this.session.username , // added 07.08.2023
+					//"x-profile": profile.profileId,  // added 07.08.2023
+					//"x-tracking-id": this.customer.hashedCustomerId, // hashed customer id  // added 07.08.2023
 				}, 
 				jar: cookieJar,
 				data: {
