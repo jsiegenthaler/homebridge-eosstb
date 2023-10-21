@@ -64,7 +64,7 @@ This plugin was written and tested on the author's set-top box (ARRIS mediabox m
 ## Why I chose the Name EOSSTB
 I tried to find a good common name that works for this plugin for all countries. Each country uses a different marketing name for the box, so I could not use the local name. The EOS system, also known as the Horizon platform, originally used an ARRIS DCX960, but even this box comes in different types and with different firmware, so I decided not to use the model name. I stuck with the box identifier that appears in the mqtt messages: EOSSTB. 
 
-In March 2022, a newer version of the set-top box has started to appear in Telenet in Belgium: a HUMAX 2008C-STB-TN, which identifies itself as EOS2STB. This has since been seen in NL as a HUMAX 2008C-STB-ZG, and in CH as a HUMAX 2008C-STB-UPC/CH.
+In March 2022, a newer version of the set-top box appeared in Telenet in Belgium: a HUMAX 2008C-STB-TN, which identifies itself as EOS2STB. This has since been seen in NL as a HUMAX 2008C-STB-ZG, and in CH as a HUMAX 2008C-STB-UPC/CH.
 
 In January 2023, an ARRIS VIP5002W appeared, which identifies itself as an APLSTB. However, I will keep the plugin name unchanged at EOSSTB. 
 
@@ -72,7 +72,7 @@ In January 2023, an ARRIS VIP5002W appeared, which identifies itself as an APLST
 This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or Ziggo any other affiliate of [UPC](https://en.wikipedia.org/wiki/UPC_Broadband). It is neither endorsed nor supported nor developed by [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) or any affiliates. [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
-* An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1...16.6, earlier versions not tested.
+* An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1...17.0, earlier versions not tested.
 * [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116....1.6.1, earlier versions not tested.
 * A TV subscription from one of the supported countries and TV providers.
 * An online account for viewing TV in the web app (often part of your TV package), see the table above.
@@ -115,7 +115,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 * **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
-* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 16.6). Hopefully, Apple will add support for these features in the future. You can however use this data in Home Automations or the Shortcuts app.
+* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 17.0). Hopefully, Apple will add support for these features in the future. You can however use this data in Home Automations or the Shortcuts app.
 
 
 
@@ -160,6 +160,8 @@ The following keys are supported by in the **Apple TV Remote** in the Control Ce
 
 | Key | Single Tap | Double Tap |
 | ------- | ----------- | ------- |
+| Mute | (see note) | (see note) |
+| Power | (see note) | (see note) |
 | Up | ArrowUp | ChannelUp |
 | Down | ArrowDown | ChannelDown |
 | Left | ArrowLeft | MediaRewind |
@@ -170,6 +172,8 @@ The following keys are supported by in the **Apple TV Remote** in the Control Ce
 | Info | MediaTopMenu | Guide |
 | Volume Up | volUpCommand | - |
 | Volume Down | volDownCommand | 3 clicks = mute |
+
+NOTE: The Mute and Power buttons appear in the Remote Control as of iOS 17.0, however they are disabled. Currently, I do not know how to enable these buttons. If you have any information about these buttons, please get in touch with me.
 
 The table shows the default key mappings. You can map any Apple TV Remote button to any set-top box remote control button, see the Wiki for all of the known [KeyEvents](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents).
 
@@ -204,13 +208,13 @@ Services used in this set-top box accessory are:
 4. Input service. The input (TV channels) utilises one service per input. The maximum possible channels (inputs) are thus 100 - 3 = 97. I have limited the inputs to maximum 95, but you can override this in the config (helpful to reduce log entries when debugging). The inputs are hard limited to 95 inputs.
 
 ### Media State (Play/Pause) Limitations
-The eosstb plugin can detect the target and current media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed only for current media state when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 16.6) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
+The eosstb plugin can detect the target and current media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed only for current media state when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 17.0) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ### Recording State Limitations
 The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but the eosstb plugin uses it to set the inUse charateristic if the set-top box is turned on or is recording to the local HDD. This is useful in Shortcuts or Automations.
 
 ### Closed Captions Limitations
-The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 16.6) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
+The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 17.0) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ## Configuration
 Add a new platform to the platforms section of your homebridge `config.json`.
@@ -300,7 +304,7 @@ Mandatory config items must always exist. These are used to establish the sessio
 
 * **triplePressTime**: The amount of time in ms to detect triple-tap of a button. Used for triple-tap or triple-press features, such as triple-press of Volume Down generates Mute. Optional, defaults to 800ms.
 
-* **masterChannelListValidFor**: Amount of time in seconds that the master channel list stays valid for. Default 1800s.
+* **masterChannelListValidFor**: Amount of time in seconds that the master channel list stays valid for. Default 60s.
 
 * **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Extra debug messages above level 0 are shown in the Homebridge log in the warning colour, normally yellow. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
 
