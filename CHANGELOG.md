@@ -9,8 +9,8 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 
-## 2.2.12-beta.4 (2023-10-28)
-* Updated iOS references in README.md
+## 2.2.12 (2023-10-28)
+* Updated iOS references to iOs 17.x in README.md
 * Added config option masterChannelRefreshCheckInterval to select desired master channel list refresh check interval (in seconds). Default 60s.
 * Bumped dependency "axios": "^1.6.0",
 * Bumped dependency "mqtt": "^5.1.3"
