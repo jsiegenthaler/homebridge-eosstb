@@ -132,7 +132,7 @@ After installing, make sure you restart Homebridge.
 The set-top box accessory is exposed as a separate external accessory and each set-top box needs to be manually paired as follows:
 
 1. Open the **Home** app on your device.
-2. Tap **+** in the top right corner of the screen and then **Add Accessory** to start the process of adding a new accessory.
+2. Tap the **Home** tab, then tap **+** in the top right corner of the screen and then **Add Accessory** to start the process of adding a new accessory.
 4. **Add Accessory**: tap **More options...** to add the accessory manually.
 5. **Select an Accessory to Add to \<HomeName\>**: Select the accessory you want to add. You should see your set-top box here. If not, check your Homebridge config.
 6. Accept the **Uncertified Accessory** warning by tapping **Add Anyway**.
