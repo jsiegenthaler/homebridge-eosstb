@@ -73,7 +73,7 @@ This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or 
 
 ## Requirements
 * An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1...17.1, earlier versions not tested.
-* [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116....1.6.1, earlier versions not tested.
+* [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116....1.7.0, earlier versions not tested.
 * A TV subscription from one of the supported countries and TV providers.
 * An online account for viewing TV in the web app (often part of your TV package), see the table above.
 * An ARRIS DCX960 or HUMAX EOS1008R / 2008C / VIP5002W set-top box, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB", "EOS2STB" or "APLSTB" and marketed under different names in different countries. 
