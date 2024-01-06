@@ -9,11 +9,10 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 
-## 2.2.14-beta.3 (2024-01-06)
+## 2.2.14 (2024-01-06)
 * Updated description in package.json for better display in Homebridge on small device screens
 * Bumped dependency "axios": "^1.6.5"
 * Bumped dependency "mqtt": "^5.3.4"
-
 
 
 ## 2.2.13 (2023-11-09)
