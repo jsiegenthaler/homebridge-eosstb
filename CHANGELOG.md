@@ -11,6 +11,7 @@ Please restart Homebridge after every plugin update.
 
 ## 2.2.14 (2024-01-06)
 * Updated description in package.json for better display in Homebridge on small device screens
+* Updated iOS references to iOs 17.2 in README.md
 * Bumped dependency "axios": "^1.6.5"
 * Bumped dependency "mqtt": "^5.3.4"
 
