@@ -11,7 +11,7 @@ Please restart Homebridge after every plugin update.
 
 ## 2.2.14 (2024-01-06)
 * Updated description in package.json for better display in Homebridge on small device screens
-* Updated iOS references to iOs 17.2 in README.md
+* Updated iOS references to iOS 17.2 in README.md
 * Bumped dependency "axios": "^1.6.5"
 * Bumped dependency "mqtt": "^5.3.4"
 
@@ -24,7 +24,7 @@ Please restart Homebridge after every plugin update.
 
 
 ## 2.2.12 (2023-10-28)
-* Updated iOS references to iOs 17.x in README.md
+* Updated iOS references to iOS 17.x in README.md
 * Added config option masterChannelRefreshCheckInterval to select desired master channel list refresh check interval (in seconds). Default 60s.
 * Bumped dependency "axios": "^1.6.0"
 * Bumped dependency "mqtt": "^5.1.3"
