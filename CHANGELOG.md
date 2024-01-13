@@ -9,7 +9,7 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 
-## 2.2.15-beta.1 (2024-01-12)
+## 2.2.15-beta.1 (2024-01-13)
 * Fixed issue with MQTT connection failure in CH due to change of MQTT endpoint
 
 
