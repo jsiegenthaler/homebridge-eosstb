@@ -9,9 +9,17 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 
+## 2.3.0-beta.2 (2024-01-14)
+* Added ability to set authentication method (A, B or C). You must select the method in the plugin config
+## 2.3.0-beta.1 (2024-01-14)
+* Add auto endpoint detection for mqttBroker, personalizationService, purchaseService, recordingService, sessionService, authorizationService, linearService
+* Renamed mqttClient to mqttSession
+* Fixed bug in getMostWatchedChannels where the endpoint was incorrect
+
+
 ## 2.2.15 (2024-01-14)
 * Fixed issue with MQTT connection failure in CH due to change of MQTT endpoint
-* Bumped dependency "axios-cookiejar-support": "^5.0.0",
+* Bumped dependency "axios-cookiejar-support": "^5.0.0"
 
 
 ## 2.2.14 (2024-01-06)
