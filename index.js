@@ -77,7 +77,8 @@ const mqttUrlArray = {
     'at':		'wss://obomsg.prod.at.horizon.tv/mqtt',
     'be-fr':  	'wss://obomsg.prod.be.horizon.tv/mqtt',
     'be-nl': 	'wss://obomsg.prod.be.horizon.tv/mqtt',
-    'ch': 		'wss://obomsg.prod.ch.horizon.tv/mqtt',
+    //'ch': 		'wss://obomsg.prod.ch.horizon.tv/mqtt', 
+    'ch': 		'wss://messagebroker-prod-ch.gnp.cloud.dmdsdp.com/mqtt', // from 11.02.2024
 	'de':		'wss://obomsg.prod.de.horizon.tv/mqtt',
     'gb':       'wss://obomsg.prod.gb.horizon.tv/mqtt',
     'ie':       'wss://obomsg.prod.ie.horizon.tv/mqtt',

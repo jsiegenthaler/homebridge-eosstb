@@ -9,6 +9,11 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 
+## 2.2.15 (2024-01-14)
+* Fixed issue with MQTT connection failure in CH due to change of MQTT endpoint
+* Bumped dependency "axios-cookiejar-support": "^5.0.0",
+
+
 ## 2.2.14 (2024-01-06)
 * Updated description in package.json for better display in Homebridge on small device screens
 * Updated iOS references to iOS 17.2 in README.md
