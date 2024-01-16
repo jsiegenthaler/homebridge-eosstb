@@ -8,6 +8,8 @@ Please restart Homebridge after every plugin update.
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
 * Add ability to log and read current program name
 
+## 2.2.16 (2024-01-16)
+* Removed AZ, CZ, DE, HU, RO from config.json and Readme. These countries no longer offer UPC TV.
 
 ## 2.2.15 (2024-01-14)
 * Fixed issue with MQTT connection failure in CH due to change of MQTT endpoint
