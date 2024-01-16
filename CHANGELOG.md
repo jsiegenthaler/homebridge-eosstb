@@ -9,6 +9,9 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 
+## 2.3.0-beta.5 (2024-01-16)
+* Added extra logging in OAuth 2.0 PKCE logon method
+
 ## 2.3.0-beta.4 (2024-01-16)
 * Added extra logging in OAuth 2.0 PKCE logon method
 
