@@ -51,59 +51,27 @@ axiosCookieJarSupport(axiosWS);
 // without any trailing /
 // refer https://github.com/Sholofly/lghorizon-python/blob/features/telenet/lghorizon/const.py
 const countryBaseUrlArray = {
-	'at': 		'https://prod.spark.magentatv.at',
 	'be-fr':	'https://prod.spark.telenet.tv',
 	'be-nl':	'https://prod.spark.telenet.tv',	
     'ch': 		'https://prod.spark.sunrisetv.ch',
-	'de':		'https://prod.spark.upctv.de',
     'gb':       'https://prod.spark.virginmedia.com',
 	'ie':       'https://prod.spark.virginmediatv.ie',
     'nl': 		'https://prod.spark.ziggogo.tv',
 	'pl':		'https://prod.spark.upctv.pl',
 	'sk':		'https://prod.spark.upctv.sk',
-	// old endpoints:
-    //'at': 	'https://prod.oesp.magentatv.at/oesp/v4/AT/deu/web', // v3 and v4 works old
-    //'ch': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web', // v2, v3 and v4 work old
-	//'de':		'https://web-api-pepper.horizon.tv/oesp/v4/DE/deu/web', // v2, v3 and v4 work
-    //'gb':     'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web',
-    //'nl': 	'https://web-api-prod-obo.horizon.tv/oesp/v4/NL/nld/web', // old
-	//'pl':		'https://web-api-pepper.horizon.tv/oesp/v4/PL/pol/web', // v2, v3 and v4 work
-	//'ie':     'https://prod.oesp.virginmediatv.ie/oesp/v4/IE/eng/web/', // old
-	//'sk':		'https://web-api-pepper.horizon.tv/oesp/v4/SK/slk/web', // v2, v3 and v4 work
 };
 
 // mqtt endpoints varies by country, unchanged after backend change on 13.10.2022
 const mqttUrlArray = {
-    'at':		'wss://obomsg.prod.at.horizon.tv/mqtt',
     'be-fr':  	'wss://obomsg.prod.be.horizon.tv/mqtt',
     'be-nl': 	'wss://obomsg.prod.be.horizon.tv/mqtt',
-    //'ch': 		'wss://obomsg.prod.ch.horizon.tv/mqtt', 
     'ch': 		'wss://messagebroker-prod-ch.gnp.cloud.dmdsdp.com/mqtt', // from 11.02.2024
-	'de':		'wss://obomsg.prod.de.horizon.tv/mqtt',
     'gb':       'wss://obomsg.prod.gb.horizon.tv/mqtt',
     'ie':       'wss://obomsg.prod.ie.horizon.tv/mqtt',
     'nl': 		'wss://obomsg.prod.nl.horizon.tv/mqtt',
     'pl': 		'wss://obomsg.prod.pl.horizon.tv/mqtt',
 	'sk':		'wss://obomsg.prod.sk.horizon.tv/mqtt'
 };
-
-// profile url endpoints varies by country
-// https://prod.spark.sunrisetv.ch/deu/web/personalization-service/v1/customer/{household_id}/devices
-// without terminating / 
-// no longer needed in v2
-/*
-const personalizationServiceUrlArray = {
-    'at':		'https://prod.spark.magentatv.at/deu/web/personalization-service/v1/customer/{householdId}',
-    'be-fr':  	'https://prod.spark.telenettv.be/fr/web/personalization-service/v1/customer/{householdId}',
-    'be-nl': 	'https://prod.spark.telenettv.be/nld/web/personalization-service/v1/customer/{householdId}',
-    'ch': 		'https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/{householdId}',
-	'de':		'',
-    'gb':       'https://prod.spark.virginmedia.com/eng/web/personalization-service/v1/customer/{householdId}',
-    'ie':       'https://prod.spark.virginmediatv.ie/eng/web/personalization-service/v1/customer/{householdId}',
-    'nl': 		'https://prod.spark.ziggogo.tv/nld/web/personalization-service/v1/customer/{householdId}',
-    'pl': 		'https://prod.spark.unknown.pl/pol/web/personalization-service/v1/customer/{householdId}'
-};
-*/
 
 
 // openid logon url used in Telenet.be Belgium for be-nl and be-fr sessions
