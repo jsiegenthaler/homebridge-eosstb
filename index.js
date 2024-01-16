@@ -958,8 +958,8 @@ class stbPlatform {
 											})
 											.then(response => {	
 												this.log('Step 4 of 7: response:',response.status, response.statusText);
-												this.log.debug('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
-												this.log.debug('Step 4 of 7: response.data:',response.data);
+												this.log.warn('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
+												this.log.warn('Step 4 of 7: response.data:',response.data);
 												url = response.headers.location;
 												if (!url) {		// robustness: fail if url missing
 													this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
@@ -1061,6 +1061,7 @@ class stbPlatform {
 											// Step 4 http errors
 											.catch(error => {
 												this.log.debug("Step 4 of 7: error:",error);
+												this.log.warn("Step 4 of 7: error:",error);
 												reject("Step 4 of 7: Unable to oauth authorize: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
 											});
 									};
