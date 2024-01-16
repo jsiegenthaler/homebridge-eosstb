@@ -924,11 +924,9 @@ class stbPlatform {
 								})
 								.then(response => {	
 									this.log('Step 3 of 7: response:',response.status, response.statusText);
-									this.log.debug('Step 3 of 7: response.headers:',response.headers); 
-									this.log.debug('Step 3 of 7: response.data:',response.data);
+									this.log.warn('Step 3 of 7: response.headers:',response.headers); 
+									this.log.warn('Step 3 of 7: response.data:',response.data);
 
-									// X-Redirect-Location
-									// https://id.virginmedia.com/oidc/authorize?response_type=code&state=8ce19449-6cc9-4a65-bcbc-cea7e1884733&nonce=49b0119d-1673-41c5-97b7-eb6092c60b40&client_id=9b471ffe-7ff5-497b-9059-8dcb7c0d66f5&redirect_uri=https://virgintvgo.virginmedia.com/obo_en/login_success&claims={"id_token":{"ukHouseholdId":null}}
 									var url = response.headers['x-redirect-location'] // must be lowercase
 									if (!url) {		// robustness: fail if url missing
 										this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
