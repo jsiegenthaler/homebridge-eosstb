@@ -20,6 +20,10 @@ const mqtt = require('mqtt');  			// https://github.com/mqttjs
 const qs = require('qs');				// https://github.com/ljharb/qs
 
 
+// needed for sso logon with pkce OAuth 2.0
+const {randomBytes, createHash} = require("node:crypto");
+
+
 // axios-cookiejar-support v2.0.2 syntax
 const { wrapper: axiosCookieJarSupport } = require('axios-cookiejar-support'); // as of axios-cookiejar-support v2.0.x, see https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
 const tough = require('tough-cookie');
@@ -255,6 +259,17 @@ async function waitprom(ms) {
   }  
 
 
+// generate PKCE code verifier pair for OAuth 2.0
+function generatePKCEPair() {
+    const NUM_OF_BYTES = 22; // Total of 44 characters (1 Byte = 2 char) (standard states that: 43 chars <= verifier <= 128 chars)
+    const HASH_ALG = "sha256";
+    const code_verifier = randomBytes(NUM_OF_BYTES).toString('hex');
+    const code_verifier_hash = createHash(HASH_ALG).update(code_verifier).digest('base64');
+    const code_challenge = code_verifier_hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); // Clean base64 to make it URL safe
+    return {verifier: code_verifier, code_challenge}
+}  
+
+
 
 // ++++++++++++++++++++++++++++++++++++++++++++
 // config end
@@ -326,7 +341,11 @@ class stbPlatform {
 			setTimeout(this.sessionWatchdog.bind(this),500); // wait 500ms then call this.sessionWatchdog
 
 			// the session watchdog creates a session when none exists, and recreates one if the session ever fails due to internet failure or anything else
-			this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
+			if ((this.config.watchdogDisabled || false) == true) {
+				this.log.warn('WARNING: Session watchdog disabled')
+			} else {
+				this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
+			}
 
 			// check for a channel list update every MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S seconds
 			this.checkChannelListInterval = setInterval(() => {
@@ -773,6 +792,11 @@ class stbPlatform {
 			this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
 			//switch(country) {
 			switch(this.config.authmethod) {
+				case 'D': // OAuth 2.0 with PKCE
+					this.getSessionOAuth2Pkce()
+						.then((getSessionResponse) => { resolve(getSessionResponse); }) // return the getSessionResponse for the promise
+						.catch(error => { reject(error); }); // on any error, reject the promise and pass back the error
+					break;
 				case 'be-nl': case 'be-fr': case 'B':
 					this.getSessionBE()
 						.then((getSessionResponse) => { resolve(getSessionResponse); }) // return the getSessionResponse for the promise
@@ -790,6 +814,284 @@ class stbPlatform {
 				}
 		})
 	}
+
+
+	// get session for OAuth 2.0 PKCE (special logon sequence)
+	getSessionOAuth2Pkce() {
+		return new Promise((resolve, reject) => {
+			this.log('Creating %s OAuth 2.0 PKCE session...',PLATFORM_NAME);
+			this.log.warn('++++ PLEASE NOTE: This is current test code with lots of debugging. Do not expect it to work yet. ++++');
+			currentSessionState = sessionState.LOADING;
+
+			 
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// axios interceptors to log request and response for debugging
+			// works on all following requests in this sub
+			/*
+			axiosWS.interceptors.request.use(req => {
+				this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
+				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
+				'\nMethod:', req.method, '\nURL:', req.url, 
+				'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,
+				'\nParams:', req.params, '\nData:', req.data
+				);
+				this.log.warn(req); 
+				return req; // must return request
+			});
+			axiosWS.interceptors.response.use(res => {
+				this.log.warn('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
+				'\nHeaders:', res.headers, 
+				'\nUrl:', res.url, 
+				//'\nData:', res.data, 
+				'\nLast Request:', res.request
+				);
+				//this.log.warn(res); 
+				this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:'); 
+				if (cookieJar) { this.log(cookieJar); }// watch out for empty cookieJar
+				return res; // must return response
+			});
+			*/
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+			// good description of PKCE
+			// https://www.authlete.com/developers/pkce/
+			// creake a PKCE code pair
+			let pkcePair = generatePKCEPair();
+			//this.log('PKCE pair:', pkcePair); 
+
+
+			// Step 1: # get authentication details
+			// Recorded sequence step 1: https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true
+			// const GB_AUTH_OESP_URL = 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web';
+			// https://spark-prod-gb.gnp.cloud.virgintvgo.virginmedia.com/auth-service/v1/sso/authorization?code_challenge=aHsoE2kJlwA4qGOcx1OCH7i__1bBdV1l6yLOKUvW24U&language=en
+			let apiAuthorizationUrl = this.configsvc.authorizationService.URL + '/v1/sso/authorization?'
+				+ 'code_challenge=' + pkcePair.code_challenge
+				+ '&language=en';
+			
+			this.log('Step 1 of 7: get authentication details');
+			if (this.config.debugLevel > 1) { this.log.warn('Step 1 of 7: get authentication details from',apiAuthorizationUrl); }
+			axiosWS.get(apiAuthorizationUrl)
+				.then(response => {	
+					this.log('Step 1 of 7: response:',response.status, response.statusText);
+					this.log('Step 1 of 7: response.data',response.data);
+					
+					// get the data we need for further steps
+					let auth = response.data;
+					let authState = auth.state;
+					let authAuthorizationUri = auth.authorizationUri;
+					let authValidtyToken = auth.validityToken;
+					this.log('Step 1 of 7: results: authState',authState);
+					this.log('Step 1 of 7: results: authAuthorizationUri',authAuthorizationUri);
+					this.log('Step 1 of 7: results: authValidtyToken',authValidtyToken);
+
+					// Step 2: # follow authorizationUri to get AUTH cookie (ULM-JSESSIONID)
+					this.log('Step 2 of 7: get AUTH cookie');
+					this.log.debug('Step 2 of 7: get AUTH cookie ULM-JSESSIONID from',authAuthorizationUri);
+					axiosWS.get(authAuthorizationUri, {
+							jar: cookieJar,
+							// unsure what minimum headers will here
+							headers: {
+								Accept: 'application/json, text/plain, */*'
+								//Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+							},						})
+						.then(response => {	
+							this.log('Step 2 of 7: response:',response.status, response.statusText);
+							this.log.warn('Step 2 of 7 response.data',response.data); // an html logon page
+			
+							// Step 3: # login
+							this.log('Step 3 of 7: logging in with username %s', this.config.username);
+							currentSessionState = sessionState.LOGGING_IN;
+
+							// we want to POST to 
+							// 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
+							const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
+							this.log.debug('Step 3 of 7: POST request will contain this data: {"username":"' + this.config.username + '","credential":"' + this.config.password + '"}');
+							axiosWS(GB_AUTH_URL,{
+							//axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
+								jar: cookieJar,
+								// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
+								data: '{"username":"' + this.config.username + '","credential":"' + this.config.password + '"}',
+								method: "POST",
+								// minimum headers are "accept": "*/*", "content-type": "application/json; charset=UTF-8",
+								headers: {
+									"accept": "*/*", // mandatory
+									"content-type": "application/json; charset=UTF-8", // mandatory
+								},
+								maxRedirects: 0, // do not follow redirects
+								validateStatus: function (status) {
+									return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK. GB returns 200
+								},
+								})
+								.then(response => {	
+									this.log('Step 3 of 7: response:',response.status, response.statusText);
+									this.log.debug('Step 3 of 7: response.headers:',response.headers); 
+									this.log.debug('Step 3 of 7: response.data:',response.data);
+
+									// X-Redirect-Location
+									// https://id.virginmedia.com/oidc/authorize?response_type=code&state=8ce19449-6cc9-4a65-bcbc-cea7e1884733&nonce=49b0119d-1673-41c5-97b7-eb6092c60b40&client_id=9b471ffe-7ff5-497b-9059-8dcb7c0d66f5&redirect_uri=https://virgintvgo.virginmedia.com/obo_en/login_success&claims={"id_token":{"ukHouseholdId":null}}
+									var url = response.headers['x-redirect-location'] // must be lowercase
+									if (!url) {		// robustness: fail if url missing
+										this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
+										currentSessionState = sessionState.DISCONNECTED;
+										this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+										return false;						
+									}
+									//location is h??=... if success
+									//location is https?? if not authorised
+									//location is https:... error=session_expired if session has expired
+									if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
+										//this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
+										reject('Step 3 of 7: Unable to login: wrong credentials'); // reject the promise and return the error
+									} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
+										//this.log.warn('Step 3 of 7: Unable to login: session expired');
+										cookieJar.removeAllCookies();	// remove all the locally cached cookies
+										reject('Step 3 of 7: Unable to login: session expired'); // reject the promise and return the error
+									} else {
+										this.log.debug('Step 3 of 7: login successful');
+
+										// Step 4: # follow redirect url
+										this.log('Step 4 of 7: follow redirect url');
+										axiosWS.get(url,{
+											jar: cookieJar,
+											maxRedirects: 0, // do not follow redirects
+											validateStatus: function (status) {
+												return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
+												},
+											})
+											.then(response => {	
+												this.log('Step 4 of 7: response:',response.status, response.statusText);
+												this.log.debug('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
+												this.log.debug('Step 4 of 7: response.data:',response.data);
+												url = response.headers.location;
+												if (!url) {		// robustness: fail if url missing
+													this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
+													currentSessionState = sessionState.DISCONNECTED;
+													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+													return false;						
+												}								
+				
+												// look for login_success?code=
+												if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
+													//this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
+													reject('Step 4 of 7: Unable to login: wrong credentials'); // reject the promise and return the error
+												} else if (url.indexOf('error=session_expired') > 0 ) {
+													//this.log.warn('Step 4 of 7: Unable to login: session expired');
+													cookieJar.removeAllCookies();	// remove all the locally cached cookies
+													reject('Step 4 of 7: Unable to login: session expired'); // reject the promise and return the error
+												} else {
+
+													// Step 5: # obtain authorizationCode
+													this.log('Step 5 of 7: extract authorizationCode');
+													/*
+													url = response.headers.location;
+													if (!url) {		// robustness: fail if url missing
+														this.log.warn('getSessionGB: Step 5: location url empty!');
+														currentSessionState = sessionState.DISCONNECTED;
+														this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+														return false;						
+													}				
+													*/				
+					
+													var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
+													var authorizationCode = codeMatches[1];
+													if (codeMatches.length !== 2 ) { // length must be 2 if code found
+														this.log.warn('Step 5 of 7: Unable to extract authorizationCode');
+													} else {
+														this.log('Step 5 of 7: authorizationCode OK');
+														this.log.debug('Step 5 of 7: authorizationCode:',authorizationCode);
+
+														// Step 6: # authorize again
+														this.log('Step 6 of 7: post auth data with valid code');
+														this.log.debug('Step 6 of 7: post auth data with valid code to',apiAuthorizationUrl);
+														currentSessionState = sessionState.AUTHENTICATING;
+														var payload = {'authorizationGrant':{
+															'authorizationCode':authorizationCode,
+															'validityToken':authValidtyToken,
+															'state':authState
+														}};
+														axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
+															.then(response => {	
+																this.log('Step 6 of 7: response:',response.status, response.statusText);
+																this.log.debug('Step 6 of 7: response.data:',response.data);
+																
+																auth = response.data;
+																this.log.debug('Step 6 of 7: refreshToken:',auth.refreshToken);
+
+																// Step 7: # get OESP code
+																this.log('Step 7 of 7: post refreshToken request');
+																this.log.debug('Step 7 of 7: post refreshToken request to',apiAuthorizationUrl);
+																payload = {'refreshToken':auth.refreshToken,'username':auth.username};
+																// must resolve to
+																// 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/session';',
+																var sessionUrl = GB_AUTH_OESP_URL + '/session';
+																axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
+																	.then(response => {	
+																		this.log('Step 7 of 7: response:',response.status, response.statusText);
+																		currentSessionState = sessionState.VERIFYING;
+																		
+																		this.log.debug('Step 7 of 7: response.headers:',response.headers); 
+																		this.log.debug('Step 7 of 7: response.data:',response.data); 
+																		this.log.debug('Cookies for the session:',cookieJar.getCookies(sessionUrl));
+																		if (this.config.debugLevel > 2) { 
+																			this.log('getSessionGB: response data (saved to this.session):'); 
+																			this.log(response.data); 
+																		}
+
+																		// get device data from the session
+																		this.session = response.data;
+																		// New APLSTB Apollo box on NL does not return username in during session logon, so store username from settings if missing
+																		if (this.session.username == '') { this.session.username = this.config.username; }
+																		
+																		currentSessionState = sessionState.CONNECTED;
+																		this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+																		this.log('Session created');
+																		resolve(this.session.householdId) // resolve the promise with the householdId
+																	})
+																	// Step 7 http errors
+																	.catch(error => {
+																		this.log.debug("Step 7 of 7: error:",error);
+																		reject("Step 7 of 7: Unable to get OESP token: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+																	});
+															})
+															// Step 6 http errors
+															.catch(error => {
+																reject("Step 6 of 7: Unable to authorize with oauth code, http error: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+															});	
+													};
+												};
+											})
+											// Step 4 http errors
+											.catch(error => {
+												this.log.debug("Step 4 of 7: error:",error);
+												reject("Step 4 of 7: Unable to oauth authorize: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+											});
+									};
+								})
+								// Step 3 http errors
+								.catch(error => {
+									this.log.debug("Step 3 of 7: error:",error);
+									this.log.warn("Step 3 of 7: error:",error);
+									reject("Step 3 of 7: Unable to login: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+								});
+						})
+						// Step 2 http errors
+						.catch(error => {
+							this.log.debug("Step 2 of 7: error:",error);
+							reject("Step 2 of 7: Could not get authorizationUri: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+						});
+				})
+				// Step 1 http errors
+				.catch(error => {
+					this.log.debug("Step 1 of 7: error:",error);
+					reject("Step 1 of 7: Failed to create session - check your internet connection"); // reject the promise and return the error
+				});
+
+			currentSessionState = sessionState.DISCONNECTED;
+			this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+		})
+	}
+
+
 
 	// get session ch, nl, ie, at
 	// using new auth method, as of 13.10.2022
@@ -2142,12 +2444,11 @@ class stbPlatform {
 
 			const mqttAxiosConfig = {
 				method: 'GET',
-				//url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/tokens/jwt', prior to October 2022
 				// examples of auth-service/v1/mqtt/token urls:
 				// https://prod.spark.ziggogo.tv/auth-service/v1/mqtt/token
 				// https://prod.spark.sunrisetv.ch/auth-service/v1/mqtt/token
 				//url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/mqtt/token', // new from October 2022
-				url: this.configsvc.authorizationService.URL + '/v1/mqtt/token', // new from October 2022
+				url: this.configsvc.authorizationService.URL + '/v1/mqtt/token',
 				headers: {
 					'X-OESP-Token': accessToken,
 					'X-OESP-Username': oespUsername, 
