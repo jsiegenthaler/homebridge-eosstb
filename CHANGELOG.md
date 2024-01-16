@@ -9,6 +9,11 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 
+## 2.3.0-beta.3 (2024-01-16)
+* Added Disable Session Watchdog to config.schema to make it easier to debug by turning off the watchdog
+* Added OAuth 2.0 PKCE logon method in config.schema as Method D
+* Starting building OAuth 2.0 PKCE logon method in code +++IN WORK+++
+* Removed some old auth comments
 ## 2.3.0-beta.2 (2024-01-14)
 * Added ability to set authentication method (A, B or C). You must select the method in the plugin config
 ## 2.3.0-beta.1 (2024-01-14)
