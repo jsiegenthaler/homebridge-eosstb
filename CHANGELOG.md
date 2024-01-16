@@ -30,6 +30,9 @@ Please restart Homebridge after every plugin update.
 * Fixed bug in getMostWatchedChannels where the endpoint was incorrect
 
 
+## 2.2.16 (2024-01-16)
+* Removed AZ, CZ, DE, HU, RO from config.json and Readme. These countries no longer offer UPC TV.
+
 ## 2.2.15 (2024-01-14)
 * Fixed issue with MQTT connection failure in CH due to change of MQTT endpoint
 * Bumped dependency "axios-cookiejar-support": "^5.0.0"

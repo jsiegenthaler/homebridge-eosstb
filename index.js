@@ -55,7 +55,6 @@ axiosCookieJarSupport(axiosWS);
 // without any trailing /
 // refer https://github.com/Sholofly/lghorizon-python/blob/features/telenet/lghorizon/const.py
 const countryBaseUrlArray = {
-	//'at': 		'https://prod.spark.magentatv.at', // confirmed no longer operational as of Jan 2024
 	//https://spark-prod-be.gnp.cloud.telenet.tv/be/en/config-service/conf/web/backoffice.json
 	//'be-fr':	'https://prod.spark.telenet.tv',
 	//'be-nl':	'https://prod.spark.telenet.tv',	
@@ -63,7 +62,6 @@ const countryBaseUrlArray = {
 				// https://spark-prod-ch.gnp.cloud.sunrisetv.ch/ch/en/config-service/conf/web/backoffice.json
     //'ch': 		'https://prod.spark.sunrisetv.ch', 
     'ch': 		'https://spark-prod-ch.gnp.cloud.sunrisetv.ch', // verified 14.01.2024
-	//'de':		'https://prod.spark.upctv.de', // confirmed no longer operational as of Jan 2024
 	'gb':       'https://spark-prod-gb.gnp.cloud.virgintvgo.virginmedia.com', // verified 14.01.2024
 	'ie':       'https://spark-prod-ie.gnp.cloud.virginmediatv.ie', // verified 14.01.2024
     'nl': 		'https://prod.spark.ziggogo.tv', // verified 14.01.2024
@@ -76,12 +74,9 @@ const countryBaseUrlArray = {
 // mqtt endpoints varies by country, unchanged after backend change on 13.10.2022
 /*
 const mqttUrlArray = {
-    'at':		'wss://obomsg.prod.at.horizon.tv/mqtt',
     'be-fr':  	'wss://obomsg.prod.be.horizon.tv/mqtt',
     'be-nl': 	'wss://obomsg.prod.be.horizon.tv/mqtt',
-    //'ch': 		'wss://obomsg.prod.ch.horizon.tv/mqtt', 
     'ch': 		'wss://messagebroker-prod-ch.gnp.cloud.dmdsdp.com/mqtt', // from 11.02.2024
-	'de':		'wss://obomsg.prod.de.horizon.tv/mqtt',
     'gb':       'wss://obomsg.prod.gb.horizon.tv/mqtt',
     'ie':       'wss://obomsg.prod.ie.horizon.tv/mqtt',
     'nl': 		'wss://obomsg.prod.nl.horizon.tv/mqtt',
@@ -904,6 +899,7 @@ class stbPlatform {
 
 							// we want to POST to 
 							// 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
+							// see https://auth0.com/intro-to-iam/what-is-openid-connect-oidc
 							const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
 							this.log.debug('Step 3 of 7: POST request will contain this data: {"username":"' + this.config.username + '","credential":"' + this.config.password + '"}');
 							axiosWS(GB_AUTH_URL,{

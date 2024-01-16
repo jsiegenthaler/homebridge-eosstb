@@ -23,19 +23,14 @@
           "default": "ch",
           "required": true,
           "oneOf": [
-            { "title": "AT: Magenta TV", "enum": ["at"] },
             { "title": "BE-FR:  Telenet TV", "enum": ["be-fr"] },
             { "title": "BE-NL:  Telenet TV", "enum": ["be-nl"] },
             { "title": "CH:  Sunrise TV", "enum": ["ch"] },
-            { "title": "CZ", "enum": ["cz"] },
-            { "title": "DE", "enum": ["de"] },
             { "title": "GB:  Virgin Media TV 360", "enum": ["gb"] },
-            { "title": "HU", "enum": ["hu"] },
             { "title": "IE.  Virgin Media TV 360", "enum": ["ie"] },
             { "title": "NL:  Ziggo TV", "enum": ["nl"] },
-            { "title": "PL", "enum": ["pl"] },
-            { "title": "SK", "enum": ["sk"] },
-            { "title": "RO", "enum": ["ro"] }
+            { "title": "PL:  UPC TV GO", "enum": ["pl"] },
+            { "title": "SK:  UPC TV", "enum": ["sk"] }
           ]
         },
         "username": {
