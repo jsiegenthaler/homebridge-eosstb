@@ -855,8 +855,8 @@ class stbPlatform {
 
 			// good description of PKCE
 			// https://www.authlete.com/developers/pkce/
-			// creake a PKCE code pair
-			let pkcePair = generatePKCEPair();
+			// creake a PKCE code pair and save it
+			this.pkcePair = generatePKCEPair();
 			//this.log('PKCE pair:', pkcePair); 
 
 
@@ -865,7 +865,7 @@ class stbPlatform {
 			// const GB_AUTH_OESP_URL = 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web';
 			// https://spark-prod-gb.gnp.cloud.virgintvgo.virginmedia.com/auth-service/v1/sso/authorization?code_challenge=aHsoE2kJlwA4qGOcx1OCH7i__1bBdV1l6yLOKUvW24U&language=en
 			let apiAuthorizationUrl = this.configsvc.authorizationService.URL + '/v1/sso/authorization?'
-				+ 'code_challenge=' + pkcePair.code_challenge
+				+ 'code_challenge=' + this.pkcePair.code_challenge
 				+ '&language=en';
 			
 			this.log('Step 1 of 7: get authentication details');
@@ -925,7 +925,9 @@ class stbPlatform {
 								.then(response => {	
 									this.log('Step 3 of 7: response:',response.status, response.statusText);
 									this.log.warn('Step 3 of 7: response.headers:',response.headers); 
-									this.log.warn('Step 3 of 7: response.data:',response.data);
+									// responds with a userId, this will need to be used somewhere...
+									this.log.warn('Step 3 of 7: response.data:',response.data); // { userId: 28786528, runtimeId: 79339515 }
+									
 
 									var url = response.headers['x-redirect-location'] // must be lowercase
 									if (!url) {		// robustness: fail if url missing
