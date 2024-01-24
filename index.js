@@ -2505,6 +2505,7 @@ class stbPlatform {
 				// the required header looks like this:
 				// "sec-websocket-protocol": "mqtt, mqttv3.1, mqttv3.11",
 				// make a new custom websocket so we can ensure the correct mqtt protocols are used in the headers
+				// see https://github.com/websockets/ws/blob/master/doc/ws.md#new-websocketaddress-protocols-options
 				const createCustomWebsocket = (url, websocketSubProtocols, options) => {
 					//this.log.warn('statMqttClient: createCustomWebsocket: ', websocketSubProtocols[0] ); 
 					const subProtocols = [
