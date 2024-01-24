@@ -18,6 +18,7 @@ const semver = require('semver')		// https://github.com/npm/node-semver
 
 const mqtt = require('mqtt');  			// https://github.com/mqttjs
 const qs = require('qs');				// https://github.com/ljharb/qs
+const WebSocket = require('ws');		// https://github.com/websockets/ws   for the mqtt websocket
 
 
 // needed for sso logon with pkce OAuth 2.0
@@ -134,7 +135,7 @@ const { connected } = require('process');
 var PLUGIN_ENV = ''; // controls the development environment, appended to UUID to make unique device when developing
 
 // variables for session and all devices
-let mqttSession = {};
+let mqttClient = {};
 let mqttClientId = '';
 let mqttUsername;
 let currentSessionState;
@@ -311,7 +312,7 @@ class stbPlatform {
 
 		// session flags
 		currentSessionState = sessionState.DISCONNECTED;
-		mqttSession.connected = false;
+		mqttClient.connected = false;
 		this.sessionWatchdogRunning = false;
 		this.watchdogCounter = 0;
 		this.mqttClientConnecting = false;
@@ -469,7 +470,7 @@ class stbPlatform {
 
 		if (this.config.debugLevel > 0) { 
 			statusOverview = statusOverview + ' sessionState=' + Object.keys(sessionState)[currentSessionState]
-			statusOverview = statusOverview + ' mqttSession.connected=' + mqttSession.connected
+			statusOverview = statusOverview + ' mqttClient.connected=' + mqttClient.connected
 			statusOverview = statusOverview + ' sessionWatchdogRunning=' + this.sessionWatchdogRunning
 		}
 
@@ -488,7 +489,7 @@ class stbPlatform {
 		} else if (currentSessionState == sessionState.CONNECTED) { 
 			// session is connected, check mqtt state
 
-			if (mqttSession.connected) { 
+			if (mqttClient.connected) { 
 				if (this.config.debugLevel > 2) { this.log.warn(watchdogInstance + ': Session and mqtt connected, exiting %s without action', watchdogInstance); }
 				return; 
 			} else if (this.mqttClientConnecting) { 
@@ -599,8 +600,8 @@ class stbPlatform {
 				.then((mqttToken) => {
 					this.log.debug('%s: ++++++ step 10: getMqttToken token was retrieved, token %s', watchdogInstance, mqttToken)
 					this.log.debug('%s: ++++++ step 10: start mqtt client', watchdogInstance)
-					debug(debugPrefix + 'calling startMqttSession')
-					return this.startMqttSession(this, this.session.householdId, mqttToken);  // returns true
+					debug(debugPrefix + 'calling statMqttClient')
+					return this.statMqttClient(this, this.session.householdId, mqttToken);  // returns true
 				})
 				.catch(errorReason => {
 					// log any errors and set the currentSessionState
@@ -2474,14 +2475,14 @@ class stbPlatform {
 	// a sync procedure, no promise returned
 	// https://github.com/mqttjs/MQTT.js#readme
 	// http://www.steves-internet-guide.com/mqtt-publish-subscribe/
-	startMqttSession(parent, mqttUsername, mqttPassword) {
+	statMqttClient(parent, mqttUsername, mqttPassword) {
 		return new Promise((resolve, reject) => {
 			try {
 				if (this.config.debugLevel > 0) { 
-					this.log('Starting mqttSession...'); 
+					this.log('Starting mqttClient...'); 
 				}
 				if (currentSessionState !== sessionState.CONNECTED) {
-					this.log.warn('Cannot start mqttSession: currentSessionState incorrect:', currentSessionState);
+					this.log.warn('Cannot start mqttClient: currentSessionState incorrect:', currentSessionState);
 					return false;
 				}
 
@@ -2490,37 +2491,52 @@ class stbPlatform {
 				//const mqttBroker = mqttUrlArray[this.config.country.toLowerCase()];
 				const mqttBrokerUrl = this.configsvc.mqttBroker.URL;
 				if (this.config.debugLevel > 0) { 
-					this.log.warn('startMqttSession: mqttBrokerUrl:', mqttBrokerUrl ); 
+					this.log.warn('statMqttClient: mqttBrokerUrl:', mqttBrokerUrl ); 
 				}
 				if (this.config.debugLevel > 0) { 
-					this.log.warn('startMqttSession: Creating mqttSession with username %s, password %s', mqttUsername ,mqttPassword ); 
+					this.log.warn('statMqttClient: Creating mqttClient with username %s, password %s', mqttUsername ,mqttPassword ); 
 				}
 
-				// make a new mqttClientId on every session start, much robuster, then connect
+				// make a new mqttClientId on every session start (much robuster), then connect
 				//mqttClientId = makeId(32);
 				mqttClientId = makeFormattedId(32);
-				//mqttClientId = makeId(32);
 
+				// from 24 Jan 2024 we need to set the sub protocols mqtt, mqttv3.1, mqttv3.11 to connect
+				// the required header looks like this:
+				// "sec-websocket-protocol": "mqtt, mqttv3.1, mqttv3.11",
+				// make a new custom websocket so we can ensure the correct mqtt protocols are used in the headers
+				const createCustomWebsocket = (url, websocketSubProtocols, options) => {
+					//this.log.warn('statMqttClient: createCustomWebsocket: ', websocketSubProtocols[0] ); 
+					const subProtocols = [
+						'mqtt',
+						'mqttv3.1',
+						'mqttv3.11'
+					];
+					//this.log.warn('statMqttClient: createCustomWebsocket: about to return' ); 
+					return new WebSocket(url, subProtocols);
+				};
+				
 				// https://github.com/mqttjs/MQTT.js#connect
-				mqttSession = mqtt.connect(mqttBrokerUrl, {
-					connectTimeout: 10 * 1000, // 10s
+				mqttClient = mqtt.connect(mqttBrokerUrl, {
+					createWebsocket: createCustomWebsocket,
 					clientId: mqttClientId,
+					connectTimeout: 10 * 1000, // 10s
 					username: mqttUsername,
 					password: mqttPassword
 				});
 				if (this.config.debugLevel > 0) { 
-					this.log.warn('startMqttSession: mqttBroker connect request sent using mqttClientId %s',mqttClientId ); 
+					this.log.warn('statMqttClient: mqttBroker connect request sent using mqttClientId %s',mqttClientId ); 
 				}
 
-				//mqttSession.setMaxListeners(20); // default is 10 sometimes causes issues when the listeners reach 11
-				//parent.log(mqttSession); //for debug
+				//mqttClient.setMaxListeners(20); // default is 10 sometimes causes issues when the listeners reach 11
+				//parent.log(mqttClient); //for debug
 
 				
 				// mqtt client event: connect
 				// https://github.com/mqttjs/MQTT.js#event-connect
-				mqttSession.on('connect', function () {
+				mqttClient.on('connect', function () {
 					try {
-						parent.log("mqttSession: %s", mqttSession.connected ? 'Connected' : 'Disconnected' ); // Conditional (ternary) operator: condition ? trueValue : FalseValue
+						parent.log("mqttClient: %s", mqttClient.connected ? 'Connected' : 'Disconnected' ); // Conditional (ternary) operator: condition ? trueValue : FalseValue
 						parent.mqttClientConnecting = false;
 
 						// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/107xxxx_ch/profiles
@@ -2581,7 +2597,7 @@ class stbPlatform {
 				
 						// mqtt client event: message received
 						// https://github.com/mqttjs/MQTT.js#event-message
-						mqttSession.on('message', function (topic, message) {
+						mqttClient.on('message', function (topic, message) {
 							try {
 
 								// store some mqtt diagnostic data
@@ -2589,7 +2605,7 @@ class stbPlatform {
 
 								let mqttMessage = JSON.parse(message);
 								if (parent.config.debugLevel > 0) {
-									parent.log.warn('mqttSession: Received Message: \r\nTopic: %s\r\nMessage: (next log entry)', topic,);
+									parent.log.warn('mqttClient: Received Message: \r\nTopic: %s\r\nMessage: (next log entry)', topic,);
 									parent.log.warn(mqttMessage);
 								}
 
@@ -2601,9 +2617,9 @@ class stbPlatform {
 								// Message: { action: 'OPS.getProfilesUpdate', source: '3C36E4-EOSSTB-00365657xxxx', ... }
 								// Message: { action: 'OPS.getDeviceUpdate', source: '3C36E4-EOSSTB-00365657xxxx', deviceId: '3C36E4-EOSSTB-00365657xxxx' }
 								if (topic.includes(mqttUsername + '/personalizationService')) {
-									if (parent.config.debugLevel > 0) { parent.log.warn('mqttSession: %s: action', mqttMessage.action); }
+									if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s: action', mqttMessage.action); }
 									if (mqttMessage.action == 'OPS.getProfilesUpdate' || mqttMessage.action == 'OPS.getDeviceUpdate') {
-										if (parent.config.debugLevel > 0) { parent.log.warn('mqttSession: %s, calling getPersonalizationData', mqttMessage.action); }
+										if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: %s, calling getPersonalizationData', mqttMessage.action); }
 										deviceId = mqttMessage.source;
 										profileDataChanged = true;
 										parent.getPersonalizationData(parent.session.householdId); // async function
@@ -2614,7 +2630,7 @@ class stbPlatform {
 								// Topic: Topic: 107xxxx_ch/recordingStatus
 								// Message: {"id":"crid:~~2F~~2Fgn.tv~~2F2004781~~2FEP019440730003,imi:2d369682b865679f2e5182ea52a93410171cfdc8","event":"scheduleEvent","transactionId":"/CH/eng/web/networkdvrrecordings - 013f12fc-23ef-4b77-a244-eeeea0c6901c"}
 								if (topic.includes(mqttUsername + '/recordingStatus')) {
-									if (parent.config.debugLevel > 0) { parent.log.warn('mqttSession: event: %s', mqttMessage.event); }
+									if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: event: %s', mqttMessage.event); }
 									parent.refreshRecordings(parent.session.householdId); // request a refresh of recording data
 								}
 
@@ -2623,7 +2639,7 @@ class stbPlatform {
 								// Message: {"deviceType":"STB","source":"3C36E4-EOSSTB-00365657xxxx","state":"ONLINE_RUNNING","mac":"F8:F5:32:45:DE:52","ipAddress":"192.168.0.33/255.255.255.0"}
 								if (topic.includes('/status')) {
 									if (mqttMessage.deviceType == 'STB') {
-										if (parent.config.debugLevel > 0) { parent.log.warn('mqttSession: STB status: Detecting Power State: Received Message of deviceType %s for %s', mqttMessage.deviceType, mqttMessage.source); }
+										if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: STB status: Detecting Power State: Received Message of deviceType %s for %s', mqttMessage.deviceType, mqttMessage.source); }
 										// sometimes a rogue empty message appears without a mac or ipAddress, so ensure a mac is always present
 										// mac.length = 0 when the box is physically offline
 										if (mqttMessage.mac.length > 0) {
@@ -2659,13 +2675,13 @@ class stbPlatform {
 												break;
 										}
 										if (parent.config.debugLevel > 0) { 
-											parent.log.warn('mqttSession: %s %s ', deviceId, stbState);
+											parent.log.warn('mqttClient: %s %s ', deviceId, stbState);
 										}
 
 									}
 								}
 
-								//parent.log.warn('mqttSession: CPE.uiStatus: stbState %s, currStatusActive %s, currPowerState %s, currMediaState %s', stbState, currStatusActive, currPowerState, currMediaState); 
+								//parent.log.warn('mqttClient: CPE.uiStatus: stbState %s, currStatusActive %s, currPowerState %s, currMediaState %s', stbState, currStatusActive, currPowerState, currMediaState); 
 								
 								// handle CPE UI status messages for the STB
 								// topic can be many, so look for mqttMessage.type
@@ -2673,11 +2689,11 @@ class stbPlatform {
 								// Message: {"version":"1.3.10","type":"CPE.uiStatus","source":"3C36E4-EOSSTB-00365657xxxx","messageTimeStamp":1607205483257,"status":{"uiStatus":"mainUI","playerState":{"sourceType":"linear","speed":1,"lastSpeedChangeTime":1607203130936,"source":{"channelId":"SV09259","eventId":"crid:~~2F~~2Fbds.tv~~2F394850976,imi:3ef107f9a95f37e5fde84ee780c834b502be1226"}},"uiState":{}},"id":"fms4mjb9uf"}
 								if (mqttMessage.type == 'CPE.uiStatus') {
 									if (parent.config.debugLevel > 0) { 
-										parent.log.warn('mqttSession: CPE.uiStatus: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
+										parent.log.warn('mqttClient: CPE.uiStatus: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
 									}
 									if (parent.config.debugLevel > 0) {
-										parent.log.warn('mqttSession: mqttMessage.status', mqttMessage.status);
-										parent.log.warn('mqttSession: mqttMessage.status.uiStatus:', mqttMessage.status.uiStatus);
+										parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
+										parent.log.warn('mqttClient: mqttMessage.status.uiStatus:', mqttMessage.status.uiStatus);
 									}
 									// if we have this message, then the power is on. Sometimes the message arrives before the status topic with the power state
 									currStatusActive = Characteristic.Active.ACTIVE; // ensure statusActive is set to Active
@@ -2688,14 +2704,14 @@ class stbPlatform {
 									const cpeUiStatus = mqttMessage.status;
 									// normal TV: 	cpeUiStatus = mainUI
 									// app: 		cpeUiStatus = apps (YouTube, Netflix, etc)
-									if (parent.config.debugLevel > 0) { parent.log.warn('mqttSession: CPE.uiStatus: cpeUiStatus:', cpeUiStatus); }
-									if (parent.config.debugLevel > 0) { parent.log.warn('mqttSession: CPE.uiStatus: cpeUiStatus.uiStatus:', cpeUiStatus.uiStatus); }
+									if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus:', cpeUiStatus); }
+									if (parent.config.debugLevel > 0) { parent.log.warn('mqttClient: CPE.uiStatus: cpeUiStatus.uiStatus:', cpeUiStatus.uiStatus); }
 									switch (cpeUiStatus.uiStatus) {
 										case 'mainUI':
 											// grab the status part of the mqttMessage object as we cannot go any deeper with json
 											const playerState = cpeUiStatus.playerState;
 											currSourceType = playerState.sourceType;
-											if (parent.config.debugLevel > 1) { parent.log.warn('mqttSession: mainUI: Detected mqtt playerState.speed:', playerState.speed); }
+											if (parent.config.debugLevel > 1) { parent.log.warn('mqttClient: mainUI: Detected mqtt playerState.speed:', playerState.speed); }
 
 											// get playerState.speed (shows if playing or paused)
 											// speed can be one of: -64 -30 -6 -2 0 2 6 30 64. 0=Paused, 1=Play, >1=FastForward, <0=Rewind
@@ -2745,7 +2761,7 @@ class stbPlatform {
 													let currentChannelName; // let is scoped to the current {} block
 													let curChannel = parent.masterChannelList.find(channel => channel.id === currChannelId); 
 													if (curChannel) { currentChannelName = curChannel.name; }
-													parent.log.warn('mqttSession: Detected mqtt channelId: %s [%s]', currChannelId, currentChannelName);
+													parent.log.warn('mqttClient: Detected mqtt channelId: %s [%s]', currChannelId, currentChannelName);
 												}
 											} else {
 												// if playerState.source is null, then the settop box could be playing a radio station
@@ -2757,8 +2773,8 @@ class stbPlatform {
 											break;
 
 										case 'apps':
-											//parent.log('mqttSession: apps: Detected mqtt app channelId: %s', cpeUiStatus.appsState.id);
-											//parent.log("mqttSession: apps: Detected mqtt app appName %s", cpeUiStatus.appsState.appName);
+											//parent.log('mqttClient: apps: Detected mqtt app channelId: %s', cpeUiStatus.appsState.id);
+											//parent.log("mqttClient: apps: Detected mqtt app appName %s", cpeUiStatus.appsState.appName);
 											// we get id and appName here, load to the channel list...
 											// useful for YouTube and Netflix
 											currInputSourceType = Characteristic.InputSourceType.APPLICATION;
@@ -2804,10 +2820,10 @@ class stbPlatform {
 								// {"source":"7028f103-8494-4f79-9b76-beb67a2e5caa","type":"CPE.pullFromTV","runtimeType":"pull"}
 								if (mqttMessage.type == 'CPE.pushToTV.rsp') {
 									if (parent.config.debugLevel > 0) { 
-										parent.log.warn('mqttSession: CPE.pushToTV.rsp: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
+										parent.log.warn('mqttClient: CPE.pushToTV.rsp: Detecting currentChannelId: Received Message of type %s for %s', mqttMessage.type, mqttMessage.source); 
 									}
 									if (parent.config.debugLevel > 0) {
-										parent.log.warn('mqttSession: mqttMessage.status', mqttMessage.status);
+										parent.log.warn('mqttClient: mqttMessage.status', mqttMessage.status);
 									}
 								}
 
@@ -2819,7 +2835,7 @@ class stbPlatform {
 								//end of try
 							} catch (err) {
 								// catch all mqtt errors
-								parent.log.error("Error trapped in mqttSession message event:", err.message);
+								parent.log.error("Error trapped in mqttClient message event:", err.message);
 								parent.log.error(err);
 							}
 						
@@ -2830,16 +2846,16 @@ class stbPlatform {
 						// mqtt client event: close
 						// Emitted after a disconnection.
 						// https://github.com/mqttjs/MQTT.js#event-close
-						mqttSession.on('close', function () {
+						mqttClient.on('close', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.log('mqttSession: Connection closed');
+								parent.log('mqttClient: Connection closed');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								if (!isShuttingDown) {
 									parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 								}
 							} catch (err) {
-								parent.log.error("Error trapped in mqttSession close event:", err.message);
+								parent.log.error("Error trapped in mqttClient close event:", err.message);
 								parent.log.error(err);
 							}
 						});
@@ -2847,13 +2863,13 @@ class stbPlatform {
 						// mqtt client event: reconnect
 						// Emitted when a reconnect starts.
 						// https://github.com/mqttjs/MQTT.js#event-reconnect
-						mqttSession.on('reconnect', function () {
+						mqttClient.on('reconnect', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.log('mqttSession: Reconnect started');
+								parent.log('mqttClient: Reconnect started');
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 							} catch (err) {
-								parent.log.error("Error trapped in mqttSession reconnect event:", err.message);
+								parent.log.error("Error trapped in mqttClient reconnect event:", err.message);
 								parent.log.error(err);
 							}
 						});
@@ -2861,14 +2877,14 @@ class stbPlatform {
 						// mqtt client event: disconnect 
 						// Emitted after receiving disconnect packet from broker. MQTT 5.0 feature.
 						// https://github.com/mqttjs/MQTT.js#event-disconnect
-						mqttSession.on('disconnect', function () {
+						mqttClient.on('disconnect', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.log('mqttSession: Disconnect command received');
+								parent.log('mqttClient: Disconnect command received');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 							} catch (err) {
-								parent.log.error("Error trapped in mqttSession disconnect event:", err.message);
+								parent.log.error("Error trapped in mqttClient disconnect event:", err.message);
 								parent.log.error(err);
 							}
 						});
@@ -2876,14 +2892,14 @@ class stbPlatform {
 						// mqtt client event: offline
 						// Emitted when the client goes offline.
 						// https://github.com/mqttjs/MQTT.js#event-disconnect
-						mqttSession.on('offline', function () {
+						mqttClient.on('offline', function () {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.log('mqttSession: Client is offline');
+								parent.log('mqttClient: Client is offline');
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
 							} catch (err) {
-								parent.log.error("Error trapped in mqttSession offline event:", err.message);
+								parent.log.error("Error trapped in mqttClient offline event:", err.message);
 								parent.log.error(err);
 							}
 						});
@@ -2891,52 +2907,53 @@ class stbPlatform {
 						// mqtt client event: error
 						// Emitted when the client cannot connect (i.e. connack rc != 0) or when a parsing error occurs.
 						// https://github.com/mqttjs/MQTT.js#event-error
-						mqttSession.on('error', function(err) {
+						mqttClient.on('error', function(err) {
 							try {
 								// mqttDeviceStateHandler(deviceId, powerState, mediaState, recordingState, channelId, eventId, sourceType, profileDataChanged, statusFault, programMode, statusActive, currInputDeviceType, currInputSourceType)
-								parent.log.warn('mqttSession: Error', (err.syscall || '') + ' ' + (err.code || '') + ' ' + (err.hostname || ''));
-								parent.log.debug('mqttSession: Error object:', err); 
+								parent.log.warn('mqttClient: Error', (err.syscall || '') + ' ' + (err.code || '') + ' ' + (err.hostname || ''));
+								parent.log.debug('mqttClient: Error object:', err); 
 								currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 								parent.mqttDeviceStateHandler(null,	null, null,	null, null, null, null, null, Characteristic.StatusFault.GENERAL_FAULT); // set statusFault to GENERAL_FAULT
-								mqttSession.end();
+								mqttClient.end();
 								return false;
 							} catch (err) {
-								parent.log.error("Error trapped in mqttSession error event:", err.message);
+								parent.log.error("Error trapped in mqttClient error event:", err.message);
 								parent.log.error(err);
 							}
 						});
 
 
 					} catch (err) {
-						parent.log.error("Error trapped in mqttSession connect event:", err.message);
+						parent.log.error("Error trapped in mqttClient connect event:", err.message);
 						parent.log.error(err);
 						currentSessionState = sessionState.DISCONNECTED; // to force a session reconnect
 					}
-				}); // end of mqttSession.on('connect'... event
+				}); // end of mqttClient.on('connect'... event
 				
 				
 				if (this.config.debugLevel > 0) { 
-					this.log.warn("startMqttSession: end of code block");
+					this.log.warn("statMqttClient: end of code block");
 				}
-				resolve(mqttSession.connected); // return the promise with the connected state
+				resolve(mqttClient.connected); // return the promise with the connected state
 
 			} catch (err) {
+				this.log.error(err);
 				reject('Cannot connect to mqtt broker', err); // reject the promise
 			}
 
 		})
-	} // end of startMqttSession
+	} // end of statMqttClient
 
 
 	// end the mqtt session cleanly
 	endMqttSession() {
 		return new Promise((resolve, reject) => {
 			if (this.config.debugLevel > -1) { 
-				this.log('Shutting down mqttSession...'); 
+				this.log('Shutting down mqttClient...'); 
 			}
 			// https://github.com/mqttjs/MQTT.js#end
 			// mqtt.Client#end([force], [options], [callback])
-			if (mqttSession.connected) { mqttSession.end() };
+			if (mqttClient.connected) { mqttClient.end() };
 			resolve(true);
 		})
 	}
@@ -2967,7 +2984,7 @@ class stbPlatform {
 		try {
 			// Syntax: {'test1': {qos: 0}, 'test2': {qos: 1}}
 			if (this.config.debugLevel > 0) { this.log.warn('mqttPublishMessage: Publish Message:\r\nTopic: %s\r\nMessage: %s\r\nOptions: %s', Topic, Message, Options); }
-			mqttSession.publish(Topic, Message, Options)
+			mqttClient.publish(Topic, Message, Options)
 		} catch (err) {
 			this.log.error("Error trapped in mqttPublishMessage:", err.message);
 			this.log.error(err);
@@ -2977,7 +2994,7 @@ class stbPlatform {
 	// subscribe to an mqtt topic, with logging, to help in debugging
 	mqttSubscribeToTopic(Topic) {
 		if (this.config.debugLevel > 0) { this.log.warn('mqttSubscribeToTopic: Subscribe to topic:', Topic); }
-		mqttSession.subscribe(Topic, function (err) {
+		mqttClient.subscribe(Topic, function (err) {
 			if(err){
 				//this.log('mqttClient connect: subscribe to %s Error %s:', Topic, err);
 				return true;
@@ -2988,7 +3005,7 @@ class stbPlatform {
 	// unsubscribe to an mqtt topic, with logging, to help in debugging
 	mqttUnsubscribeToTopic(Topic) {
 		if (this.config.debugLevel > 0) { this.log.warn('mqttUnsubscribeToTopic: Unsubscribe to topic:', Topic); }
-		mqttSession.unsubscribe(Topic, function (err) {
+		mqttClient.unsubscribe(Topic, function (err) {
 			if(err){
 				//this.log('mqttClient connect: unsubscribe to %s Error %s:', Topic, err);
 				return true;
