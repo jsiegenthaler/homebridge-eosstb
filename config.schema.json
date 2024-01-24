@@ -57,7 +57,7 @@
                 { "title": "Method A: CH, NL, IE", "enum": ["A"] },
                 { "title": "Method B: BE", "enum": ["B"] },
                 { "title": "Method C: GB", "enum": ["C"] },
-                { "title": "Method D: OAuth 2.0 PKCE", "enum": ["D"] }
+                { "title": "Method D: OAuth 2.0 PKCE EXPERIMENTAL", "enum": ["D"] }
             ]
           },
   
