@@ -8,30 +8,24 @@ Please restart Homebridge after every plugin update.
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
 * Add ability to log and read current program name
 
-## 2.3.0-beta.6 (2024-01-16)
-* Worked on the OAuth2 sequence
 
-## 2.3.0-beta.5 (2024-01-16)
-* Added extra logging in OAuth 2.0 PKCE logon method
-
-## 2.3.0-beta.4 (2024-01-16)
-* Added extra logging in OAuth 2.0 PKCE logon method
-
-## 2.3.0-beta.3 (2024-01-16)
-* Added Disable Session Watchdog to config.schema to make it easier to debug by turning off the watchdog
+## 2.3.0-beta.7 (2024-01-24)
+* Starting building OAuth 2.0 PKCE logon method in code +++IN WORK. INCOMPLETE+++
 * Added OAuth 2.0 PKCE logon method in config.schema as Method D
-* Starting building OAuth 2.0 PKCE logon method in code +++IN WORK+++
-* Removed some old auth comments
-## 2.3.0-beta.2 (2024-01-14)
-* Added ability to set authentication method (A, B or C). You must select the method in the plugin config
-## 2.3.0-beta.1 (2024-01-14)
-* Add auto endpoint detection for mqttBroker, personalizationService, purchaseService, recordingService, sessionService, authorizationService, linearService
-* Renamed mqttClient to mqttSession
+* Added Disable Session Watchdog to config.schema to make it easier to debug by turning off the watchdog
+* Added ability to set authentication method. You must select the method in the plugin config
+* Add auto endpoint detection for all services
+* Reverted: Renamed mqttClient to mqttSession 
+* Fixed issue connecting to mqtt broker (added extra subprotocol headers)
 * Fixed bug in getMostWatchedChannels where the endpoint was incorrect
+* Updated Readme to mark the plugin as working for PL
+* Updated iOS version references in Readme
+* Bumped dependency "mqtt": "^5.3.5"
 
 
 ## 2.2.16 (2024-01-16)
 * Removed AZ, CZ, DE, HU, RO from config.json and Readme. These countries no longer offer UPC TV.
+
 
 ## 2.2.15 (2024-01-14)
 * Fixed issue with MQTT connection failure in CH due to change of MQTT endpoint
