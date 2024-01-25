@@ -9,7 +9,7 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 
-## 2.3.0-beta.8 (2024-01-25)
+## 2.3.0 (2024-01-25)
 * Added auto endpoint detection for all services, this fixes connection issues in many countries
 * Added ability to set authentication method. You must select the method in the plugin config. If none set, logon method falls back to using country code
 * Added Disable Session Watchdog to config.schema to make it easier to debug by turning off the session watchdog
