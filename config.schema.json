@@ -47,7 +47,27 @@
           "placeholder": "yourTvProviderPassword",
           "required": true
         },
-
+        "authmethod": {
+            "title": "Authentication Method",
+            "type": "string",
+            "description": "The authentication method. Select the option for your country. If it doesn't work, try another method.",
+            "default": "A",
+            "required": true,
+            "oneOf": [
+                { "title": "Method A: CH, NL, IE", "enum": ["A"] },
+                { "title": "Method B: BE", "enum": ["B"] },
+                { "title": "Method C: GB", "enum": ["C"] },
+                { "title": "Method D: OAuth 2.0 PKCE EXPERIMENTAL", "enum": ["D"] }
+            ]
+          },
+  
+        "watchdogDisabled": {
+            "title": "Disable Session Watchdog",
+            "type": "boolean",
+            "description": "Disables the session watchdog to assist with debugging. Default: false",
+            "default": false
+        },
+  
         "doublePressTime": {
             "title": "Double-Press Time",
             "type": "integer",
@@ -841,8 +861,10 @@
                             "type": "flex",
                             "flex-flow": "column",
                             "items": [
-                                "country"
-                            ]
+                                "country",
+                                "authmethod",
+                                "watchdogDisabled"
+                                ]
                         },
                         {
                             "type": "flex",

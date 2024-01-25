@@ -18,6 +18,11 @@ const semver = require('semver')		// https://github.com/npm/node-semver
 
 const mqtt = require('mqtt');  			// https://github.com/mqttjs
 const qs = require('qs');				// https://github.com/ljharb/qs
+const WebSocket = require('ws');		// https://github.com/websockets/ws   for the mqtt websocket
+
+
+// needed for sso logon with pkce OAuth 2.0
+const {randomBytes, createHash} = require("node:crypto");
 
 
 // axios-cookiejar-support v2.0.2 syntax
@@ -51,17 +56,24 @@ axiosCookieJarSupport(axiosWS);
 // without any trailing /
 // refer https://github.com/Sholofly/lghorizon-python/blob/features/telenet/lghorizon/const.py
 const countryBaseUrlArray = {
-	'be-fr':	'https://prod.spark.telenet.tv',
-	'be-nl':	'https://prod.spark.telenet.tv',	
-    'ch': 		'https://prod.spark.sunrisetv.ch',
-    'gb':       'https://prod.spark.virginmedia.com',
-	'ie':       'https://prod.spark.virginmediatv.ie',
-    'nl': 		'https://prod.spark.ziggogo.tv',
-	'pl':		'https://prod.spark.upctv.pl',
-	'sk':		'https://prod.spark.upctv.sk',
+	//https://spark-prod-be.gnp.cloud.telenet.tv/be/en/config-service/conf/web/backoffice.json
+	//'be-fr':	'https://prod.spark.telenet.tv',
+	//'be-nl':	'https://prod.spark.telenet.tv',	
+	'be':		'https://spark-prod-be.gnp.cloud.telenet.tv', // verified 14.01.2024
+				// https://spark-prod-ch.gnp.cloud.sunrisetv.ch/ch/en/config-service/conf/web/backoffice.json
+    //'ch': 		'https://prod.spark.sunrisetv.ch', 
+    'ch': 		'https://spark-prod-ch.gnp.cloud.sunrisetv.ch', // verified 14.01.2024
+	'gb':       'https://spark-prod-gb.gnp.cloud.virgintvgo.virginmedia.com', // verified 14.01.2024
+	'ie':       'https://spark-prod-ie.gnp.cloud.virginmediatv.ie', // verified 14.01.2024
+    'nl': 		'https://prod.spark.ziggogo.tv', // verified 14.01.2024
+	//'pl':		'https://prod.spark.upctv.pl',
+	'pl':		'https://spark-prod-pl.gnp.cloud.upctv.pl',  // verified 14.01.2024
+	//'sk':		'https://prod.spark.upctv.sk',
+	'sk':		'https://spark-prod-sk.gnp.cloud.upctv.sk',  // verified 14.01.2024
 };
 
 // mqtt endpoints varies by country, unchanged after backend change on 13.10.2022
+/*
 const mqttUrlArray = {
     'be-fr':  	'wss://obomsg.prod.be.horizon.tv/mqtt',
     'be-nl': 	'wss://obomsg.prod.be.horizon.tv/mqtt',
@@ -71,7 +83,7 @@ const mqttUrlArray = {
     'nl': 		'wss://obomsg.prod.nl.horizon.tv/mqtt',
     'pl': 		'wss://obomsg.prod.pl.horizon.tv/mqtt',
 	'sk':		'wss://obomsg.prod.sk.horizon.tv/mqtt'
-};
+};*/
 
 
 // openid logon url used in Telenet.be Belgium for be-nl and be-fr sessions
@@ -243,6 +255,17 @@ async function waitprom(ms) {
   }  
 
 
+// generate PKCE code verifier pair for OAuth 2.0
+function generatePKCEPair() {
+    const NUM_OF_BYTES = 22; // Total of 44 characters (1 Byte = 2 char) (standard states that: 43 chars <= verifier <= 128 chars)
+    const HASH_ALG = "sha256";
+    const code_verifier = randomBytes(NUM_OF_BYTES).toString('hex');
+    const code_verifier_hash = createHash(HASH_ALG).update(code_verifier).digest('base64');
+    const code_challenge = code_verifier_hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); // Clean base64 to make it URL safe
+    return {verifier: code_verifier, code_challenge}
+}  
+
+
 
 // ++++++++++++++++++++++++++++++++++++++++++++
 // config end
@@ -314,7 +337,11 @@ class stbPlatform {
 			setTimeout(this.sessionWatchdog.bind(this),500); // wait 500ms then call this.sessionWatchdog
 
 			// the session watchdog creates a session when none exists, and recreates one if the session ever fails due to internet failure or anything else
-			this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
+			if ((this.config.watchdogDisabled || false) == true) {
+				this.log.warn('WARNING: Session watchdog disabled')
+			} else {
+				this.checkSessionInterval = setInterval(this.sessionWatchdog.bind(this),SESSION_WATCHDOG_INTERVAL_MS);
+			}
 
 			// check for a channel list update every MASTER_CHANNEL_LIST_REFRESH_CHECK_INTERVAL_S seconds
 			this.checkChannelListInterval = setInterval(() => {
@@ -354,7 +381,7 @@ class stbPlatform {
 			debug('stbPlatform:apievent :: shutdown')
 			if (this.config.debugLevel > 2) { this.log.warn('API event: shutdown'); }
 			isShuttingDown = true;
-			this.endMqttClient()
+			this.endMqttSession()
 				.then(() => { 
 					this.log('Goodbye'); 
 				}
@@ -501,72 +528,80 @@ class stbPlatform {
 			if (this.config.debugLevel > 2) { this.log.warn('%s: Attempting to create session', watchdogInstance); }
 
 			// asnyc startup sequence with chain of promises
-			this.log.debug('%s: ++++ step 1: calling createSession', watchdogInstance)
-			errorTitle = 'Failed to create session';
-			debug(debugPrefix + 'calling createSession')
-			await this.createSession(this.config.country.toLowerCase()) // returns householdId, stores session in this.session
+			this.log.debug('%s: ++++ step 1: calling config service', watchdogInstance)
+			errorTitle = 'Failed to get config';
+			debug(debugPrefix + 'calling getConfig')
+			await this.getConfig(this.config.country.toLowerCase()) // returns config, stores config in this.config
+				.then((session) => {
+					this.log.debug('%s: ++++++ step 2: config was retrieved', watchdogInstance)
+					this.log.debug('%s: ++++++ step 2: calling createSession with country code %s ', watchdogInstance, this.config.country.toLowerCase())
+					this.log('Creating session...');
+					errorTitle = 'Failed to create session';
+					debug(debugPrefix + 'calling createSession')
+					return this.createSession(this.config.country.toLowerCase()) // returns householdId, stores session in this.session
+				})
 				.then((sessionHouseholdId) => {
-					this.log.debug('%s: ++++++ step 2: session was created, connected to sessionHouseholdId %s', watchdogInstance, sessionHouseholdId)
-					this.log.debug('%s: ++++++ step 2: calling getPersonalizationData with sessionHouseholdId %s ', watchdogInstance, sessionHouseholdId)
+					this.log.debug('%s: ++++++ step 3: session was created, connected to sessionHouseholdId %s', watchdogInstance, sessionHouseholdId)
+					this.log.debug('%s: ++++++ step 3: calling getPersonalizationData with sessionHouseholdId %s ', watchdogInstance, sessionHouseholdId)
 					this.log('Discovering platform...');
 					errorTitle = 'Failed to discover platform';
 					debug(debugPrefix + 'calling getPersonalizationData')
 					return this.getPersonalizationData(this.session.householdId) // returns customer object, with devices and profiles, stores object in this.customer
 				})
 				.then((objCustomer) => {
-					this.log.debug('%s: ++++++ step 3: personalization data was retrieved, customerId %s customerStatus %s', watchdogInstance, objCustomer.customerId, objCustomer.customerStatus)
-					this.log.debug('%s: ++++++ step 3: calling getEntitlements with customerId %s ', watchdogInstance, objCustomer.customerId)
+					this.log.debug('%s: ++++++ step 4: personalization data was retrieved, customerId %s customerStatus %s', watchdogInstance, objCustomer.customerId, objCustomer.customerStatus)
+					this.log.debug('%s: ++++++ step 4: calling getEntitlements with customerId %s ', watchdogInstance, objCustomer.customerId)
 					debug(debugPrefix + 'calling getEntitlements')
 					return this.getEntitlements(this.customer.customerId) // returns customer object
 				})
 				.then((objEntitlements) => {
-					this.log.debug('%s: ++++++ step 4: entitlements data was retrieved, objEntitlements.token %s', watchdogInstance, objEntitlements.token)
-					this.log.debug('%s: ++++++ step 4: calling refreshMasterChannelList', watchdogInstance)
+					this.log.debug('%s: ++++++ step 5: entitlements data was retrieved, objEntitlements.token %s', watchdogInstance, objEntitlements.token)
+					this.log.debug('%s: ++++++ step 5: calling refreshMasterChannelList', watchdogInstance)
 					debug(debugPrefix + 'calling refreshMasterChannelList')
 					return this.refreshMasterChannelList() // returns entitlements object
 				})
 				.then((objChannels) => {
-					this.log.debug('%s: ++++++ step 5: masterchannelList data was retrieved, channels found: %s', watchdogInstance, objChannels.length)
+					this.log.debug('%s: ++++++ step 6: masterchannelList data was retrieved, channels found: %s', watchdogInstance, objChannels.length)
 					// Recording needs entitlements of PVR or LOCALDVR
 					const pvrFeatureFound = this.entitlements.features.find(feature => (feature === 'PVR' || feature === 'LOCALDVR'));
-					this.log.debug('%s: ++++++ step 5: foundPvrEntitlement %s', watchdogInstance, pvrFeatureFound);
+					this.log.debug('%s: ++++++ step 6: foundPvrEntitlement %s', watchdogInstance, pvrFeatureFound);
 					if (pvrFeatureFound) {
-						this.log.debug('%s: ++++++ step 5: calling getRecordingState with householdId %s', watchdogInstance, this.session.householdId)
+						this.log.debug('%s: ++++++ step 6: calling getRecordingState with householdId %s', watchdogInstance, this.session.householdId)
 						this.getRecordingState(this.session.householdId) // returns true when successful
 					}
 					return true
 				})
 				.then((objRecordingStateFound) => {
-					this.log.debug('%s: ++++++ step 6: recording state data was retrieved, objRecordingStateFound: %s', watchdogInstance, objRecordingStateFound)
+					this.log.debug('%s: ++++++ step 7: recording state data was retrieved, objRecordingStateFound: %s', watchdogInstance, objRecordingStateFound)
 					// Recording needs entitlements of PVR or LOCALDVR
 					const pvrFeatureFound = this.entitlements.features.find(feature => (feature === 'PVR' || feature === 'LOCALDVR'));
-					this.log.debug('%s: ++++++ step 6: foundPvrEntitlement %s', watchdogInstance, pvrFeatureFound);
+					this.log.debug('%s: ++++++ step 7: foundPvrEntitlement %s', watchdogInstance, pvrFeatureFound);
 					if (pvrFeatureFound) {
-						this.log.debug('%s: ++++++ step 6: calling getRecordingBookings with householdId %s', watchdogInstance, this.session.householdId)
+						this.log.debug('%s: ++++++ step 7: calling getRecordingBookings with householdId %s', watchdogInstance, this.session.householdId)
 						this.getRecordingBookings(this.session.householdId) // returns true when successful
 					}
 					return true
 				})
 				.then((objRecordingBookingsFound) => {
-					this.log.debug('%s: ++++++ step 7: recording bookings data was retrieved, objRecordingBookingsFound: %s', watchdogInstance, objRecordingBookingsFound)
-					this.log.debug('%s: ++++++ step 7: calling discoverDevices', watchdogInstance)
+					this.log.debug('%s: ++++++ step 8: recording bookings data was retrieved, objRecordingBookingsFound: %s', watchdogInstance, objRecordingBookingsFound)
+					this.log.debug('%s: ++++++ step 8: calling discoverDevices', watchdogInstance)
 					errorTitle = 'Failed to discover devices';
 					debug(debugPrefix + 'calling discoverDevices')
 					return this.discoverDevices() // returns stbDevices object 
 				})
 				.then((objStbDevices) => {
 					this.log('Discovery completed');
-					this.log.debug('%s: ++++++ step 8: devices found:', watchdogInstance, this.devices.length)
-					this.log.debug('%s: ++++++ step 8: calling getMqttToken', watchdogInstance)
+					this.log.debug('%s: ++++++ step 9: devices found:', watchdogInstance, this.devices.length)
+					this.log.debug('%s: ++++++ step 9: calling getMqttToken', watchdogInstance)
 					errorTitle = 'Failed to start mqtt session';
 					debug(debugPrefix + 'calling getMqttToken')
 					return this.getMqttToken(this.session.username, this.session.accessToken, this.session.householdId);
 				})
 				.then((mqttToken) => {
-					this.log.debug('%s: ++++++ step 9: getMqttToken token was retrieved, token %s', watchdogInstance, mqttToken)
-					this.log.debug('%s: ++++++ step 9: start mqtt client', watchdogInstance)
-					debug(debugPrefix + 'calling startMqttClient')
-					return this.startMqttClient(this, this.session.householdId, mqttToken);  // returns true
+					this.log.debug('%s: ++++++ step 10: getMqttToken token was retrieved, token %s', watchdogInstance, mqttToken)
+					this.log.debug('%s: ++++++ step 10: start mqtt client', watchdogInstance)
+					debug(debugPrefix + 'calling statMqttClient')
+					return this.statMqttClient(this, this.session.householdId, mqttToken);  // returns true
 				})
 				.catch(errorReason => {
 					// log any errors and set the currentSessionState
@@ -690,7 +725,8 @@ class stbPlatform {
 			const axiosConfig = {
 				method: 'POST',
 				// https://prod.spark.sunrisetv.ch/auth-service/v1/authorization/refresh
-				url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/authorization/refresh',
+				//url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/authorization/refresh',
+				url: this.configsvc.authorizationService.URL + '/v1/authorization/refresh',
 				headers: {
 					"accept": "*/*", // mandatory
 					"content-type": "application/json; charset=UTF-8", // mandatory
@@ -750,24 +786,310 @@ class stbPlatform {
 	async createSession(country) {
 		return new Promise((resolve, reject) => {
 			this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-			switch(country) {
-				case 'be-nl': case 'be-fr':
+			//switch using authmethod with backup of country
+			switch(this.config.authmethod || this.config.country) {
+				case 'D': // OAuth 2.0 with PKCE
+					this.getSessionOAuth2Pkce()
+						.then((getSessionResponse) => { resolve(getSessionResponse); }) // return the getSessionResponse for the promise
+						.catch(error => { reject(error); }); // on any error, reject the promise and pass back the error
+					break;
+				case 'be-nl': case 'be-fr': case 'B':
 					this.getSessionBE()
 						.then((getSessionResponse) => { resolve(getSessionResponse); }) // return the getSessionResponse for the promise
 						.catch(error => { reject(error); }); // on any error, reject the promise and pass back the error
 					break;
-				case 'gb':
+				case 'gb': case 'C':
 					this.getSessionGB()
 						.then((getSessionResponse) => { resolve(getSessionResponse); }) // return the getSessionResponse for the promise
 						.catch(error => { reject(error); }); // on any error, reject the promise and pass back the error
 					break;
-				default: // ch, nl, ie, at
+				default: // ch, nl, ie, at, method A
 					this.getSession()
 						.then((getSessionResponse) => { resolve(getSessionResponse); }) // resolve with the getSessionResponse for the promise
 						.catch(error => { reject(error); }); // on any error, reject the promise and pass back the error
 				}
 		})
 	}
+
+
+	// get session for OAuth 2.0 PKCE (special logon sequence)
+	getSessionOAuth2Pkce() {
+		return new Promise((resolve, reject) => {
+			this.log('Creating %s OAuth 2.0 PKCE session...',PLATFORM_NAME);
+			this.log.warn('++++ PLEASE NOTE: This is current test code with lots of debugging. Do not expect it to work yet. ++++');
+			currentSessionState = sessionState.LOADING;
+
+			 
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// axios interceptors to log request and response for debugging
+			// works on all following requests in this sub
+			/*
+			axiosWS.interceptors.request.use(req => {
+				this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
+				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
+				'\nMethod:', req.method, '\nURL:', req.url, 
+				'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,
+				'\nParams:', req.params, '\nData:', req.data
+				);
+				this.log.warn(req); 
+				return req; // must return request
+			});
+			axiosWS.interceptors.response.use(res => {
+				this.log.warn('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
+				'\nHeaders:', res.headers, 
+				'\nUrl:', res.url, 
+				//'\nData:', res.data, 
+				'\nLast Request:', res.request
+				);
+				//this.log.warn(res); 
+				this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:'); 
+				if (cookieJar) { this.log(cookieJar); }// watch out for empty cookieJar
+				return res; // must return response
+			});
+			*/
+			// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+			// good description of PKCE
+			// https://www.authlete.com/developers/pkce/
+			// creake a PKCE code pair and save it
+			this.pkcePair = generatePKCEPair();
+			//this.log('PKCE pair:', pkcePair); 
+
+
+			// Step 1: # get authentication details
+			// Recorded sequence step 1: https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true
+			// const GB_AUTH_OESP_URL = 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web';
+			// https://spark-prod-gb.gnp.cloud.virgintvgo.virginmedia.com/auth-service/v1/sso/authorization?code_challenge=aHsoE2kJlwA4qGOcx1OCH7i__1bBdV1l6yLOKUvW24U&language=en
+			let apiAuthorizationUrl = this.configsvc.authorizationService.URL + '/v1/sso/authorization?'
+				+ 'code_challenge=' + this.pkcePair.code_challenge
+				+ '&language=en';
+			
+			this.log('Step 1 of 7: get authentication details');
+			if (this.config.debugLevel > 1) { this.log.warn('Step 1 of 7: get authentication details from',apiAuthorizationUrl); }
+			axiosWS.get(apiAuthorizationUrl)
+				.then(response => {	
+					this.log('Step 1 of 7: response:',response.status, response.statusText);
+					this.log('Step 1 of 7: response.data',response.data);
+					
+					// get the data we need for further steps
+					let auth = response.data;
+					let authState = auth.state;
+					let authAuthorizationUri = auth.authorizationUri;
+					let authValidtyToken = auth.validityToken;
+					this.log('Step 1 of 7: results: authState',authState);
+					this.log('Step 1 of 7: results: authAuthorizationUri',authAuthorizationUri);
+					this.log('Step 1 of 7: results: authValidtyToken',authValidtyToken);
+
+					// Step 2: # follow authorizationUri to get AUTH cookie (ULM-JSESSIONID)
+					this.log('Step 2 of 7: get AUTH cookie');
+					this.log.debug('Step 2 of 7: get AUTH cookie ULM-JSESSIONID from',authAuthorizationUri);
+					axiosWS.get(authAuthorizationUri, {
+							jar: cookieJar,
+							// unsure what minimum headers will here
+							headers: {
+								Accept: 'application/json, text/plain, */*'
+								//Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+							},						})
+						.then(response => {	
+							this.log('Step 2 of 7: response:',response.status, response.statusText);
+							this.log.warn('Step 2 of 7 response.data',response.data); // an html logon page
+			
+							// Step 3: # login
+							this.log('Step 3 of 7: logging in with username %s', this.config.username);
+							currentSessionState = sessionState.LOGGING_IN;
+
+							// we want to POST to 
+							// 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
+							// see https://auth0.com/intro-to-iam/what-is-openid-connect-oidc
+							const GB_AUTH_URL = 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
+							this.log.debug('Step 3 of 7: POST request will contain this data: {"username":"' + this.config.username + '","credential":"' + this.config.password + '"}');
+							axiosWS(GB_AUTH_URL,{
+							//axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
+								jar: cookieJar,
+								// However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
+								data: '{"username":"' + this.config.username + '","credential":"' + this.config.password + '"}',
+								method: "POST",
+								// minimum headers are "accept": "*/*", "content-type": "application/json; charset=UTF-8",
+								headers: {
+									"accept": "*/*", // mandatory
+									"content-type": "application/json; charset=UTF-8", // mandatory
+								},
+								maxRedirects: 0, // do not follow redirects
+								validateStatus: function (status) {
+									return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK. GB returns 200
+								},
+								})
+								.then(response => {	
+									this.log('Step 3 of 7: response:',response.status, response.statusText);
+									this.log.warn('Step 3 of 7: response.headers:',response.headers); 
+									// responds with a userId, this will need to be used somewhere...
+									this.log.warn('Step 3 of 7: response.data:',response.data); // { userId: 28786528, runtimeId: 79339515 }
+									
+
+									var url = response.headers['x-redirect-location'] // must be lowercase
+									if (!url) {		// robustness: fail if url missing
+										this.log.warn('getSessionGB: Step 3: x-redirect-location url empty!');
+										currentSessionState = sessionState.DISCONNECTED;
+										this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+										return false;						
+									}
+									//location is h??=... if success
+									//location is https?? if not authorised
+									//location is https:... error=session_expired if session has expired
+									if (url.indexOf('authentication_error=true') > 0 ) { // >0 if found
+										//this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
+										reject('Step 3 of 7: Unable to login: wrong credentials'); // reject the promise and return the error
+									} else if (url.indexOf('error=session_expired') > 0 ) { // >0 if found
+										//this.log.warn('Step 3 of 7: Unable to login: session expired');
+										cookieJar.removeAllCookies();	// remove all the locally cached cookies
+										reject('Step 3 of 7: Unable to login: session expired'); // reject the promise and return the error
+									} else {
+										this.log.debug('Step 3 of 7: login successful');
+
+										// Step 4: # follow redirect url
+										this.log('Step 4 of 7: follow redirect url');
+										axiosWS.get(url,{
+											jar: cookieJar,
+											maxRedirects: 0, // do not follow redirects
+											validateStatus: function (status) {
+												return ((status >= 200 && status < 300) || status == 302) ; // allow 302 redirect as OK
+												},
+											})
+											.then(response => {	
+												this.log('Step 4 of 7: response:',response.status, response.statusText);
+												this.log.warn('Step 4 of 7: response.headers.location:',response.headers.location); // is https://www.telenet.be/nl/login_success_code=... if success
+												this.log.warn('Step 4 of 7: response.data:',response.data);
+												url = response.headers.location;
+												if (!url) {		// robustness: fail if url missing
+													this.log.warn('getSessionGB: Step 4 of 7 location url empty!');
+													currentSessionState = sessionState.DISCONNECTED;
+													this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+													return false;						
+												}								
+				
+												// look for login_success?code=
+												if (url.indexOf('login_success?code=') < 0 ) { // <0 if not found
+													//this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
+													reject('Step 4 of 7: Unable to login: wrong credentials'); // reject the promise and return the error
+												} else if (url.indexOf('error=session_expired') > 0 ) {
+													//this.log.warn('Step 4 of 7: Unable to login: session expired');
+													cookieJar.removeAllCookies();	// remove all the locally cached cookies
+													reject('Step 4 of 7: Unable to login: session expired'); // reject the promise and return the error
+												} else {
+
+													// Step 5: # obtain authorizationCode
+													this.log('Step 5 of 7: extract authorizationCode');
+													/*
+													url = response.headers.location;
+													if (!url) {		// robustness: fail if url missing
+														this.log.warn('getSessionGB: Step 5: location url empty!');
+														currentSessionState = sessionState.DISCONNECTED;
+														this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+														return false;						
+													}				
+													*/				
+					
+													var codeMatches = url.match(/code=(?:[^&]+)/g)[0].split('=');
+													var authorizationCode = codeMatches[1];
+													if (codeMatches.length !== 2 ) { // length must be 2 if code found
+														this.log.warn('Step 5 of 7: Unable to extract authorizationCode');
+													} else {
+														this.log('Step 5 of 7: authorizationCode OK');
+														this.log.debug('Step 5 of 7: authorizationCode:',authorizationCode);
+
+														// Step 6: # authorize again
+														this.log('Step 6 of 7: post auth data with valid code');
+														this.log.debug('Step 6 of 7: post auth data with valid code to',apiAuthorizationUrl);
+														currentSessionState = sessionState.AUTHENTICATING;
+														var payload = {'authorizationGrant':{
+															'authorizationCode':authorizationCode,
+															'validityToken':authValidtyToken,
+															'state':authState
+														}};
+														axiosWS.post(apiAuthorizationUrl, payload, {jar: cookieJar})
+															.then(response => {	
+																this.log('Step 6 of 7: response:',response.status, response.statusText);
+																this.log.debug('Step 6 of 7: response.data:',response.data);
+																
+																auth = response.data;
+																this.log.debug('Step 6 of 7: refreshToken:',auth.refreshToken);
+
+																// Step 7: # get OESP code
+																this.log('Step 7 of 7: post refreshToken request');
+																this.log.debug('Step 7 of 7: post refreshToken request to',apiAuthorizationUrl);
+																payload = {'refreshToken':auth.refreshToken,'username':auth.username};
+																// must resolve to
+																// 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/session';',
+																var sessionUrl = GB_AUTH_OESP_URL + '/session';
+																axiosWS.post(sessionUrl + "?token=true", payload, {jar: cookieJar})
+																	.then(response => {	
+																		this.log('Step 7 of 7: response:',response.status, response.statusText);
+																		currentSessionState = sessionState.VERIFYING;
+																		
+																		this.log.debug('Step 7 of 7: response.headers:',response.headers); 
+																		this.log.debug('Step 7 of 7: response.data:',response.data); 
+																		this.log.debug('Cookies for the session:',cookieJar.getCookies(sessionUrl));
+																		if (this.config.debugLevel > 2) { 
+																			this.log('getSessionGB: response data (saved to this.session):'); 
+																			this.log(response.data); 
+																		}
+
+																		// get device data from the session
+																		this.session = response.data;
+																		// New APLSTB Apollo box on NL does not return username in during session logon, so store username from settings if missing
+																		if (this.session.username == '') { this.session.username = this.config.username; }
+																		
+																		currentSessionState = sessionState.CONNECTED;
+																		this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+																		this.log('Session created');
+																		resolve(this.session.householdId) // resolve the promise with the householdId
+																	})
+																	// Step 7 http errors
+																	.catch(error => {
+																		this.log.debug("Step 7 of 7: error:",error);
+																		reject("Step 7 of 7: Unable to get OESP token: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+																	});
+															})
+															// Step 6 http errors
+															.catch(error => {
+																reject("Step 6 of 7: Unable to authorize with oauth code, http error: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+															});	
+													};
+												};
+											})
+											// Step 4 http errors
+											.catch(error => {
+												this.log.debug("Step 4 of 7: error:",error);
+												this.log.warn("Step 4 of 7: error:",error);
+												reject("Step 4 of 7: Unable to oauth authorize: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+											});
+									};
+								})
+								// Step 3 http errors
+								.catch(error => {
+									this.log.debug("Step 3 of 7: error:",error);
+									this.log.warn("Step 3 of 7: error:",error);
+									reject("Step 3 of 7: Unable to login: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+								});
+						})
+						// Step 2 http errors
+						.catch(error => {
+							this.log.debug("Step 2 of 7: error:",error);
+							reject("Step 2 of 7: Could not get authorizationUri: " + error.response.status + ' ' + error.response.statusText); // reject the promise and return the error
+						});
+				})
+				// Step 1 http errors
+				.catch(error => {
+					this.log.debug("Step 1 of 7: error:",error);
+					reject("Step 1 of 7: Failed to create session - check your internet connection"); // reject the promise and return the error
+				});
+
+			currentSessionState = sessionState.DISCONNECTED;
+			this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+		})
+	}
+
+
 
 	// get session ch, nl, ie, at
 	// using new auth method, as of 13.10.2022
@@ -805,7 +1127,8 @@ class stbPlatform {
 
 			const axiosConfig = {
 				method: 'POST',
-				url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/authorization',
+				//url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/authorization',
+				url: this.configsvc.authorizationService.URL + '/v1/authorization',
 				headers: {
 					"accept": "*/*", // added 07.08.2023
 					"content-type": "application/json; charset=utf-8", // added 07.08.2023
@@ -926,7 +1249,8 @@ class stbPlatform {
 
 
 			// Step 1: # get authentication details
-			let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/sso/authorization';
+			//let apiAuthorizationUrl = countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/sso/authorization';
+			let apiAuthorizationUrl = this.configsvc.authorizationService.URL + '/v1/sso/authorization';
 			this.log('Step 1 of 6: get authentication details');
 			if (this.config.debugLevel > 1) { this.log.warn('Step 1 of 6: get authentication details from',apiAuthorizationUrl); }
 			axiosWS.get(apiAuthorizationUrl)
@@ -1437,7 +1761,8 @@ class stbPlatform {
 			url = url + '&sort=channelNumber' // sort
 			*/
 			//url = 'https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH'
-			let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v2/channels';
+			//let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v2/channels';
+			let url = this.configsvc.linearService.URL + '/v2/channels';
 			url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
 			url = url + '&language=en'; // language
 			url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
@@ -1542,6 +1867,45 @@ class stbPlatform {
 		})
 	}
 
+
+	// get the config (containing all endpoints) for the country
+	// added 14.01.2024
+	async getConfig(countryCode, callback) {
+		return new Promise((resolve, reject) => {
+			this.log("Retrieving config for countryCode %s", countryCode);
+
+			// https://spark-prod-ch.gnp.cloud.sunrisetv.ch/ch/en/config-service/conf/web/backoffice.json
+			// https://prod.spark.upctv.ch/ch/en/config-service/conf/web/backoffice.json
+			const ctryCode = countryCode.substr(0, 2);
+
+			//const url = 'https://spark-prod-ch.gnp.cloud.sunrisetv.ch/ch/en/config-service/conf/web/backoffice.json'
+			// use countryCode.substr(1, 2) for backwards-compatibility to allow be-fr to map to be
+			const url=countryBaseUrlArray[ctryCode] + '/' + ctryCode + '/en/config-service/conf/web/backoffice.json';
+			if (this.config.debugLevel > 0) { this.log.warn('getConfig: GET %s', url); }
+			axiosWS.get(url)
+				.then(response => {	
+					if (this.config.debugLevel > 0) { this.log.warn('getConfig: response: %s %s', response.status, response.statusText); }
+					if (this.config.debugLevel > 2) { 
+						this.log.warn('getConfig: response data (saved to this.configsvc):');
+						this.log.warn(response.data);
+					}
+					this.configsvc = response.data; // store the entire config data for future use in this.configsvc
+					resolve(this.configsvc); // resolve the promise with the configsvc object
+				})
+				.catch(error => {
+					let errReason;
+					errReason = 'Could not get config data for ' + countryCode + ' - check your internet connection'
+					if (error.isAxiosError) { 
+						errReason = error.code + ': ' + (error.hostname || ''); 
+						// if no connection then set session to disconnected to force a session reconnect
+						if (error.code == 'ENOTFOUND') { currentSessionState = sessionState.DISCONNECTED; }
+					}
+					this.log.debug(`getConfig error:`, error);
+					reject(errReason);
+				});		
+		})
+	}
+
 	
 
 
@@ -1554,7 +1918,10 @@ class stbPlatform {
 			
 			//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
 			//const url='https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
-			const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
+			// https://spark-prod-ch.gnp.cloud.sunrisetv.ch/eng/web/personalization-service
+			//const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + householdId + '?with=profiles%2Cdevices';
+			const url = this.configsvc.personalizationService.URL + '/v1/customer/' + householdId + '?with=profiles%2Cdevices';
+
 			// headers are in the web client
 			let config={}
 			if (this.config.country.toLowerCase() == 'gb'){
@@ -1661,7 +2028,9 @@ class stbPlatform {
 	async setPersonalizationDataForDevice(deviceId, deviceSettings, callback) {
 		if (this.config.debugLevel > 0) { this.log.warn('setPersonalizationDataForDevice: deviceSettings:', deviceSettings); }
 		// https://prod.spark.sunrisetv.ch/eng/web/personalization-service/v1/customer/1012345_ch/devices/3C36E4-EOSSTB-003656123456
-		const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
+		//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/personalization-service/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
+		const url = this.configsvc.personalizationService.URL + '/v1/customer/' + this.session.householdId + '/devices/' + deviceId;
+
 		const data = {"settings": deviceSettings};
 		// gb needs x-cus, x-oesp-token and x-oesp-username
 		let config={}
@@ -1702,7 +2071,8 @@ class stbPlatform {
 
 			//const url = personalizationServiceUrlArray[this.config.country.toLowerCase()].replace("{householdId}", this.session.householdId) + '/' + requestType;
 			//const url='https://prod.spark.sunrisetv.ch/eng/web/purchase-service/v2/customers/107xxxx_ch/entitlements?enableDaypass=true'
-			const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
+			//const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
+			const url = this.configsvc.purchaseService.URL + '/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
 			//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
 			const config = {headers: {
 				"x-cus": householdId,
@@ -1770,7 +2140,8 @@ class stbPlatform {
 			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/107xxxx_ch/recordings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=desc&profileId=4eb38207-d869-4367-8973-9467a42cad74&language=en
 			// const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/' + 'networkdvrrecordings?isAdult=false&plannedOnly=false&range=1-20'; // works
 			// parameter plannedOnly=false did not work
-			const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + householdId + '/recordings/state'; // limit to 20 recordings for performance
+			//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + householdId + '/recordings/state'; // limit to 20 recordings for performance
+			const url = this.configsvc.recordingService.URL + '/customers/' + householdId + '/recordings/state'; // limit to 20 recordings for performance
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingState: GET %s', url); }
 			axiosWS.get(url, config)
 				.then(response => {	
@@ -2004,7 +2375,8 @@ class stbPlatform {
 			let url
 			//url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
 			//url='https://web-api-prod-obo.horizon.tv/oesp/v4/CH/eng/web/eng/session'
-			url='https://prod.spark.upctv.ch/ch/en/session-service'
+			//url='https://prod.spark.upctv.ch/ch/en/session-service'
+			url = this.configsvc.sessionService.URL;
 			const config = {headers: {
 				"x-cus": householdId,
 				"x-oesp-token": this.session.accessToken,
@@ -2070,11 +2442,11 @@ class stbPlatform {
 
 			const mqttAxiosConfig = {
 				method: 'GET',
-				//url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/tokens/jwt', prior to October 2022
 				// examples of auth-service/v1/mqtt/token urls:
 				// https://prod.spark.ziggogo.tv/auth-service/v1/mqtt/token
 				// https://prod.spark.sunrisetv.ch/auth-service/v1/mqtt/token
-				url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/mqtt/token', // new from October 2022
+				//url: countryBaseUrlArray[this.config.country.toLowerCase()] + '/auth-service/v1/mqtt/token', // new from October 2022
+				url: this.configsvc.authorizationService.URL + '/v1/mqtt/token',
 				headers: {
 					'X-OESP-Token': accessToken,
 					'X-OESP-Username': oespUsername, 
@@ -2088,8 +2460,6 @@ class stbPlatform {
 					}
 					mqttUsername = householdId; // used in sendKey to ensure that mqtt is connected
 					resolve(response.data.token); // resolve with the token
-					//this.startMqttClient(this, householdId, response.data.token);  // this starts the mqtt session
-					
 				})
 				.catch(error => {
 					this.log.debug('getMqttToken error details:', error);
@@ -2105,7 +2475,7 @@ class stbPlatform {
 	// a sync procedure, no promise returned
 	// https://github.com/mqttjs/MQTT.js#readme
 	// http://www.steves-internet-guide.com/mqtt-publish-subscribe/
-	startMqttClient(parent, mqttUsername, mqttPassword) {
+	statMqttClient(parent, mqttUsername, mqttPassword) {
 		return new Promise((resolve, reject) => {
 			try {
 				if (this.config.debugLevel > 0) { 
@@ -2118,28 +2488,45 @@ class stbPlatform {
 
 
 				// create mqtt client instance and connect to the mqttUrl
-				const mqttUrl = mqttUrlArray[this.config.country.toLowerCase()];
+				//const mqttBroker = mqttUrlArray[this.config.country.toLowerCase()];
+				const mqttBrokerUrl = this.configsvc.mqttBroker.URL;
 				if (this.config.debugLevel > 0) { 
-					this.log.warn('startMqttClient: mqttUrl:', mqttUrl ); 
+					this.log.warn('statMqttClient: mqttBrokerUrl:', mqttBrokerUrl ); 
 				}
 				if (this.config.debugLevel > 0) { 
-					this.log.warn('startMqttClient: Creating mqttClient object with username %s, password %s', mqttUsername ,mqttPassword ); 
+					this.log.warn('statMqttClient: Creating mqttClient with username %s, password %s', mqttUsername ,mqttPassword ); 
 				}
 
-				// make a new mqttClientId on every session start, much robuster, then connect
+				// make a new mqttClientId on every session start (much robuster), then connect
 				//mqttClientId = makeId(32);
 				mqttClientId = makeFormattedId(32);
-				//mqttClientId = makeId(32);
 
+				// from 24 Jan 2024 we need to set the sub protocols mqtt, mqttv3.1, mqttv3.11 to connect
+				// the required header looks like this:
+				// "sec-websocket-protocol": "mqtt, mqttv3.1, mqttv3.11",
+				// make a new custom websocket so we can ensure the correct mqtt protocols are used in the headers
+				// see https://github.com/websockets/ws/blob/master/doc/ws.md#new-websocketaddress-protocols-options
+				const createCustomWebsocket = (url, websocketSubProtocols, options) => {
+					//this.log.warn('statMqttClient: createCustomWebsocket: ', websocketSubProtocols[0] ); 
+					const subProtocols = [
+						'mqtt',
+						'mqttv3.1',
+						'mqttv3.11'
+					];
+					//this.log.warn('statMqttClient: createCustomWebsocket: about to return' ); 
+					return new WebSocket(url, subProtocols);
+				};
+				
 				// https://github.com/mqttjs/MQTT.js#connect
-				mqttClient = mqtt.connect(mqttUrl, {
-					connectTimeout: 10 * 1000, // 10s
+				mqttClient = mqtt.connect(mqttBrokerUrl, {
+					createWebsocket: createCustomWebsocket,
 					clientId: mqttClientId,
+					connectTimeout: 10 * 1000, // 10s
 					username: mqttUsername,
 					password: mqttPassword
 				});
 				if (this.config.debugLevel > 0) { 
-					this.log.warn('startMqttClient: mqttUrl connect request sent using mqttClientId %s',mqttClientId ); 
+					this.log.warn('statMqttClient: mqttBroker connect request sent using mqttClientId %s',mqttClientId ); 
 				}
 
 				//mqttClient.setMaxListeners(20); // default is 10 sometimes causes issues when the listeners reach 11
@@ -2546,20 +2933,21 @@ class stbPlatform {
 				
 				
 				if (this.config.debugLevel > 0) { 
-					this.log.warn("mqttClient: end of code block");
+					this.log.warn("statMqttClient: end of code block");
 				}
 				resolve(mqttClient.connected); // return the promise with the connected state
 
 			} catch (err) {
+				this.log.error(err);
 				reject('Cannot connect to mqtt broker', err); // reject the promise
 			}
 
 		})
-	} // end of startMqttClient
+	} // end of statMqttClient
 
 
-	// end the mqtt client cleanly
-	endMqttClient() {
+	// end the mqtt session cleanly
+	endMqttSession() {
 		return new Promise((resolve, reject) => {
 			if (this.config.debugLevel > -1) { 
 				this.log('Shutting down mqttClient...'); 
@@ -4356,11 +4744,11 @@ class stbDevice {
 			this.log("%s: Refreshing most watched channels for profile '%s'", this.name, (profile || {}).name);
 
 			// 	https://prod.spark.sunrisetv.ch/eng/web/linear-service/v1/mostWatchedChannels?cityId=401&productClass=Orion-DASH"
-			let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v1/mostWatchedChannels';
+			//let url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/linear-service/v1/mostWatchedChannels';
+			let url = this.platform.configsvc.linearService.URL + '/v1/mostWatchedChannels';
 			// add url standard parameters
 			url = url + '?cityId=' + this.customer.cityId; //+ this.customer.cityId // cityId needed to get user-specific list
 			url = url + '&productClass=Orion-DASH'; // productClass, must be Orion-DASH
-			if (this.config.debugLevel > 2) { this.log.warn('getMostWatchedChannels: loading from',url); }
 
 			const config = {headers: {
 				"x-oesp-username": this.platform.session.username, // not sure if needed
