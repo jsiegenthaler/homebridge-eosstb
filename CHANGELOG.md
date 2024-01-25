@@ -9,18 +9,18 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 
-## 2.3.0-beta.7 (2024-01-24)
-* Starting building OAuth 2.0 PKCE logon method in code +++IN WORK. INCOMPLETE+++
-* Added OAuth 2.0 PKCE logon method in config.schema as Method D
-* Added Disable Session Watchdog to config.schema to make it easier to debug by turning off the watchdog
-* Added ability to set authentication method. You must select the method in the plugin config
-* Add auto endpoint detection for all services
-* Reverted: Renamed mqttClient to mqttSession 
-* Fixed issue connecting to mqtt broker (added extra subprotocol headers)
+## 2.3.0-beta.8 (2024-01-25)
+* Preparing for release as 2.3.0
+* Added auto endpoint detection for all services, this fixes connection issues in many countries
+* Added ability to set authentication method. You must select the method in the plugin config. If none set, logon method falls back to using country code
+* Added Disable Session Watchdog to config.schema to make it easier to debug by turning off the session watchdog
+* Fixed issue connecting to mqtt broker (issue started ca. 23 Jan 2024) by adding extra subprotocol headers
 * Fixed bug in getMostWatchedChannels where the endpoint was incorrect
-* Updated Readme to mark the plugin as working for PL
+* Updated Readme plugin status for various countries
 * Updated iOS version references in Readme
+* Bumped dependency "axios": "^1.6.6"
 * Bumped dependency "mqtt": "^5.3.5"
+* IN WORK: Reworking GB authentication methods. NOT YET WORKING, PLEASE BE PATIENT
 
 
 ## 2.2.16 (2024-01-16)
