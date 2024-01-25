@@ -786,8 +786,8 @@ class stbPlatform {
 	async createSession(country) {
 		return new Promise((resolve, reject) => {
 			this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
-			//switch(country) {
-			switch(this.config.authmethod) {
+			//switch using authmethod with backup of country
+			switch(this.config.authmethod || this.config.country) {
 				case 'D': // OAuth 2.0 with PKCE
 					this.getSessionOAuth2Pkce()
 						.then((getSessionResponse) => { resolve(getSessionResponse); }) // return the getSessionResponse for the promise
