@@ -37,7 +37,7 @@ If you like this plugin, consider making a donation or buying me a coffee!<br>
 # Update January 2024
 Logon methods for many providers changed in January 2024. The latest version, v2.3.x, resolves the logon issues for CH and PL. I have not yet had confirmation from NL, BE or SK. 
 
-For GB and IE, the logon method is not yet working. Refer Issue #112. If you wish to help, please get in touch.
+For GB and IE, the logon method is not yet working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If you wish to help, please get in touch.
 
 ## Readme Applicability
 Due to the adding of features and functions, this Readme applies from v2.0.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
