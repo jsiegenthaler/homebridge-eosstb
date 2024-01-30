@@ -34,6 +34,11 @@ Supports multiple set-top boxes, should you have more than one.
 If you like this plugin, consider making a donation or buying me a coffee!<br>
 <a target="blank" href="https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468"><img src="https://img.shields.io/badge/PayPal-Donate-blue.svg?logo=paypal"/></a>  <a target="blank" href="https://ko-fi.com/jsiegenthaler"><img src="https://img.shields.io/badge/Ko--Fi-Buy%20me%20a%20coffee-29abe0.svg?logo=ko-fi"/></a>
 
+# Update January 2024
+Logon methods for many providers changed in January 2024. The latest version, v2.3.x, resolves the logon issues for CH and PL. I have not yet had confirmation from NL, BE or SK. 
+
+For GB and IE, the logon method is not yet working. Refer Issue #112. If you wish to help, please get in touch.
+
 ## Readme Applicability
 Due to the adding of features and functions, this Readme applies from v2.0.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
 
