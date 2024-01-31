@@ -16,7 +16,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/jsiegenthaler/homebridge-eosstb)](https://github.com/jsiegenthaler/homebridge-eosstb/issues)
 [![donate](https://badgen.net/badge/donate/paypal/91BE09)](https://www.paypal.com/donate?hosted_button_id=CNEDGHRUER468)
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960 / VIP5002W or HUMAX EOS1008R / 2008C) running on the Magenta AT / Telenet BE / Sunrise CH / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960 / VIP5002W or HUMAX EOS1008R / 2008C) running on the Telenet BE / Sunrise CH / UPC PL / UPC SK / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
 | iOS/iPadOS 16+ Accessory Tiles | Older iOS/iPadOS Accessory Tiles |
 |   :---:   |   :---:   |
@@ -72,7 +72,7 @@ In March 2022, a newer version of the set-top box appeared in Telenet in Belgium
 In January 2023, an ARRIS VIP5002W appeared, which identifies itself as an APLSTB. However, I will keep the plugin name unchanged at EOSSTB. 
 
 ## Disclaimer (The Legal Stuff)
-This plugin is not provided by Magenta or Telenet or Sunrise or Virgin Media or Ziggo any other affiliate of [UPC](https://en.wikipedia.org/wiki/UPC_Broadband). It is neither endorsed nor supported nor developed by [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) or any affiliates. [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) can change their systems at any time and that might break this plugin. But I hope not.
+This plugin is not provided by Telenet or Sunrise or Virgin Media or Ziggo any other affiliate of [UPC](https://en.wikipedia.org/wiki/UPC_Broadband). It is neither endorsed nor supported nor developed by [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) or any affiliates. [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
 * An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1...17.3, earlier versions not tested.
