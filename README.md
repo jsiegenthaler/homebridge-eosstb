@@ -37,7 +37,7 @@ If you like this plugin, consider buying me a coffee!<br>
 # Update February 2024
 Logon methods for many providers changed in January 2024. The latest version, v2.3.x, resolves the logon issues for CH and PL. I have not yet had confirmation from NL, BE or SK. 
 In early February I have heard that NL may not be working, but I need some confirmation.
-On 11 February February 2024 I have heard that BE is no longer working, Help Wanted!
+On 11 February 2024 I have heard that BE is no longer working, Help Wanted!
 
 
 ## Help Wanted for GB, IE and BE
