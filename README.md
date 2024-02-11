@@ -41,7 +41,7 @@ On 11 February February 2024 I have heard that BE is no longer working, Help Wan
 
 
 ## Help Wanted for GB, IE and BE
-For GB, Ie and BE, the logon method is no longer working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If are able to help, please get in touch.
+For GB, IE and BE, the logon method is no longer working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If are able to help, please get in touch.
 
 
 ## Readme Applicability
