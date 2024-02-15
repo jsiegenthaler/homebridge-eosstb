@@ -35,13 +35,10 @@ If you like this plugin, consider buying me a coffee!<br>
 <a target="blank" href="https://ko-fi.com/jsiegenthaler"><img src="https://img.shields.io/badge/Ko--Fi-Buy%20me%20a%20coffee-29abe0.svg?logo=ko-fi"/></a>
 
 # Update February 2024
-Logon methods for many providers changed in January 2024. The latest version, v2.3.x, resolves the logon issues for CH and PL. I have not yet had confirmation from NL, BE or SK. 
-In early February I have heard that NL may not be working, but I need some confirmation.
-On 11 February 2024 I have heard that BE is no longer working, Help Wanted!
+Logon methods for many providers changed from January 2024 to mid February 2024.
 
-
-## Help Wanted for GB, IE and BE
-For GB, IE and BE, the logon method is no longer working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If are able to help, please get in touch.
+## Help Wanted
+For GB, IE, BE, NL and CH the logon method is no longer working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If are able to help, please get in touch.
 
 
 ## Readme Applicability
@@ -53,10 +50,10 @@ As [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) (the operator of the Horiz
 | Country | TV Provider | Web App | Box Name | Plugin Status |
 | ------- | ----------- | ------- | -------- | ------------- |
 | BE | [Telenet](https://www2.telenet.be/) | [Telenet TV](https://www.telenettv.be/nl.html) | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/) | As of February 2024, connection to box is no longer working. Help Wanted! |
-| CH | [Sunrise](https://www.sunrise.ch/en/) | [Sunrise TV](https://www.sunrisetv.ch/en.html) | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription) | Fully Working |
+| CH | [Sunrise](https://www.sunrise.ch/en/) | [Sunrise TV](https://www.sunrisetv.ch/en.html) | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription) | As of February 2024, connection to box is no longer working. Help Wanted! |
 | GB | [Virgin Media](https://www.virginmedia.com/) | [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | As of January 2024, connection to box is no longer working. Help Wanted! |
-| IE | [Virgin Media](https://www.virginmedia.ie/) | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/) | Fully Working |
-| NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo GO](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | Fully Working |
+| IE | [Virgin Media](https://www.virginmedia.ie/) | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/) | As of January 2024, connection to box is no longer working. Help Wanted! |
+| NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo GO](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | As of February 2024, connection to box is no longer working. Help Wanted! |
 | PL | [UPC PL](https://www.upc.pl/) | [UPC TV GO](https://www.upctv.pl/pl/home) | UPC TV Box | Fully Working |
 | ------- | ----------- | ------- | -------- | ------------- |
 | SK | [UPC Broadband Slovakia](https://www.upc.sk/) | [UPC TV](https://www.upctv.sk/sk/home) | UPC TV Box | _Testers Wanted_ |
