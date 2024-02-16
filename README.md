@@ -8,6 +8,12 @@
 
 # homebridge-eosstb
 
+# IMPORTANT NOTICE
+<hr><b>
+The logon method to the backend systems changed in January / February 2024. I do not have the skills or knowledge to figure out how to get the session to connect. I therefore have no choice but to announce this plugin dead for all related countries: currently BE, CH, GB, IE, NL, and likely PL and SK. If you know anything about session authentication and are able to help, please get in touch.
+</b><hr>
+
+
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![npm](https://badgen.net/npm/dm/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
 [![npm](https://img.shields.io/npm/v/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
