@@ -9,6 +9,16 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 
+## 2.3.1 (2024-04-06)
+This is a maintenance release to bring dependencies up to date.
+The core logon issues still exist, refer issue #112
+* Removed Magenta TV from package.json
+* Bumped dependency "axios": "^1.6.8"
+* Bumped dependency "mqtt": "^5.5.0"
+* Bumped dependency "semver": "^7.6.0"
+* Bumped dependency "qs": "^6.12.0"
+
+
 ## 2.3.0 (2024-01-25)
 * Added auto endpoint detection for all services, this fixes connection issues in many countries
 * Added ability to set authentication method. You must select the method in the plugin config. If none set, logon method falls back to using country code
