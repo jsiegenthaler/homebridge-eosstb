@@ -22,6 +22,7 @@ This release also fixes logon for Belgium users, but other countries still have 
 * Bumped dependency "tough-cookie": "^4.1.4"
 * Bumped dependency "ws": "^8.17.0"
 * Removed Magenta TV from package.json
+* Updated iOS version references in Readme
 
 
 ## 2.3.1 (2024-04-06)
