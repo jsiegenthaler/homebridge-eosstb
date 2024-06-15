@@ -26,7 +26,7 @@ If you know anything about session authentication and are able to help, please g
 [![GitHub issues](https://img.shields.io/github/issues/jsiegenthaler/homebridge-eosstb)](https://github.com/jsiegenthaler/homebridge-eosstb/issues)
 <a target="blank" href="https://ko-fi.com/jsiegenthaler"><img src="https://img.shields.io/badge/Ko--Fi-Buy%20me%20a%20coffee-29abe0.svg?logo=ko-fi"/></a>
 
-`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960 / VIP5002W or HUMAX EOS1008R / 2008C) running on the Telenet BE / Sunrise CH / UPC PL / UPC SK / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
+`homebridge-eosstb` is a Homebridge plugin allowing you to control your set-top box (typically an ARRIS DCX960 / VIP5002W or HUMAX EOS1008R / 2008C) running on the Telenet BE / Sunrise CH / UPC SK / Virgin Media GB & IE / Ziggo NL Horizon TV platform with Apple HomeKit using the Home app and the Apple TV Remote in the Control Center.
 
 | iOS/iPadOS 16+ Accessory Tiles | Older iOS/iPadOS Accessory Tiles |
 |   :---:   |   :---:   |
@@ -51,25 +51,25 @@ Logon methods for BE should be working again from v2.3.2-beta.1. Use Authenticat
 Logon methods for many providers changed from January 2024 to mid February 2024.
 
 ## Help Wanted
-For GB, IE, BE, NL and CH the logon method is no longer working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If are able to help, please get in touch.
+For GB, IE, NL and CH the logon method is no longer working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If are able to help, please get in touch.
 
 
 ## Readme Applicability
 Due to the adding of features and functions, this Readme applies from v2.3.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
 
-# Works in Your Country (If you are with Sunrise / Telenet / UPC PL / UPC SK / Virgin Media / Ziggo)
+# Works in Your Country (If you are with Sunrise / Telenet / UPC SK / Virgin Media / Ziggo)
 As [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) (the operator of the Horizon TV platform) operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 / VIP5002W or HUMAX EOS1008R / 2008C set-top box are:
 
-| Country | TV Provider | Web App | Box Name | Plugin Status |
+| Country | TV Provider | Web App | Box Name | Notes |
 | ------- | ----------- | ------- | -------- | ------------- |
 | BE | [Telenet](https://www2.telenet.be/) | [Telenet TV](https://www.telenettv.be/nl.html) | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/) | As of 15 June 2024 should be working again. Use Authentication Method B. |
 | CH | [Sunrise](https://www.sunrise.ch/en/) | [Sunrise TV](https://www.sunrisetv.ch/en.html) | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription) | As of February 2024, connection to box is no longer working. Help Wanted! |
 | GB | [Virgin Media](https://www.virginmedia.com/) | [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | As of January 2024, connection to box is no longer working. Help Wanted! |
 | IE | [Virgin Media](https://www.virginmedia.ie/) | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/) | As of January 2024, connection to box is no longer working. Help Wanted! |
 | NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo GO](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | As of February 2024, connection to box is no longer working. Help Wanted! |
-| PL | [UPC PL](https://www.upc.pl/) | [UPC TV GO](https://www.upctv.pl/pl/home) | UPC TV Box | [UPC TV in Poland appears to have been discontinued in August 2023](https://en.wikipedia.org/wiki/UPC_Poland) |
-| ------- | ----------- | ------- | -------- | ------------- |
 | SK | [UPC Broadband Slovakia](https://www.upc.sk/) | [UPC TV](https://www.upctv.sk/sk/home) | UPC TV Box | _Testers Wanted_ |
+| ------- | ----------- | ------- | -------- | ------------- |
+| PL | [UPC PL](https://www.upc.pl/) | [UPC TV GO](https://www.upctv.pl/pl/home) | UPC TV Box | [UPC TV in Poland appears to have been discontinued in August 2023](https://en.wikipedia.org/wiki/UPC_Poland) |
 
 
 If you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
@@ -91,7 +91,7 @@ This plugin is not provided by Telenet or Sunrise or Virgin Media or Ziggo any o
 
 ## Requirements
 * An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1...17.5, earlier versions not tested.
-* [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116....1.7.0, earlier versions not tested.
+* [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116....1.8.2, earlier versions not tested.
 * A TV subscription from one of the supported countries and TV providers.
 * An online account for viewing TV in the web app (often part of your TV package), see the table above.
 * An ARRIS DCX960 or HUMAX EOS1008R / 2008C / VIP5002W set-top box, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB", "EOS2STB" or "APLSTB" and marketed under different names in different countries. 
