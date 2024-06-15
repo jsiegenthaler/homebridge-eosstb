@@ -1874,12 +1874,12 @@ class stbPlatform {
 			this.log("Retrieving config for countryCode %s", countryCode);
 
 			// https://spark-prod-ch.gnp.cloud.sunrisetv.ch/ch/en/config-service/conf/web/backoffice.json
-			// https://prod.spark.upctv.ch/ch/en/config-service/conf/web/backoffice.json
-			const ctryCode = countryCode.substr(0, 2);
+			// https://spark-prod-be.gnp.cloud.telenet.tv/be/en/config-service/conf/web/backoffice.json
+			// use countryCode.substr(0, 2) to allow be-fr to map to be for the backoffice url
+			const ctryCodeForUrl = countryCode.substr(0, 2);
 
 			//const url = 'https://spark-prod-ch.gnp.cloud.sunrisetv.ch/ch/en/config-service/conf/web/backoffice.json'
-			// use countryCode.substr(1, 2) for backwards-compatibility to allow be-fr to map to be
-			const url=countryBaseUrlArray[ctryCode] + '/' + ctryCode + '/en/config-service/conf/web/backoffice.json';
+			const url=countryBaseUrlArray[countryCode] + '/' + ctryCodeForUrl + '/en/config-service/conf/web/backoffice.json';
 			if (this.config.debugLevel > 0) { this.log.warn('getConfig: GET %s', url); }
 			axiosWS.get(url)
 				.then(response => {	
