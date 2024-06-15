@@ -2269,7 +2269,8 @@ class stbPlatform {
 			// get all booked series recordings: these are planned future recordings
 			// I need a test user to get me the html endpoints for local HDD recording state
 			// https://prod.spark.sunrisetv.ch/eng/web/recording-service/customers/107xxxx_ch/bookings?isAdult=false&offset=0&limit=100&sort=time&sortOrder=asc&language=en
-			const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + householdId + '/bookings?limit=10&sort=time&sortOrder=asc'; // limit to 10 recordings for performance
+			//const url = countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/recording-service/customers/' + householdId + '/bookings?limit=10&sort=time&sortOrder=asc'; // limit to 10 recordings for performance
+			const url = this.configsvc.recordingService.URL + '/customers/' + householdId + '/bookings?limit=10&sort=time&sortOrder=asc'; // limit to 10 recordings for performance
 			if (this.config.debugLevel > 0) { this.log.warn('getRecordingBookings: GET %s', url); }
 			axiosWS.get(url, config)
 				.then(response => {	
