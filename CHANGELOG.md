@@ -9,6 +9,7 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 ## 2.3.2-beta.2 (2024-06-15)
+* Fixed bug in generating backoffice url for BE
 * Updated UPC references to Liberty Global in Readme
 * Other minor Readme changes for BE and PL
 
