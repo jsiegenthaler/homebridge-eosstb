@@ -10,9 +10,9 @@
 
 # IMPORTANT NOTICE
 <hr><b>
-Logon method for BE should now be working again, currently under test in v2.3.2-beta.1
+15 June 2024: Logon method for BE should now be working again, currently under test in v2.3.2-beta.1. 
 
-The logon method to the backend systems changed in January / February 2024. I currently lack the skills and knowledge to figure out how to get the session to connect for CH, GB, IE, NL, and likely PL and SK. 
+The logon method to the backend systems changed in January / February 2024. I currently lack the skills and knowledge to figure out how to get the session to connect for CH, GB, IE, NL, and likely PL and SK. Howeever, as at 15 June 2024, users have reported a fix for BE which I have added in to v2.3.2-beta.1
 
 If you know anything about session authentication and are able to help, please get in touch.
 </b><hr>
@@ -44,6 +44,9 @@ Supports multiple set-top boxes, should you have more than one.
 If you like this plugin, consider buying me a coffee!<br>
 <a target="blank" href="https://ko-fi.com/jsiegenthaler"><img src="https://img.shields.io/badge/Ko--Fi-Buy%20me%20a%20coffee-29abe0.svg?logo=ko-fi"/></a>
 
+# Update June 2024
+Logon methods for BE should be working again from v2.3.2-beta.1. Use Authentication Method B.
+
 # Update February 2024
 Logon methods for many providers changed from January 2024 to mid February 2024.
 
@@ -59,7 +62,7 @@ As [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) (the operator of the Horiz
 
 | Country | TV Provider | Web App | Box Name | Plugin Status |
 | ------- | ----------- | ------- | -------- | ------------- |
-| BE | [Telenet](https://www2.telenet.be/) | [Telenet TV](https://www.telenettv.be/nl.html) | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/) | As of February 2024, connection to box is no longer working. Help Wanted! |
+| BE | [Telenet](https://www2.telenet.be/) | [Telenet TV](https://www.telenettv.be/nl.html) | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/) | As of 15 June 2024 should be working again. Use Authentication Method B. |
 | CH | [Sunrise](https://www.sunrise.ch/en/) | [Sunrise TV](https://www.sunrisetv.ch/en.html) | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription) | As of February 2024, connection to box is no longer working. Help Wanted! |
 | GB | [Virgin Media](https://www.virginmedia.com/) | [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | As of January 2024, connection to box is no longer working. Help Wanted! |
 | IE | [Virgin Media](https://www.virginmedia.ie/) | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/) | As of January 2024, connection to box is no longer working. Help Wanted! |
