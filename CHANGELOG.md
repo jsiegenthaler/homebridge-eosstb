@@ -8,6 +8,9 @@ Please restart Homebridge after every plugin update.
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
 * Add ability to log and read current program name
 
+## 2.3.2-beta.1 (2024-06-15)
+* Updated UPC references to Liberty Global in Readme
+* Other minor Readme changes for BE and PL
 
 ## 2.3.2-beta.1 (2024-06-15)
 This is a maintenance release to bring dependencies up to date.
@@ -24,6 +27,7 @@ This release also fixes logon for Belgium users, but other countries still have 
 * Removed Magenta TV from package.json
 * Updated iOS version references in Readme
 * Updated Important Notice in Readme
+
 
 
 ## 2.3.1 (2024-04-06)

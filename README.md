@@ -55,7 +55,7 @@ For GB, IE, BE, NL and CH the logon method is no longer working. Refer Issue [#1
 Due to the adding of features and functions, this Readme applies from v2.3.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
 
 # Works in Your Country (If you are with Sunrise / Telenet / UPC PL / UPC SK / Virgin Media / Ziggo)
-As [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) (the operator of the Horizon TV platform) operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 / VIP5002W or HUMAX EOS1008R / 2008C set-top box are:
+As [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) (the operator of the Horizon TV platform) operates in multiple countries under multiple brands, this plugin will work in a number of countries that use the Horizon TV platform. The known countries that use the same TV platform with the ARRIS DCX960 / VIP5002W or HUMAX EOS1008R / 2008C set-top box are:
 
 | Country | TV Provider | Web App | Box Name | Plugin Status |
 | ------- | ----------- | ------- | -------- | ------------- |
@@ -64,14 +64,14 @@ As [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) (the operator of the Horiz
 | GB | [Virgin Media](https://www.virginmedia.com/) | [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom)  | As of January 2024, connection to box is no longer working. Help Wanted! |
 | IE | [Virgin Media](https://www.virginmedia.ie/) | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/) | As of January 2024, connection to box is no longer working. Help Wanted! |
 | NL | [Ziggo](https://www.ziggo.nl/) | [Ziggo GO](https://www.ziggogo.tv/nl.html) | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv) | As of February 2024, connection to box is no longer working. Help Wanted! |
-| PL | [UPC PL](https://www.upc.pl/) | [UPC TV GO](https://www.upctv.pl/pl/home) | UPC TV Box | Fully Working |
+| PL | [UPC PL](https://www.upc.pl/) | [UPC TV GO](https://www.upctv.pl/pl/home) | UPC TV Box | [UPC TV in Poland appears to have been discontinued in August 2023](https://en.wikipedia.org/wiki/UPC_Poland) |
 | ------- | ----------- | ------- | -------- | ------------- |
 | SK | [UPC Broadband Slovakia](https://www.upc.sk/) | [UPC TV](https://www.upctv.sk/sk/home) | UPC TV Box | _Testers Wanted_ |
 
 
 If you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
 
-May also work with other UPC countries, if you know of any, let me know.
+May also work with other Liberty Global countries, if you know of any, let me know.
 
 ## Made in Switzerland
 This plugin was written and tested on the author's set-top box (ARRIS mediabox model DCX960/KK0L/A816/0000) running on Sunrise TV in Switzerland. It has also been extensively tested on Telenet in Belgium (also on the 2nd generation HUMAX 2008C-STB-xx), Virgin Media in Great Britain and Ireland, and Ziggo in the Netherlands.
@@ -84,7 +84,7 @@ In March 2022, a newer version of the set-top box appeared in Telenet in Belgium
 In January 2023, an ARRIS VIP5002W appeared, which identifies itself as an APLSTB. However, I will keep the plugin name unchanged at EOSSTB. 
 
 ## Disclaimer (The Legal Stuff)
-This plugin is not provided by Telenet or Sunrise or Virgin Media or Ziggo any other affiliate of [UPC](https://en.wikipedia.org/wiki/UPC_Broadband). It is neither endorsed nor supported nor developed by [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) or any affiliates. [UPC](https://en.wikipedia.org/wiki/UPC_Broadband) can change their systems at any time and that might break this plugin. But I hope not.
+This plugin is not provided by Telenet or Sunrise or Virgin Media or Ziggo any other affiliate of [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global). It is neither endorsed nor supported nor developed by [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) or UPC Broadband or any affiliates. [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
 * An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1...17.5, earlier versions not tested.
@@ -487,4 +487,4 @@ See the Wiki for [details on how to read and control the set-top box in the Shor
 
 * My helpers in Great Britain and Ireland (you know who you are) for helping me get the session code working for Virgin Media
 
-* [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) for making such a useful Horizon TV platform and lovely set-top boxes
+* [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) (previously known as UPC Broadband) for making such a useful Horizon TV platform and lovely set-top boxes
