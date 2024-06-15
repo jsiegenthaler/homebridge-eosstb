@@ -57,10 +57,9 @@ axiosCookieJarSupport(axiosWS);
 // refer https://github.com/Sholofly/lghorizon-python/blob/features/telenet/lghorizon/const.py
 const countryBaseUrlArray = {
 	//https://spark-prod-be.gnp.cloud.telenet.tv/be/en/config-service/conf/web/backoffice.json
-	//'be-fr':	'https://prod.spark.telenet.tv',
-	//'be-nl':	'https://prod.spark.telenet.tv',	
-	'be':		'https://spark-prod-be.gnp.cloud.telenet.tv', // verified 14.01.2024
-				// https://spark-prod-ch.gnp.cloud.sunrisetv.ch/ch/en/config-service/conf/web/backoffice.json
+	'be-fr':	'https://spark-prod-be.gnp.cloud.telenet.tv', // changed 15.06.2024, be still needs 2 x language variangs: be-fr and be-nl
+	'be-nl':	'https://spark-prod-be.gnp.cloud.telenet.tv', // changed 15.06.2024, be still needs 2 x language variangs: be-fr and be-nl
+    // https://spark-prod-ch.gnp.cloud.sunrisetv.ch/ch/en/config-service/conf/web/backoffice.json
     //'ch': 		'https://prod.spark.sunrisetv.ch', 
     'ch': 		'https://spark-prod-ch.gnp.cloud.sunrisetv.ch', // verified 14.01.2024
 	'gb':       'https://spark-prod-gb.gnp.cloud.virgintvgo.virginmedia.com', // verified 14.01.2024

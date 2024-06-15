@@ -9,6 +9,21 @@ Please restart Homebridge after every plugin update.
 * Add ability to log and read current program name
 
 
+## 2.3.2-beta.1 (2024-06-15)
+This is a maintenance release to bring dependencies up to date.
+This release also fixes logon for Belgium users, but other countries still have issues, refer issue #112
+* Change countryBaseUrlArray for be to solve be logon issues, waiting on user feedback. #120
+* Bumped dependency "axios": "^1.7.2"
+* Bumped dependency "axios-cookiejar-support": "^5.0.2"
+* Bumped dependency "debug": "^4.3.5"
+* Bumped dependency "mqtt": "^5.7.0"
+* Bumped dependency "qs": "^6.12.1"
+* Bumped dependency "semver": "^7.6.2"
+* Bumped dependency "tough-cookie": "^4.1.4"
+* Bumped dependency "ws": "^8.17.0"
+* Removed Magenta TV from package.json
+
+
 ## 2.3.1 (2024-04-06)
 This is a maintenance release to bring dependencies up to date.
 The core logon issues still exist, refer issue #112
