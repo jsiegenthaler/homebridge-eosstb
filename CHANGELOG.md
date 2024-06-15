@@ -8,18 +8,9 @@ Please restart Homebridge after every plugin update.
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
 * Add ability to log and read current program name
 
-## 2.3.2-beta.3 (2024-06-15)
-* Fixed base url in getRecordingBookings to use backoffice.json reported url
-
-## 2.3.2-beta.2 (2024-06-15)
-* Fixed bug in generating backoffice url for BE
-* Updated UPC references to Liberty Global in Readme
-* Other minor Readme changes for BE and PL
-
-## 2.3.2-beta.1 (2024-06-15)
-This is a maintenance release to bring dependencies up to date.
-This release also fixes logon for Belgium users, but other countries still have issues, refer issue #112
-* Change countryBaseUrlArray for be to solve be logon issues, waiting on user feedback. #120
+## 2.3.2 (2024-06-15)
+This release fixes the logon issues for Belgium users. Other countries still have issues, refer issue #112
+* Fixed login issues for BE users
 * Bumped dependency "axios": "^1.7.2"
 * Bumped dependency "axios-cookiejar-support": "^5.0.2"
 * Bumped dependency "debug": "^4.3.5"
@@ -30,8 +21,8 @@ This release also fixes logon for Belgium users, but other countries still have 
 * Bumped dependency "ws": "^8.17.0"
 * Removed Magenta TV from package.json
 * Updated iOS version references in Readme
-* Updated Important Notice in Readme
-
+* Updated Readme file to change UPC references to Liberty Global
+* Updated Readme file with minor Readme changes for BE and PL
 
 
 ## 2.3.1 (2024-04-06)
