@@ -8,6 +8,10 @@ Please restart Homebridge after every plugin update.
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
 * Add ability to log and read current program name
 
+## 2.3.4 (2024-06-22)
+* Updated PL references in package.json
+* Minor Readme updates
+
 ## 2.3.3 (2024-06-20)
 * Bumped dependency "mqtt": "^5.7.2"
 * Bumped dependency "ws": "^8.17.1"
