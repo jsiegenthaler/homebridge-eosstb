@@ -10,9 +10,9 @@
 
 # IMPORTANT NOTICE
 <hr><b>
-15 June 2024: Logon method for BE should now be working again, currently under test in v2.3.2-beta.1. 
+22 June 2024: Logon method for BE confirmed working again, available from v2.3.2. 
 
-The logon method to the backend systems changed in January / February 2024. I currently lack the skills and knowledge to figure out how to get the session to connect for CH, GB, IE, NL, and likely PL and SK. Howeever, as at 15 June 2024, users have reported a fix for BE which I have added in to v2.3.2-beta.1
+The logon method to the backend systems changed in January / February 2024. I currently lack the skills and knowledge to figure out how to get the session to connect for CH, GB, IE, NL, and likely SK. However, as at 15 June 2024, BE users have reported a fix for BE which I have added in to v2.3.2.
 
 If you know anything about session authentication and are able to help, please get in touch.
 </b><hr>
