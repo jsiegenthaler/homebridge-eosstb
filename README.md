@@ -90,8 +90,8 @@ In January 2023, an ARRIS VIP5002W appeared, which identifies itself as an APLST
 This plugin is not provided by Telenet or Sunrise or Virgin Media or Ziggo any other affiliate of [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global). It is neither endorsed nor supported nor developed by [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) or UPC Broadband or any affiliates. [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
-* An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1...17.5, earlier versions not tested.
-* [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116....1.8.2, earlier versions not tested.
+* An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1...18.0, earlier versions not tested.
+* [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116....1.8.4, earlier versions not tested.
 * A TV subscription from one of the supported countries and TV providers.
 * An online account for viewing TV in the web app (often part of your TV package), see the table above.
 * An ARRIS DCX960 or HUMAX EOS1008R / 2008C / VIP5002W set-top box, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB", "EOS2STB" or "APLSTB" and marketed under different names in different countries. 
@@ -133,7 +133,7 @@ This plugin is not provided by Telenet or Sunrise or Virgin Media or Ziggo any o
 
 * **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
-* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 17.5). Hopefully, Apple will add support for these features in the future. You can however use this data in Home Automations or the Shortcuts app.
+* **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 18.0). Hopefully, Apple will add support for these features in the future. You can however use this data in Home Automations or the Shortcuts app.
 
 
 
@@ -178,8 +178,8 @@ The following keys are supported by in the **Apple TV Remote** in the Control Ce
 
 | Key | Single Tap | Double Tap |
 | ------- | ----------- | ------- |
-| Mute | (see note) | (see note) |
-| Power | (see note) | (see note) |
+| Mute | Mute | n/a |
+| Power | Power | n/a |
 | Up | ArrowUp | ChannelUp |
 | Down | ArrowDown | ChannelDown |
 | Left | ArrowLeft | MediaRewind |
@@ -191,7 +191,7 @@ The following keys are supported by in the **Apple TV Remote** in the Control Ce
 | Volume Up | volUpCommand | - |
 | Volume Down | volDownCommand | 3 clicks = mute |
 
-NOTE: The Mute and Power buttons appear in the Remote Control as of iOS 17.5, however they are disabled. Currently, I do not know how to enable these buttons. If you have any information about these buttons, please get in touch with me.
+NOTE: Prior to iOS 18.0, the Mute and Power buttons appeared in the Remote Control, however they were disabled. As of iOS 18.0, the buttons are enabled. Double tap is not applicable to the Mute and Power buttons.
 
 The table shows the default key mappings. You can map any Apple TV Remote button to any set-top box remote control button, see the Wiki for all of the known [KeyEvents](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents).
 
@@ -226,13 +226,13 @@ Services used in this set-top box accessory are:
 4. Input service. The input (TV channels) utilises one service per input. The maximum possible channels (inputs) are thus 100 - 3 = 97. I have limited the inputs to maximum 95, but you can override this in the config (helpful to reduce log entries when debugging). The inputs are hard limited to 95 inputs.
 
 ### Media State (Play/Pause) Limitations
-The eosstb plugin can detect the target and current media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed only for current media state when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 17.5) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
+The eosstb plugin can detect the target and current media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed only for current media state when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 18.0) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ### Recording State Limitations
 The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but the eosstb plugin uses it to set the inUse charateristic if the set-top box is turned on or is recording to the local HDD. This is useful in Shortcuts or Automations.
 
 ### Closed Captions Limitations
-The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 17.5) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
+The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 18.0) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ## Configuration
 Add a new platform to the platforms section of your homebridge `config.json`.
@@ -463,7 +463,7 @@ The volume and mute commands do not control the set-top box directly, but can be
 * **VolumeUp** and **VolumeDown**: When the Apple TV Remote is displayed, the iOS device volume controls can be used to control the volume of your TV. However, this is not done via the set-top box, but instead via a command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Home Theater HT-D5500 and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP, KEY_VOLDOWN and KEY_MUTE to be easily sent to the Samsung Home Theater. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See the [TV Volume Control Wiki page] (https://github.com/jsiegenthaler/homebridge-eosstb/wiki/TV-Volume-Control) and also [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scroll to the bottom to see some working command lines. Once you know what bash command works, configure it in  volUpCommand and volDownCommand.
 
 ### Mute
-* **Mute** is not supported natively by the Apple TV Remote, but this plugin adds it with a triple-press detection on the volume down button. Press the button three times within 800ms, and the Mute command will be sent using the command stored in the **muteCommand** config item.
+* **Mute** is supported natively by the Apple TV Remote as of iOS 18.0. This plugin also supports Mute with a triple-press detection on the volume down button, so that prior iOS versions also have a Mute capability. Press the volume down button three times within 800ms, and the Mute command will be sent using the command stored in the **muteCommand** config item.
 
 ### View TV Settings
 You can use **View TV Settings** to open the set-top box main menu at the **PROFILES** menu. Usage: in the Home app, tap-and-wait on the set-top box tile to open the channel changer, then tap on the cogwheel to open the settings for the accessory, and scroll down to **View TV Settings**. 
