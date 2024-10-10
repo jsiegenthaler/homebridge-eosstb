@@ -6,7 +6,23 @@ Please restart Homebridge after every plugin update.
 # Bug Fixes and Improvements
 
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
+* Try and get authentication working again HELP NEEDED
 * Add ability to log and read current program name
+
+## 2.3.5-beta.2 (2024-10-10)
+* Added preparations for Homebridge 2.0
+* Updated iOS and Homebridge version references in Readme
+* Bumped dependency "axios": "^1.7.5",
+* Bumped dependency "axios-cookiejar-support": "^5.0.3",
+* Bumped dependency "debug": "^4.3.7",
+* Bumped dependency "mqtt": "^5.10.1",
+* Bumped dependency "mqtt": "^5.10.1",
+* Bumped dependency "qs": "^6.13.0",
+* Bumped dependency "semver": "^7.6.3",
+* Bumped dependency "tough-cookie": "^5.0.0",
+* Bumped dependency "ws": "^8.18.0"
+* Bumped dependency "homebridge": "^1.8.4||^2.0.0-beta",
+* Bumped dependency "node": "^20.18.0"
 
 ## 2.3.4 (2024-06-22)
 * Updated PL references in package.json
