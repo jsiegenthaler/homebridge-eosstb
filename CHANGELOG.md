@@ -7,9 +7,9 @@ Please restart Homebridge after every plugin update.
 
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
 * Try and get authentication working again HELP NEEDED
-* Add ability to log and read current program name
 
-## 2.3.5-beta.2 (2024-10-10)
+
+## 2.3.5 (2024-10-25)
 * Added preparations for Homebridge 2.0
 * Updated iOS and Homebridge version references in Readme
 * Bumped dependency "axios": "^1.7.5",
