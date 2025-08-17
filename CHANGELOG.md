@@ -10,6 +10,7 @@ Please restart Homebridge after every plugin update.
 
 ## 2.3.5-beta.2 (2025-08-17)
 * try and fix auth for NL
+* Changed headers in getEntitlements for just NL
 
 ## 2.3.5-beta.1 (2025-03-14)
 * Added preparations for Homebridge 2.0
