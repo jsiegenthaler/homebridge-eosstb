@@ -8,6 +8,8 @@ Please restart Homebridge after every plugin update.
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
 * Try and get authentication working again HELP NEEDED
 
+## 2.3.5-beta.2 (2025-08-17)
+* try and fix auth for NL
 
 ## 2.3.5-beta.1 (2025-03-14)
 * Added preparations for Homebridge 2.0
