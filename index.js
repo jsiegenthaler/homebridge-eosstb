@@ -2073,11 +2073,25 @@ class stbPlatform {
 			//const url=countryBaseUrlArray[this.config.country.toLowerCase()] + '/eng/web/purchase-service/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
 			const url = this.configsvc.purchaseService.URL + '/v2/customers/' + householdId + '/entitlements?enableDaypass=true';
 			//const config = {headers: {"x-cus": this.session.householdId, "x-oesp-token": this.session.accessToken, "x-oesp-username": this.session.username}};
-			const config = {headers: {
-				"x-cus": householdId,
-				"x-oesp-token": this.session.accessToken,
-				"x-oesp-username": this.session.username
-			}};
+			let config = {}
+			if (this.config.country.toLowerCase() == 'nl') {
+				config = {
+					headers: {
+						"x-cus": householdId,
+						"ACCESSTOKEN": this.session.accessToken,
+						"x-oesp-username": this.session.username
+					}
+				};
+
+			} else {
+				config = {
+					headers: {
+						"x-cus": householdId,
+						"x-oesp-token": this.session.accessToken,
+						"x-oesp-username": this.session.username
+					}
+				};
+			}
 			if (this.config.debugLevel > 0) { this.log.warn('getEntitlements: GET %s', url); }
 			// this.log('getEntitlements: GET %s', url);
 			axiosWS.get(url, config)
