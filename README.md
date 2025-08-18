@@ -10,7 +10,7 @@
 
 # IMPORTANT NOTICE
 <hr><b>
-18 June 2025: Logon method for BE confirmed working again, available from v2.3.5-beta.3.
+18 June 2025: Logon method for NL confirmed working again, available from v2.3.5-beta.3.
 
 22 June 2024: Logon method for BE confirmed working again, available from v2.3.2. 
 
