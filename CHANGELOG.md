@@ -10,7 +10,7 @@ Please restart Homebridge after every plugin update.
 
 ## 2.3.5-beta.2 (2025-08-18)
 * Updated headers in getEntitlements to fix connection for NL
-* Updted references to NL in Readme
+* Updated references to NL in Readme
 * Updated iOS version references in Readme
 * Updated Homebridge version references in Readme
 * Bumped dependency "debug": "^4.4.1",
