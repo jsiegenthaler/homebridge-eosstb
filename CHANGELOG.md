@@ -8,7 +8,7 @@ Please restart Homebridge after every plugin update.
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
 * Try and get authentication working again HELP NEEDED
 
-## 2.3.5-beta.2 (2025-08-18)
+## 2.3.5-beta.3 (2025-08-18)
 * Updated headers in getEntitlements to fix connection for NL
 * Updated references to NL in Readme
 * Updated iOS and Homebridge version references in Readme
