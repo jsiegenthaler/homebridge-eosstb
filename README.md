@@ -56,7 +56,7 @@ Logon methods for BE should be working again from v2.3.2-beta.1. Use Authenticat
 Logon methods for many providers changed from January 2024 to mid February 2024.
 
 ## Help Wanted
-For GB, IE, NL and CH the logon method is no longer working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If are able to help, please get in touch.
+For GB, IE and CH the logon method is no longer working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If are able to help, please get in touch.
 
 
 ## Readme Applicability
