@@ -10,9 +10,11 @@
 
 # IMPORTANT NOTICE
 <hr><b>
+18 June 2025: Logon method for BE confirmed working again, available from v2.3.5-beta.3.
+
 22 June 2024: Logon method for BE confirmed working again, available from v2.3.2. 
 
-The logon method to the backend systems changed in January / February 2024. I currently lack the skills and knowledge to figure out how to get the session to connect for CH, GB, IE, NL, and likely SK. However, as at 15 June 2024, BE users have reported a fix for BE which I have added in to v2.3.2.
+The logon method to the backend systems changed in January / February 2024. I currently lack the skills and knowledge to figure out how to get the session to connect for CH, GB, IE, NL, and likely SK. However, as at 15 June 2024, BE users have reported a fix for BE which I have added in to v2.3.2, and from 18 August 2025 NL users have reported a fix for NL which I have added to v2.3.5-beta.3.
 
 If you know anything about session authentication and are able to help, please get in touch.
 </b><hr>
@@ -43,6 +45,9 @@ Supports multiple set-top boxes, should you have more than one.
 
 If you like this plugin, consider buying me a coffee!<br>
 <a target="blank" href="https://ko-fi.com/jsiegenthaler"><img src="https://img.shields.io/badge/Ko--Fi-Buy%20me%20a%20coffee-29abe0.svg?logo=ko-fi"/></a>
+
+# Update August 2025
+Logon methods for NL working again from v2.3.5-beta.3. Use Authentication Method A.
 
 # Update June 2024
 Logon methods for BE should be working again from v2.3.2-beta.1. Use Authentication Method B.
