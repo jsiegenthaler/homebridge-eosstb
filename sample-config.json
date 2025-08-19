@@ -1,10 +1,10 @@
 {
-    "platforms": [
-        {
-            "platform": "eosstb",
-            "country": "ch",
-            "username": "yourUsername",
-            "password": "yourPassword"
-        }
-    ]
+  "platforms": [
+    {
+      "platform": "eosstb",
+      "country": "ch",
+      "username": "yourUsername",
+      "password": "yourPassword"
+    }
+  ]
 }
