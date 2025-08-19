@@ -1,1143 +1,1118 @@
 {
-    "pluginAlias": "eosstb",
-    "pluginType": "platform",
-    "singular": true,
-    "headerDisplay": "Homebridge plugin for the [ARRIS DCX960 / VIP5002W](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md) or [HUMAX EOS1008R / 2008C](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md) set-top box on the UPC TV platform.",
-    "footerDisplay": "For a detailed description, see [this version's README](https://www.npmjs.com/package/homebridge-eosstb), or [the current README](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration) and the [Wiki](https://github.com/jsiegenthaler/homebridge-eosstb/wiki).",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "title": "Name",
-          "type": "string",
-          "description": "Plugin name as displayed in the homebridge log. Default: EOSSTB",
-          "default": "EOSSTB",
-          "placeholder": "EOSSTB",
-          "minLength": 1,
-          "required": false
-        },
-        "country": {
-          "title": "Country",
-          "type": "string",
-          "description": "Your country. This controls the country-specific logon sequence and the mqtt sessions.",
-          "default": "ch",
-          "required": true,
-          "oneOf": [
-            { "title": "BE-FR:  Telenet TV", "enum": ["be-fr"] },
-            { "title": "BE-NL:  Telenet TV", "enum": ["be-nl"] },
-            { "title": "CH:  Sunrise TV", "enum": ["ch"] },
-            { "title": "GB:  Virgin Media TV 360", "enum": ["gb"] },
-            { "title": "IE.  Virgin Media TV 360", "enum": ["ie"] },
-            { "title": "NL:  Ziggo TV", "enum": ["nl"] },
-            { "title": "PL:  UPC TV GO", "enum": ["pl"] },
-            { "title": "SK:  UPC TV", "enum": ["sk"] }
-          ]
-        },
-        "username": {
-          "title": "Username",
-          "type": "string",
-          "description": "Your username for your TV account.",
-          "placeholder": "yourTvProviderUsername",
-          "required": true
-        },
-        "password": {
-          "title": "Password",
-          "type": "string",
-          "description": "Your password associated with your TV account.",
-          "placeholder": "yourTvProviderPassword",
-          "required": true
-        },
-        "authmethod": {
-            "title": "Authentication Method",
-            "type": "string",
-            "description": "The authentication method. Select the option for your country. If it doesn't work, try another method.",
-            "default": "A",
-            "required": true,
-            "oneOf": [
-                { "title": "Method A: CH, NL, IE", "enum": ["A"] },
-                { "title": "Method B: BE", "enum": ["B"] },
-                { "title": "Method C: GB", "enum": ["C"] },
-                { "title": "Method D: OAuth 2.0 PKCE EXPERIMENTAL", "enum": ["D"] }
-            ]
-          },
-  
-        "watchdogDisabled": {
-            "title": "Disable Session Watchdog",
-            "type": "boolean",
-            "description": "Disables the session watchdog to assist with debugging. Default: false",
-            "default": false
-        },
-  
-        "doublePressTime": {
-            "title": "Double-Press Time",
-            "type": "integer",
-            "description": "The amount of time in ms to detect double-tap of an iOS remote control button. Default: 250ms",
-            "default": 250,
-            "placeholder": 250
-        },
+  "pluginAlias": "eosstb",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Homebridge plugin for the [ARRIS DCX960 / VIP5002W](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md) or [HUMAX EOS1008R / 2008C](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md) set-top box on the UPC TV platform.",
+  "footerDisplay": "For a detailed description, see [this version's README](https://www.npmjs.com/package/homebridge-eosstb), or [the current README](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md#configuration) and the [Wiki](https://github.com/jsiegenthaler/homebridge-eosstb/wiki).",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "description": "Plugin name as displayed in the homebridge log. Default: EOSSTB",
+        "default": "EOSSTB",
+        "placeholder": "EOSSTB",
+        "minLength": 1,
+        "required": false
+      },
+      "country": {
+        "title": "Country",
+        "type": "string",
+        "description": "Your country. This controls the country-specific logon sequence and the mqtt sessions.",
+        "default": "ch",
+        "required": true,
+        "oneOf": [
+          { "title": "BE-FR:  Telenet TV", "enum": ["be-fr"] },
+          { "title": "BE-NL:  Telenet TV", "enum": ["be-nl"] },
+          { "title": "CH:  Sunrise TV", "enum": ["ch"] },
+          { "title": "GB:  Virgin Media TV 360", "enum": ["gb"] },
+          { "title": "IE.  Virgin Media TV 360", "enum": ["ie"] },
+          { "title": "NL:  Ziggo TV", "enum": ["nl"] },
+          { "title": "PL:  UPC TV GO", "enum": ["pl"] },
+          { "title": "SK:  UPC TV", "enum": ["sk"] }
+        ]
+      },
+      "username": {
+        "title": "Username",
+        "type": "string",
+        "description": "Your username for your TV account.",
+        "placeholder": "yourTvProviderUsername",
+        "required": true
+      },
+      "password": {
+        "title": "Password",
+        "type": "string",
+        "description": "Your password associated with your TV account.",
+        "placeholder": "yourTvProviderPassword",
+        "required": true
+      },
+      "authmethod": {
+        "title": "Authentication Method",
+        "type": "string",
+        "description": "The authentication method. Select the option for your country. If it doesn't work, try another method.",
+        "default": "A",
+        "required": true,
+        "oneOf": [
+          { "title": "Method A: CH, NL, IE", "enum": ["A"] },
+          { "title": "Method B: BE", "enum": ["B"] },
+          { "title": "Method C: GB", "enum": ["C"] },
+          { "title": "Method D: OAuth 2.0 PKCE EXPERIMENTAL", "enum": ["D"] }
+        ]
+      },
 
-        "triplePressTime": {
-            "title": "Triple-Press Time",
-            "type": "integer",
-            "description": "The amount of time in ms to detect triple-tap of an iOS remote control button. Default: 800ms.",
-            "placeholder": 800
-        },
+      "watchdogDisabled": {
+        "title": "Disable Session Watchdog",
+        "type": "boolean",
+        "description": "Disables the session watchdog to assist with debugging. Default: false",
+        "default": false
+      },
 
-        "masterChannelListValidFor": {
-            "title": "Master Channel List Validity Time",
-            "type": "integer",
-            "description": "The amount of time in seconds that the master channel list is valid. Channel list is refreshed when the time expires. Default: 1800s.",
-            "placeholder": 1800
-        },
+      "doublePressTime": {
+        "title": "Double-Press Time",
+        "type": "integer",
+        "description": "The amount of time in ms to detect double-tap of an iOS remote control button. Default: 250ms",
+        "default": 250,
+        "placeholder": 250
+      },
 
-        "debugLevel": {
-            "title": "Debug Level",
-            "type": "integer",
-            "description": "Enables extra logging for this plugin. Default: None.",
-            "oneOf": [
-                { "title": "Minimum", "enum": [1] },
-                { "title": "Enhanced", "enum": [2] },
-                { "title": "Verbose", "enum": [3] }
-            ]
-        },
-        
+      "triplePressTime": {
+        "title": "Triple-Press Time",
+        "type": "integer",
+        "description": "The amount of time in ms to detect triple-tap of an iOS remote control button. Default: 800ms.",
+        "placeholder": 800
+      },
 
+      "masterChannelListValidFor": {
+        "title": "Master Channel List Validity Time",
+        "type": "integer",
+        "description": "The amount of time in seconds that the master channel list is valid. Channel list is refreshed when the time expires. Default: 1800s.",
+        "placeholder": 1800
+      },
 
-        "devices": {
-            "type": "array",
-            "title": "Devices",
-            "description": "Each set-top box is a device. This plugin supports multiple devices. Device config is optional; the plugin will still work if no devices are configured.",
-            "items": {
-                "title": "Devices",
-                "type": "object",
-                "properties": {
-                    "deviceId": {
-                        "title": "Device ID",
-                        "type": "string",
-                        "description": "Unique deviceId used to identify the device. The deviceId is visible in the Homebridge log shortly after a Homebridge restart.",
-                        "placeholder": "3C36E4-EOSSTB-000123456789",
-                        "minLength": 25,
-                        "required": true
-                    },
-                    "name": {
-                        "title": "Name",
-                        "type": "string",
-                        "description": "The device name. Default: the current device name",
-                        "pattern": "^[0-9A-Za-zÀ-ÖØ-öø-ÿ](?:[0-9A-Za-zÀ-ÖØ-öø-ÿ '’,.-]+)*[0-9A-Za-zÀ-ÖØ-öø-ÿ.]$",
-                        "placeholder": "Current Name",
-                        "minLength": 3,
-                        "maxLength": 14
-                    },
-                    "syncName": {
-                        "title": "Sync Name",
-                        "type": "boolean",
-                        "description": "Enables syncing of the device name with the set-top box name. Default: true",
-                        "default": true
-                    },
-                    "accessoryCategory": {
-                        "title": "Icon",
-                        "type": "string",
-                        "description": "The icon displayed on the tile in Home app. Default: Set-Top Box",
-                        "default": "settopbox",
-                        "oneOf": [
-                            { "title": "Set-Top Box", "enum": ["settopbox"] },
-                            { "title": "Television", "enum": ["television"] },
-                            { "title": "Audio Receiver", "enum": ["receiver"] }
-                        ]
-                    },
+      "debugLevel": {
+        "title": "Debug Level",
+        "type": "integer",
+        "description": "Enables extra logging for this plugin. Default: None.",
+        "oneOf": [
+          { "title": "Minimum", "enum": [1] },
+          { "title": "Enhanced", "enum": [2] },
+          { "title": "Verbose", "enum": [3] }
+        ]
+      },
 
+      "devices": {
+        "type": "array",
+        "title": "Devices",
+        "description": "Each set-top box is a device. This plugin supports multiple devices. Device config is optional; the plugin will still work if no devices are configured.",
+        "items": {
+          "title": "Devices",
+          "type": "object",
+          "properties": {
+            "deviceId": {
+              "title": "Device ID",
+              "type": "string",
+              "description": "Unique deviceId used to identify the device. The deviceId is visible in the Homebridge log shortly after a Homebridge restart.",
+              "placeholder": "3C36E4-EOSSTB-000123456789",
+              "minLength": 25,
+              "required": true
+            },
+            "name": {
+              "title": "Name",
+              "type": "string",
+              "description": "The device name. Default: the current device name",
+              "pattern": "^[0-9A-Za-zÀ-ÖØ-öø-ÿ](?:[0-9A-Za-zÀ-ÖØ-öø-ÿ '’,.-]+)*[0-9A-Za-zÀ-ÖØ-öø-ÿ.]$",
+              "placeholder": "Current Name",
+              "minLength": 3,
+              "maxLength": 14
+            },
+            "syncName": {
+              "title": "Sync Name",
+              "type": "boolean",
+              "description": "Enables syncing of the device name with the set-top box name. Default: true",
+              "default": true
+            },
+            "accessoryCategory": {
+              "title": "Icon",
+              "type": "string",
+              "description": "The icon displayed on the tile in Home app. Default: Set-Top Box",
+              "default": "settopbox",
+              "oneOf": [
+                { "title": "Set-Top Box", "enum": ["settopbox"] },
+                { "title": "Television", "enum": ["television"] },
+                { "title": "Audio Receiver", "enum": ["receiver"] }
+              ]
+            },
 
-                    "manufacturer": {
-                        "title": "Manufacturer",
-                        "type": "string",
-                        "description": "The manufacturer name to display in the Home app. Default: auto-detected.",
-                        "placeholder": "ARRIS",
-                        "maxLength": 64
-                    },
-                    "modelName": {
-                        "title": "Model",
-                        "type": "string",
-                        "description": "The model name to display in the Home app. Default: auto-detected.",
-                        "placeholder": "DCX960",
-                        "maxLength": 64
-                    },
-                    "serialNumber": {
-                        "title": "Serial Number",
-                        "type": "string",
-                        "description": "The serial number to display in the Home app. Default: auto-detected.",
-                        "placeholder": "Current Serial Number",
-                        "maxLength": 64
-                    },
-                    "firmwareRevision": {
-                        "title": "Firmware",
-                        "type": "string",
-                        "description": "The firmware version to display in the Home app. Numbers only eg 4.44. Default: plugin version.",
-                        "placeholder": "4.44",
-                        "pattern": "^(\\d+)((\\.{1}\\d+)*)(\\.{0})$"
-                    },       
-                    
+            "manufacturer": {
+              "title": "Manufacturer",
+              "type": "string",
+              "description": "The manufacturer name to display in the Home app. Default: auto-detected.",
+              "placeholder": "ARRIS",
+              "maxLength": 64
+            },
+            "modelName": {
+              "title": "Model",
+              "type": "string",
+              "description": "The model name to display in the Home app. Default: auto-detected.",
+              "placeholder": "DCX960",
+              "maxLength": 64
+            },
+            "serialNumber": {
+              "title": "Serial Number",
+              "type": "string",
+              "description": "The serial number to display in the Home app. Default: auto-detected.",
+              "placeholder": "Current Serial Number",
+              "maxLength": 64
+            },
+            "firmwareRevision": {
+              "title": "Firmware",
+              "type": "string",
+              "description": "The firmware version to display in the Home app. Numbers only eg 4.44. Default: plugin version.",
+              "placeholder": "4.44",
+              "pattern": "^(\\d+)((\\.{1}\\d+)*)(\\.{0})$"
+            },
 
-                    "profile": {
-                        "title": "Profile Name",
-                        "type": "string",
-                        "description": "Use a profile to manage channels shown in the Home app. Default: Shared Profile",
-                        "maxLength": 10
-                    },                    
-                    "channelOrder": {
-                        "title": "Channel Sort By",
-                        "type": "string",
-                        "description": "Select how the channels should be sorted in the channel list. Default: Most Watched",
-                        "default": "channelOrder",
-                        "required": false,
-                        "oneOf": [
-                            { "title": "Most Watched", "enum": ["mostWatched"] },
-                            { "title": "Channel Order", "enum": ["channelOrder"] }
-                        ]
-                    },
-                    "maxChannels": {
-                        "title": "Max Channels",
-                        "type": "integer",
-                        "description": "Limit the maximum channels to load in the channel list. Default: 95",
-                        "default": 95,
-                        "maximum": 95
-                    },
-                    "showChannelNumbers": {
-                        "title": "Show Channel Numbers",
-                        "type": "boolean",
-                        "description": "Show or hide channel numbers in the channel list. Default: false",
-                        "default": false
-                    },
+            "profile": {
+              "title": "Profile Name",
+              "type": "string",
+              "description": "Use a profile to manage channels shown in the Home app. Default: Shared Profile",
+              "maxLength": 10
+            },
+            "channelOrder": {
+              "title": "Channel Sort By",
+              "type": "string",
+              "description": "Select how the channels should be sorted in the channel list. Default: Most Watched",
+              "default": "channelOrder",
+              "required": false,
+              "oneOf": [
+                { "title": "Most Watched", "enum": ["mostWatched"] },
+                { "title": "Channel Order", "enum": ["channelOrder"] }
+              ]
+            },
+            "maxChannels": {
+              "title": "Max Channels",
+              "type": "integer",
+              "description": "Limit the maximum channels to load in the channel list. Default: 95",
+              "default": 95,
+              "maximum": 95
+            },
+            "showChannelNumbers": {
+              "title": "Show Channel Numbers",
+              "type": "boolean",
+              "description": "Show or hide channel numbers in the channel list. Default: false",
+              "default": false
+            },
 
-                    "arrowUpButton": {
-                        "title": "ArrowUp Button",
-                        "type": "string",
-                        "description": "Default: ArrowUp",
-                        "default": "ArrowUp",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },                    
-                    "arrowUpButtonDoubleTap": {
-                        "title": "ArrowUp Button Double Tap",
-                        "type": "string",
-                        "description": "Default: ChannelUp",
-                        "default": "ChannelUp",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },                    
+            "arrowUpButton": {
+              "title": "ArrowUp Button",
+              "type": "string",
+              "description": "Default: ArrowUp",
+              "default": "ArrowUp",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
+            "arrowUpButtonDoubleTap": {
+              "title": "ArrowUp Button Double Tap",
+              "type": "string",
+              "description": "Default: ChannelUp",
+              "default": "ChannelUp",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
 
-                    "arrowDownButton": {
-                        "title": "ArrowDown Button",
-                        "type": "string",
-                        "description": "Default: ArrowDown",
-                        "default": "ArrowDown",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },                    
-                    "arrowDownButtonDoubleTap": {
-                        "title": "ArrowDown Button Double Tap",
-                        "type": "string",
-                        "description": "Default: ChannelDown",
-                        "default": "ChannelDown",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },                    
+            "arrowDownButton": {
+              "title": "ArrowDown Button",
+              "type": "string",
+              "description": "Default: ArrowDown",
+              "default": "ArrowDown",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
+            "arrowDownButtonDoubleTap": {
+              "title": "ArrowDown Button Double Tap",
+              "type": "string",
+              "description": "Default: ChannelDown",
+              "default": "ChannelDown",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
 
-                    "arrowLeftButton": {
-                        "title": "ArrowLeft Button",
-                        "type": "string",
-                        "description": "Default: ArrowLeft",
-                        "default": "ArrowLeft",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },                    
-                    "arrowLeftButtonDoubleTap": {
-                        "title": "ArrowLeft Button Double Tap",
-                        "type": "string",
-                        "description": "Default: MediaRewind",
-                        "default": "MediaRewind",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },     
-                    "arrowRightButton": {
-                        "title": "ArrowRight Button",
-                        "type": "string",
-                        "description": "Default: ArrowRight",
-                        "default": "ArrowRight",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },                    
-                    "arrowRightButtonDoubleTap": {
-                        "title": "ArrowRight Button Double Tap",
-                        "type": "string",
-                        "description": "Default: MediaFastForward",
-                        "default": "MediaFastForward",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },     
+            "arrowLeftButton": {
+              "title": "ArrowLeft Button",
+              "type": "string",
+              "description": "Default: ArrowLeft",
+              "default": "ArrowLeft",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
+            "arrowLeftButtonDoubleTap": {
+              "title": "ArrowLeft Button Double Tap",
+              "type": "string",
+              "description": "Default: MediaRewind",
+              "default": "MediaRewind",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
+            "arrowRightButton": {
+              "title": "ArrowRight Button",
+              "type": "string",
+              "description": "Default: ArrowRight",
+              "default": "ArrowRight",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
+            "arrowRightButtonDoubleTap": {
+              "title": "ArrowRight Button Double Tap",
+              "type": "string",
+              "description": "Default: MediaFastForward",
+              "default": "MediaFastForward",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
 
-                    "selectButton": {
-                        "title": "Select Button",
-                        "type": "string",
-                        "description": "Default: Enter",
-                        "default": "Enter",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },                    
+            "selectButton": {
+              "title": "Select Button",
+              "type": "string",
+              "description": "Default: Enter",
+              "default": "Enter",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
 
-                    "selectButtonDoubleTap": {
-                        "title": "Select Button Double Tap",
-                        "type": "string",
-                        "description": "Default: Enter",
-                        "default": "Enter",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },                    
+            "selectButtonDoubleTap": {
+              "title": "Select Button Double Tap",
+              "type": "string",
+              "description": "Default: Enter",
+              "default": "Enter",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
 
-                    "playPauseButton": {
-                        "title": "Play/Pause Button",
-                        "type": "string",
-                        "description": "Default: MediaPlayPause",
-                        "default": "MediaPlayPause",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },
-                    "playPauseButtonDoubleTap": {
-                        "title": "Play/Pause Button Double Tap",
-                        "type": "string",
-                        "description": "Default: MediaPlayPause",
-                        "default": "MediaPlayPause",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },
+            "playPauseButton": {
+              "title": "Play/Pause Button",
+              "type": "string",
+              "description": "Default: MediaPlayPause",
+              "default": "MediaPlayPause",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
+            "playPauseButtonDoubleTap": {
+              "title": "Play/Pause Button Double Tap",
+              "type": "string",
+              "description": "Default: MediaPlayPause",
+              "default": "MediaPlayPause",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
 
+            "backButton": {
+              "title": "Back Button",
+              "type": "string",
+              "description": "Default: Escape",
+              "default": "Escape",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
+            "backButtonDoubleTap": {
+              "title": "Back Button Double Tap",
+              "type": "string",
+              "description": "Default: Escape",
+              "default": "Escape",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
 
-                    "backButton": {
-                        "title": "Back Button",
-                        "type": "string",
-                        "description": "Default: Escape",
-                        "default": "Escape",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },
-                    "backButtonDoubleTap": {
-                        "title": "Back Button Double Tap",
-                        "type": "string",
-                        "description": "Default: Escape",
-                        "default": "Escape",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },
+            "infoButton": {
+              "title": "Info Button",
+              "type": "string",
+              "description": "Default: MediaTopMenu",
+              "default": "MediaTopMenu",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
+            "infoButtonDoubleTap": {
+              "title": "Info Button Double Tap",
+              "type": "string",
+              "description": "Default: Guide",
+              "default": "Guide",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
 
-                    "infoButton": {
-                        "title": "Info Button",
-                        "type": "string",
-                        "description": "Default: MediaTopMenu",
-                        "default": "MediaTopMenu",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },
-                    "infoButtonDoubleTap": {
-                        "title": "Info Button Double Tap",
-                        "type": "string",
-                        "description": "Default: Guide",
-                        "default": "Guide",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },
+            "viewTvSettingsCommand": {
+              "title": "View TV Settings",
+              "type": "string",
+              "description": "Default: Help",
+              "default": "Help",
+              "oneOf": [
+                { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
+                { "title": "ContextMenu", "enum": ["ContextMenu"] },
+                { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
+                { "title": "ArrowUp", "enum": ["ArrowUp"] },
+                { "title": "ArrowDown", "enum": ["ArrowDown"] },
+                { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
+                { "title": "ArrowRight", "enum": ["ArrowRight"] },
+                { "title": "Enter", "enum": ["Enter"] },
+                { "title": "Info", "enum": ["Info"] },
+                { "title": "Help", "enum": ["Help"] },
+                { "title": "Guide", "enum": ["Guide"] },
+                { "title": "Escape", "enum": ["Escape"] },
+                { "title": "TV", "enum": ["TV"] },
+                { "title": "Red", "enum": ["Red"] },
+                { "title": "Green", "enum": ["Green"] },
+                { "title": "Yellow", "enum": ["Yellow"] },
+                { "title": "Blue", "enum": ["Blue"] },
+                { "title": "ChannelUp", "enum": ["ChannelUp"] },
+                { "title": "ChannelDown", "enum": ["ChannelDown"] },
+                { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
+                { "title": "MediaPause", "enum": ["MediaPause"] },
+                { "title": "MediaRecord", "enum": ["MediaRecord"] },
+                { "title": "MediaStop", "enum": ["MediaStop"] },
+                { "title": "MediaRewind", "enum": ["MediaRewind"] },
+                { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
+              ]
+            },
 
-                    "viewTvSettingsCommand": {
-                        "title": "View TV Settings",
-                        "type": "string",
-                        "description": "Default: Help",
-                        "default": "Help",
-                        "oneOf": [
-                            { "title": "MediaTopMenu", "enum": ["MediaTopMenu"] },
-                            { "title": "ContextMenu", "enum": ["ContextMenu"] },
-                            { "title": "NextUserProfile", "enum": ["NextUserProfile"] },
-                            { "title": "ArrowUp", "enum": ["ArrowUp"] },
-                            { "title": "ArrowDown", "enum": ["ArrowDown"] },
-                            { "title": "ArrowLeft", "enum": ["ArrowLeft"] },
-                            { "title": "ArrowRight", "enum": ["ArrowRight"] },
-                            { "title": "Enter", "enum": ["Enter"] },
-                            { "title": "Info", "enum": ["Info"] },
-                            { "title": "Help", "enum": ["Help"] },
-                            { "title": "Guide", "enum": ["Guide"] },
-                            { "title": "Escape", "enum": ["Escape"] },
-                            { "title": "TV", "enum": ["TV"] },
-                            { "title": "Red", "enum": ["Red"] },
-                            { "title": "Green", "enum": ["Green"] },
-                            { "title": "Yellow", "enum": ["Yellow"] },
-                            { "title": "Blue", "enum": ["Blue"] },
-                            { "title": "ChannelUp", "enum": ["ChannelUp"] },
-                            { "title": "ChannelDown", "enum": ["ChannelDown"] },
-                            { "title": "MediaPlayPause", "enum": ["MediaPlayPause"] },
-                            { "title": "MediaPause", "enum": ["MediaPause"] },
-                            { "title": "MediaRecord", "enum": ["MediaRecord"] },
-                            { "title": "MediaStop", "enum": ["MediaStop"] },
-                            { "title": "MediaRewind", "enum": ["MediaRewind"] },
-                            { "title": "MediaFastForward", "enum": ["MediaFastForward"] }
-                        ]
-                    },
+            "volUpCommand": {
+              "title": "Volume Up Command",
+              "type": "string",
+              "description": "An executable command to increase the volume. The command is executed by the plugin on Homebridge, and must work on the platform running Homebridge."
+            },
+            "volDownCommand": {
+              "title": "Volume Down Command",
+              "type": "string",
+              "description": "An executable command to reduce the volume. The command is executed by the plugin on Homebridge, and must work on the platform running Homebridge."
+            },
+            "muteCommand": {
+              "title": "Mute Command",
+              "type": "string",
+              "description": "An executable command to mute the sound. The command is executed by the plugin on Homebridge, and must work on the platform running Homebridge."
+            },
 
-                    "volUpCommand": {
-                        "title": "Volume Up Command",
-                        "type": "string",
-                        "description": "An executable command to increase the volume. The command is executed by the plugin on Homebridge, and must work on the platform running Homebridge."
-                    },
-                    "volDownCommand": {
-                        "title": "Volume Down Command",
-                        "type": "string",
-                        "description": "An executable command to reduce the volume. The command is executed by the plugin on Homebridge, and must work on the platform running Homebridge."
-                    },
-                    "muteCommand": {
-                        "title": "Mute Command",
-                        "type": "string",
-                        "description": "An executable command to mute the sound. The command is executed by the plugin on Homebridge, and must work on the platform running Homebridge."
-                    },
-
-
-                    "customPictureMode": {
-                        "title": "Custom Picture Mode",
-                        "type": "string",
-                        "description": "Allow Picture Mode to be used for other custom functionality, see README for full details.",
-                        "oneOf": [
-                            { "title": "Recording State", "enum": ["recordingState"] }
-                        ]
-                    }
-
-                            
-                }
+            "customPictureMode": {
+              "title": "Custom Picture Mode",
+              "type": "string",
+              "description": "Allow Picture Mode to be used for other custom functionality, see README for full details.",
+              "oneOf": [
+                { "title": "Recording State", "enum": ["recordingState"] }
+              ]
             }
-        },
-
-        "channels": {
-            "type": "array",
-            "title": "Channels",
-            "description": "Add custom channel names for any special channels (such as Netflix) where the channel name cannot be auto-detected by the plugin.",
-            "items": {
-                "title": "Channel Names",
-                "type": "object",
-                "properties": {
-                    "channelId": {
-                        "title": "Channel ID",
-                        "type": "string",
-                        "description": "Unique channelId, see the Homebridge log."
-                    },
-                    "channelKeyMacro": {
-                        "title": "Channel Key Macro",
-                        "type": "string",
-                        "description": "A sequence of remote control keys for enhanced customising. Channel ID must be empty to use key macros. Example: '1 2 3 Enter' to select channel 123. See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys."
-                    },
-                    "channelName": {
-                        "title": "Channel Name",
-                        "type": "string",
-                        "description": "Custom channel name."
-                    }
-                }
-
-            }
+          }
         }
+      },
 
-
+      "channels": {
+        "type": "array",
+        "title": "Channels",
+        "description": "Add custom channel names for any special channels (such as Netflix) where the channel name cannot be auto-detected by the plugin.",
+        "items": {
+          "title": "Channel Names",
+          "type": "object",
+          "properties": {
+            "channelId": {
+              "title": "Channel ID",
+              "type": "string",
+              "description": "Unique channelId, see the Homebridge log."
+            },
+            "channelKeyMacro": {
+              "title": "Channel Key Macro",
+              "type": "string",
+              "description": "A sequence of remote control keys for enhanced customising. Channel ID must be empty to use key macros. Example: '1 2 3 Enter' to select channel 123. See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys."
+            },
+            "channelName": {
+              "title": "Channel Name",
+              "type": "string",
+              "description": "Custom channel name."
+            }
+          }
+        }
+      }
     }
-},
+  },
 
-
-
-
-"layout": [
+  "layout": [
     {
-            "type": "fieldset",
-            "title": "Mandatory Platform Config *",
-            "description": "The minimum EOSSTB config items that must be configured.",
-            "expandable": true,
-            "expanded": false,
-            "items": [
-                {
-                    "type": "flex",
-                    "flex-flow": "row wrap",
-                    "items": [
-                        {
-                            "type": "flex",
-                            "flex-flow": "column",
-                            "items": [
-                                "country",
-                                "authmethod",
-                                "watchdogDisabled"
-                                ]
-                        },
-                        {
-                            "type": "flex",
-                            "flex-flow": "row wrap",
-                            "items": [ "username", "password" ]
-                        }
-                    ]
-                }
-            ]
-        },
-
-
+      "type": "fieldset",
+      "title": "Mandatory Platform Config *",
+      "description": "The minimum EOSSTB config items that must be configured.",
+      "expandable": true,
+      "expanded": false,
+      "items": [
         {
-            "type": "fieldset",
-            "title": "Optional Platform Config",
-            "description": "Customise the platform config and set the debug level in this section.",
-            "expandable": true,
-            "expanded": false,
-            "items": [
-                "name",
-                "doublePressTime",
-                "triplePressTime",
-                "masterChannelListValidFor",
-                "debugLevel"
-            ]
-        },
-
-
-        {
-            "type": "fieldset",
-            "title": "Optional Device Config",
-            "description": "Customise and fine tune your device config in this section.",
-            "expandable": true,
-            "expanded": false,
-            "items": [
-                {
-                    "key": "devices",
-                    "type": "array",
-                    "items": [
-                        "devices[].deviceId",
-                        {
-                            "key": "devices[]",
-                            "type": "section",
-                            "title": "Name and Icon",
-                            "expandable": true,
-                            "items": [
-                                "devices[].name",
-                                "devices[].syncName",
-                                "devices[].accessoryCategory"
-                            ]
-                        },
-                        {
-                            "key": "devices[]",
-                            "type": "section",
-                            "title": "Accessory Information",
-                            "expandable": true,
-                            "items": [
-                                "devices[].manufacturer",
-                                "devices[].serialNumber",
-                                "devices[].modelName",
-                                "devices[].firmwareRevision"
-                            ]
-                        },
-                        {
-                            "key": "devices[]",
-                            "type": "section",
-                            "title": "Channel Display",
-                            "expandable": true,
-                            "items": [
-                                "devices[].profile",
-                                "devices[].channelOrder",
-                                "devices[].maxChannels",
-                                "devices[].showChannelNumbers"
-                            ]
-                        },
-                        {
-                            "key": "devices[]",
-                            "type": "section",
-                            "title": "Remote Control and Menu Commands",
-                            "expandable": true,
-                            "items": [
-                                    {
-                                        "key": "devices[]",
-                                        "type": "section",
-                                        "title": "...Arrow Up Button",
-                                        "expandable": true,
-                                        "items": [
-                                            {
-                                                "type": "flex",
-                                                "flex-flow": "row wrap",
-                                                "title": "The key to send when the <b>(Arrow Up)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
-                                                "items": [
-                                                    "devices[].arrowUpButton",
-                                                    "devices[].arrowUpButtonDoubleTap"
-                                                ]
-                                            } 
-                                        ]
-                                    },
-                                    {
-                                        "key": "devices[]",
-                                        "type": "section",
-                                        "title": "...Arrow Down Button",
-                                        "expandable": true,
-                                        "items": [
-                                            {
-                                                "type": "flex",
-                                                "flex-flow": "row wrap",
-                                                "title": "The key to send when the <b>(Arrow Down)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
-                                                "items": [
-                                                    "devices[].arrowDownButton",
-                                                    "devices[].arrowDownButtonDoubleTap"
-                                                ]
-                                            } 
-                                        ]
-                                    },
-                                    {
-                                        "key": "devices[]",
-                                        "type": "section",
-                                        "title": "...Arrow Left Button",
-                                        "expandable": true,
-                                        "items": [
-                                            {
-                                                "type": "flex",
-                                                "flex-flow": "row wrap",
-                                                "title": "The key to send when the <b>(Arrow Left)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
-                                                "items": [
-                                                    "devices[].arrowLeftButton",
-                                                    "devices[].arrowLeftButtonDoubleTap"
-                                                ]
-                                            } 
-                                        ]
-                                    },
-                                    {
-                                        "key": "devices[]",
-                                        "type": "section",
-                                        "title": "...Arrow Right Button",
-                                        "expandable": true,
-                                        "items": [
-                                            {
-                                                "type": "flex",
-                                                "flex-flow": "row wrap",
-                                                "title": "The key to send when the <b>(Arrow Right)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
-                                                "items": [
-                                                    "devices[].arrowRightButton",
-                                                    "devices[].arrowRightButtonDoubleTap"
-                                                ]
-                                            } 
-                                        ]
-                                    },
-                                    {
-                                        "key": "devices[]",
-                                        "type": "section",
-                                        "title": "...Select Button",
-                                        "expandable": true,
-                                        "items": [
-                                            {
-                                                "type": "flex",
-                                                "flex-flow": "row wrap",
-                                                "title": "The key to send when the <b>(Select)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
-                                                "items": [
-                                                    "devices[].selectButton",
-                                                    "devices[].selectButtonDoubleTap"
-                                                ]
-                                            } 
-                                        ]
-                                    },
-        
-        
-                                    {
-                                        "key": "devices[]",
-                                        "type": "section",
-                                        "title": "...Play/Pause Button",
-                                        "expandable": true,
-                                        "items": [
-                                            {
-                                                "type": "flex",
-                                                "flex-flow": "row wrap",
-                                                "title": "The key to send when the <b>(Play/Pause)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
-                                                "items": [
-                                                    "devices[].playPauseButton",
-                                                    "devices[].playPauseButtonDoubleTap"
-                                                ]
-                                            } 
-                                        ]
-                                    },
-                                    {
-                                        "key": "devices[]",
-                                        "type": "section",
-                                        "title": "...Back Button",
-                                        "expandable": true,
-                                        "items": [
-                                            {
-                                                "type": "flex",
-                                                "flex-flow": "row wrap",
-                                                "title": "The key to send when the <b>(BACK)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
-                                                "items": [
-                                                    "devices[].backButton",
-                                                    "devices[].backButtonDoubleTap"
-                                                ]
-                                            } 
-                                        ]
-                                    },
-                                    {
-                                        "key": "devices[]",
-                                        "type": "section",
-                                        "title": "...Info Button",
-                                        "expandable": true,
-                                        "items": [
-                                            {
-                                                "type": "flex",
-                                                "flex-flow": "row wrap",
-                                                "title": "The key to send when the <b>(i)</b> info button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
-                                                "items": [
-                                                    "devices[].infoButton",
-                                                    "devices[].infoButtonDoubleTap"
-                                                ]
-                                            } 
-                                        ]
-                                    },
-
-                                    {
-                                        "key": "devices[]",
-                                        "type": "section",
-                                        "title": "...View TV Settings Command",
-                                        "expandable": true,
-                                        "items": [
-                                            {
-                                                "type": "flex",
-                                                "flex-flow": "row wrap",
-                                                "title": "The key to send when <b>View TV Settings</b> is selected in the accessory in the Home app.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
-                                                "items": [
-                                                    "devices[].viewTvSettingsCommand"
-                                                ]
-                                            } 
-                                        ]
-                                    }
-                            ]
-                        },
-                        {
-                            "key": "devices[]",
-                            "type": "section",
-                            "title": "Remote Control Volume Commands",
-                            "expandable": true,
-                            "items": [
-                                "devices[].volUpCommand",
-                                "devices[].volDownCommand",
-                                "devices[].muteCommand"
-                            ]
-                        }
-                    ]
-                  }
-            ]    
-        },
-
-
-        {
-            "type": "fieldset",
-            "title": "Optional Channel Config",
-            "description": "Customise special channel names in this section.",
-            "expandable": true,
-            "expanded": false,
-            "items": [
-                {
-                    "key": "channels",
-                    "type": "array",
-                    "items": [
-                        "channels[].channelId",
-                        "channels[].channelKeyMacro",
-                        "channels[].channelName"
-                    ]
-                }
-            ]
+          "type": "flex",
+          "flex-flow": "row wrap",
+          "items": [
+            {
+              "type": "flex",
+              "flex-flow": "column",
+              "items": ["country", "authmethod", "watchdogDisabled"]
+            },
+            {
+              "type": "flex",
+              "flex-flow": "row wrap",
+              "items": ["username", "password"]
+            }
+          ]
         }
+      ]
+    },
 
-    ]
+    {
+      "type": "fieldset",
+      "title": "Optional Platform Config",
+      "description": "Customise the platform config and set the debug level in this section.",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        "name",
+        "doublePressTime",
+        "triplePressTime",
+        "masterChannelListValidFor",
+        "debugLevel"
+      ]
+    },
+
+    {
+      "type": "fieldset",
+      "title": "Optional Device Config",
+      "description": "Customise and fine tune your device config in this section.",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        {
+          "key": "devices",
+          "type": "array",
+          "items": [
+            "devices[].deviceId",
+            {
+              "key": "devices[]",
+              "type": "section",
+              "title": "Name and Icon",
+              "expandable": true,
+              "items": [
+                "devices[].name",
+                "devices[].syncName",
+                "devices[].accessoryCategory"
+              ]
+            },
+            {
+              "key": "devices[]",
+              "type": "section",
+              "title": "Accessory Information",
+              "expandable": true,
+              "items": [
+                "devices[].manufacturer",
+                "devices[].serialNumber",
+                "devices[].modelName",
+                "devices[].firmwareRevision"
+              ]
+            },
+            {
+              "key": "devices[]",
+              "type": "section",
+              "title": "Channel Display",
+              "expandable": true,
+              "items": [
+                "devices[].profile",
+                "devices[].channelOrder",
+                "devices[].maxChannels",
+                "devices[].showChannelNumbers"
+              ]
+            },
+            {
+              "key": "devices[]",
+              "type": "section",
+              "title": "Remote Control and Menu Commands",
+              "expandable": true,
+              "items": [
+                {
+                  "key": "devices[]",
+                  "type": "section",
+                  "title": "...Arrow Up Button",
+                  "expandable": true,
+                  "items": [
+                    {
+                      "type": "flex",
+                      "flex-flow": "row wrap",
+                      "title": "The key to send when the <b>(Arrow Up)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "items": [
+                        "devices[].arrowUpButton",
+                        "devices[].arrowUpButtonDoubleTap"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "key": "devices[]",
+                  "type": "section",
+                  "title": "...Arrow Down Button",
+                  "expandable": true,
+                  "items": [
+                    {
+                      "type": "flex",
+                      "flex-flow": "row wrap",
+                      "title": "The key to send when the <b>(Arrow Down)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "items": [
+                        "devices[].arrowDownButton",
+                        "devices[].arrowDownButtonDoubleTap"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "key": "devices[]",
+                  "type": "section",
+                  "title": "...Arrow Left Button",
+                  "expandable": true,
+                  "items": [
+                    {
+                      "type": "flex",
+                      "flex-flow": "row wrap",
+                      "title": "The key to send when the <b>(Arrow Left)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "items": [
+                        "devices[].arrowLeftButton",
+                        "devices[].arrowLeftButtonDoubleTap"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "key": "devices[]",
+                  "type": "section",
+                  "title": "...Arrow Right Button",
+                  "expandable": true,
+                  "items": [
+                    {
+                      "type": "flex",
+                      "flex-flow": "row wrap",
+                      "title": "The key to send when the <b>(Arrow Right)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "items": [
+                        "devices[].arrowRightButton",
+                        "devices[].arrowRightButtonDoubleTap"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "key": "devices[]",
+                  "type": "section",
+                  "title": "...Select Button",
+                  "expandable": true,
+                  "items": [
+                    {
+                      "type": "flex",
+                      "flex-flow": "row wrap",
+                      "title": "The key to send when the <b>(Select)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "items": [
+                        "devices[].selectButton",
+                        "devices[].selectButtonDoubleTap"
+                      ]
+                    }
+                  ]
+                },
+
+                {
+                  "key": "devices[]",
+                  "type": "section",
+                  "title": "...Play/Pause Button",
+                  "expandable": true,
+                  "items": [
+                    {
+                      "type": "flex",
+                      "flex-flow": "row wrap",
+                      "title": "The key to send when the <b>(Play/Pause)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "items": [
+                        "devices[].playPauseButton",
+                        "devices[].playPauseButtonDoubleTap"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "key": "devices[]",
+                  "type": "section",
+                  "title": "...Back Button",
+                  "expandable": true,
+                  "items": [
+                    {
+                      "type": "flex",
+                      "flex-flow": "row wrap",
+                      "title": "The key to send when the <b>(BACK)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "items": [
+                        "devices[].backButton",
+                        "devices[].backButtonDoubleTap"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "key": "devices[]",
+                  "type": "section",
+                  "title": "...Info Button",
+                  "expandable": true,
+                  "items": [
+                    {
+                      "type": "flex",
+                      "flex-flow": "row wrap",
+                      "title": "The key to send when the <b>(i)</b> info button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "items": [
+                        "devices[].infoButton",
+                        "devices[].infoButtonDoubleTap"
+                      ]
+                    }
+                  ]
+                },
+
+                {
+                  "key": "devices[]",
+                  "type": "section",
+                  "title": "...View TV Settings Command",
+                  "expandable": true,
+                  "items": [
+                    {
+                      "type": "flex",
+                      "flex-flow": "row wrap",
+                      "title": "The key to send when <b>View TV Settings</b> is selected in the accessory in the Home app.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "items": ["devices[].viewTvSettingsCommand"]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "key": "devices[]",
+              "type": "section",
+              "title": "Remote Control Volume Commands",
+              "expandable": true,
+              "items": [
+                "devices[].volUpCommand",
+                "devices[].volDownCommand",
+                "devices[].muteCommand"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "type": "fieldset",
+      "title": "Optional Channel Config",
+      "description": "Customise special channel names in this section.",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        {
+          "key": "channels",
+          "type": "array",
+          "items": [
+            "channels[].channelId",
+            "channels[].channelKeyMacro",
+            "channels[].channelName"
+          ]
+        }
+      ]
+    }
+  ]
 }
