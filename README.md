@@ -11,11 +11,11 @@
 # IMPORTANT NOTICE
 
 <hr><b>
-18 June 2025: Logon method for NL confirmed working again, available from v2.3.5-beta.3.
+22 August 2025: Logon method for NL confirmed working again, available from v2.3.6.
 
 22 June 2024: Logon method for BE confirmed working again, available from v2.3.2.
 
-The logon method to the backend systems changed in January / February 2024. I currently lack the skills and knowledge to figure out how to get the session to connect for CH, GB, IE, NL, and likely SK. However, as at 15 June 2024, BE users have reported a fix for BE which I have added in to v2.3.2, and from 18 August 2025 NL users have reported a fix for NL which I have added to v2.3.5-beta.3.
+The logon method to the backend systems changed in January / February 2024. I currently lack the skills and knowledge to figure out how to get the session to connect for CH, GB, IE, and likely SK. However, as at 15 June 2024, BE users have reported a fix for BE which I have added in to v2.3.2, and from 22 August 2025 NL users have assisted with a fix for NL, released in v2.3.6.
 
 If you know anything about session authentication and are able to help, please get in touch.
 </b><hr>
@@ -46,11 +46,11 @@ If you like this plugin, consider buying me a coffee!<br>
 
 # Update August 2025
 
-Logon methods for NL working again from v2.3.5-beta.3. Use Authentication Method A.
+Logon methods for NL working again from v2.3.6. Use Authentication Method A.
 
 # Update June 2024
 
-Logon methods for BE should be working again from v2.3.2-beta.1. Use Authentication Method B.
+Logon methods for BE should be working again from v2.3.2. Use Authentication Method B.
 
 # Update February 2024
 
@@ -74,7 +74,7 @@ As [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) (the operator 
 | CH      | [Sunrise](https://www.sunrise.ch/en/)         | [Sunrise TV](https://www.sunrisetv.ch/en.html)             | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription)                                                                    | As of February 2024, connection to box is no longer working. Help Wanted!                                     |
 | GB      | [Virgin Media](https://www.virginmedia.com/)  | [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom) | As of January 2024, connection to box is no longer working. Help Wanted!                                      |
 | IE      | [Virgin Media](https://www.virginmedia.ie/)   | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/)                                                                                  | As of January 2024, connection to box is no longer working. Help Wanted!                                      |
-| NL      | [Ziggo](https://www.ziggo.nl/)                | [Ziggo GO](https://www.ziggogo.tv/nl.html)                 | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv)                                                          | As of 18 August 2025, confirmed working again (from v2.3.5)                                                   |
+| NL      | [Ziggo](https://www.ziggo.nl/)                | [Ziggo GO](https://www.ziggogo.tv/nl.html)                 | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv)                                                          | As of 22 August 2025, confirmed working again (from v2.3.6)                                                   |
 | SK      | [UPC Broadband Slovakia](https://www.upc.sk/) | [UPC TV](https://www.upctv.sk/sk/home)                     | UPC TV Box                                                                                                                                 | _Testers Wanted_                                                                                              |
 | ------- | -----------                                   | -------                                                    | --------                                                                                                                                   | -------------                                                                                                 |
 | PL      | [UPC PL](https://www.upc.pl/)                 | [UPC TV GO](https://www.upctv.pl/pl/home)                  | UPC TV Box                                                                                                                                 | [UPC TV in Poland appears to have been discontinued in August 2023](https://en.wikipedia.org/wiki/UPC_Poland) |
