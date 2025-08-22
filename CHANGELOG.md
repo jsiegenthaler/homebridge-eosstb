@@ -10,36 +10,22 @@ Please restart Homebridge after every plugin update.
 
 - Try and get authentication working again for CH and GB HELP NEEDED
 
-## 2.3.6-beta.1 (2025-08-20)
+## 2.3.6 (2025-08-22)
 
-- Updated version to 2.3.6-beta.1 as 2.3.5 was already published
-- Formatted source code using Prettier
-- Bumped dependency "axios": "^1.11.0",
-- Bumped dependency "axios-cookiejar-support": "^6.0.4",
-- Bumped dependency "mqtt": "^5.14.0",
-- Bumped dependency "tough-cookie": "^5.1.2",
-
-## 2.3.5-beta.3 (2025-08-18)
-
-- Updated headers in getEntitlements to fix connection for NL
+- Fixed connection problems for NL
 - Updated references to NL in Readme
 - Updated iOS and Homebridge version references in Readme
+- Formatted source code using Prettier
+- Bumped dependency "axios-cookiejar-support": "^6.0.4",
+- Bumped dependency "axios": "^1.11.0",
 - Bumped dependency "debug": "^4.4.1",
-- Bumped dependency "semver": "^7.7.2",
-- Bumped dependency "ws": "^8.18.3"
-- Bumped dependency "node": "^22.18.0"
-
-## 2.3.5-beta.1 (2025-03-14)
-
-- Bumped dependency "axios": "^1.7.9",
-- Bumped dependency "axios-cookiejar-support": "^5.0.5",
-- Bumped dependency "debug": "^4.4.0",
-- Bumped dependency "mqtt": "^5.10.3",
+- Bumped dependency "mqtt": "^5.14.0",
 - Bumped dependency "qs": "^6.14.0",
-- Bumped dependency "semver": "^7.7.1",
-- Bumped dependency "tough-cookie": "^5.1.1",
+- Bumped dependency "semver": "^7.7.2",
+- Bumped dependency "tough-cookie": "^5.1.2",
+- Bumped dependency "ws": "^8.18.3"
 - Bumped dependency "homebridge": "^1.9.0||^2.0.0-beta",
-- Bumped dependency "node": "^22.14.0"
+- Bumped dependency "node": "^22.18.0"
 
 ## 2.3.5 (2024-10-25)
 
