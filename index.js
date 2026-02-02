@@ -2071,7 +2071,16 @@ class stbPlatform {
   }
 
   // get session for GB only (special logon sequence)
-  // TODO: Virgin Media UK authentication is broken and needs fixing - awaiting Burp Suite capture of auth logic
+  // TODO: Virgin Media UK authentication is BROKEN - needs complete rewrite
+  // Virgin Media migrated to PingIdentity DaVinci after VMO2 merger. New flow:
+  //   1. GET oauth.virginmedia.com/as/authorization.oauth2 (OAuth2 PKCE init)
+  //   2. POST oauth.virginmediao2.co.uk/as/{flowId}/resume/as/authorization.ping (submit username)
+  //   3. POST auth.virginmediao2.co.uk/davinci/connections/{connId}/capabilities/customHTMLTemplate (submit password as JSON)
+  //   4. POST oauth.virginmediao2.co.uk/as/{flowId}/resume/as/authorization.ping (submit flowResult JWT)
+  //   5. GET oauth.virginmedia.com/sp/{...}/cb.openid?code=... (callback)
+  //   6. GET oauth.virginmedia.com/as/{flowId}/resume/as/authorization.ping (resume)
+  //   7. GET virgintvgo.virginmedia.com/sso/login_success.html?code=...&state=... (final auth code)
+  // Old endpoint id.virginmedia.com/rest/v40/session/start no longer works
   getSessionGB() {
     return new Promise((resolve, reject) => {
       this.log("Creating %s GB session...", PLATFORM_NAME);
