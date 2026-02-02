@@ -2071,6 +2071,7 @@ class stbPlatform {
   }
 
   // get session for GB only (special logon sequence)
+  // TODO: Virgin Media UK authentication is broken and needs fixing - awaiting Burp Suite capture of auth logic
   getSessionGB() {
     return new Promise((resolve, reject) => {
       this.log("Creating %s GB session...", PLATFORM_NAME);
