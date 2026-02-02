@@ -90,6 +90,14 @@ const GB_AUTH_OESP_URL =
 const GB_AUTH_URL =
   "https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true";
 
+// VMO2 OAuth endpoints (Virgin Media / O2 merger - PingIdentity DaVinci)
+const VMO2_OAUTH_BASE = "https://oauth.virginmedia.com";
+const VMO2_OAUTH_O2_BASE = "https://oauth.virginmediao2.co.uk";
+const VMO2_AUTH_BASE = "https://auth.virginmediao2.co.uk";
+const VMO2_CLIENT_ID = "WEB-VM-TVGO";
+const VMO2_REDIRECT_URI = "https://virgintvgo.virginmedia.com/sso/login_success.html";
+const VMO2_DAVINCI_CONN_ID = "867ed4363b2bc21c860085ad2baa817d";
+
 // general constants
 const NO_INPUT_ID = 99; // an input id that does not exist. Must be > 0 as a uint32 is expected. inteder
 const NO_CHANNEL_ID = "ID_UNKNOWN"; // id for a channel not in the channel list, string
@@ -2071,437 +2079,364 @@ class stbPlatform {
   }
 
   // get session for GB only (special logon sequence)
-  // TODO: Virgin Media UK authentication is BROKEN - needs complete rewrite
-  // Virgin Media migrated to PingIdentity DaVinci after VMO2 merger. New flow:
-  //   1. GET oauth.virginmedia.com/as/authorization.oauth2 (OAuth2 PKCE init)
-  //   2. POST oauth.virginmediao2.co.uk/as/{flowId}/resume/as/authorization.ping (submit username)
-  //   3. POST auth.virginmediao2.co.uk/davinci/connections/{connId}/capabilities/customHTMLTemplate (submit password as JSON)
-  //   4. POST oauth.virginmediao2.co.uk/as/{flowId}/resume/as/authorization.ping (submit flowResult JWT)
-  //   5. GET oauth.virginmedia.com/sp/{...}/cb.openid?code=... (callback)
-  //   6. GET oauth.virginmedia.com/as/{flowId}/resume/as/authorization.ping (resume)
-  //   7. GET virgintvgo.virginmedia.com/sso/login_success.html?code=...&state=... (final auth code)
-  // Old endpoint id.virginmedia.com/rest/v40/session/start no longer works
+  // Uses VMO2 PingIdentity DaVinci OAuth2 PKCE flow (Virgin Media / O2 merger)
   getSessionGB() {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       this.log("Creating %s GB session...", PLATFORM_NAME);
       currentSessionState = sessionState.LOADING;
 
-      // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      // axios interceptors to log request and response for debugging
-      // works on all following requests in this sub
-      /*
-			axiosWS.interceptors.request.use(req => {
-				this.log.warn('+++INTERCEPTED BEFORE HTTP REQUEST COOKIEJAR:\n', cookieJar.getCookies(req.url)); 
-				this.log.warn('+++INTERCEPTOR HTTP REQUEST:', 
-				'\nMethod:', req.method, '\nURL:', req.url, 
-				'\nBaseURL:', req.baseURL, '\nHeaders:', req.headers,
-				'\nParams:', req.params, '\nData:', req.data
-				);
-				this.log.warn(req); 
-				return req; // must return request
-			});
-			axiosWS.interceptors.response.use(res => {
-				this.log.warn('+++INTERCEPTED HTTP RESPONSE:', res.status, res.statusText, 
-				'\nHeaders:', res.headers, 
-				'\nUrl:', res.url, 
-				//'\nData:', res.data, 
-				'\nLast Request:', res.request
-				);
-				//this.log.warn(res); 
-				this.log('+++INTERCEPTED AFTER HTTP RESPONSE COOKIEJAR:'); 
-				if (cookieJar) { this.log(cookieJar); }// watch out for empty cookieJar
-				return res; // must return response
-			});
-			*/
-      // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      try {
+        // Generate PKCE pair for OAuth2
+        const pkcePair = generatePKCEPair();
+        const state = randomBytes(16).toString("hex");
+        const nonce = randomBytes(16).toString("hex");
 
-      // Step 1: # get authentication details
-      // https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/authorization
-      // https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/authorization
-      // Recorded sequence step 1: https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true
-      // const GB_AUTH_OESP_URL = 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web';
-      let apiAuthorizationUrl = GB_AUTH_OESP_URL + "/authorization";
-      this.log("Step 1 of 7: get authentication details");
-      if (this.config.debugLevel > 1) {
-        this.log.warn(
-          "Step 1 of 7: get authentication details from",
-          apiAuthorizationUrl
-        );
-      }
-      axiosWS
-        .get(apiAuthorizationUrl)
-        .then((response) => {
-          this.log(
-            "Step 1 of 7: response:",
-            response.status,
-            response.statusText
-          );
-          //this.log('Step 1 of 7: response.data',response.data);
+        // Step 1: Initialize OAuth2 PKCE flow at oauth.virginmedia.com
+        this.log("Step 1 of 9: Initialize OAuth2 PKCE flow");
+        const authUrl = new URL(`${VMO2_OAUTH_BASE}/as/authorization.oauth2`);
+        authUrl.searchParams.set("response_type", "code");
+        authUrl.searchParams.set("state", state);
+        authUrl.searchParams.set("nonce", nonce);
+        authUrl.searchParams.set("client_id", VMO2_CLIENT_ID);
+        authUrl.searchParams.set("redirect_uri", VMO2_REDIRECT_URI);
+        authUrl.searchParams.set("scope", "tvgo openid");
+        authUrl.searchParams.set("code_challenge", pkcePair.code_challenge);
+        authUrl.searchParams.set("code_challenge_method", "S256");
+        authUrl.searchParams.set("ui_locales", "en");
 
-          // get the data we need for further steps
-          let auth = response.data;
-          let authState = auth.session.state;
-          let authAuthorizationUri = auth.session.authorizationUri;
-          let authValidtyToken = auth.session.validityToken;
-          //this.log('Step 1 of 7: results: authState',authState);
-          //this.log('Step 1 of 7: results: authAuthorizationUri',authAuthorizationUri);
-          //this.log('Step 1 of 7: results: authValidtyToken',authValidtyToken);
+        if (this.config.debugLevel > 1) {
+          this.log.warn("Step 1 of 9: GET", authUrl.toString());
+        }
 
-          // Step 2: # follow authorizationUri to get AUTH cookie (ULM-JSESSIONID)
-          this.log("Step 2 of 7: get AUTH cookie");
-          this.log.debug(
-            "Step 2 of 7: get AUTH cookie ULM-JSESSIONID from",
-            authAuthorizationUri
-          );
-          axiosWS
-            .get(authAuthorizationUri, {
-              jar: cookieJar,
-              // unsure what minimum headers will here
-              headers: {
-                Accept: "application/json, text/plain, */*",
-                //Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-              },
-            })
-            .then((response) => {
-              this.log(
-                "Step 2 of 7: response:",
-                response.status,
-                response.statusText
-              );
-              //this.log.warn('Step 2 of 7 response.data',response.data); // an html logon page
-
-              // Step 3: # login
-              this.log(
-                "Step 3 of 7: logging in with username %s",
-                this.config.username
-              );
-              currentSessionState = sessionState.LOGGING_IN;
-
-              // we want to POST to
-              // 'https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true';
-              const GB_AUTH_URL =
-                "https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true";
-              this.log.debug(
-                'Step 3 of 7: POST request will contain this data: {"username":"' +
-                  this.config.username +
-                  '","credential":"' +
-                  this.config.password +
-                  '"}'
-              );
-              axiosWS(GB_AUTH_URL, {
-                //axiosWS('https://id.virginmedia.com/rest/v40/session/start?protocol=oidc&rememberMe=true',{
-                jar: cookieJar,
-                // However, since v2.0, axios-cookie-jar will always ignore invalid cookies. See https://github.com/3846masa/axios-cookiejar-support/blob/main/MIGRATION.md
-                data:
-                  '{"username":"' +
-                  this.config.username +
-                  '","credential":"' +
-                  this.config.password +
-                  '"}',
-                method: "POST",
-                // minimum headers are "accept": "*/*", "content-type": "application/json; charset=UTF-8",
-                headers: {
-                  accept: "*/*", // mandatory
-                  "content-type": "application/json; charset=UTF-8", // mandatory
-                },
-                maxRedirects: 0, // do not follow redirects
-                validateStatus: function (status) {
-                  return (status >= 200 && status < 300) || status == 302; // allow 302 redirect as OK. GB returns 200
-                },
-              })
-                .then((response) => {
-                  this.log(
-                    "Step 3 of 7: response:",
-                    response.status,
-                    response.statusText
-                  );
-                  //this.log.debug('Step 3 of 7: response.headers:',response.headers);
-                  //this.log.debug('Step 3 of 7: response.data:',response.data);
-
-                  // X-Redirect-Location
-                  // https://id.virginmedia.com/oidc/authorize?response_type=code&state=8ce19449-6cc9-4a65-bcbc-cea7e1884733&nonce=49b0119d-1673-41c5-97b7-eb6092c60b40&client_id=9b471ffe-7ff5-497b-9059-8dcb7c0d66f5&redirect_uri=https://virgintvgo.virginmedia.com/obo_en/login_success&claims={"id_token":{"ukHouseholdId":null}}
-                  var url = response.headers["x-redirect-location"]; // must be lowercase
-                  if (!url) {
-                    // robustness: fail if url missing
-                    this.log.warn(
-                      "getSessionGB: Step 3: x-redirect-location url empty!"
-                    );
-                    currentSessionState = sessionState.DISCONNECTED;
-                    this.currentStatusFault =
-                      Characteristic.StatusFault.GENERAL_FAULT;
-                    return false;
-                  }
-                  //location is h??=... if success
-                  //location is https?? if not authorised
-                  //location is https:... error=session_expired if session has expired
-                  if (url.indexOf("authentication_error=true") > 0) {
-                    // >0 if found
-                    //this.log.warn('Step 3 of 7: Unable to login: wrong credentials');
-                    reject("Step 3 of 7: Unable to login: wrong credentials"); // reject the promise and return the error
-                  } else if (url.indexOf("error=session_expired") > 0) {
-                    // >0 if found
-                    //this.log.warn('Step 3 of 7: Unable to login: session expired');
-                    cookieJar.removeAllCookies(); // remove all the locally cached cookies
-                    reject("Step 3 of 7: Unable to login: session expired"); // reject the promise and return the error
-                  } else {
-                    this.log.debug("Step 3 of 7: login successful");
-
-                    // Step 4: # follow redirect url
-                    this.log("Step 4 of 7: follow redirect url");
-                    axiosWS
-                      .get(url, {
-                        jar: cookieJar,
-                        maxRedirects: 0, // do not follow redirects
-                        validateStatus: function (status) {
-                          return (
-                            (status >= 200 && status < 300) || status == 302
-                          ); // allow 302 redirect as OK
-                        },
-                      })
-                      .then((response) => {
-                        this.log(
-                          "Step 4 of 7: response:",
-                          response.status,
-                          response.statusText
-                        );
-                        this.log.debug(
-                          "Step 4 of 7: response.headers.location:",
-                          response.headers.location
-                        ); // is https://www.telenet.be/nl/login_success_code=... if success
-                        this.log.debug(
-                          "Step 4 of 7: response.data:",
-                          response.data
-                        );
-                        url = response.headers.location;
-                        if (!url) {
-                          // robustness: fail if url missing
-                          this.log.warn(
-                            "getSessionGB: Step 4 of 7 location url empty!"
-                          );
-                          currentSessionState = sessionState.DISCONNECTED;
-                          this.currentStatusFault =
-                            Characteristic.StatusFault.GENERAL_FAULT;
-                          return false;
-                        }
-
-                        // look for login_success?code=
-                        if (url.indexOf("login_success?code=") < 0) {
-                          // <0 if not found
-                          //this.log.warn('Step 4 of 7: Unable to login: wrong credentials');
-                          reject(
-                            "Step 4 of 7: Unable to login: wrong credentials"
-                          ); // reject the promise and return the error
-                        } else if (url.indexOf("error=session_expired") > 0) {
-                          //this.log.warn('Step 4 of 7: Unable to login: session expired');
-                          cookieJar.removeAllCookies(); // remove all the locally cached cookies
-                          reject(
-                            "Step 4 of 7: Unable to login: session expired"
-                          ); // reject the promise and return the error
-                        } else {
-                          // Step 5: # obtain authorizationCode
-                          this.log("Step 5 of 7: extract authorizationCode");
-                          /*
-													url = response.headers.location;
-													if (!url) {		// robustness: fail if url missing
-														this.log.warn('getSessionGB: Step 5: location url empty!');
-														currentSessionState = sessionState.DISCONNECTED;
-														this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
-														return false;						
-													}				
-													*/
-
-                          var codeMatches = url
-                            .match(/code=(?:[^&]+)/g)[0]
-                            .split("=");
-                          var authorizationCode = codeMatches[1];
-                          if (codeMatches.length !== 2) {
-                            // length must be 2 if code found
-                            this.log.warn(
-                              "Step 5 of 7: Unable to extract authorizationCode"
-                            );
-                          } else {
-                            this.log("Step 5 of 7: authorizationCode OK");
-                            this.log.debug(
-                              "Step 5 of 7: authorizationCode:",
-                              authorizationCode
-                            );
-
-                            // Step 6: # authorize again
-                            this.log(
-                              "Step 6 of 7: post auth data with valid code"
-                            );
-                            this.log.debug(
-                              "Step 6 of 7: post auth data with valid code to",
-                              apiAuthorizationUrl
-                            );
-                            currentSessionState = sessionState.AUTHENTICATING;
-                            var payload = {
-                              authorizationGrant: {
-                                authorizationCode: authorizationCode,
-                                validityToken: authValidtyToken,
-                                state: authState,
-                              },
-                            };
-                            axiosWS
-                              .post(apiAuthorizationUrl, payload, {
-                                jar: cookieJar,
-                              })
-                              .then((response) => {
-                                this.log(
-                                  "Step 6 of 7: response:",
-                                  response.status,
-                                  response.statusText
-                                );
-                                this.log.debug(
-                                  "Step 6 of 7: response.data:",
-                                  response.data
-                                );
-
-                                auth = response.data;
-                                this.log.debug(
-                                  "Step 6 of 7: refreshToken:",
-                                  auth.refreshToken
-                                );
-
-                                // Step 7: # get OESP code
-                                this.log(
-                                  "Step 7 of 7: post refreshToken request"
-                                );
-                                this.log.debug(
-                                  "Step 7 of 7: post refreshToken request to",
-                                  apiAuthorizationUrl
-                                );
-                                payload = {
-                                  refreshToken: auth.refreshToken,
-                                  username: auth.username,
-                                };
-                                // must resolve to
-                                // 'https://web-api-prod-obo.horizon.tv/oesp/v4/GB/eng/web/session';',
-                                var sessionUrl = GB_AUTH_OESP_URL + "/session";
-                                axiosWS
-                                  .post(sessionUrl + "?token=true", payload, {
-                                    jar: cookieJar,
-                                  })
-                                  .then((response) => {
-                                    this.log(
-                                      "Step 7 of 7: response:",
-                                      response.status,
-                                      response.statusText
-                                    );
-                                    currentSessionState =
-                                      sessionState.VERIFYING;
-
-                                    this.log.debug(
-                                      "Step 7 of 7: response.headers:",
-                                      response.headers
-                                    );
-                                    this.log.debug(
-                                      "Step 7 of 7: response.data:",
-                                      response.data
-                                    );
-                                    this.log.debug(
-                                      "Cookies for the session:",
-                                      cookieJar.getCookies(sessionUrl)
-                                    );
-                                    if (this.config.debugLevel > 2) {
-                                      this.log(
-                                        "getSessionGB: response data (saved to this.session):"
-                                      );
-                                      this.log(response.data);
-                                    }
-
-                                    // get device data from the session
-                                    this.session = response.data;
-                                    // New APLSTB Apollo box on NL does not return username in during session logon, so store username from settings if missing
-                                    if (this.session.username == "") {
-                                      this.session.username =
-                                        this.config.username;
-                                    }
-
-                                    currentSessionState =
-                                      sessionState.CONNECTED;
-                                    this.currentStatusFault =
-                                      Characteristic.StatusFault.NO_FAULT;
-                                    this.log("Session created");
-                                    resolve(this.session.householdId); // resolve the promise with the householdId
-                                  })
-                                  // Step 7 http errors
-                                  .catch((error) => {
-                                    //this.log.warn("Step 7 of 7: Unable to get OESP token:",error.response.status, error.response.statusText);
-                                    this.log.debug(
-                                      "Step 7 of 7: error:",
-                                      error
-                                    );
-                                    reject(
-                                      "Step 7 of 7: Unable to get OESP token: " +
-                                        error.response.status +
-                                        " " +
-                                        error.response.statusText
-                                    ); // reject the promise and return the error
-                                  });
-                              })
-                              // Step 6 http errors
-                              .catch((error) => {
-                                //this.log.warn("Step 6 of 7: Unable to authorize with oauth code, http error:",error);
-                                reject(
-                                  "Step 6 of 7: Unable to authorize with oauth code, http error: " +
-                                    error.response.status +
-                                    " " +
-                                    error.response.statusText
-                                ); // reject the promise and return the error
-                              });
-                          }
-                        }
-                      })
-                      // Step 4 http errors
-                      .catch((error) => {
-                        //this.log.warn("Step 4 of 7: Unable to oauth authorize:",error.response.status, error.response.statusText);
-                        this.log.debug("Step 4 of 7: error:", error);
-                        reject(
-                          "Step 4 of 7: Unable to oauth authorize: " +
-                            error.response.status +
-                            " " +
-                            error.response.statusText
-                        ); // reject the promise and return the error
-                      });
-                  }
-                })
-                // Step 3 http errors
-                .catch((error) => {
-                  //this.log.warn("Step 3 of 7: Unable to login:",error.response.status, error.response.statusText);
-                  this.log.debug("Step 3 of 7: error:", error);
-                  reject(
-                    "Step 3 of 7: Unable to login: " +
-                      error.response.status +
-                      " " +
-                      error.response.statusText
-                  ); // reject the promise and return the error
-                });
-            })
-            // Step 2 http errors
-            .catch((error) => {
-              //this.log.warn("Step 2 of 7: Unable to get authorizationUri:",error.response.status, error.response.statusText);
-              this.log.debug("Step 2 of 7: error:", error);
-              reject(
-                "Step 2 of 7: Could not get authorizationUri: " +
-                  error.response.status +
-                  " " +
-                  error.response.statusText
-              ); // reject the promise and return the error
-            });
-        })
-        // Step 1 http errors
-        .catch((error) => {
-          //this.log('Failed to create GB session - check your internet connection');
-          //this.log.warn("Step 1 of 7: Could not get apiAuthorizationUrl:",error.response.status, error.response.statusText);
-          this.log.debug("Step 1 of 7: error:", error);
-          reject(
-            "Step 1 of 7: Failed to create GB session - check your internet connection"
-          ); // reject the promise and return the error
+        let response = await axiosWS.get(authUrl.toString(), {
+          jar: cookieJar,
+          maxRedirects: 0,
+          validateStatus: (status) => status >= 200 && status < 400,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          },
         });
 
-      currentSessionState = sessionState.DISCONNECTED;
-      this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+        this.log("Step 1 of 9: response:", response.status, response.statusText);
+
+        // Get redirect URL to VMO2 OAuth
+        let redirectUrl = response.headers.location;
+        if (!redirectUrl) {
+          throw new Error("Step 1: No redirect URL received");
+        }
+        this.log.debug("Step 1 of 9: redirect to", redirectUrl);
+
+        // Step 2: Follow redirect to oauth.virginmediao2.co.uk
+        this.log("Step 2 of 9: Follow redirect to VMO2 OAuth");
+        response = await axiosWS.get(redirectUrl, {
+          jar: cookieJar,
+          maxRedirects: 0,
+          validateStatus: (status) => status >= 200 && status < 400,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          },
+        });
+
+        this.log("Step 2 of 9: response:", response.status, response.statusText);
+
+        // Extract flowId from the redirect URL or response
+        // The flowId is in the path like /as/KHtyAyEkqy/resume/as/authorization.ping
+        let flowId = null;
+        let resumeUrl = response.headers.location;
+
+        if (resumeUrl) {
+          // Follow another redirect if needed
+          response = await axiosWS.get(resumeUrl, {
+            jar: cookieJar,
+            maxRedirects: 5,
+            validateStatus: (status) => status >= 200 && status < 400,
+            headers: {
+              "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            },
+          });
+        }
+
+        // Parse HTML to find the form action URL containing the flowId
+        const htmlContent = response.data;
+        const formActionMatch = htmlContent.match(/action="([^"]*\/as\/([^/]+)\/resume\/as\/authorization\.ping[^"]*)"/);
+        if (formActionMatch) {
+          flowId = formActionMatch[2];
+          resumeUrl = formActionMatch[1];
+          // Handle relative URLs
+          if (resumeUrl.startsWith("/")) {
+            resumeUrl = `${VMO2_OAUTH_O2_BASE}${resumeUrl}`;
+          }
+        } else {
+          // Try to extract from current URL
+          const urlMatch = response.request?.path?.match(/\/as\/([^/]+)\/resume/);
+          if (urlMatch) {
+            flowId = urlMatch[1];
+            resumeUrl = `${VMO2_OAUTH_O2_BASE}/as/${flowId}/resume/as/authorization.ping`;
+          }
+        }
+
+        if (!flowId) {
+          throw new Error("Step 2: Could not extract flowId from response");
+        }
+        this.log.debug("Step 2 of 9: flowId:", flowId);
+
+        // Step 3: Submit username
+        this.log("Step 3 of 9: Submit username", this.config.username);
+        currentSessionState = sessionState.LOGGING_IN;
+
+        response = await axiosWS.post(resumeUrl,
+          `subject=${encodeURIComponent(this.config.username)}&clear.previous.selected.subject=&cancel.identifier.selection=false`,
+          {
+            jar: cookieJar,
+            maxRedirects: 0,
+            validateStatus: (status) => status >= 200 && status < 400,
+            headers: {
+              "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "Origin": VMO2_OAUTH_O2_BASE,
+              "Referer": `${VMO2_OAUTH_O2_BASE}/`,
+            },
+          }
+        );
+
+        this.log("Step 3 of 9: response:", response.status, response.statusText);
+
+        // Handle redirect if needed
+        if (response.headers.location) {
+          response = await axiosWS.get(response.headers.location, {
+            jar: cookieJar,
+            maxRedirects: 5,
+            validateStatus: (status) => status >= 200 && status < 400,
+            headers: {
+              "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            },
+          });
+        }
+
+        // Step 4: Extract interactionId and id from HTML/JavaScript for DaVinci
+        this.log("Step 4 of 9: Extract DaVinci parameters");
+        const responseHtml = response.data;
+
+        // Extract interactionId from the page
+        let interactionId = null;
+        const interactionMatch = responseHtml.match(/interactionId['":\s]+['"]([a-f0-9-]+)['"]/i);
+        if (interactionMatch) {
+          interactionId = interactionMatch[1];
+        } else {
+          // Generate a new one if not found
+          interactionId = `${randomBytes(4).toString("hex")}-${randomBytes(2).toString("hex")}-${randomBytes(2).toString("hex")}-${randomBytes(2).toString("hex")}-${randomBytes(6).toString("hex")}`;
+        }
+
+        // Extract the element id for the password submission
+        let elementId = null;
+        const elementIdMatch = responseHtml.match(/["']id["']\s*:\s*["']([a-z0-9]+)["']/i);
+        if (elementIdMatch) {
+          elementId = elementIdMatch[1];
+        } else {
+          elementId = "h5d2318wh9"; // fallback to observed value
+        }
+
+        this.log.debug("Step 4 of 9: interactionId:", interactionId, "elementId:", elementId);
+
+        // Step 5: Submit password via DaVinci API
+        this.log("Step 5 of 9: Submit password via DaVinci API");
+        currentSessionState = sessionState.AUTHENTICATING;
+
+        const davinciUrl = `${VMO2_AUTH_BASE}/davinci/connections/${VMO2_DAVINCI_CONN_ID}/capabilities/customHTMLTemplate`;
+        const davinciPayload = {
+          id: elementId,
+          nextEvent: {
+            constructType: "skEvent",
+            eventName: "continue",
+            params: [],
+            eventType: "post",
+            postProcess: {},
+          },
+          parameters: {
+            buttonType: "form-submit",
+            buttonValue: "SIGNON",
+            password: this.config.password,
+            isBlockedFlag: "false",
+          },
+          eventName: "continue",
+          interactionId: interactionId,
+        };
+
+        if (this.config.debugLevel > 1) {
+          this.log.warn("Step 5 of 9: POST to", davinciUrl);
+        }
+
+        response = await axiosWS.post(davinciUrl, davinciPayload, {
+          jar: cookieJar,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+            "Accept": "*/*",
+            "Content-Type": "application/json",
+            "Origin": VMO2_OAUTH_O2_BASE,
+            "Referer": `${VMO2_OAUTH_O2_BASE}/`,
+            "Interactionid": interactionId,
+            "Interactiontoken": "undefined",
+            "Origin-Cookies": "%7B%7D",
+          },
+        });
+
+        this.log("Step 5 of 9: response:", response.status, response.statusText);
+
+        // Check for authentication errors
+        if (response.data && response.data.error) {
+          throw new Error(`Authentication failed: ${response.data.error}`);
+        }
+
+        // Extract the flowResult (signed JWT response)
+        const flowResult = response.data;
+        if (!flowResult || !flowResult.signedResponse) {
+          throw new Error("Step 5: No signedResponse received from DaVinci");
+        }
+
+        this.log.debug("Step 5 of 9: Got signedResponse");
+
+        // Step 6: Submit flowResult back to VMO2 OAuth
+        this.log("Step 6 of 9: Submit flowResult to VMO2 OAuth");
+        const flowResultEncoded = encodeURIComponent(JSON.stringify(flowResult));
+
+        response = await axiosWS.post(resumeUrl,
+          `flowResult=${flowResultEncoded}`,
+          {
+            jar: cookieJar,
+            maxRedirects: 0,
+            validateStatus: (status) => status >= 200 && status < 400,
+            headers: {
+              "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "Origin": VMO2_OAUTH_O2_BASE,
+              "Referer": `${VMO2_OAUTH_O2_BASE}/`,
+            },
+          }
+        );
+
+        this.log("Step 6 of 9: response:", response.status, response.statusText);
+
+        // Step 7: Follow redirects back to oauth.virginmedia.com
+        this.log("Step 7 of 9: Follow callback chain");
+        let callbackUrl = response.headers.location;
+
+        // Follow the redirect chain until we get the final code
+        let authorizationCode = null;
+        let maxRedirects = 10;
+
+        while (callbackUrl && maxRedirects > 0) {
+          this.log.debug("Step 7 of 9: Following redirect to", callbackUrl);
+
+          // Check if we've reached the final redirect with the code
+          if (callbackUrl.includes("login_success") && callbackUrl.includes("code=")) {
+            const codeMatch = callbackUrl.match(/code=([^&]+)/);
+            if (codeMatch) {
+              authorizationCode = codeMatch[1];
+              this.log.debug("Step 7 of 9: Extracted authorization code");
+              break;
+            }
+          }
+
+          response = await axiosWS.get(callbackUrl, {
+            jar: cookieJar,
+            maxRedirects: 0,
+            validateStatus: (status) => status >= 200 && status < 400,
+            headers: {
+              "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+              "Referer": `${VMO2_OAUTH_O2_BASE}/`,
+            },
+          });
+
+          callbackUrl = response.headers.location;
+          maxRedirects--;
+        }
+
+        if (!authorizationCode) {
+          throw new Error("Step 7: Could not extract authorization code from callback chain");
+        }
+
+        this.log("Step 7 of 9: Got authorization code");
+
+        // Step 8: Get OESP authorization using the code
+        this.log("Step 8 of 9: Get OESP authorization");
+        currentSessionState = sessionState.VERIFYING;
+
+        const apiAuthorizationUrl = `${GB_AUTH_OESP_URL}/authorization`;
+
+        // First get the OESP session state
+        response = await axiosWS.get(apiAuthorizationUrl, {
+          jar: cookieJar,
+        });
+
+        const auth = response.data;
+        const authState = auth.session.state;
+        const authValidityToken = auth.session.validityToken;
+
+        // Post the authorization code
+        const payload = {
+          authorizationGrant: {
+            authorizationCode: authorizationCode,
+            validityToken: authValidityToken,
+            state: authState,
+          },
+        };
+
+        response = await axiosWS.post(apiAuthorizationUrl, payload, {
+          jar: cookieJar,
+        });
+
+        this.log("Step 8 of 9: response:", response.status, response.statusText);
+
+        const authResult = response.data;
+        this.log.debug("Step 8 of 9: refreshToken:", authResult.refreshToken);
+
+        // Step 9: Get OESP session token
+        this.log("Step 9 of 9: Get OESP session token");
+        const sessionUrl = `${GB_AUTH_OESP_URL}/session`;
+        const sessionPayload = {
+          refreshToken: authResult.refreshToken,
+          username: authResult.username,
+        };
+
+        response = await axiosWS.post(`${sessionUrl}?token=true`, sessionPayload, {
+          jar: cookieJar,
+        });
+
+        this.log("Step 9 of 9: response:", response.status, response.statusText);
+
+        if (this.config.debugLevel > 2) {
+          this.log("getSessionGB: response data (saved to this.session):");
+          this.log(response.data);
+        }
+
+        // Store session data
+        this.session = response.data;
+        if (this.session.username === "") {
+          this.session.username = this.config.username;
+        }
+
+        currentSessionState = sessionState.CONNECTED;
+        this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+        this.log("Session created");
+        resolve(this.session.householdId);
+
+      } catch (error) {
+        this.log.warn("getSessionGB failed:", error.message);
+        if (this.config.debugLevel > 1) {
+          this.log.debug("getSessionGB error details:", error);
+        }
+        currentSessionState = sessionState.DISCONNECTED;
+        this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+        cookieJar.removeAllCookies();
+        reject(`getSessionGB: ${error.message}`);
+      }
     });
   }
 
