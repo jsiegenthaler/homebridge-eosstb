@@ -10,6 +10,21 @@ Please restart Homebridge after every plugin update.
 
 - Try and get authentication working again for CH and GB HELP NEEDED
 
+## 2.3.7 (2026-02-27)
+
+This is a maintenance release to bring dependencies up to date.
+
+- Bumped engine "homebridge": "^1.9.0||^2.0.0-beta",
+- Bumped engine "node": "^24.13.0"
+- Bumped dependency "axios": "^1.13.5",
+- Bumped dependency "axios-cookiejar-support": "^6.0.5",
+- Bumped dependency "debug": "^4.4.3",
+- Bumped dependency "mqtt": "^5.15.0",
+- Bumped dependency "qs": "^6.14.2",
+- Bumped dependency "semver": "^7.7.4",
+- Bumped dependency "tough-cookie": "^6.0.0",
+- Bumped dependency "ws": "^8.19.0"
+
 ## 2.3.6 (2025-08-22)
 
 - Fixed connection problems for NL
