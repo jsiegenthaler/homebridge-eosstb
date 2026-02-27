@@ -10,7 +10,13 @@ Please restart Homebridge after every plugin update.
 
 - Try and get authentication working again for CH and GB HELP NEEDED
 
-## 2.3.7 (2026-02-27)
+## 2.3.8 (2026-02-27)
+
+This is a maintenance release to bring dependencies up to date.
+
+- Bumped dependency "qs": "^6.15.0",
+
+## 2.3.7 (2026-02-14)
 
 This is a maintenance release to bring dependencies up to date.
 
