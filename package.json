@@ -10,7 +10,7 @@
     "axios-cookiejar-support": "^6.0.5",
     "debug": "^4.4.3",
     "mqtt": "^5.15.0",
-    "qs": "^6.14.2",
+    "qs": "^6.15.0",
     "semver": "^7.7.4",
     "tough-cookie": "^6.0.0",
     "ws": "^8.19.0"
