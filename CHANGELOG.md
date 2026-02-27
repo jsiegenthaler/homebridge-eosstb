@@ -14,6 +14,7 @@ Please restart Homebridge after every plugin update.
 
 This is a maintenance release to bring dependencies up to date.
 
+- Updated iOS and Homebridge version references in Readme
 - Bumped dependency "qs": "^6.15.0",
 
 ## 2.3.7 (2026-02-14)
