@@ -4333,10 +4333,12 @@ class StbPlatform {
             // (handles case where box is briefly offline when the initial request is sent)
             setTimeout(() => {
               if (!this.lastMqttUiStatusMessageReceived) {
-                this.log.warn(
-                  "getUiStatus: no CPE.uiStatus received yet for %s, retrying",
-                  device.deviceId,
-                );
+                if (this.debugLevel > 0) {
+                  this.log.warn(
+                    "getUiStatus: no CPE.uiStatus received yet for %s, retrying",
+                    device.deviceId,
+                  );
+                }
                 this.getUiStatus(
                   device.deviceId,
                   this.mqttClient.options.clientId,
@@ -5630,6 +5632,7 @@ class StbDevice {
     this.lastRemoteKeyPressed = -1; // holds the last key pressed, -1 = no key
     this.keyPressHistory = new Map();
     this._pendingKeyTimer = null;
+    this.lastVolDownKeyPress = [0, 0, 0]; // ensure initialised
 
     // do an initial accessory channel list update, required to configure the accessory
     // then prepare the accessory
@@ -7773,19 +7776,16 @@ class StbDevice {
     );
 
     // triple rapid VolDown presses triggers setMute
-    let tripleVolDownPress = 100000; // default high value to prevent a tripleVolDown detection when no triple key pressed
     if (volumeSelectorValue === Characteristic.VolumeSelector.DECREMENT) {
-      this.lastVolDownKeyPress[2] = this.lastVolDownKeyPress[1] || 0;
-      this.lastVolDownKeyPress[1] = this.lastVolDownKeyPress[0] || 0;
-      this.lastVolDownKeyPress[0] = Date.now();
-      tripleVolDownPress =
-        this.lastVolDownKeyPress[0] - this.lastVolDownKeyPress[2];
-      // check time difference between current keyPress and 2 keyPresses ago
-      this.log.debug(
-        "%s: setVolume: Timediff between volDownKeyPress[0] and volDownKeyPress[2]: %s ms",
-        this.name,
-        tripleVolDownPress, // use already-calculated variable, not recalculation
-      );
+      // Guard: ensure array is properly initialised
+      if (!Array.isArray(this.lastVolDownKeyPress) || this.lastVolDownKeyPress.length < 3) {
+        this.lastVolDownKeyPress = [0, 0, 0];
+      }
+
+      // self-limiting,shift of array values:
+      this.lastVolDownKeyPress.unshift(Date.now());
+      this.lastVolDownKeyPress = this.lastVolDownKeyPress.slice(0, 3); // keep only last 3
+      
     }
 
     // check for triple press of volDown, send setMute if tripleVolDownPress less than triplePressTime of 800ms

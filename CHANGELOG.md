@@ -51,6 +51,10 @@ Channel name: overwrite not allowed - can we disable in HomeKit. Yes, but preven
 CHALLENGE
 The mostWatchedChannelList is not working
 
+## 2.4.0-alpha.44 (2026-05-09)
+- Fixed some log level issues
+- Fixed issue with Remove volumeDown causing Unhandled error thrown inside write handler for characteristic
+
 ## 2.4.0-alpha.43 (2026-05-09)
 - Bumped dependency "semver": "^7.8.0",
 
