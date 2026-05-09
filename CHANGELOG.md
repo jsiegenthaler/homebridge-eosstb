@@ -51,6 +51,12 @@ Channel name: overwrite not allowed - can we disable in HomeKit. Yes, but preven
 CHALLENGE
 The mostWatchedChannelList is not working
 
+## 2.4.0-alpha.43 (2026-05-09)
+- Bumped dependency "semver": "^7.8.0",
+
+## 2.4.0-alpha.42 (2026-05-07)
+- changed the name of hidden channels from HIDDEN_xx to HIDDENxx to stop the HAP-NodeJS WARNING: The accessory 'HIDDEN_32' has an invalid 'Name' characteristic 
+
 ## 2.4.0-alpha.42 (2026-05-07)
 - changed the name of hidden channels from HIDDEN_xx to HIDDENxx to stop the HAP-NodeJS WARNING: The accessory 'HIDDEN_32' has an invalid 'Name' characteristic 
 
