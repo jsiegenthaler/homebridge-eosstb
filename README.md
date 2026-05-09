@@ -58,7 +58,7 @@ Logon methods for many providers changed from January 2024 to mid February 2024.
 
 ## Help Wanted
 
-For GB, IE and CH the logon method is no longer working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If are able to help, please get in touch.
+For GB, IE and CH the logon method is no longer working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If you are able to help, please get in touch.
 
 ## Readme Applicability
 
@@ -79,7 +79,7 @@ As [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) (the operator 
 | ------- | -----------                                   | -------                                                    | --------                                                                                                                                   | -------------                                                                                                 |
 | PL      | [UPC PL](https://www.upc.pl/)                 | [UPC TV GO](https://www.upctv.pl/pl/home)                  | UPC TV Box                                                                                                                                 | [UPC TV in Poland appears to have been discontinued in August 2023](https://en.wikipedia.org/wiki/UPC_Poland) |
 
-If you subscribe to a TV service from one of these countries, you are lucky, this plugin will work for you.
+If you subscribe to a TV service from one of these countries, you are lucky - this plugin will work for you.
 
 May also work with other Liberty Global countries, if you know of any, let me know.
 
@@ -97,12 +97,12 @@ In January 2023, an ARRIS VIP5002W appeared, which identifies itself as an APLST
 
 ## Disclaimer (The Legal Stuff)
 
-This plugin is not provided by Telenet or Sunrise or Virgin Media or Ziggo any other affiliate of [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global). It is neither endorsed nor supported nor developed by [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) or UPC Broadband or any affiliates. [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) can change their systems at any time and that might break this plugin. But I hope not.
+This plugin is not provided by Telenet or Sunrise or Virgin Media or Ziggo or any other affiliate of [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global). It is neither endorsed nor supported nor developed by [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) or UPC Broadband or any affiliates. [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) can change their systems at any time and that might break this plugin. But I hope not.
 
 ## Requirements
 
-- An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1...26.3, earlier versions not tested.
-- [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116....1.11.2, earlier versions not tested.
+- An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1-26.3, earlier versions not tested.
+- [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116-1.11.2, earlier versions not tested.
 - A TV subscription from one of the supported countries and TV providers.
 - An online account for viewing TV in the web app (often part of your TV package), see the table above.
 - An ARRIS DCX960 or HUMAX EOS1008R / 2008C / VIP5002W set-top box, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB", "EOS2STB" or "APLSTB" and marketed under different names in different countries.
@@ -117,9 +117,9 @@ This plugin is not provided by Telenet or Sunrise or Virgin Media or Ziggo any o
 
 - **Powerful Key Macros**: You can program key macros to control your set-top box. Key macros are powerful ways of accessing any content such as radio channels that cannot be accessed directly via a channel number.
 
-- **Siri Support** You can control your set-top box with Siri (to the extent of what Apple Siri supports).
+- **Siri Support**: You can control your set-top box with Siri (to the extent of what Apple Siri supports).
 
-- **Shortcuts Support** You can read and control your set-top box with Shortcuts and HomeKit automations (to the extent of what Apple supports), allowing you to control switch-on and channel selection in Home Automations, Shortcuts and Personal Automations, as well as read a lot of status information from your set-top box.
+- **Shortcuts Support**: You can read and control your set-top box with Shortcuts and HomeKit automations (to the extent of what Apple supports), allowing you to control switch-on and channel selection in Home Automations, Shortcuts and Personal Automations, as well as read a lot of status information from your set-top box.
 
 - **Synchronised Set-Top Box Name**: Changing the name of the set-top box in the Home app changes it on the TV and backend systems in real time, and vice-versa. No reboot required. You can turn off the sync if desired in the config.
 
@@ -185,7 +185,7 @@ You can force a Home app refresh by switching to another room and then back agai
 To access the **Apple TV Remote**, open your **Control Center** by swiping down from the top (newer iPhones and iPads) or up from the bottom of the screen (older iPhones). If you do not see the remote-control icon, you will need to activate it in **Settings > Control Centre** and ensure that the **Apple TV Remote** is in the list of **INCLUDED CONTROLS**.
 Make sure you select the correct device from the drop-down list at the top of the Apple TV Remote:
 
-The following keys are supported by in the **Apple TV Remote** in the Control Center:
+The following keys are supported in the **Apple TV Remote** in the Control Center:
 
 <img src="https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/pics/RemoteControl.png" alt="RemoteControl" height="400" align="right">
 
@@ -246,7 +246,7 @@ The eosstb plugin can detect the target and current media state and shows STOP, 
 
 ### Recording State Limitations
 
-The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but the eosstb plugin uses it to set the inUse charateristic if the set-top box is turned on or is recording to the local HDD. This is useful in Shortcuts or Automations.
+The eosstb plugin can detect the current recording state of the set-top box, both for local HDD-based recording (for boxes that have a HDD fitted) and for network recording. The plugin shows IDLE, ONGOING_NDVR or ONGOING_LOCALDVR in the Homebridge logs. DVR means digital video recorder; N for network and LOCAL for local HDD based recording. The Apple Home app cannot natively do anything with the recording state but the eosstb plugin uses it to set the inUse characteristic if the set-top box is turned on or is recording to the local HDD. This is useful in Shortcuts or Automations.
 
 ### Closed Captions Limitations
 
@@ -269,7 +269,7 @@ Example minimum (mandatory) configuration:
     ]
 ```
 
-Example extended configuration as used on the author with his EOSSTB set-top box. An extended configuration allows you to customise the behaviour of each set-top box device. You must identify the devices by their deviceId:
+Example extended configuration as used on the author on his EOSSTB set-top box. An extended configuration allows you to customise the behaviour of each set-top box device. You must identify the devices by their deviceId:
 
 ```js
     "platforms": [
@@ -343,7 +343,7 @@ Mandatory config items must always exist. These are used to establish the sessio
 
 - **triplePressTime**: The amount of time in ms to detect triple-tap of a button. Used for triple-tap or triple-press features, such as triple-press of Volume Down generates Mute. Optional, defaults to 800ms.
 
-- **masterChannelListValidFor**: Amount of time in seconds that the master channel list stays valid for. Default 60s.
+- **masterChannelListValidFor**: Duration in seconds that the master channel list stays valid for. Default 60s.
 
 - **debugLevel**: Controls the amount of debug data shown in the Homebridge logs, independent of the debug setting in Homebridge. Extra debug messages above level 0 are shown in the Homebridge log in the warning colour, normally yellow. Supported values are: 0=No debug logging, 1=Minimum, 2=Enhanced, 3=Verbose. Optional. Defaults to 0 if not found. Warning: a lot of log entries can occur at the higher debug levels.
 
@@ -400,7 +400,7 @@ If you want to configure your devices differently, do so here. Multiple devices 
 
 - **volDownCommand**: The bash command to decrease the volume of the TV. This command is sent when the Apple TV Remote is open and you press the Volume Down button on your device. Optional.
 
-- **muteCommand**: The bash command to mute the TV. Whilst not supported natively in the Apple TV Remote, this plugin integrates it with a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
+- **muteCommand**: The bash command to mute the TV. The command is sent by the Remote Contril Mute button or can be configured to trigger from a triple-press on the Volume Down button. Mute is also supported in Homebridge. Optional.
 
 ### Channel Config Items
 
@@ -474,7 +474,9 @@ The volume and mute commands do not control the set-top box directly, but can be
 
 ### Volume
 
-- **VolumeUp** and **VolumeDown**: When the Apple TV Remote is displayed, the iOS device volume controls can be used to control the volume of your TV. However, this is not done via the set-top box, but instead via a command using a command line interface (CLI) to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Home Theater HT-D5500 and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP, KEY_VOLDOWN and KEY_MUTE to be easily sent to the Samsung Home Theater. If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See the [TV Volume Control Wiki page] (https://github.com/jsiegenthaler/homebridge-eosstb/wiki/TV-Volume-Control) and also [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scroll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
+- **VolumeUp** and **VolumeDown**: When the Apple TV Remote is displayed, the iOS device volume controls can be used to control the volume of your TV. However, this is not done via the set-top box, but instead via a command line interface (CLI) bash command, which activates a program to send commands to your TV. Your TV must be capable of being controlled remotely via any machine that can accept a bash command, such as a raspberry pi. The author has a Samsung Home Theater HT-D5500 and runs Homebridge on a raspberry pi, and thus uses [samsungctl](https://github.com/Ape/samsungctl/) which allows KEY_VOLUP, KEY_VOLDOWN and KEY_MUTE to be easily sent to the Samsung Home Theater. 
+
+If you already have volume buttons in Homebridge for your TV, you can control Homebridge via the command line. See the [TV Volume Control Wiki page](https://github.com/jsiegenthaler/homebridge-eosstb/wiki/TV-Volume-Control) and also [the examples in issue 506 in the Homebridge issues log](https://github.com/homebridge/homebridge/issues/506) and scroll to the bottom to see some working command lines. Once you know what bash command works, configure it in volUpCommand and volDownCommand.
 
 ### Mute
 
@@ -500,7 +502,7 @@ See the Wiki for [details on how to read and control the set-top box in the Shor
 
 - [NextRemoteJs](https://github.com/basst85/NextRemoteJs/)
 
-- [ziggonext-python by Rudolf Offereins](https://pypi.org/project/ziggonext/#description) Rudolf is the best!
+- [ziggonext-python by Rudolf Offereins](https://pypi.org/project/ziggonext/#description)
 
 - My helpers in Belgium: [Wesley Liekens† (RIP)](https://www.facebook.com/deliekes) and [Anthony Dekimpe](https://www.facebook.com/anthony.dekimpe) for helping me get the session code working for Telenet
 

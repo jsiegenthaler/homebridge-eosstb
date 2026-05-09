@@ -8,7 +8,251 @@ Please restart Homebridge after every plugin update.
 
 ## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
 
-- Try and get authentication working again for CH and GB HELP NEEDED
+TODO
+review all http endpoints, make sure a suitable log entry is being made so I can check the data is plausible
+
+configsvc
+authorizationService DONE
+personalizationService DONE
+purchaseService
+recordingService
+linearService
+sessionService
+
+IMPORTANR
+Implement setTargetMediaState to send the Play/Pause/Stop functions, so that Eve can control the media state. Watch out for sending commands twice when using the remote control. maybe the sendKey redirects to the setmediaState?
+
+Behavious: SetMediaState from 0 to 1 will start playing.
+Behavious: SetMediaState from 0 to 1 will start playing.
+Behavious: SetMediaState from 2 to 1 will start playing.
+Behavious: SetMediaState from 1 to 2 will start playing.
+unreliable, compare to webclient... this is driving me crazy!
+might have to revert to sendKeys to set Play and Stop/Pause
+
+
+
+CHECK
+make sendKey logging consistent
+
+CHECK
+what are my issues with persistence?
+Persisting the input state visibility between restarts would be good
+Visibility cannot be set if the user has no WriteAccess to the channel list!!
+Persistance test:
+1. Hide the channel SRF info using Home app
+2. Force-close and reopen  the home app. Confirm channel is still hidden
+3. Confirm the current visibility state in the plugin logs is correct
+3. Restart the plugin
+4. Observe the current visibility state in the plugin logs - does it get the right value from HomeKit HAP? If so, no persistance required.
+
+Device name: this comes from backend
+Channel name: overwrite not allowed - can we disable in HomeKit. Yes, but prevents setting visibility
+
+CHALLENGE
+The mostWatchedChannelList is not working
+
+## 2.4.0-alpha.42 (2026-05-07)
+- changed the name of hidden channels from HIDDEN_xx to HIDDENxx to stop the HAP-NodeJS WARNING: The accessory 'HIDDEN_32' has an invalid 'Name' characteristic 
+
+## 2.4.0-alpha.41 (2026-05-07)
+- fixed typos in this change log
+
+## 2.4.0-alpha.40 (2026-05-07)
+- Changes to code to support HAP-NodeJS still works with Homebridge v1.11.x
+- Reinstated engine "homebridge": "^1.11.4||^2.0.0",
+
+## 2.4.0-alpha.39 (2026-05-07)
+- fixed issues caused by HAP-NodeJS v1 released with Homebridge v2 where use of enums off the Characteristic class is no longer supported
+- due to these HAP-NodeJS changes, support for Homebridge versions below 2.0.0 is no longer provided
+- Bumped engine "homebridge": "^2.0.0",
+- Bumped engine "node": "^24.15.0"
+- Bumped dependency "axios": "^1.16.0",
+- Bumped dependency "axios-cookiejar-support": "^7.0.0",
+- Bumped dependency "mqtt": "^5.15.1",
+- Bumped dependency "puppeteer-core": "^24.43.0",
+- Bumped dependency "qs": "^6.15.1",
+- Bumped dependency "tough-cookie": "^6.0.1",
+- Bumped dependency "ws": "^8.20.0"
+
+## 2.4.0-alpha.38 (2026-03-07)
+
+- changes to settargetmediastate & setMediaState
+
+## 2.4.0-alpha.37 (2026-03-07)
+
+- changes to settargetmediastate
+
+## 2.4.0-alpha.36 (2026-03-07)
+
+- changes to settargetmediastate
+
+## 2.4.0-alpha.35 (2026-03-07)
+
+- changes to settargetmediastate
+
+## 2.4.0-alpha.34 (2026-03-07)
+
+- changes to settargetmediastate
+
+## 2.4.0-alpha.33 (2026-03-07)
+
+- optimised getmqtttoken
+- checked function of setTargetMediaState , needs testing, controlled by Eve
+
+## 2.4.0-alpha.32 (2026-03-07)
+
+- made all urls into proper url objects
+- fixed issue with getMostWatchedChannels
+
+## 2.4.0-alpha.31 (2026-03-07)
+
+- change the master channel list refresh to once a day at a random time between 0000 and 0600. The user setting has no impact and can be removed
+- cleaned up some more diagnostic logging
+
+## 2.4.0-alpha.30 (2026-03-07)
+
+- cleaned up some diagnostic logging
+
+## 2.4.0-alpha.29 (2026-03-06)
+
+- optimised refreshDeviceChannelList
+
+## 2.4.0-alpha.28 (2026-03-06)
+
+ - fixed issue with detecting status, introduce 2 versions ago
+
+## 2.4.0-alpha.27 (2026-03-06)
+
+-- removed test code to detect plugin shutdown
+
+## 2.4.0-alpha.26 (2026-03-06)
+
+-- added test code to detect plugin shutdown
+- added clean unsubscribe on plugin shutdown
+
+## 2.4.0-alpha.25 (2026-03-05)
+
+ - fixed introduced bug in setRemoteKey
+
+## 2.4.0-alpha.24 (2026-03-05)
+
+ - made channel ConfiguredName read only as the backend defines the channel name
+
+## 2.4.0-alpha.23 (2026-03-05)
+
+ - optimised setRemoteKey
+
+## 2.4.0-alpha.22 (2026-03-05)
+
+ - fixed error handling in refreshMasterChannelList
+
+## 2.4.0-alpha.21 (2026-03-05)
+
+ - fixed logging bug in sendKey
+
+## 2.4.0-alpha.20 (2026-03-05)
+
+ - improved accessory information display to show a better serialnumber
+ - updated set-top box model name for 2008C
+ - added more robustness to many calls in case we never get a configsvc response
+ - optimised the mqttDeviceStateHandler
+ - improved refreshMasterChannelList
+ - improved a lot of webservice calls, removing promises and going to try-catch
+
+## 2.4.0-alpha.19 (2026-03-04)
+
+ - removed some dead code
+ - enabled handler for setClosedCaptions and setPictureMode, test control from Eve app
+ - improved send key logging
+
+## 2.4.0-alpha.18 (2026-03-03)
+
+- Fixed dislayOrder crash on startup - check this!
+- Optimised post publishExternalAccessories HAP updates
+- Changed all updateValue to updateCharacteristic post-publish to be more HAP compliant
+
+## 2.4.0-alpha.17 (2026-03-03)
+
+- Cleaned up the platform code
+- Changed all get/set handlers to async
+- Optimised all get/set handlers
+- More HAP minor bug fixes and optimisations
+
+## 2.4.0-alpha.16 (2026-03-03)
+
+- Fixed bug: TypeError: this.prepareinputSourceServices is not a function
+
+## 2.4.0-alpha.15 (2026-03-03)
+
+- Renamed Current Channnel Id and Current Channel Name to Active Channel Id and Active Channel Name for consistency with Active Identifier
+
+## 2.4.0-alpha.14 (2026-03-03)
+
+- Optimised HAP code for strict compliance
+- Removed debug logging
+
+## 2.4.0-alpha.13 (2026-03-03)
+
+- Fixes to logging of getInputName for diagnostics
+
+## 2.4.0-alpha.12 (2026-03-03)
+
+- More improvements to get ConfiguredName working properly on the Eve app (needs testing for both TV and Inputs)
+
+## 2.4.0-alpha.11 (2026-03-03)
+
+- Fixed logging bug in setInputName
+
+## 2.4.0-alpha.10 (2026-03-03)
+
+## 2.4.0-alpha.9 (2026-03-03)
+
+## 2.4.0-alpha.8 (2026-03-03)
+
+- More improvements to get ConfiguredName working properly on the Eve app (needs testing for both TV and Inputs)
+
+## 2.4.0-alpha.7 (2026-03-03)
+
+- Corrected some debug log levels
+- Fixed ConfiguredName being empty on the Eve app (needs testing for both TV and Inputs)
+
+## 2.4.0-alpha.6 (2026-03-02)
+
+- Removed getMute and getVolume, these are not supported
+- More code optimisations
+
+## 2.4.0-alpha.5 (2026-03-02)
+
+- More code performance improvements
+- Improved all HAP code
+
+## 2.4.0-alpha.4 (2026-03-02)
+
+- Fixed self bug in volume control
+
+## 2.4.0-alpha.4 (2026-03-02)
+
+- Fixed self bug in volume control
+
+## 2.4.0-alpha.3 (2026-03-02)
+
+- Fixed new introduced bug with displayed channel being incorrect (offset by 1)
+- Added "devMode": true support to config.json
+
+## 2.4.0-alpha.2 (2026-03-01)
+
+- Improved README.md text
+- Improved config.schema.json description text
+- Improved discovery of devices and accessory setup
+- Improved mqtt handling
+- Improved overall code robustness and fixed many small bugs
+- Fixed spelling mistakes in comments
+
+## 2.4.0-alpha.1 (2026-02-27)
+
+- Adapted login sequence for CH
+- Updated config.schema.json to support new CH login method and improced description texts
+- Bumped dependency "axios": "^1.13.6",
 
 ## 2.3.8 (2026-02-27)
 
