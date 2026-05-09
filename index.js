@@ -5428,8 +5428,8 @@ class stbDevice {
 
       // default values to hide the input if nothing exists in this.channelList
       var chFixedName = `Input ${i < 10 ? `0${i}` : i}`; // fixed if not profile 0
-      var chName = "HIDDEN_" + ("0" + (i + 1)).slice(-2);
-      var chId = "HIDDEN_" + i;
+      var chName = "HIDDEN" + ("0" + (i + 1)).slice(-2);
+      var chId = "HIDDEN" + i;
       var visState = Characteristic.CurrentVisibilityState.HIDDEN;
       var configState = Characteristic.IsConfigured.NOT_CONFIGURED;
 
@@ -5445,9 +5445,9 @@ class stbDevice {
       }
 
       // some channels are deliberately hidden, so assign a fictional channelId and disable them
-      if (chName.includes("HIDDEN_")) {
-        // name contains 'HIDDEN_'
-        chId = "HIDDEN_" + i;
+      if (chName.includes("HIDDEN")) {
+        // name contains 'HIDDEN'
+        chId = "HIDDEN" + i;
         visState = Characteristic.CurrentVisibilityState.HIDDEN;
         configState = Characteristic.IsConfigured.NOT_CONFIGURED;
       }
@@ -6721,10 +6721,10 @@ class stbDevice {
         // array must stay same size and have elements that can be queried, but channelId must never match valid entries
         this.channelList[i] = {
           id: "hiddenChId_" + i, // channelid must be unique string, must be different from standard channel ids
-          name: "HIDDEN_" + ("0" + (i + 1)).slice(-2),
+          name: "HIDDEN" + ("0" + (i + 1)).slice(-2),
           logicalChannelNumber: null,
           linearProducts: null,
-          configuredName: "HIDDEN_" + ("0" + (i + 1)).slice(-2),
+          configuredName: "HIDDEN" + ("0" + (i + 1)).slice(-2),
           visibilityState: Characteristic.CurrentVisibilityState.HIDDEN,
         };
 

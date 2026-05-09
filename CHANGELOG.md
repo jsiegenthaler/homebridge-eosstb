@@ -12,6 +12,7 @@ Please restart Homebridge after every plugin update.
 
 ## 2.3.9 (2026-05-09)
 - Fixed Error on Homebridge v2: Cannot read properties of undefined (reading 'STRING')
+- Adapted hidden channel name to reduce warning messages with Homebridge v2
 - Updated iOS and Homebridge version references in Readme
 - Bumped engine "^1.11.4||^2.0.0",
 - Bumped engine "node": "^24.15.0"
