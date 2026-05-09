@@ -20,7 +20,6 @@
 
 The logon method to the backend systems changed in January / February 2024. I managed to get CH working again from April 2026 for CH. NL was confirmed working OK in May 2026. BE was confirmed working OK in June 2024.
 
-If you know anything about session authentication and are able to help, please get in touch.
 </b><hr>
 
 [![npm](https://badgen.net/npm/dt/homebridge-eosstb)](https://www.npmjs.com/package/homebridge-eosstb)
