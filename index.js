@@ -4440,6 +4440,13 @@ class StbPlatform {
               deviceId = mqttMessage.source;
               stbState = mqttMessage.state;
 
+              // Look up the per-device instance so we can read device-specific state
+              // (e.g. previousPowerState) before the switch runs
+              const deviceIndex = this.devices.findIndex(
+                (device) => device.deviceId === deviceId,
+              );
+              const stbDevice = deviceIndex > -1 ? this.stbDevices[deviceIndex] : null;
+
               // Box setting: StandbyPowerConsumption = FastStart / ActiveStart / EcoSlowstart
               // "Fast start":  when turned off, goes to ONLINE_STANDBY and stays there. Box can be turned on via mqtt
               // "Active start": when turned off, stays at ONLINE_STANDBY for 5min, then goes to OFFLINE_NETWORK_STANDBY. box can be turned on via ??
@@ -4448,6 +4455,18 @@ class StbPlatform {
                 case "ONLINE_RUNNING": // ONLINE_RUNNING: power is on
                   currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
                   currPowerState = Characteristic.Active.ACTIVE;
+                  // Detect power-off → power-on transition per device.
+                  // Set PLAY immediately; CPE.uiStatus will overwrite with the
+                  // accurate speed-derived state shortly after.
+                  if (stbDevice?.previousPowerState === Characteristic.Active.INACTIVE) {
+                    currMediaState = Characteristic.CurrentMediaState.PLAY;
+                    if (this.debugLevel > 0) {
+                      this.log.warn(
+                        "mqttClient: STB status: power-on transition for %s, setting mediaState to PLAY",
+                        deviceId,
+                      );
+                    }
+                  }                 
                   break;
                 case "ONLINE_STANDBY": // ONLINE_STANDBY: power is off, device is on standby, still reachable over the network, can be turned on via mqtt.
                   currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
@@ -5610,6 +5629,7 @@ class StbDevice {
     this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
     this.currentInUse = Characteristic.InUse.NOT_IN_USE;
     this.currentPowerState = Characteristic.Active.INACTIVE;
+    this.previousPowerState = Characteristic.Active.INACTIVE;
     this.currentStatusActive = Characteristic.Active.INACTIVE;
 
     this.currentChannelId = NO_CHANNEL_ID; // string eg SV09038
@@ -7775,6 +7795,8 @@ class StbDevice {
         : "Up",
     );
 
+    let tripleVolDownPress = Infinity; // default prevents false triple-press detection
+
     // triple rapid VolDown presses triggers setMute
     if (volumeSelectorValue === Characteristic.VolumeSelector.DECREMENT) {
       // Guard: ensure array is properly initialised
@@ -7782,9 +7804,18 @@ class StbDevice {
         this.lastVolDownKeyPress = [0, 0, 0];
       }
 
-      // self-limiting,shift of array values:
+      // Self-limiting shift of array values
       this.lastVolDownKeyPress.unshift(Date.now());
       this.lastVolDownKeyPress = this.lastVolDownKeyPress.slice(0, 3); // keep only last 3
+
+      // Now assign the calculated value to the outer variable
+      tripleVolDownPress = this.lastVolDownKeyPress[0] - this.lastVolDownKeyPress[2];
+
+      this.log.debug(
+        "%s: setVolume: Timediff between volDownKeyPress[0] and volDownKeyPress[2]: %s ms",
+        this.name,
+        tripleVolDownPress,
+      );      
       
     }
 
@@ -7822,6 +7853,9 @@ class StbDevice {
       }
 
       try {
+        if (this.debugLevel > 0) {
+          this.log.warn("%s: setVolume: Sending command %s", this.name, command);
+        }
         await new Promise((resolve, reject) => {
           exec(command, (error, _stdout, stderr) => {
             if (error) reject(stderr.trim());
