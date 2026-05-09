@@ -10,6 +10,19 @@ Please restart Homebridge after every plugin update.
 
 - Try and get authentication working again for CH and GB HELP NEEDED
 
+## 2.3.9 (2026-05-09)
+- Fixed Error on Homebridge v2: Cannot read properties of undefined (reading 'STRING')
+- Updated iOS and Homebridge version references in Readme
+- Bumped engine "^1.11.4||^2.0.0",
+- Bumped engine "node": "^24.15.0"
+- Bumped dependency "axios": "^1.16.0",
+- Bumped dependency "axios-cookiejar-support": "^7.0.0",
+- Bumped dependency "mqtt": "^5.15.1",
+- Bumped dependency "qs": "^6.15.1",
+- Bumped dependency "semver": "^7.8.0",
+- Bumped dependency "tough-cookie": "^6.0.1",
+- Bumped dependency "ws": "^8.20.0"   
+
 ## 2.3.8 (2026-02-27)
 
 This is a maintenance release to bring dependencies up to date.

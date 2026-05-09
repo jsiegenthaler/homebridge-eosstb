@@ -5184,7 +5184,7 @@ class stbDevice {
       .setCharacteristic(
         Characteristic.ProgramMode,
         Characteristic.ProgramMode.NO_PROGRAM_SCHEDULED
-      ) // NO_PROGRAM_SCHEDULED or PROGRAM_SCHEDULED or PROGRAM_SCHEDULED_MANUAL_MODE_
+      ) // NO_PROGRAM_SCHEDULED or PROGRAM_SCHEDULED or PROGRAM_SCHEDULED_MANUAL_MODE
       .setCharacteristic(
         Characteristic.StatusActive,
         Characteristic.Active.ACTIVE
@@ -5310,8 +5310,8 @@ class stbDevice {
       "Current Channel Id",
       "00000001" + BASE_UUID,
       {
-        format: Characteristic.Formats.STRING,
-        perms: [Characteristic.Perms.PAIRED_READ, Characteristic.Perms.NOTIFY],
+        format: this.api.hap.Formats.STRING,
+        perms: [this.api.hap.Perms.PAIRED_READ, this.api.hap.Perms.NOTIFY],
       }
     );
     hapCharacteristic.value = ""; // add a default empty value
@@ -5326,8 +5326,8 @@ class stbDevice {
       "Current Channel Name",
       "00000002" + BASE_UUID,
       {
-        format: Characteristic.Formats.STRING,
-        perms: [Characteristic.Perms.PAIRED_READ, Characteristic.Perms.NOTIFY],
+        format: this.api.hap.Formats.STRING,
+        perms: [this.api.hap.Perms.PAIRED_READ, this.api.hap.Perms.NOTIFY],
       }
     );
     hapCharacteristic.value = ""; // add a default empty value
