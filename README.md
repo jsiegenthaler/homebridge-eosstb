@@ -11,11 +11,14 @@
 # IMPORTANT NOTICE
 
 <hr><b>
-22 August 2025: Logon method for NL confirmed working again, available from v2.3.6.
 
-22 June 2024: Logon method for BE confirmed working again, available from v2.3.2.
+* 09 May 2026: Logon method for CH is working again, available from v2.4.0.
 
-The logon method to the backend systems changed in January / February 2024. I currently lack the skills and knowledge to figure out how to get the session to connect for CH, GB, IE, and likely SK. However, as at 15 June 2024, BE users have reported a fix for BE which I have added in to v2.3.2, and from 22 August 2025 NL users have assisted with a fix for NL, released in v2.3.6.
+* 22 August 2025: Logon method for NL confirmed working again, available from v2.3.6.
+
+* 22 June 2024: Logon method for BE confirmed working again, available from v2.3.2.
+
+The logon method to the backend systems changed in January / February 2024. I managed to get CH working again from April 2026 for CH. NL was confirmed working OK in May 2026. BE was confirmed working OK in June 2024.
 
 If you know anything about session authentication and are able to help, please get in touch.
 </b><hr>
@@ -44,6 +47,11 @@ Supports multiple set-top boxes, should you have more than one.
 If you like this plugin, consider buying me a coffee!<br>
 <a target="blank" href="https://ko-fi.com/jsiegenthaler"><img src="https://img.shields.io/badge/Ko--Fi-Buy%20me%20a%20coffee-29abe0.svg?logo=ko-fi"/></a>
 
+
+# Update May 2026
+
+Logon method for CH working again from v2.4.0. Use Authentication Method E.
+
 # Update August 2025
 
 Logon methods for NL working again from v2.3.6. Use Authentication Method A.
@@ -58,11 +66,11 @@ Logon methods for many providers changed from January 2024 to mid February 2024.
 
 ## Help Wanted
 
-For GB, IE and CH the logon method is no longer working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If you are able to help, please get in touch.
+For GB, IE the logon method is no longer working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If you are able to help, please get in touch.
 
 ## Readme Applicability
 
-Due to the adding of features and functions, this Readme applies from v2.3.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
+Due to the adding of features and functions, this Readme applies from v2.4.0. For prior versions, please see the [eosstb release history on npm](https://www.npmjs.com/package/homebridge-eosstb?activeTab=versions).
 
 # Works in Your Country (If you are with Sunrise / Telenet / UPC SK / Virgin Media / Ziggo)
 
@@ -71,10 +79,10 @@ As [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) (the operator 
 | Country | TV Provider                                   | Web App                                                    | Box Name                                                                                                                                   | Notes                                                                                                         |
 | ------- | --------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | BE      | [Telenet](https://www2.telenet.be/)           | [Telenet TV](https://www.telenettv.be/nl.html)             | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/)                                                      | As of 15 June 2024 should be working again. Use Authentication Method B.                                      |
-| CH      | [Sunrise](https://www.sunrise.ch/en/)         | [Sunrise TV](https://www.sunrisetv.ch/en.html)             | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription)                                                                    | As of February 2024, connection to box is no longer working. Help Wanted!                                     |
+| CH      | [Sunrise](https://www.sunrise.ch/en/)         | [Sunrise TV](https://www.sunrisetv.ch/en.html)             | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription)                                                                    | As of May 2026, connection is working again                                     |
 | GB      | [Virgin Media](https://www.virginmedia.com/)  | [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom) | As of January 2024, connection to box is no longer working. Help Wanted!                                      |
 | IE      | [Virgin Media](https://www.virginmedia.ie/)   | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/)                                                                                  | As of January 2024, connection to box is no longer working. Help Wanted!                                      |
-| NL      | [Ziggo](https://www.ziggo.nl/)                | [Ziggo GO](https://www.ziggogo.tv/nl.html)                 | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv)                                                          | As of 22 August 2025, confirmed working again (from v2.3.6)                                                   |
+| NL      | [Ziggo](https://www.ziggo.nl/)                | [Ziggo GO](https://www.ziggogo.tv/nl.html)                 | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv)                                                          | Confirmed working in May 2026                                                   |
 | SK      | [UPC Broadband Slovakia](https://www.upc.sk/) | [UPC TV](https://www.upctv.sk/sk/home)                     | UPC TV Box                                                                                                                                 | _Testers Wanted_                                                                                              |
 | ------- | -----------                                   | -------                                                    | --------                                                                                                                                   | -------------                                                                                                 |
 | PL      | [UPC PL](https://www.upc.pl/)                 | [UPC TV GO](https://www.upctv.pl/pl/home)                  | UPC TV Box                                                                                                                                 | [UPC TV in Poland appears to have been discontinued in August 2023](https://en.wikipedia.org/wiki/UPC_Poland) |
@@ -101,8 +109,8 @@ This plugin is not provided by Telenet or Sunrise or Virgin Media or Ziggo or an
 
 ## Requirements
 
-- An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1-26.3, earlier versions not tested.
-- [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116-1.11.2, earlier versions not tested.
+- An Apple iPhone or iPad with iOS/iPadOS 14.0 (or later). Developed on iOS 14.1-26.4, earlier versions not tested.
+- [Homebridge](https://homebridge.io/) v1.1.116 (or later). Developed on Homebridge 1.1.116-2.0.1, earlier versions not tested.
 - A TV subscription from one of the supported countries and TV providers.
 - An online account for viewing TV in the web app (often part of your TV package), see the table above.
 - An ARRIS DCX960 or HUMAX EOS1008R / 2008C / VIP5002W set-top box, provided by your TV provider as part of your TV subscription, called by the system an "EOSSTB", "EOS2STB" or "APLSTB" and marketed under different names in different countries.
@@ -145,7 +153,7 @@ This plugin is not provided by Telenet or Sunrise or Virgin Media or Ziggo or an
 
 - **Fully Configurable**: A large amount of configuration items exist to allow you to configure your plugin the way you want.
 
-- **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 26.3). Hopefully, Apple will add support for these features in the future. You can however use this data in Home Automations or the Shortcuts app.
+- **Future Feature Support**: The plugin also supports current and target media state as well as closed captions, even though the Home app accessory cannot currently display or control this data in the home app (as at iOS 26.4). Hopefully, Apple will add support for these features in the future. You can however use this data in Home Automations or the Shortcuts app.
 
 ## Installation
 
@@ -242,7 +250,7 @@ Services used in this set-top box accessory are:
 
 ### Media State (Play/Pause) Limitations
 
-The eosstb plugin can detect the target and current media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed only for current media state when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 26.3) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
+The eosstb plugin can detect the target and current media state and shows STOP, PLAY, PAUSE or LOADING (loading is displayed only for current media state when fast-forwarding or rewinding) in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the media state (as at iOS 26.4) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ### Recording State Limitations
 
@@ -250,7 +258,7 @@ The eosstb plugin can detect the current recording state of the set-top box, bot
 
 ### Closed Captions Limitations
 
-The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 26.3) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
+The eosstb plugin can detect the closed captions state (**Subtitle options** in the set-top box menu) and shows ENABLED or DISABLED in the Homebridge logs. Unfortunately, the Apple Home app cannot do anything with the closed captions state (as at iOS 26.4) apart from allow you to read it in Shortcuts or Automations. Hopefully this will improve in the future.
 
 ## Configuration
 
