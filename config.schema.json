@@ -19,7 +19,7 @@
       "country": {
         "title": "Country",
         "type": "string",
-        "description": "Your country. This controls the country-specific logon sequence and the mqtt sessions.",
+        "description": "Your country. This controls the country-specific authentication sequence and the MQTT sessions",
         "default": "ch",
         "required": true,
         "oneOf": [
@@ -27,7 +27,7 @@
           { "title": "BE-NL:  Telenet TV", "enum": ["be-nl"] },
           { "title": "CH:  Sunrise TV", "enum": ["ch"] },
           { "title": "GB:  Virgin Media TV 360", "enum": ["gb"] },
-          { "title": "IE.  Virgin Media TV 360", "enum": ["ie"] },
+          { "title": "IE:  Virgin Media TV 360", "enum": ["ie"] },
           { "title": "NL:  Ziggo TV", "enum": ["nl"] },
           { "title": "PL:  UPC TV GO", "enum": ["pl"] },
           { "title": "SK:  UPC TV", "enum": ["sk"] }
@@ -36,35 +36,36 @@
       "username": {
         "title": "Username",
         "type": "string",
-        "description": "Your username for your TV account.",
+        "description": "Your username for your TV account",
         "placeholder": "yourTvProviderUsername",
         "required": true
       },
       "password": {
         "title": "Password",
         "type": "string",
-        "description": "Your password associated with your TV account.",
+        "description": "Your password associated with your TV account",
         "placeholder": "yourTvProviderPassword",
         "required": true
       },
       "authmethod": {
         "title": "Authentication Method",
         "type": "string",
-        "description": "The authentication method. Select the option for your country. If it doesn't work, try another method.",
+        "description": "The authentication method. Select the option for your country. If it doesn't work, try another method",
         "default": "A",
         "required": true,
         "oneOf": [
-          { "title": "Method A: CH, NL, IE", "enum": ["A"] },
+          { "title": "Method A: NL, IE", "enum": ["A"] },
           { "title": "Method B: BE", "enum": ["B"] },
           { "title": "Method C: GB", "enum": ["C"] },
-          { "title": "Method D: OAuth 2.0 PKCE EXPERIMENTAL", "enum": ["D"] }
+          { "title": "Method D: CH", "enum": ["D"] },
+          { "title": "Method E: OAuth 2.0 PKCE EXPERIMENTAL", "enum": ["E"] }
         ]
       },
 
       "watchdogDisabled": {
         "title": "Disable Session Watchdog",
         "type": "boolean",
-        "description": "Disables the session watchdog to assist with debugging. Default: false",
+        "description": "Disables the session watchdog. Enable this only for debugging purposes. Default: false",
         "default": false
       },
 
@@ -79,21 +80,15 @@
       "triplePressTime": {
         "title": "Triple-Press Time",
         "type": "integer",
-        "description": "The amount of time in ms to detect triple-tap of an iOS remote control button. Default: 800ms.",
+        "description": "The amount of time in ms to detect triple-tap of an iOS remote control button. Default: 800ms",
+        "default": 800,
         "placeholder": 800
-      },
-
-      "masterChannelListValidFor": {
-        "title": "Master Channel List Validity Time",
-        "type": "integer",
-        "description": "The amount of time in seconds that the master channel list is valid. Channel list is refreshed when the time expires. Default: 1800s.",
-        "placeholder": 1800
       },
 
       "debugLevel": {
         "title": "Debug Level",
         "type": "integer",
-        "description": "Enables extra logging for this plugin. Default: None.",
+        "description": "Enables extra logging for this plugin. Default: None",
         "oneOf": [
           { "title": "Minimum", "enum": [1] },
           { "title": "Enhanced", "enum": [2] },
@@ -104,7 +99,7 @@
       "devices": {
         "type": "array",
         "title": "Devices",
-        "description": "Each set-top box is a device. This plugin supports multiple devices. Device config is optional; the plugin will still work if no devices are configured.",
+        "description": "Each set-top box is a device. This plugin supports multiple devices, each configurable individually. Device configuration is optional — devices are auto-detected even without individual configuration",
         "items": {
           "title": "Devices",
           "type": "object",
@@ -112,10 +107,10 @@
             "deviceId": {
               "title": "Device ID",
               "type": "string",
-              "description": "Unique deviceId used to identify the device. The deviceId is visible in the Homebridge log shortly after a Homebridge restart.",
+              "description": "Unique ID used to identify the device. The Device ID is visible in the Homebridge log shortly after a restart",
               "placeholder": "3C36E4-EOSSTB-000123456789",
               "minLength": 25,
-              "required": true
+              "required": false
             },
             "name": {
               "title": "Name",
@@ -147,28 +142,28 @@
             "manufacturer": {
               "title": "Manufacturer",
               "type": "string",
-              "description": "The manufacturer name to display in the Home app. Default: auto-detected.",
+              "description": "The manufacturer name to display in the Home app. Default: auto-detected",
               "placeholder": "ARRIS",
               "maxLength": 64
             },
             "modelName": {
               "title": "Model",
               "type": "string",
-              "description": "The model name to display in the Home app. Default: auto-detected.",
+              "description": "The model name to display in the Home app. Default: auto-detected",
               "placeholder": "DCX960",
               "maxLength": 64
             },
             "serialNumber": {
               "title": "Serial Number",
               "type": "string",
-              "description": "The serial number to display in the Home app. Default: auto-detected.",
+              "description": "The serial number to display in the Home app. Default: auto-detected",
               "placeholder": "Current Serial Number",
               "maxLength": 64
             },
             "firmwareRevision": {
               "title": "Firmware",
               "type": "string",
-              "description": "The firmware version to display in the Home app. Numbers only eg 4.44. Default: plugin version.",
+              "description": "The firmware version to display in the Home app. Numbers only, e.g. 4.44. Default: plugin version",
               "placeholder": "4.44",
               "pattern": "^(\\d+)((\\.{1}\\d+)*)(\\.{0})$"
             },
@@ -793,7 +788,7 @@
             "customPictureMode": {
               "title": "Custom Picture Mode",
               "type": "string",
-              "description": "Allow Picture Mode to be used for other custom functionality, see README for full details.",
+              "description": "Allows Picture Mode to be repurposed for custom functionality. See the README for full details",
               "oneOf": [
                 { "title": "Recording State", "enum": ["recordingState"] }
               ]
@@ -805,7 +800,7 @@
       "channels": {
         "type": "array",
         "title": "Channels",
-        "description": "Add custom channel names for any special channels (such as Netflix) where the channel name cannot be auto-detected by the plugin.",
+        "description": "Add custom channel names for any special channels (such as Netflix) where the channel name cannot be auto-detected by the plugin",
         "items": {
           "title": "Channel Names",
           "type": "object",
@@ -813,12 +808,12 @@
             "channelId": {
               "title": "Channel ID",
               "type": "string",
-              "description": "Unique channelId, see the Homebridge log."
+              "description": "The unique Channel ID. Find this in the Homebridge log"
             },
             "channelKeyMacro": {
               "title": "Channel Key Macro",
               "type": "string",
-              "description": "A sequence of remote control keys for enhanced customising. Channel ID must be empty to use key macros. Example: '1 2 3 Enter' to select channel 123. See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys."
+              "description": "A sequence of remote control keys for enhanced customization. Channel ID must be empty to use key macros. Example: '1 2 3 Enter' to select channel 123. See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys."
             },
             "channelName": {
               "title": "Channel Name",
@@ -834,8 +829,8 @@
   "layout": [
     {
       "type": "fieldset",
-      "title": "Mandatory Platform Config *",
-      "description": "The minimum EOSSTB config items that must be configured.",
+      "title": "Mandatory Platform Config",
+      "description": "The minimum EOSSTB config items that must be configured",
       "expandable": true,
       "expanded": false,
       "items": [
@@ -861,14 +856,13 @@
     {
       "type": "fieldset",
       "title": "Optional Platform Config",
-      "description": "Customise the platform config and set the debug level in this section.",
+      "description": "Customise the platform config and set the debug level in this section",
       "expandable": true,
       "expanded": false,
       "items": [
         "name",
         "doublePressTime",
         "triplePressTime",
-        "masterChannelListValidFor",
         "debugLevel"
       ]
     },
@@ -876,7 +870,7 @@
     {
       "type": "fieldset",
       "title": "Optional Device Config",
-      "description": "Customise and fine tune your device config in this section.",
+      "description": "Customise and fine tune your device config in this section",
       "expandable": true,
       "expanded": false,
       "items": [
@@ -935,7 +929,7 @@
                     {
                       "type": "flex",
                       "flex-flow": "row wrap",
-                      "title": "The key to send when the <b>(Arrow Up)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "title": "The key to send when the <b>(Arrow Up)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys",
                       "items": [
                         "devices[].arrowUpButton",
                         "devices[].arrowUpButtonDoubleTap"
@@ -952,7 +946,7 @@
                     {
                       "type": "flex",
                       "flex-flow": "row wrap",
-                      "title": "The key to send when the <b>(Arrow Down)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "title": "The key to send when the <b>(Arrow Down)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys",
                       "items": [
                         "devices[].arrowDownButton",
                         "devices[].arrowDownButtonDoubleTap"
@@ -969,7 +963,7 @@
                     {
                       "type": "flex",
                       "flex-flow": "row wrap",
-                      "title": "The key to send when the <b>(Arrow Left)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "title": "The key to send when the <b>(Arrow Left)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys",
                       "items": [
                         "devices[].arrowLeftButton",
                         "devices[].arrowLeftButtonDoubleTap"
@@ -986,7 +980,7 @@
                     {
                       "type": "flex",
                       "flex-flow": "row wrap",
-                      "title": "The key to send when the <b>(Arrow Right)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "title": "The key to send when the <b>(Arrow Right)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys",
                       "items": [
                         "devices[].arrowRightButton",
                         "devices[].arrowRightButtonDoubleTap"
@@ -1003,7 +997,7 @@
                     {
                       "type": "flex",
                       "flex-flow": "row wrap",
-                      "title": "The key to send when the <b>(Select)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "title": "The key to send when the <b>(Select)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys",
                       "items": [
                         "devices[].selectButton",
                         "devices[].selectButtonDoubleTap"
@@ -1021,7 +1015,7 @@
                     {
                       "type": "flex",
                       "flex-flow": "row wrap",
-                      "title": "The key to send when the <b>(Play/Pause)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "title": "The key to send when the <b>(Play/Pause)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys",
                       "items": [
                         "devices[].playPauseButton",
                         "devices[].playPauseButtonDoubleTap"
@@ -1038,7 +1032,7 @@
                     {
                       "type": "flex",
                       "flex-flow": "row wrap",
-                      "title": "The key to send when the <b>(BACK)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "title": "The key to send when the <b>(BACK)</b> button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys",
                       "items": [
                         "devices[].backButton",
                         "devices[].backButtonDoubleTap"
@@ -1055,7 +1049,7 @@
                     {
                       "type": "flex",
                       "flex-flow": "row wrap",
-                      "title": "The key to send when the <b>(i)</b> info button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "title": "The key to send when the <b>(i)</b> info button is tapped on the iOS remote.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys",
                       "items": [
                         "devices[].infoButton",
                         "devices[].infoButtonDoubleTap"
@@ -1073,7 +1067,7 @@
                     {
                       "type": "flex",
                       "flex-flow": "row wrap",
-                      "title": "The key to send when <b>View TV Settings</b> is selected in the accessory in the Home app.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys.",
+                      "title": "The key to send when <b>View TV Settings</b> is selected in the accessory in the Home app.<br>See the <a href=\"https://github.com/jsiegenthaler/homebridge-eosstb/wiki/KeyEvents#known-keys\">Wiki</a> for a description of all keys",
                       "items": ["devices[].viewTvSettingsCommand"]
                     }
                   ]
@@ -1099,7 +1093,7 @@
     {
       "type": "fieldset",
       "title": "Optional Channel Config",
-      "description": "Customise special channel names in this section.",
+      "description": "Customise special channel names in this section",
       "expandable": true,
       "expanded": false,
       "items": [

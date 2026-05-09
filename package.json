@@ -3,13 +3,14 @@
   "displayName": "Homebridge EOSSTB",
   "description": "Add your set-top box to Homekit (for Telenet BE, Sunrise CH, UPC SK, Virgin Media GB & IE, Ziggo NL)",
   "author": "Jochen Siegenthaler (https://github.com/jsiegenthaler/)",
-  "version": "2.3.9",
+  "version": "2.4.0-beta.1",
   "platformname": "eosstb",
   "dependencies": {
     "axios": "^1.16.0",
     "axios-cookiejar-support": "^7.0.0",
     "debug": "^4.4.3",
     "mqtt": "^5.15.1",
+    "puppeteer-core": "^24.43.0",
     "qs": "^6.15.1",
     "semver": "^7.8.0",
     "tough-cookie": "^6.0.1",
@@ -18,7 +19,7 @@
   "deprecated": false,
   "engines": {
     "homebridge": "^1.11.4||^2.0.0",
-    "node": "^24.15.0"
+    "node": "^24.13.0"
   },
   "homepage": "https://github.com/jsiegenthaler/homebridge-eosstb#readme",
   "keywords": [

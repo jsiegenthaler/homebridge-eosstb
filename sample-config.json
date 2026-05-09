@@ -4,7 +4,8 @@
       "platform": "eosstb",
       "country": "ch",
       "username": "yourUsername",
-      "password": "yourPassword"
+      "password": "yourPassword",
+      "devMode": true
     }
   ]
 }

@@ -4,11 +4,35 @@ All notable changes to this project will be documented in this file.
 See the [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/master/README.md) for full plugin documentation.
 Please restart Homebridge after every plugin update.
 
-# Bug Fixes and Improvements
+## 2.4.0-beta.1 (2026-05-09)
 
-## Current To-Do and In-Work List (For Future Releases, in rough order of priority):
+This release represents a major rewrite of the plugin, significantly improving robustness, HAP compliance, and code quality throughout, and making it work for Switzerland.
 
-- Try and get authentication working again for CH and GB HELP NEEDED
+- Added CH login support: Adapted the login sequence and updated config.schema.json to support the new Switzerland login method
+- Overhauled HAP compliance: Full audit and rewrite of all HAP code for strict compliance
+- Added support for Homebridge v2: Plugin now fully supports Homebridge 2.0.0+ and Node.js 24+; resolved breaking changes introduced by HAP-NodeJS v1 shipped with Homebridge v2
+- Improved MQTT handling: Optimised mqtt code and added clean unsubscribe on plugin shutdown
+- Improved channel list management: Master channel list refresh now runs once daily at a random time between 00:00–06:00
+- Updated channel ConfiguredName to read-only
+- Optimised handling of remote control and media control
+- Improved robustness and startup
+- Improved overall code quality
+- Updated dependencies to current versions
+
+## 2.3.9 (2026-05-09)
+
+- Fixed Error on Homebridge v2: Cannot read properties of undefined (reading 'STRING')
+- Adapted hidden channel name to reduce warning messages with Homebridge v2
+- Updated iOS and Homebridge version references in Readme
+- Bumped engine "^1.11.4||^2.0.0",
+- Bumped engine "node": "^24.15.0"
+- Bumped dependency "axios": "^1.16.0",
+- Bumped dependency "axios-cookiejar-support": "^7.0.0",
+- Bumped dependency "mqtt": "^5.15.1",
+- Bumped dependency "qs": "^6.15.1",
+- Bumped dependency "semver": "^7.8.0",
+- Bumped dependency "tough-cookie": "^6.0.1",
+- Bumped dependency "ws": "^8.20.0"   
 
 ## 2.3.9 (2026-05-09)
 - Fixed Error on Homebridge v2: Cannot read properties of undefined (reading 'STRING')
