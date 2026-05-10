@@ -872,7 +872,7 @@ class StbPlatform {
    *  10.  startMqttClient      — connect to the mqtt broker
    *
    * Each step is individually awaited, so failures are caught at the right
-   * step and errorTitle is accurate when logged.
+   * step and stepName is accurate when logged.
    *
    * @param {string} watchdogInstance - log prefix for this watchdog invocation
    * @param {string} debugPrefix      - debug() colour prefix
@@ -883,12 +883,13 @@ class StbPlatform {
       Object.keys(sessionState)[this.currentSessionState],
     );
 
-    // errorTitle tracks which step we're on so the catch block can log a
+    // stepName tracks which step we're on so the catch block can log a
     // meaningful message rather than a generic "something failed".
-    let errorTitle = "Failed to get config";
+    let stepName = '';
 
     try {
       // ── Step 1: Get backend config (endpoint URLs) for the country ──────────
+      stepName = "get config";
       this.log.debug("%s: ++++ step 1: calling getConfig", watchdogInstance);
       debug(debugPrefix + "calling getConfig");
 
@@ -902,7 +903,7 @@ class StbPlatform {
       );
 
       // ── Step 2: Authenticate and create a session ──────────────────────────
-      errorTitle = "Failed to create session";
+      stepName = "create session";
       this.log.debug(
         "%s: ++++ step 2: calling createSession for country %s",
         watchdogInstance,
@@ -921,7 +922,7 @@ class StbPlatform {
       );
 
       // ── Step 3: Fetch customer profile and assigned devices ────────────────
-      errorTitle = "Failed to discover platform";
+      stepName = "discover platform";
       this.log.debug(
         "%s: ++++ step 3: calling getPersonalizationData for householdId %s",
         watchdogInstance,
@@ -1017,7 +1018,7 @@ class StbPlatform {
       }
 
       // ── Step 8: Discover and configure HomeKit accessories ─────────────────
-      errorTitle = "Failed to discover devices";
+      stepName = "discover devices";
       this.log.debug(
         "%s: ++++ step 8: calling discoverDevices",
         watchdogInstance,
@@ -1035,7 +1036,7 @@ class StbPlatform {
       );
 
       // ── Step 9: Get the mqtt broker token ─────────────────────────────────
-      errorTitle = "Failed to start mqtt session";
+      stepName = "start mqtt session";
       this.log.debug("%s: ++++ step 9: calling getMqttToken", watchdogInstance);
       debug(debugPrefix + "calling getMqttToken");
 
@@ -1072,14 +1073,47 @@ class StbPlatform {
         watchdogInstance,
       );
     } catch (errorReason) {
-      // One of the steps above threw or rejected. Log the failed step name
-      // (errorTitle) alongside the reason for easy diagnosis.
-      this.log.warn("%s: %s — %s", watchdogInstance, errorTitle, errorReason);
+      // One of the steps above threw or rejected. Log the failed stepName
+      // alongside the error message for easy diagnosis.
+      const errMsg = errorReason instanceof Error ? errorReason.message : String(errorReason);
+      this.log.warn("%s: Failed to %s: %s", watchdogInstance, stepName, errMsg);
       this.currentSessionState = sessionState.DISCONNECTED;
       this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
       // sessionWatchdogRunning is reset in the finally block of the caller.
     }
   } // end of _runFullStartupSequence
+
+  /**
+   * _handleWebError
+   *
+   * Standardised catch-block handler for all outbound HTTP/Axios calls.
+   * Builds a consistent human-readable error message, sets session state
+   * to DISCONNECTED on ENOTFOUND, logs at debug level, then re-throws.
+   *
+   * @param {Error}  error   - the caught error
+   * @param {string} action  - what the caller was trying to do, e.g.
+   *                           "get config data for countryCode ch"
+   * @param {string|URL} url - the URL that was called (for debug context)
+   */
+  _handleWebError(error, action, url) {
+    const urlStr = String(url ?? error.config?.url ?? "");
+    let errReason = `Could not ${action}:`;
+
+    if (error.isAxiosError) {
+      errReason += ` ${error.code}`;
+      if (error.code === "ENOTFOUND") {
+        errReason += " - no internet connection";
+        this.currentSessionState = sessionState.DISCONNECTED;
+      }
+    } else {
+      errReason += ` — ${error.message ?? String(error)}`;
+    }
+
+    if (urlStr) errReason += ` — ${urlStr}`;
+
+    this.log.debug("_handleWebError: %s — full error:", errReason, error);
+    throw new Error(errReason, { cause: error });
+  }
 
   /**
    * Discovers all physical devices from the backend and maps them to HomeKit accessories.
@@ -2609,8 +2643,8 @@ class StbPlatform {
           );
         }
         throw new Error(
-          `Step 4 of 5: login did not redirect to login_success.html — ` +
-            `check your username and password. Final URL: ${finalUrl}`,
+          // use a simple clean message to tell the user his credentials are likely wrong
+          `Step 4 of 5: login failed — check your username and password`,
         );
       }
 
@@ -3327,16 +3361,7 @@ class StbPlatform {
       this.configsvc = response.data; // store the entire config data for future use in this.configsvc
       return this.configsvc;
     } catch (error) {
-      let errReason = `Could not get config data for ${countryCode} - check your internet connection`;
-      if (error.isAxiosError) {
-        errReason = error.code + ": " + (error.hostname || "");
-        // if no connection then set session to disconnected to force a session reconnect
-        if (error.code === "ENOTFOUND") {
-          this.currentSessionState = sessionState.DISCONNECTED;
-        }
-      }
-      this.log.debug(`getConfig error:`, error);
-      throw new Error(errReason);
+      this._handleWebError(error, `get config data for countryCode ${countryCode}`, url);
     }
   } // end of getConfig
 
@@ -3487,20 +3512,7 @@ class StbPlatform {
       //this.log.warn('getPersonalizationData: all done, returnng customerStatus: %s', this.customer.customerStatus);
       return this.customer;
     } catch (error) {
-      let errReason =
-        "Could not refresh personalization data for " +
-        householdId +
-        " - check your internet connection";
-      if (error.isAxiosError) {
-        errReason = error.code + ": " + (error.hostname || "");
-        // if no connection then set session to disconnected to force a session reconnect
-        if (error.code === "ENOTFOUND") {
-          this.currentSessionState = sessionState.DISCONNECTED;
-        }
-      }
-      //this.log('%s %s', errText, (errReason || ''));
-      this.log.debug(`getPersonalizationData error:`, error);
-      throw error;
+      this._handleWebError(error, `get personalization data for household ${householdId}`, url);
     }
   } // end of getPersonalizationData
 
@@ -3550,12 +3562,7 @@ class StbPlatform {
         );
       }
     } catch (error) {
-      this.log.warn(
-        "setPersonalizationDataForDevice failed: %s %s",
-        error.response?.status,
-        error.response?.statusText,
-      );
-      this.log.debug("setPersonalizationDataForDevice: error:", error);
+      this._handleWebError(error, `set personalization data for device ${deviceId}`, url);
     }
   } // end of setPersonalizationDataForDevice
 
@@ -3614,15 +3621,7 @@ class StbPlatform {
       }
       return this.entitlements;
     } catch (error) {
-      let errReason = `Could not refresh entitlements data for ${householdId} - check your internet connection`;
-      if (error.isAxiosError) {
-        errReason = `${error.code}: ${error.hostname || ""}`;
-      }
-      if (error.code === "ENOTFOUND") {
-        this.currentSessionState = sessionState.DISCONNECTED;
-      }
-      this.log.debug(`getEntitlements error:`, error);
-      throw new Error(errReason);
+      this._handleWebError(error, `get entitlements data for household ${householdId}`, url);
     }
   } // end of getEntitlements
 
@@ -3799,29 +3798,7 @@ class StbPlatform {
 
       return this.currentRecordingState;
     } catch (error) {
-      if (error.isAxiosError) {
-        const errReason =
-          "getRecordingState" +
-          ": " +
-          error.code +
-          " " +
-          (error.hostname || "") +
-          ": " +
-          (error.response?.status ?? "") +
-          " " +
-          (error.response?.statusText ?? "") +
-          ": " +
-          (error.config?.url ?? "");
-        if (error.code === "ENOTFOUND") {
-          this.currentSessionState = sessionState.DISCONNECTED;
-        }
-        this.log.debug("getRecordingState error:", error);
-        throw new Error(errReason);
-      } else {
-        this.log.warn("getRecordingState error:");
-        this.log.warn(error);
-        throw error;
-      }
+      this._handleWebError(error, `get recording status for household ${householdId}`, url);
     }
   } // end of getRecordingState
 
@@ -4011,29 +3988,7 @@ class StbPlatform {
 
       return this.currentRecordingState;
     } catch (error) {
-      if (error.isAxiosError) {
-        const errReason =
-          "getRecordingBookings" +
-          ": " +
-          error.code +
-          " " +
-          (error.hostname || "") +
-          ": " +
-          (error.response?.status ?? "") +
-          " " +
-          (error.response?.statusText ?? "") +
-          ": " +
-          (error.config?.url ?? "");
-        if (error.code === "ENOTFOUND") {
-          this.currentSessionState = sessionState.DISCONNECTED;
-        }
-        this.log.debug("getRecordingBookings error:", error);
-        throw new Error(errReason);
-      } else {
-        this.log.warn("getRecordingBookings error:");
-        this.log.warn(error);
-        throw error;
-      }
+      this._handleWebError(error, `get recording bookings for household ${householdId}`, url);
     }
   } // end of getRecordingBookings
 
@@ -4070,14 +4025,7 @@ class StbPlatform {
       this.log.warn(response.data);
       return true;
     } catch (error) {
-      let errReason = `Could not get experimental data for ${householdId} - check your internet connection`;
-      if (error.isAxiosError) {
-        errReason = `${error.code}: ${error.hostname || ""}`;
-        if (error.code === "ENOTFOUND") {
-          this.currentSessionState = sessionState.DISCONNECTED;
-        }
-      }
-      this.log.warn(`getExperimentalEndpoint error:`, error);
+      this._handleWebError(error, `get experimental endpoint for household ${householdId}`, url);
     }
   } // end of getExperimentalEndpoint
 
