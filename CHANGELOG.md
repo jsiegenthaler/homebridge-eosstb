@@ -5,12 +5,16 @@ See the [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/ma
 Please restart Homebridge after every plugin update.
 
 
+## 2.4.0-beta.4 (2026-05-10)
+
+- Improved performance of refreshMasterChannelList
+
 ## 2.4.0-beta.3 (2026-05-10)
 
 This release focusses improved error handling and has extra debugging added to catch a refresh error
 
 - Improved handling of errors for web requests
-- Added extra debugging to assist in catching a refresh error in refreshChannelList 
+- Added extra debugging to assist in catching a refresh error in refreshMasterChannelList 
 
 ## 2.4.0-beta.2 (2026-05-09)
 

@@ -356,7 +356,7 @@ class StbPlatform {
     this.stbDevices = []; // store stbDevice in this.stbDevices
     this.masterChannelList = [];
     this.masterChannelListRefreshedAt = null; // null = never fetched since startup
-    this.masterChannelListExpiryDate  = 0;    // epoch = always expired on first run, forces immediate fetch    
+    this.masterChannelListExpiryDate = 0; // epoch = always expired on first run, forces immediate fetch
     this.checkChannelListTimeout = null; // nightly scheduler handler
     this.mqttReconnecting = false; // nightly reconnect indicator
     this.isDev = config.devMode === true;
@@ -3401,45 +3401,50 @@ class StbPlatform {
 
       // the header contains the following:
       // Cache-Control: max-age=600, public, stale-if-error=43200
-      // this could be used to set expiry date...
       const cacheControl = response.headers["cache-control"];
-      const maxAgeMatch = cacheControl?.match(/max-age=(\d+)/);
-      const serverMaxAge = maxAgeMatch ? parseInt(maxAgeMatch[1], 10) : null;
+      const maxAge = cacheControl
+        ?.split(",")
+        .find((part) => part.trim().startsWith("max-age="))
+        ?.split("=")[1];
+      const serverMaxAge = maxAge ? parseInt(maxAge, 10) : null; //get the max age from the server
       const validForSecs =
         serverMaxAge ||
         this.config.masterChannelListValidFor ||
         MASTER_CHANNEL_LIST_VALID_FOR_S;
 
-      // Expiry priority: server Cache-Control max-age → config override → hardcoded constant
-      this.masterChannelListExpiryDate = Date.now() + validForSecs * 1000; // always a number
+      this.masterChannelListExpiryDate = Date.now() + validForSecs * 1000;
 
-      // load the channel list with all channels found
-      this.masterChannelList = [];
       const channels = response.data;
       this.log.debug("Channels to process:", channels.length);
-      for (const channel of channels) {
+      response.data = null; // release raw payload for GC
+
+      // Performance optimisation: Single pass — pre-allocated array + Map built together, shared object refs
+      const newList = new Array(channels.length);
+      const newMap = new Map();
+
+      for (let i = 0; i < channels.length; i++) {
+        const ch = channels[i];
         if (this.debugLevel > 2) {
           this.log(
             "Processing channel:",
-            channel.logicalChannelNumber,
-            channel.id,
-            channel.name,
+            ch.logicalChannelNumber,
+            ch.id,
+            ch.name,
           );
         }
-        this.masterChannelList.push({
-          id: channel.id,
-          name: cleanNameForHomeKit(channel.name),
-          logicalChannelNumber: channel.logicalChannelNumber,
-          linearProducts: channel.linearProducts,
-        });
+        const entry = {
+          id: ch.id,
+          name: cleanNameForHomeKit(ch.name),
+          logicalChannelNumber: ch.logicalChannelNumber,
+          linearProducts: ch.linearProducts,
+        };
+        newList[i] = entry;
+        newMap.set(ch.id, entry);
       }
-      // add a map for faster access to the master channel list
-      this.masterChannelMap = new Map(
-        this.masterChannelList.map((ch) => [ch.id, ch]),
-      );
 
-      // record when we refreshed it
-      this.masterChannelListRefreshedAt = Date.now()
+      this.masterChannelList = newList;
+      this.masterChannelMap = newMap;
+      this.masterChannelListRefreshedAt = Date.now();
 
       this.log(
         "MasterChannelList contains %s channels, valid until %s",
@@ -3447,20 +3452,10 @@ class StbPlatform {
         new Date(this.masterChannelListExpiryDate).toLocaleString(), // format for display only
       );
 
-      if (this.debugLevel > 1) {
-        this.log.warn(
-          "refreshMasterChannelList: Master channel list refreshed with %s channels, valid until %s",
-          this.masterChannelList.length,
-          new Date(this.masterChannelListExpiryDate).toLocaleString(),
-        );
-      }
       return this.masterChannelList;
+      //++++++++++++++++++++++++++++++++++++++++++++++++
     } catch (error) {
-      this._handleWebError(
-        error,
-        `refresh master channel list`,
-        url,
-      );
+      this._handleWebError(error, `refresh master channel list`, url);
     }
   } // end of refreshMasterChannelList
 
