@@ -355,7 +355,8 @@ class StbPlatform {
     this.accessories = [];
     this.stbDevices = []; // store stbDevice in this.stbDevices
     this.masterChannelList = [];
-    this.masterChannelListExpiryDate = 0; // epoch = always expired on first run
+    this.masterChannelListRefreshedAt = null; // null = never fetched since startup
+    this.masterChannelListExpiryDate  = 0;    // epoch = always expired on first run, forces immediate fetch    
     this.checkChannelListTimeout = null; // nightly scheduler handler
     this.mqttReconnecting = false; // nightly reconnect indicator
     this.isDev = config.devMode === true;
@@ -856,9 +857,10 @@ class StbPlatform {
       // refreshing to avoid a race condition during session startup
       if (this.mqttReconnecting) {
         const THREE_MIN_MS = 3 * 60 * 1000;
-        const retryDelayMs = THREE_MIN_MS + Math.floor(Math.random() * THREE_MIN_MS);
+        const retryDelayMs =
+          THREE_MIN_MS + Math.floor(Math.random() * THREE_MIN_MS);
         this.log.info(
-          'StbPlatform: channel list refresh deferred - MQTT reconnect in progress, retrying in a few minutes',
+          "StbPlatform: channel list refresh deferred - MQTT reconnect in progress, retrying in a few minutes",
         );
         this.checkChannelListTimeout = setTimeout(async () => {
           if (this.isShuttingDown) return;
@@ -903,7 +905,6 @@ class StbPlatform {
     }, msUntilReconnect);
   } // end of _scheduleNightlyMqttReconnect
 
-
   /**
    * Attempt the nightly MQTT reconnect.
    * If any STB is currently online (user may be watching), defers by 1 hour
@@ -926,7 +927,7 @@ class StbPlatform {
       // give up if max retries reached
       if (retryCount >= MAX_RETRIES) {
         this.log.info(
-          'StbPlatform: nightly MQTT reconnect skipped - STB still active after max retries, rescheduling for next night',
+          "StbPlatform: nightly MQTT reconnect skipped - STB still active after max retries, rescheduling for next night",
         );
         this._scheduleNightlyMqttReconnect();
         return;
@@ -935,7 +936,8 @@ class StbPlatform {
       // retry in 1 hour plus a random 0–30 min buffer
       const ONE_HOUR_MS = 60 * 60 * 1000;
       const THIRTY_MIN_MS = 30 * 60 * 1000;
-      const retryDelayMs = ONE_HOUR_MS + Math.floor(Math.random() * THIRTY_MIN_MS);
+      const retryDelayMs =
+        ONE_HOUR_MS + Math.floor(Math.random() * THIRTY_MIN_MS);
       const retryAt = new Date(Date.now() + retryDelayMs);
 
       this.log.info(
@@ -953,12 +955,15 @@ class StbPlatform {
     // no STB is active - safe to reconnect
     try {
       this.mqttReconnecting = true; // signal to channel list refresh to pause
-      this.log.info('StbPlatform: nightly MQTT reconnect starting...');
+      this.log.info("StbPlatform: nightly MQTT reconnect starting...");
       await this.endMqttSession();
       await this.startMqttClient();
-      this.log.info('StbPlatform: nightly MQTT reconnect completed');
+      this.log.info("StbPlatform: nightly MQTT reconnect completed");
     } catch (err) {
-      this.log.error('StbPlatform: nightly MQTT reconnect failed:', err.message);
+      this.log.error(
+        "StbPlatform: nightly MQTT reconnect failed:",
+        err.message,
+      );
     } finally {
       this.mqttReconnecting = false; // always clear the flag, even on failure
     }
@@ -996,7 +1001,7 @@ class StbPlatform {
 
     // stepName tracks which step we're on so the catch block can log a
     // meaningful message rather than a generic "something failed".
-    let stepName = '';
+    let stepName = "";
 
     try {
       // ── Step 1: Get backend config (endpoint URLs) for the country ──────────
@@ -1025,6 +1030,12 @@ class StbPlatform {
 
       const sessionHouseholdId = await this.createSession();
       // Result stored in this.session by createSession()
+      // debugging help to get session keys
+      // session object keys: ["accessToken","householdId","refreshToken","refreshTokenExpiry","username","issuedAt"]
+      this.log.debug(
+        "session object keys: %s",
+        JSON.stringify(Object.keys(this.session ?? {})),
+      );
 
       this.log.debug(
         "%s: ++++++ step 2 done: session created, householdId %s",
@@ -1186,7 +1197,10 @@ class StbPlatform {
     } catch (errorReason) {
       // One of the steps above threw or rejected. Log the failed stepName
       // alongside the error message for easy diagnosis.
-      const errMsg = errorReason instanceof Error ? errorReason.message : String(errorReason);
+      const errMsg =
+        errorReason instanceof Error
+          ? errorReason.message
+          : String(errorReason);
       this.log.warn("%s: Failed to %s: %s", watchdogInstance, stepName, errMsg);
       this.currentSessionState = sessionState.DISCONNECTED;
       this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
@@ -1212,6 +1226,11 @@ class StbPlatform {
 
     if (error.isAxiosError) {
       errReason += ` ${error.code}`;
+
+      if (error.response) {
+        errReason += ` (HTTP ${error.response.status})`;
+      }
+
       if (error.code === "ENOTFOUND") {
         errReason += " - no internet connection";
         this.currentSessionState = sessionState.DISCONNECTED;
@@ -1222,7 +1241,17 @@ class StbPlatform {
 
     if (urlStr) errReason += ` — ${urlStr}`;
 
+    // Summary always visible:
+    this.log.error("_handleWebError: %s", errReason);
+
     this.log.debug("_handleWebError: %s — full error:", errReason, error);
+    if (error.response?.data) {
+      this.log.debug(
+        "_handleWebError: response body: %s",
+        JSON.stringify(error.response.data).substring(0, 400),
+      );
+    }
+
     throw new Error(errReason, { cause: error });
   }
 
@@ -3281,6 +3310,18 @@ class StbPlatform {
       return;
     }
 
+    // Log session state before the request - DIAGNOSES DEBUG ONLY
+    const tokenAge = this.session?.issuedAt
+      ? Math.round((Date.now() - this.session.issuedAt) / 1000 / 60)
+      : null;
+    const sessionId = this.session?.householdId ?? "(none)";
+
+    this.log.debug(
+      "refreshMasterChannelList: starting | householdId=%s | tokenAgeMinutes=%s",
+      sessionId,
+      tokenAge ?? "unknown",
+    );
+
     // exit immediately if channel list has not expired
     if (Date.now() < this.masterChannelListExpiryDate) {
       if (this.debugLevel > 1) {
@@ -3299,16 +3340,6 @@ class StbPlatform {
     // syntax:
     // https://prod.oesp.virginmedia.com/oesp/v4/GB/eng/web/channels?byLocationId=41043&includeInvisible=true&includeNotEntitled=true&personalised=true&sort=channelNumber
     // https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH
-    /*
-			let url = COUNTRY_BASE_URLS[this.config.country.toLowerCase()] + '/channels';
-			url = url + '?byLocationId=' + this.session.locationId // locationId needed to get user-specific list
-			url = url + '&includeInvisible=true' // includeInvisible
-			url = url + '&includeNotEntitled=true' // includeNotEntitled
-			url = url + '&personalised=true' // personalised
-			url = url + '&sort=channelNumber' // sort
-			*/
-    //url = 'https://prod.spark.sunrisetv.ch/eng/web/linear-service/v2/channels?cityId=401&language=en&productClass=Orion-DASH'
-    //let url = COUNTRY_BASE_URLS[this.config.country.toLowerCase()] + '/eng/web/linear-service/v2/channels';
     const url = new URL(`${this.configsvc.linearService.URL}/v2/channels`);
     url.searchParams.set("cityId", this.customer.cityId);
     url.searchParams.set("language", "en");
@@ -3317,6 +3348,7 @@ class StbPlatform {
     if (this.debugLevel > 1) {
       this.log.warn("refreshMasterChannelList: GET %s", url);
     }
+
     try {
       // call the webservice to get all available channels
       const config = {
@@ -3331,6 +3363,29 @@ class StbPlatform {
             "https://www.horizon.tv/",
         },
       };
+      // extra debugging to help catch refresh issues
+      this.log.debug(
+        "refreshMasterChannelList: request headers | x-oesp-token=%s...%s | x-oesp-username=%s | Referer=%s",
+        this.session.accessToken?.substring(0, 8) ?? "(null)", // first 8 chars only — don't log the full token
+        this.session.accessToken?.slice(-4) ?? "", // last 4 chars
+        this.session.username ?? "(null)",
+        config.headers.Referer,
+      );
+      // extra debugging to help catch refresh issues
+      this.log.debug(
+        "refreshMasterChannelList: preflight | cityId=%s | tokenPresent=%s | tokenLength=%s | username=%s | prevExpiryWas=%s | lastRefreshedAt=%s",
+        this.customer.cityId,
+        !!this.session?.accessToken,
+        this.session?.accessToken?.length ?? 0,
+        this.session?.username ?? "(none)",
+        this.masterChannelListExpiryDate
+          ? new Date(this.masterChannelListExpiryDate).toLocaleString()
+          : "(never set)",
+        this.masterChannelListRefreshedAt
+          ? new Date(this.masterChannelListRefreshedAt).toLocaleString()
+          : "(never)",
+      );
+
       const response = await axiosWS(config);
       if (this.debugLevel > 1) {
         this.log.warn(
@@ -3343,7 +3398,6 @@ class StbPlatform {
           response.data.length,
         );
       }
-      //this.log(response.data);
 
       // the header contains the following:
       // Cache-Control: max-age=600, public, stale-if-error=43200
@@ -3384,6 +3438,9 @@ class StbPlatform {
         this.masterChannelList.map((ch) => [ch.id, ch]),
       );
 
+      // record when we refreshed it
+      this.masterChannelListRefreshedAt = Date.now()
+
       this.log(
         "MasterChannelList contains %s channels, valid until %s",
         this.masterChannelList.length,
@@ -3399,15 +3456,11 @@ class StbPlatform {
       }
       return this.masterChannelList;
     } catch (error) {
-      const errReason = error.isAxiosError
-        ? `${error.code}: ${error.hostname ?? error.config?.url ?? ""}`
-        : (error.message ?? String(error));
-
-      if (error.isAxiosError && error.code === "ENOTFOUND") {
-        this.currentSessionState = sessionState.DISCONNECTED;
-      }
-      this.log.warn("refreshMasterChannelList error:", errReason);
-      throw new Error(errReason, { cause: error }); // { cause } preserves the original for debugging
+      this._handleWebError(
+        error,
+        `refresh master channel list`,
+        url,
+      );
     }
   } // end of refreshMasterChannelList
 
@@ -3472,7 +3525,11 @@ class StbPlatform {
       this.configsvc = response.data; // store the entire config data for future use in this.configsvc
       return this.configsvc;
     } catch (error) {
-      this._handleWebError(error, `get config data for countryCode ${countryCode}`, url);
+      this._handleWebError(
+        error,
+        `get config data for countryCode ${countryCode}`,
+        url,
+      );
     }
   } // end of getConfig
 
@@ -3623,7 +3680,11 @@ class StbPlatform {
       //this.log.warn('getPersonalizationData: all done, returnng customerStatus: %s', this.customer.customerStatus);
       return this.customer;
     } catch (error) {
-      this._handleWebError(error, `get personalization data for household ${householdId}`, url);
+      this._handleWebError(
+        error,
+        `get personalization data for household ${householdId}`,
+        url,
+      );
     }
   } // end of getPersonalizationData
 
@@ -3673,7 +3734,11 @@ class StbPlatform {
         );
       }
     } catch (error) {
-      this._handleWebError(error, `set personalization data for device ${deviceId}`, url);
+      this._handleWebError(
+        error,
+        `set personalization data for device ${deviceId}`,
+        url,
+      );
     }
   } // end of setPersonalizationDataForDevice
 
@@ -3732,7 +3797,11 @@ class StbPlatform {
       }
       return this.entitlements;
     } catch (error) {
-      this._handleWebError(error, `get entitlements data for household ${householdId}`, url);
+      this._handleWebError(
+        error,
+        `get entitlements data for household ${householdId}`,
+        url,
+      );
     }
   } // end of getEntitlements
 
@@ -3909,7 +3978,11 @@ class StbPlatform {
 
       return this.currentRecordingState;
     } catch (error) {
-      this._handleWebError(error, `get recording status for household ${householdId}`, url);
+      this._handleWebError(
+        error,
+        `get recording status for household ${householdId}`,
+        url,
+      );
     }
   } // end of getRecordingState
 
@@ -4099,7 +4172,11 @@ class StbPlatform {
 
       return this.currentRecordingState;
     } catch (error) {
-      this._handleWebError(error, `get recording bookings for household ${householdId}`, url);
+      this._handleWebError(
+        error,
+        `get recording bookings for household ${householdId}`,
+        url,
+      );
     }
   } // end of getRecordingBookings
 
@@ -4136,7 +4213,11 @@ class StbPlatform {
       this.log.warn(response.data);
       return true;
     } catch (error) {
-      this._handleWebError(error, `get experimental endpoint for household ${householdId}`, url);
+      this._handleWebError(
+        error,
+        `get experimental endpoint for household ${householdId}`,
+        url,
+      );
     }
   } // end of getExperimentalEndpoint
 
@@ -4377,7 +4458,11 @@ class StbPlatform {
 
           // announce ourselves as an active HGO client before requesting UI status
           // the STB uses this retained presence message to decide which clients to respond to
-          this.setHgoState(householdId, this.mqttClient.options.clientId, 'ONLINE_RUNNING');
+          this.setHgoState(
+            householdId,
+            this.mqttClient.options.clientId,
+            "ONLINE_RUNNING",
+          );
 
           // request initial UI status for each device, with a short delay to allow
           // the STB to process the HGO presence announcement first
@@ -4389,7 +4474,10 @@ class StbPlatform {
           setTimeout(() => {
             this.devices.forEach((device) => {
               // request the initial UI status for each device
-              this.getUiStatus(device.deviceId, this.mqttClient.options.clientId);
+              this.getUiStatus(
+                device.deviceId,
+                this.mqttClient.options.clientId,
+              );
 
               // retry after 10 seconds if no CPE.uiStatus response has arrived yet
               setTimeout(() => {
@@ -4400,7 +4488,10 @@ class StbPlatform {
                       device.deviceId,
                     );
                   }
-                  this.getUiStatus(device.deviceId, this.mqttClient.options.clientId);
+                  this.getUiStatus(
+                    device.deviceId,
+                    this.mqttClient.options.clientId,
+                  );
                 }
               }, 10 * 1000); // 10 second retry delay
             });
@@ -4504,7 +4595,8 @@ class StbPlatform {
               const deviceIndex = this.devices.findIndex(
                 (device) => device.deviceId === deviceId,
               );
-              const stbDevice = deviceIndex > -1 ? this.stbDevices[deviceIndex] : null;
+              const stbDevice =
+                deviceIndex > -1 ? this.stbDevices[deviceIndex] : null;
 
               // Box setting: StandbyPowerConsumption = FastStart / ActiveStart / EcoSlowstart
               // "Fast start":  when turned off, goes to ONLINE_STANDBY and stays there. Box can be turned on via mqtt
@@ -4517,7 +4609,10 @@ class StbPlatform {
                   // Detect power-off → power-on transition per device.
                   // Set PLAY immediately; CPE.uiStatus will overwrite with the
                   // accurate speed-derived state shortly after.
-                  if (stbDevice?.previousPowerState === Characteristic.Active.INACTIVE) {
+                  if (
+                    stbDevice?.previousPowerState ===
+                    Characteristic.Active.INACTIVE
+                  ) {
                     currMediaState = Characteristic.CurrentMediaState.PLAY;
                     if (this.debugLevel > 0) {
                       this.log.warn(
@@ -4525,7 +4620,7 @@ class StbPlatform {
                         deviceId,
                       );
                     }
-                  }                 
+                  }
                   break;
                 case "ONLINE_STANDBY": // ONLINE_STANDBY: power is off, device is on standby, still reachable over the network, can be turned on via mqtt.
                   currStatusActive = Characteristic.Active.ACTIVE; // bool, 0 = not active, 1 = active
@@ -4558,9 +4653,9 @@ class StbPlatform {
 
             // After the switch, if box is running, request current UI state
             //if (stbState === 'ONLINE_RUNNING') {
-              // Small delay gives the STB a moment to settle before responding
-              //setTimeout(() => this.mqttRequestUiStatus(deviceId), 500);
-            //}            
+            // Small delay gives the STB a moment to settle before responding
+            //setTimeout(() => this.mqttRequestUiStatus(deviceId), 500);
+            //}
           }
 
           // handle CPE UI status messages for the STB
@@ -4950,7 +5045,7 @@ class StbPlatform {
       this.setHgoState(
         this.session.householdId,
         this.mqttClient.options.clientId,
-        'OFFLINE',
+        "OFFLINE",
       );
 
       // unsubscribe from all subscribedTopics before tearing down the session
@@ -4958,7 +5053,7 @@ class StbPlatform {
         this.log.info(
           "mqttClient: No topics to unsubscribe from, skipping unsubscribe.",
         );
-        
+
         this.mqttClient.end(false, {}, (endErr) => {
           if (endErr) {
             this.log.error("MQTT end error:", endErr);
@@ -5164,16 +5259,15 @@ class StbPlatform {
     const message = JSON.stringify({
       source: mqttClientId,
       state: state,
-      deviceType: 'HGO',
-      mac: '',
-      ipAddress: '',
+      deviceType: "HGO",
+      mac: "",
+      ipAddress: "",
     });
     if (this.debugLevel > 0) {
-      this.log.warn('setHgoState: publishing %s to topic: %s', state, topic);
+      this.log.warn("setHgoState: publishing %s to topic: %s", state, topic);
     }
     this.mqttPublishMessage(topic, message, { qos: 2, retain: true });
   }
-
 
   // send a channel change request to the settopbox via mqtt
   // using the CPE.pushToTV message
@@ -5233,7 +5327,10 @@ class StbPlatform {
   // @param {string} deviceId - The STB device ID (e.g. "000378-EOS2STB-00852052xxxx")
   mqttRequestUiStatus(deviceId) {
     if (!this.mqttClient?.connected) {
-      this.log.warn('%s: mqttRequestUiStatus: MQTT not connected, skipping', deviceId);
+      this.log.warn(
+        "%s: mqttRequestUiStatus: MQTT not connected, skipping",
+        deviceId,
+      );
       return;
     }
     if (this.debugLevel > 0) {
@@ -5244,9 +5341,9 @@ class StbPlatform {
     }
 
     const payload = JSON.stringify({
-      version: '1.3.18',
-      type: 'CPE.pullFromTV',
-      source: this.mqttClient.options.clientId,  // your mqttClientId
+      version: "1.3.18",
+      type: "CPE.pullFromTV",
+      source: this.mqttClient.options.clientId, // your mqttClientId
       messageTimeStamp: Date.now(),
     });
 
@@ -5256,8 +5353,7 @@ class StbPlatform {
       qos: 1,
       retain: false,
     });
-
-  }  
+  }
 
   // set the media state of the settopbox via mqtt
   // media state is controlled by speedRate
@@ -6514,10 +6610,7 @@ class StbDevice {
       inputSourceService
         .getCharacteristic(Characteristic.ConfiguredName)
         .setProps({
-          perms: [
-            this.api.hap.Perms.PAIRED_READ,
-            this.api.hap.Perms.NOTIFY,
-          ],
+          perms: [this.api.hap.Perms.PAIRED_READ, this.api.hap.Perms.NOTIFY],
         })
         .onGet(() => this.getInputName(i));
       //.onSet((value) => this.setInputName(i, value));
@@ -7908,7 +8001,10 @@ class StbDevice {
     // triple rapid VolDown presses triggers setMute
     if (volumeSelectorValue === Characteristic.VolumeSelector.DECREMENT) {
       // Guard: ensure array is properly initialised
-      if (!Array.isArray(this.lastVolDownKeyPress) || this.lastVolDownKeyPress.length < 3) {
+      if (
+        !Array.isArray(this.lastVolDownKeyPress) ||
+        this.lastVolDownKeyPress.length < 3
+      ) {
         this.lastVolDownKeyPress = [0, 0, 0];
       }
 
@@ -7917,14 +8013,14 @@ class StbDevice {
       this.lastVolDownKeyPress = this.lastVolDownKeyPress.slice(0, 3); // keep only last 3
 
       // Now assign the calculated value to the outer variable
-      tripleVolDownPress = this.lastVolDownKeyPress[0] - this.lastVolDownKeyPress[2];
+      tripleVolDownPress =
+        this.lastVolDownKeyPress[0] - this.lastVolDownKeyPress[2];
 
       this.log.debug(
         "%s: setVolume: Timediff between volDownKeyPress[0] and volDownKeyPress[2]: %s ms",
         this.name,
         tripleVolDownPress,
-      );      
-      
+      );
     }
 
     // check for triple press of volDown, send setMute if tripleVolDownPress less than triplePressTime of 800ms
@@ -7962,7 +8058,11 @@ class StbDevice {
 
       try {
         if (this.debugLevel > 0) {
-          this.log.warn("%s: setVolume: Sending command %s", this.name, command);
+          this.log.warn(
+            "%s: setVolume: Sending command %s",
+            this.name,
+            command,
+          );
         }
         await new Promise((resolve, reject) => {
           exec(command, (error, _stdout, stderr) => {
@@ -8328,13 +8428,13 @@ class StbDevice {
     // logChangeOnly = TRUE: only the changes are logged, no media state change occurs. Needed when sending remote keypresses to prevent double commands
     // CHAR_NAMES: TargetMediaState: [ 'UUID', 'PLAY', 'PAUSE', 'STOP' ]
     //if (this.debugLevel > 1) {
-      this.log.info(
-        "%s: setTargetMediaState to %s [%s]",
-        this.name,
-        targetMediaState,
-        CHAR_NAMES.TargetMediaState[targetMediaState + 1],
-      );
-   // }
+    this.log.info(
+      "%s: setTargetMediaState to %s [%s]",
+      this.name,
+      targetMediaState,
+      CHAR_NAMES.TargetMediaState[targetMediaState + 1],
+    );
+    // }
 
     if (!logChangeOnly) {
       // send the setMediaState command if we are not just logging the change
@@ -8347,16 +8447,17 @@ class StbDevice {
       //  PLAY  0  -  1 Play
       //  PAUSE 1  -  0 Paused
       //  STOP  2  -  0 Paused
-      const newBoxMediaState = targetMediaState === Characteristic.TargetMediaState.PLAY ? 1 : 0;
+      const newBoxMediaState =
+        targetMediaState === Characteristic.TargetMediaState.PLAY ? 1 : 0;
       const newBoxMediaStateName = newBoxMediaState === 1 ? "Play" : "Paused";
 
       //if (this.debugLevel >= 0) {
-        this.log(
-          "%s: setTargetMediaState: Calling setMediaState with newBoxMediaState %s [%s]",
-          this.name,
-          newBoxMediaState,
-          newBoxMediaStateName,
-        );
+      this.log(
+        "%s: setTargetMediaState: Calling setMediaState with newBoxMediaState %s [%s]",
+        this.name,
+        newBoxMediaState,
+        newBoxMediaStateName,
+      );
       //}
       /*
       switch (targetMediaState) {
