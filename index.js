@@ -357,6 +357,7 @@ class StbPlatform {
     this.masterChannelList = [];
     this.masterChannelListExpiryDate = 0; // epoch = always expired on first run
     this.checkChannelListTimeout = null; // nightly scheduler handler
+    this.mqttReconnecting = false; // nightly reconnect indicator
     this.isDev = config.devMode === true;
     this.debugLevel = this.config.debugLevel || 0; // debugLevel defaults to 0 (minimum)
 
@@ -822,7 +823,7 @@ class StbPlatform {
 
   /**
    * Schedule the next nightly master channel list refresh.
-   * Picks a random time between 00:00 and 06:00 the following day,
+   * Picks a random time between 00:00 and 04:00 the following day,
    * then reschedules itself so the pattern repeats indefinitely.
    *
    * Using setTimeout (not setInterval) means each day gets a fresh
@@ -834,9 +835,9 @@ class StbPlatform {
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
 
-    // Add a random offset: anywhere from 0 ms up to (but not including) 6 hours
-    const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
-    const randomOffsetMs = Math.floor(Math.random() * SIX_HOURS_MS);
+    // Add a random offset: anywhere from 0 ms up to (but not including) 4 hours
+    const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+    const randomOffsetMs = Math.floor(Math.random() * FOUR_HOURS_MS);
 
     const nextRefreshAt = new Date(tomorrow.getTime() + randomOffsetMs);
     const msUntilRefresh = nextRefreshAt.getTime() - Date.now();
@@ -850,10 +851,120 @@ class StbPlatform {
     // Store the timer handle so shutdown can cancel it
     this.checkChannelListTimeout = setTimeout(async () => {
       if (this.isShuttingDown) return; // bail out if we're going down
+
+      // if an MQTT reconnect is in progress, wait a few minutes before
+      // refreshing to avoid a race condition during session startup
+      if (this.mqttReconnecting) {
+        const THREE_MIN_MS = 3 * 60 * 1000;
+        const retryDelayMs = THREE_MIN_MS + Math.floor(Math.random() * THREE_MIN_MS);
+        this.log.info(
+          'StbPlatform: channel list refresh deferred - MQTT reconnect in progress, retrying in a few minutes',
+        );
+        this.checkChannelListTimeout = setTimeout(async () => {
+          if (this.isShuttingDown) return;
+          await this._refreshChannelList();
+          this._scheduleNightlyChannelListRefresh();
+        }, retryDelayMs);
+        return;
+      }
+
       await this._refreshChannelList();
       this._scheduleNightlyChannelListRefresh(); // reschedule for the next day
     }, msUntilRefresh);
   } // end of _scheduleNightlyChannelListRefresh
+
+  /**
+   * Schedule the next nightly MQTT reconnect.
+   * Picks a random time between 04:00 and 06:00 the following day
+   * to avoid overlapping with the channel list refresh (00:00–04:00).
+   * Reschedules itself so the pattern repeats indefinitely.
+   */
+  _scheduleNightlyMqttReconnect() {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(4, 0, 0, 0);
+
+    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+    const randomOffsetMs = Math.floor(Math.random() * TWO_HOURS_MS);
+
+    const nextReconnectAt = new Date(tomorrow.getTime() + randomOffsetMs);
+    const msUntilReconnect = nextReconnectAt.getTime() - Date.now();
+
+    if (this.debugLevel > 0) {
+      this.log.warn(
+        `StbPlatform: next nightly MQTT reconnect scheduled for ${nextReconnectAt.toLocaleString()}`,
+      );
+    }
+
+    this.mqttReconnectTimeout = setTimeout(async () => {
+      if (this.isShuttingDown) return;
+      await this._attemptNightlyMqttReconnect();
+      // _attemptNightlyMqttReconnect reschedules for the next night once done
+    }, msUntilReconnect);
+  } // end of _scheduleNightlyMqttReconnect
+
+
+  /**
+   * Attempt the nightly MQTT reconnect.
+   * If any STB is currently online (user may be watching), defers by 1 hour
+   * plus a random offset and tries again, rather than interrupting the session.
+   * Once the reconnect completes (or fails), reschedules for the next night.
+   * Retries 3 times then gives up, and the next reconnect will be the next day.
+   */
+  async _attemptNightlyMqttReconnect(retryCount = 0) {
+    if (this.isShuttingDown) return;
+
+    const MAX_RETRIES = 3; // give up after 3 deferrals (~3-4.5 hours past 04:00)
+
+    // check if any STB is currently active - if so, defer to avoid
+    // interrupting a user who may be watching TV and using the remote
+    const anyStbOnline = this.devices.some(
+      (device) => device.currentPowerState === Characteristic.Active.ACTIVE,
+    );
+
+    if (anyStbOnline) {
+      // give up if max retries reached
+      if (retryCount >= MAX_RETRIES) {
+        this.log.info(
+          'StbPlatform: nightly MQTT reconnect skipped - STB still active after max retries, rescheduling for next night',
+        );
+        this._scheduleNightlyMqttReconnect();
+        return;
+      }
+
+      // retry in 1 hour plus a random 0–30 min buffer
+      const ONE_HOUR_MS = 60 * 60 * 1000;
+      const THIRTY_MIN_MS = 30 * 60 * 1000;
+      const retryDelayMs = ONE_HOUR_MS + Math.floor(Math.random() * THIRTY_MIN_MS);
+      const retryAt = new Date(Date.now() + retryDelayMs);
+
+      this.log.info(
+        `StbPlatform: nightly MQTT reconnect deferred - STB is active (attempt ${retryCount + 1}/${MAX_RETRIES}). Retrying at ${retryAt.toLocaleString()}`,
+      );
+
+      // store handle so shutdown can cancel the deferred retry too
+      this.mqttReconnectTimeout = setTimeout(async () => {
+        if (this.isShuttingDown) return;
+        await this._attemptNightlyMqttReconnect(retryCount + 1);
+      }, retryDelayMs);
+      return; // don't reschedule for next night yet - that happens after a successful reconnect
+    }
+
+    // no STB is active - safe to reconnect
+    try {
+      this.mqttReconnecting = true; // signal to channel list refresh to pause
+      this.log.info('StbPlatform: nightly MQTT reconnect starting...');
+      await this.endMqttSession();
+      await this.startMqttClient();
+      this.log.info('StbPlatform: nightly MQTT reconnect completed');
+    } catch (err) {
+      this.log.error('StbPlatform: nightly MQTT reconnect failed:', err.message);
+    } finally {
+      this.mqttReconnecting = false; // always clear the flag, even on failure
+    }
+
+    this._scheduleNightlyMqttReconnect(); // reschedule for next night
+  } // end of _attemptNightlyMqttReconnect
 
   /**
    * _runFullStartupSequence
@@ -4278,12 +4389,8 @@ class StbPlatform {
           // ------ device subscriptions ------
           // subscribe only to what we need
 
-          // turn on our clientId. This is similar to turning on a box, it tells the server we are online
-          // our clientId must be up and running to send commands (power, channel, etc) to the physical device
-          // this.setHgoOnlineRunning(householdId, mqttClientId);
-
           // householdId/mqttClientId: subscribe to own clientId to get data for ourselves
-          // subscribe to all devices after the setHgoOnlineRunning is sent
+          // subscribe to all devices before the setHgoState is sent
           this.mqttSubscribeToTopic(
             householdId + "/" + this.mqttClient.options.clientId,
           ); // subscribe to our own mqttClientId to get all data
@@ -4320,32 +4427,36 @@ class StbPlatform {
           // reset so the 10-second retry fires correctly if the box doesn't respond
           this.lastMqttUiStatusMessageReceived = null;
 
+          // announce ourselves as an active HGO client before requesting UI status
+          // the STB uses this retained presence message to decide which clients to respond to
+          this.setHgoState(householdId, this.mqttClient.options.clientId, 'ONLINE_RUNNING');
+
+          // request initial UI status for each device, with a short delay to allow
+          // the STB to process the HGO presence announcement first
           // CPE.uiStatus messages are received via the householdId and mqttClientId
           // topics which are already subscribed above.
           // getUiStatus is called here to request the initial UI state from each device.
           // retain: false is used (see getUiStatus) so a retry is scheduled in case the box
           // is temporarily unreachable when the initial request is sent.
-          this.devices.forEach((device) => {
-            // request the initial UI status for each device
-            this.getUiStatus(device.deviceId, this.mqttClient.options.clientId);
+          setTimeout(() => {
+            this.devices.forEach((device) => {
+              // request the initial UI status for each device
+              this.getUiStatus(device.deviceId, this.mqttClient.options.clientId);
 
-            // retry getUiStatus after 10 seconds if no CPE.uiStatus response has arrived yet
-            // (handles case where box is briefly offline when the initial request is sent)
-            setTimeout(() => {
-              if (!this.lastMqttUiStatusMessageReceived) {
-                if (this.debugLevel > 0) {
-                  this.log.warn(
-                    "getUiStatus: no CPE.uiStatus received yet for %s, retrying",
-                    device.deviceId,
-                  );
+              // retry after 10 seconds if no CPE.uiStatus response has arrived yet
+              setTimeout(() => {
+                if (!this.lastMqttUiStatusMessageReceived) {
+                  if (this.debugLevel > 0) {
+                    this.log.warn(
+                      "getUiStatus: no CPE.uiStatus received yet for %s, retrying",
+                      device.deviceId,
+                    );
+                  }
+                  this.getUiStatus(device.deviceId, this.mqttClient.options.clientId);
                 }
-                this.getUiStatus(
-                  device.deviceId,
-                  this.mqttClient.options.clientId,
-                );
-              }
-            }, 10 * 1000); // 10 second retry delay
-          });
+              }, 10 * 1000); // 10 second retry delay
+            });
+          }, 500); // 500ms for STB to register our HGO presence before we request status
 
           resolve(true); // all subscriptions registered — session is ready
         } catch (err) {
@@ -4462,7 +4573,7 @@ class StbPlatform {
                     currMediaState = Characteristic.CurrentMediaState.PLAY;
                     if (this.debugLevel > 0) {
                       this.log.warn(
-                        "mqttClient: STB status: power-on transition for %s, setting mediaState to PLAY",
+                        "mqttClient: STB status: Power-on transition detected for %s, setting mediaState to PLAY",
                         deviceId,
                       );
                     }
@@ -4496,6 +4607,12 @@ class StbPlatform {
                 this.log.warn("mqttClient: %s %s", deviceId, stbState);
               }
             }
+
+            // After the switch, if box is running, request current UI state
+            //if (stbState === 'ONLINE_RUNNING') {
+              // Small delay gives the STB a moment to settle before responding
+              //setTimeout(() => this.mqttRequestUiStatus(deviceId), 500);
+            //}            
           }
 
           // handle CPE UI status messages for the STB
@@ -4878,16 +4995,26 @@ class StbPlatform {
         return resolve(true);
       }
 
-      // unsubscribe from all subscribedTopics before tearing down the session
+      // get all subscribed topics
       const topics = this.subscribedTopics ?? [];
+
+      // announce HGO offline while the connection is still live, before any teardown
+      this.setHgoState(
+        this.session.householdId,
+        this.mqttClient.options.clientId,
+        'OFFLINE',
+      );
+
+      // unsubscribe from all subscribedTopics before tearing down the session
       if (topics.length === 0) {
         this.log.info(
           "mqttClient: No topics to unsubscribe from, skipping unsubscribe.",
         );
-        this.mqttClient.end(false, {}, (err) => {
-          if (err) {
-            this.log.error("MQTT end error:", err);
-            return reject(err);
+        
+        this.mqttClient.end(false, {}, (endErr) => {
+          if (endErr) {
+            this.log.error("MQTT end error:", endErr);
+            return reject(endErr);
           }
           this.log.info(
             "mqttClient: Disconnected cleanly. No topics found to unsubscribe from.",
@@ -4897,15 +5024,15 @@ class StbPlatform {
         return;
       }
 
-      this.mqttClient.unsubscribe(topics, (err) => {
-        if (err) {
-          this.log.error("MQTT unsubscribe error:", err);
+      this.mqttClient.unsubscribe(topics, (unsubErr) => {
+        if (unsubErr) {
+          this.log.error("MQTT unsubscribe error:", unsubErr);
           // still attempt to end even if unsubscribe failed
         }
-        this.mqttClient.end(false, {}, (err) => {
-          if (err) {
-            this.log.error("MQTT end error:", err);
-            return reject(err);
+        this.mqttClient.end(false, {}, (endErr) => {
+          if (endErr) {
+            this.log.error("MQTT end error:", endErr);
+            return reject(endErr);
           }
           this.log.info(
             "mqttClient: Disconnected cleanly. All topics unsubscribed.",
@@ -4990,7 +5117,7 @@ class StbPlatform {
           "mqttPublishMessage: Publish Message:\r\nTopic: %s\r\nMessage: %s\r\nOptions: %s",
           Topic,
           Message,
-          Options,
+          JSON.stringify(Options),
         );
       }
       this.mqttClient.publish(Topic, Message, Options, (err) => {
@@ -5081,22 +5208,24 @@ class StbPlatform {
     });
   }
 
-  // start the HGO session (switch on)
-  setHgoOnlineRunning(householdId, mqttClientId) {
-    // {"source":"fd29b575-5f2b-49a0-8efe-62a844ac2b40","state":"ONLINE_RUNNING","deviceType":"HGO","mac":"","ipAddress":""}
+  // set the HGO session state (online or offline)
+  // called on mqtt connect (ONLINE_RUNNING) and on mqtt disconnect (OFFLINE)
+  // retain: true ensures the broker overwrites any previous retained state
+  setHgoState(householdId, mqttClientId, state) {
     const topic = `${householdId}/${mqttClientId}/status`;
     const message = JSON.stringify({
       source: mqttClientId,
-      state: "ONLINE_RUNNING",
-      deviceType: "HGO",
-      mac: "",
-      ipAddress: "",
+      state: state,
+      deviceType: 'HGO',
+      mac: '',
+      ipAddress: '',
     });
     if (this.debugLevel > 0) {
-      this.log.warn("setHgoOnlineRunning: publishing to topic:", topic);
+      this.log.warn('setHgoState: publishing %s to topic: %s', state, topic);
     }
     this.mqttPublishMessage(topic, message, { qos: 2, retain: true });
   }
+
 
   // send a channel change request to the settopbox via mqtt
   // using the CPE.pushToTV message
@@ -5150,6 +5279,37 @@ class StbPlatform {
       this.log.error(err);
     }
   }
+
+  // Request the current UI status from the STB.
+  // The STB responds with a CPE.uiStatus message on the household channel.
+  // @param {string} deviceId - The STB device ID (e.g. "000378-EOS2STB-00852052xxxx")
+  mqttRequestUiStatus(deviceId) {
+    if (!this.mqttClient?.connected) {
+      this.log.warn('%s: mqttRequestUiStatus: MQTT not connected, skipping', deviceId);
+      return;
+    }
+    if (this.debugLevel > 0) {
+      this.log.warn(
+        "mqttRequestUiStatus: Requesting UI status for %s",
+        deviceId,
+      );
+    }
+
+    const payload = JSON.stringify({
+      version: '1.3.18',
+      type: 'CPE.pullFromTV',
+      source: this.mqttClient.options.clientId,  // your mqttClientId
+      messageTimeStamp: Date.now(),
+    });
+
+    const topic = `${this.session.householdId}/${deviceId}`;
+
+    this.mqttPublishMessage(topic, payload, {
+      qos: 1,
+      retain: false,
+    });
+
+  }  
 
   // set the media state of the settopbox via mqtt
   // media state is controlled by speedRate
