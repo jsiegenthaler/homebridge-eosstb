@@ -5,14 +5,20 @@ See the [Readme file](https://github.com/jsiegenthaler/homebridge-eosstb/blob/ma
 Please restart Homebridge after every plugin update.
 
 
-## 2.4.0-beta.2 (2026-05-10)
+## 2.4.0-beta.3 (2026-05-10)
 
-This release focusses on ensuring mqtt long-term stability, improving display of web errors and fixes an issue where the channel name was not shown on startup.
+This release focusses improved error handling and has extra debugging added to catch a refresh error
+
+- Improved handling of errors for web requests
+- Added extra debugging to assist in catching a refresh error in refreshChannelList 
+
+## 2.4.0-beta.2 (2026-05-09)
+
+This release focusses on ensuring mqtt long-term stability, and fixes an issue where the channel name was not shown on startup.
 
 - Rescheduled nightly channel list refresh to 0000-0400 instead of 0000-0600
 - Added an automatic daily mqtt reconnect at a random time between 0400-0600 to avoid long running mqtt sessions. Only restarts if settop box is turned off
 - Fixed issue where current channel was not displayed on plugin startup
-- Improved handling of errors for web request
 
 
 ## 2.4.0-beta.1 (2026-05-09)
