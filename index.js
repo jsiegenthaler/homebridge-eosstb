@@ -1276,6 +1276,62 @@ class StbPlatform {
     throw new Error(errReason, { cause: error });
   }
 
+  isGbAuthError(error) {
+    return (
+      this.config.country?.toLowerCase() === "gb" &&
+      error?.isAxiosError &&
+      error.response?.status === 401
+    );
+  }
+
+  buildRecordingRequestConfig(householdId) {
+    const headers = {
+      "x-cus": householdId,
+      "x-oesp-username": this.session.username,
+      Referer:
+        COUNTRY_WEB_URLS[this.config.country.toLowerCase()] ??
+        "https://www.horizon.tv/",
+    };
+
+    if (this.config.country.toLowerCase() === "gb" && this.session.accessToken) {
+      headers["x-oesp-token"] = this.session.accessToken;
+    }
+
+    return {
+      headers,
+      // allow 402 'Payment Required' as OK
+      validateStatus: (status) =>
+        (status >= 200 && status < 300) || status === 402,
+    };
+  }
+
+  async getWithGbAuthRetry(url, config, action) {
+    try {
+      return await axiosWS.get(url, config);
+    } catch (error) {
+      if (!this.isGbAuthError(error)) {
+        throw error;
+      }
+
+      this.log.warn(
+        "%s returned HTTP 401 for Virgin Media GB. Refreshing access token and retrying once.",
+        action,
+      );
+      await this.refreshAccessToken(true);
+
+      const retryConfig = {
+        ...config,
+        headers: {
+          ...(config.headers || {}),
+          "x-oesp-token": this.session.accessToken,
+          "x-oesp-username": this.session.username,
+        },
+      };
+
+      return axiosWS.get(url, retryConfig);
+    }
+  }
+
   /**
    * Discovers all physical devices from the backend and maps them to HomeKit accessories.
    * Creates new accessories for uncached devices, and restores existing ones from cache.
@@ -1411,9 +1467,9 @@ class StbPlatform {
   } // end of discoverDevices
 
   // get a new access token
-  async refreshAccessToken() {
+  async refreshAccessToken(forceRefresh = false) {
     // robustness: exit immediately if no session expiry exists yet (session not yet established)
-    if (!this.session.accessTokenExpiry) {
+    if (!this.session.accessTokenExpiry && !forceRefresh) {
       if (this.debugLevel > 0) {
         this.log.warn(
           "refreshAccessToken: No access token expiry set yet, session not yet established. Exiting.",
@@ -1423,7 +1479,7 @@ class StbPlatform {
     }
 
     // exit immediately if access token has not expired
-    if (this.session.accessTokenExpiry > Date.now()) {
+    if (!forceRefresh && this.session.accessTokenExpiry > Date.now()) {
       if (this.debugLevel > 0) {
         this.log.warn(
           "refreshAccessToken: Access token has not expired yet. Next refresh will occur after %s",
@@ -1434,10 +1490,14 @@ class StbPlatform {
     }
 
     if (this.debugLevel > 0) {
-      this.log.warn(
-        "refreshAccessToken: Access token has expired at %s. Requesting refresh",
-        this.session.accessTokenExpiry.toLocaleString(),
-      );
+      if (forceRefresh) {
+        this.log.warn("refreshAccessToken: Force refresh requested");
+      } else {
+        this.log.warn(
+          "refreshAccessToken: Access token has expired at %s. Requesting refresh",
+          this.session.accessTokenExpiry.toLocaleString(),
+        );
+      }
     }
 
     if (!this.configsvc.authorizationService.URL) {
@@ -1501,8 +1561,10 @@ class StbPlatform {
       this.session.householdId = previousSession.householdId;
     }
 
-    // add an expiry date for the access token: 2 min (120000ms) after created date
-    this.session.accessTokenExpiry = new Date(Date.now() + 2 * 60000);
+    const accessTokenExpiry = this.getSessionAccessTokenExpiry(this.session);
+    this.session.accessTokenExpiry = new Date(
+      accessTokenExpiry || Date.now() + 2 * 60000,
+    );
 
     if (this.config.country.toLowerCase() === "gb") {
       try {
@@ -2951,6 +3013,35 @@ class StbPlatform {
     );
   }
 
+  getAccessTokenExpiry(accessToken) {
+    try {
+      const payload = JSON.parse(
+        Buffer.from(
+          accessToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"),
+          "base64",
+        ).toString("utf8"),
+      );
+      return Number.isFinite(payload.exp) ? payload.exp * 1000 : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  getSessionAccessTokenExpiry(session) {
+    const jwtExpiry = session?.accessToken
+      ? this.getAccessTokenExpiry(session.accessToken)
+      : null;
+    if (jwtExpiry) return jwtExpiry;
+
+    const configuredExpiry = session?.accessTokenExpiry
+      ? new Date(session.accessTokenExpiry).getTime()
+      : null;
+    if (Number.isFinite(configuredExpiry)) return configuredExpiry;
+
+    const issuedAt = Number(session?.issuedAt);
+    return Number.isFinite(issuedAt) ? issuedAt + 2 * 60000 : 0;
+  }
+
   async loadStoredGbSession() {
     try {
       const data = await fsPromises.readFile(this.getGbSessionFilePath(), "utf8");
@@ -3048,23 +3139,22 @@ class StbPlatform {
 
       this.currentSessionState = sessionState.AUTHENTICATING;
 
-      const issuedAt = Number(stored.session.issuedAt);
-      const storedExpiry = stored.session.accessTokenExpiry
-        ? new Date(stored.session.accessTokenExpiry).getTime()
-        : Number.isFinite(issuedAt)
-          ? issuedAt + 2 * 60000
-          : 0;
+      const storedExpiry = this.getSessionAccessTokenExpiry(stored.session);
+      const usingStoredSession =
+        stored.session.accessToken && storedExpiry > Date.now() + 10000;
 
-      if (stored.session.accessToken && storedExpiry > Date.now() + 10000) {
+      if (usingStoredSession) {
         this.log("Using stored Virgin Media GB session");
         this.session = stored.session;
       } else {
         this.log("Refreshing stored Virgin Media GB session");
         this.session = await this.refreshStoredGbSession(stored.session);
-        await this.saveStoredGbSession(this.session);
       }
 
-      this.session.accessTokenExpiry = new Date(Date.now() + 2 * 60000);
+      const accessTokenExpiry = this.getSessionAccessTokenExpiry(this.session);
+      this.session.accessTokenExpiry = new Date(
+        accessTokenExpiry || Date.now() + 2 * 60000,
+      );
       if (!this.session.username) {
         this.session.username = this.config.username;
       }
@@ -3076,6 +3166,9 @@ class StbPlatform {
         throw new Error(
           "Virgin Media GB refresh response did not contain a complete session",
         );
+      }
+      if (!usingStoredSession) {
+        await this.saveStoredGbSession(this.session);
       }
       this.log(
         "GB session diagnostics: householdId=%s, usernamePresent=%s, accessToken=%s, refreshToken=%s, refreshTokenExpiry=%s",
@@ -3714,6 +3807,9 @@ class StbPlatform {
       return;
     }
     try {
+      if (this.config.country.toLowerCase() === "gb") {
+        await this.refreshAccessToken();
+      }
       await this.getRecordingState(householdId);
       await this.getRecordingBookings(householdId);
     } catch (error) {
@@ -4131,25 +4227,17 @@ class StbPlatform {
     const url = new URL(
       `${this.configsvc.recordingService.URL}/customers/${householdId}/recordings/state`,
     );
-    // headers for the connection
-    const config = {
-      headers: {
-        "x-cus": this.session.householdId,
-        "x-oesp-username": this.session.username,
-        Referer:
-          COUNTRY_WEB_URLS[this.config.country.toLowerCase()] ??
-          "https://www.horizon.tv/",
-      },
-      // allow 402 'Payment Required' as OK
-      validateStatus: (status) =>
-        (status >= 200 && status < 300) || status === 402,
-    };
+    const config = this.buildRecordingRequestConfig(householdId);
     if (this.debugLevel > 1) {
       this.log.warn("getRecordingState: GET %s", url);
     }
 
     try {
-      const response = await axiosWS.get(url, config);
+      const response = await this.getWithGbAuthRetry(
+        url,
+        config,
+        "getRecordingState",
+      );
 
       if (this.debugLevel > 1) {
         this.log.warn(
@@ -4338,24 +4426,17 @@ class StbPlatform {
     url.searchParams.set("limit", "10"); // limit to 10 recordings for performance
     url.searchParams.set("sort", "time");
     url.searchParams.set("sortOrder", "asc");
-    // headers for the connection
-    const config = {
-      headers: {
-        "x-cus": householdId,
-        "x-oesp-username": this.session.username,
-        Referer:
-          COUNTRY_WEB_URLS[this.config.country.toLowerCase()] ??
-          "https://www.horizon.tv/",
-      },
-      validateStatus: (status) =>
-        (status >= 200 && status < 300) || status === 402, // allow 402 'Payment Required' as OK
-    };
+    const config = this.buildRecordingRequestConfig(householdId);
     if (this.debugLevel > 1) {
       this.log.warn("getRecordingBookings: GET %s", url);
     }
 
     try {
-      const response = await axiosWS.get(url, config);
+      const response = await this.getWithGbAuthRetry(
+        url,
+        config,
+        "getRecordingBookings",
+      );
       // log at level 1, 2
       if (this.debugLevel > 1) {
         this.log.warn(
@@ -4901,7 +4982,14 @@ class StbPlatform {
               }
               deviceId = mqttMessage.source;
               profileDataChanged = true;
-              this.getPersonalizationData(this.session.householdId); // async function
+              this.getPersonalizationData(this.session.householdId).catch(
+                (error) => {
+                  this.log.warn(
+                    "mqttClient: getPersonalizationData failed after personalizationService event: %s",
+                    error.message || String(error),
+                  );
+                },
+              ); // async function
             }
           }
 
@@ -4912,7 +5000,12 @@ class StbPlatform {
             if (this.debugLevel > 0) {
               this.log.warn("mqttClient: event: %s", mqttMessage.event);
             }
-            this.refreshRecordings(this.session.householdId); // request a refresh of recording data
+            this.refreshRecordings(this.session.householdId).catch((error) => {
+              this.log.warn(
+                "mqttClient: refreshRecordings failed after recordingStatus event: %s",
+                error.message || String(error),
+              );
+            }); // request a refresh of recording data
           }
 
           // handle status messages for the STB
