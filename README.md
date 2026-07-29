@@ -51,6 +51,20 @@ If you like this plugin, consider buying me a coffee!<br>
 
 Logon method for CH working again from v2.4.0. Use Authentication Method E.
 
+GB Virgin Media login now uses the new Virgin Media O2 PingOne/DaVinci SSO
+flow. First pairing is done from the Homebridge plugin settings: select **GB:
+Virgin Media TV 360** in the normal config, then use the **Virgin Media GB
+Login** panel that appears below the config. Complete the Virgin Media browser
+login, then restart Homebridge after the session is saved. The Virgin success
+page normally closes itself and passes the authorization code back to Homebridge
+automatically; the manual `login_success` URL paste box is kept as a fallback.
+This stores a refresh token in Homebridge storage so the plugin can run in the
+official Docker image without an interactive browser inside the container.
+The plugin does not collect the Virgin Media password in Homebridge; credentials
+are entered only on Virgin Media's own browser login page. Do not share the
+`login_success` URL or Homebridge session file, as they contain login/session
+material.
+
 # Update August 2025
 
 Logon methods for NL working again from v2.3.6. Use Authentication Method A.
@@ -65,7 +79,9 @@ Logon methods for many providers changed from January 2024 to mid February 2024.
 
 ## Help Wanted
 
-For GB, IE the logon method is no longer working. Refer Issue [#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112). If you are able to help, please get in touch.
+For IE the logon method is no longer working. GB login uses the Homebridge UI
+pairing flow and needs wider testing. Refer Issue
+[#112](https://github.com/jsiegenthaler/homebridge-eosstb/issues/112).
 
 ## Readme Applicability
 
@@ -79,7 +95,7 @@ As [Liberty Global](https://en.wikipedia.org/wiki/Liberty_Global) (the operator 
 | ------- | --------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | BE      | [Telenet](https://www2.telenet.be/)           | [Telenet TV](https://www.telenettv.be/nl.html)             | [Telenet TV-Box](https://www2.telenet.be/nl/klantenservice/ontdek-de-telenet-tv-box/)                                                      | As of 15 June 2024 should be working again. Use Authentication Method B.                                      |
 | CH      | [Sunrise](https://www.sunrise.ch/en/)         | [Sunrise TV](https://www.sunrisetv.ch/en.html)             | [Sunrise TV Box](https://www.sunrise.ch/en/internet-tv/tv-subscription)                                                                    | As of May 2026, connection is working again                                     |
-| GB      | [Virgin Media](https://www.virginmedia.com/)  | [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom) | As of January 2024, connection to box is no longer working. Help Wanted!                                      |
+| GB      | [Virgin Media](https://www.virginmedia.com/)  | [Virgin TV Go](https://virgintvgo.virginmedia.com/en.html) | [Virgin TV 360](https://www.virginmedia.com/shop/tv/virgin-tv-360) and [Virgin TV 360 Mini](https://www.virginmedia.com/shop/tv/multiroom) | As of May 2026, login uses Homebridge UI pairing and needs wider testing.                                      |
 | IE      | [Virgin Media](https://www.virginmedia.ie/)   | [Virgin TV Anywhere](https://www.virginmediatv.ie/en.html) | [360 Box](https://www.virginmedia.ie/virgintv360support/)                                                                                  | As of January 2024, connection to box is no longer working. Help Wanted!                                      |
 | NL      | [Ziggo](https://www.ziggo.nl/)                | [Ziggo GO](https://www.ziggogo.tv/nl.html)                 | [Mediabox Next](https://www.ziggo.nl/televisie/mediaboxen/mediabox-next#ziggo-tv)                                                          | Confirmed working in May 2026                                                   |
 | SK      | [UPC Broadband Slovakia](https://www.upc.sk/) | [UPC TV](https://www.upctv.sk/sk/home)                     | UPC TV Box                                                                                                                                 | _Testers Wanted_                                                                                              |
@@ -340,7 +356,13 @@ Mandatory config items must always exist. These are used to establish the sessio
 
 - **username**: Your login username for your TV account, same as used in the TV app on your iOS device. Often an email address, but some providers use a mobile phone number. Mandatory.
 
-- **password**: Your password associated with your TV account. Mandatory.
+- **password**: Your password associated with your TV account. Mandatory except
+  for GB Virgin Media UI pairing.
+
+For GB Virgin Media, the configured username is used to identify the account,
+but first login must be completed in the Homebridge UI plugin settings. This is
+needed because Virgin Media can require passkey, magic-link, MFA, or "try
+another way" browser steps that cannot run inside a Docker container.
 
 #### Optional
 

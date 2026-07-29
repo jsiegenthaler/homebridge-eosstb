@@ -191,7 +191,7 @@ function getChromiumExecutablePath() {
   }
 
   throw new Error(
-    `getSessionCH: Could not find a Chromium or Chrome executable on ${platform}. ` +
+    `Could not find a Chromium or Chrome executable on ${platform}. ` +
       `On Debian/Raspberry Pi run: sudo apt install -y chromium. ` +
       `On Windows, install Google Chrome from https://www.google.com/chrome/`,
   );
@@ -245,49 +245,35 @@ function logCharValueChange(
 }
 
 // clean a name so it is acceptable for HomeKit
-function cleanNameForHomeKit(name) {
-  // HomeKit does not allow non-alphanumeric characters apart from [ .,-]
-  // Use only alphanumeric, space, and apostrophe characters.
-  // Start and end with an alphabetic or numeric character.
-  // Don't include emojis.
-  // https://developer.apple.com/design/human-interface-guidelines/homekit/overview/setup/
-  // [^A-Za-zÀ-ÖØ-öø-ÿ0-9 .,-] allows all accented characters
-  // https://stackoverflow.com/questions/6664582/regex-accent-insensitive
+function cleanNameForHomeKit(name, fallback = "Input") {
+  // HomeKit is stricter than it looks here: HAP-NodeJS warns that Name should
+  // use only alphanumeric characters, spaces, and apostrophes, and should start
+  // and end with an alphanumeric character. InputSource names are especially
+  // sensitive because one invalid channel name can make a TV accessory hard to
+  // add from the Home app.
+  let result = String(name ?? fallback);
 
-  // HomeKit however displays all these characters, so allow them
-  let result = name;
+  result = result
+    .replace(/&/g, " and ")
+    .replace(/\+/g, " plus ")
+    .replace(/[./\\]/g, " ")
+    .replace(/[^0-9A-Za-zÀ-ÖØ-öø-ÿ ']/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^[^0-9A-Za-zÀ-ÖØ-öø-ÿ]+/, "")
+    .replace(/[^0-9A-Za-zÀ-ÖØ-öø-ÿ]+$/, "");
 
-  // replace + with plus, for 3+ HD in CH
-  //result.replace('+', 'plus');
-  //console.log("cleanNameForHomeKit after replacing + [%s]", result);
+  return result || fallback;
+}
 
-  // replace unwanted characters with whitespace
-  //result = result.replace(/[^0-9A-Za-zÀ-ÖØ-öø-ÿ .,-]/gi, ' ');
+// Mirrors Homebridge's external accessory address derivation for diagnostics.
+function homebridgeExternalAccessoryUsername(accessoryUUID) {
+  const hash = createHash("sha1").update(accessoryUUID).digest("hex");
+  let index = 0;
 
-  // for now just replace forward slash with whitespace
-  result = result.replace(/\//g, " "); // replaces all slashes
-  //console.log("cleanNameForHomeKit after replace [%s]", result);
-
-  // replace any double whitespace with single whitespace
-  //while(result.indexOf('  ')!=-1) { result.replace('  ',' '); }
-  //console.log("cleanNameForHomeKit after replacing double whitespace [%s]", result);
-
-  // trim to remove resultant leading and trailing whitespace
-  result = result.trim();
-
-  //ensure ends with a non-alphanumeric character
-  // testing shows
-  // OK     ending with .
-  // Not OK ending with ,-
-  // append . if not ending in a alpha-numeric character
-  /*
-	if (RegExp(/[^0-9A-Za-zÀ-ÖØ-öø-ÿ.]\z/gi).test(result)) {
-		console.log("cleanNameForHomeKit last char not allowed, appending .");
-		result = result + '.'; // append a .
-	}
-	*/
-  //console.log("cleanNameForHomeKit result [%s]", result);
-  return result;
+  return "xx:xx:xx:xx:xx:xx"
+    .replace(/x/g, () => hash[index++])
+    .toUpperCase();
 }
 
 // wait function
@@ -394,7 +380,7 @@ class StbPlatform {
       );
       return;
     }
-    if (!this.config.password) {
+    if (!this.config.password && this.config.country.toLowerCase() !== "gb") {
       this.log.warn(
         configWarningText.replace("{configItemName}", "password"),
         PLUGIN_NAME,
@@ -1069,12 +1055,16 @@ class StbPlatform {
       this.log.debug(
         "%s: ++++ step 4: calling getEntitlements for customerId %s",
         watchdogInstance,
-        objCustomer.customerId,
+        this.config.country.toLowerCase() === "gb"
+          ? this.session.householdId
+          : objCustomer.customerId,
       );
       debug(debugPrefix + "calling getEntitlements");
 
       const objEntitlements = await this.getEntitlements(
-        this.customer.customerId,
+        this.config.country.toLowerCase() === "gb"
+          ? this.session.householdId
+          : this.customer.customerId,
       );
       // Result stored in this.entitlements by getEntitlements()
 
@@ -1102,16 +1092,30 @@ class StbPlatform {
 
       // ── Steps 6 & 7: Recording state and bookings (PVR-entitled users only) ─
       // Check entitlement once and reuse for both calls.
-      const pvrFeatureFound = this.entitlements.features.find(
+      const entitlementFeatures = Array.isArray(this.entitlements?.features)
+        ? this.entitlements.features
+        : [];
+      if (!Array.isArray(this.entitlements?.features)) {
+        this.log.warn(
+          "%s: entitlement response did not contain a features array. Keys: %s",
+          watchdogInstance,
+          Object.keys(this.entitlements || {}).join(",") || "none",
+        );
+      }
+      const pvrFeatureFound = entitlementFeatures.find(
         (feature) => feature === "PVR" || feature === "LOCALDVR",
       );
+      const recordingDeviceCount = Array.isArray(this.devices)
+        ? this.devices.length
+        : 0;
       this.log.debug(
-        "%s: ++++++ step 6/7: PVR entitlement found: %s",
+        "%s: ++++++ step 6/7: PVR entitlement found: %s, devices available for recording update: %s",
         watchdogInstance,
         pvrFeatureFound,
+        recordingDeviceCount,
       );
 
-      if (pvrFeatureFound) {
+      if (pvrFeatureFound && recordingDeviceCount > 0) {
         // Step 6: Recording state
         this.log.debug(
           "%s: ++++ step 6: calling getRecordingState for householdId %s",
@@ -1122,7 +1126,13 @@ class StbPlatform {
         // internal state as a side-effect and its result is not needed for the
         // startup sequence to continue. Errors are handled inside the method.
         // If you wish to ensure it completes before step 7, add `await` here.
-        this.getRecordingState(this.session.householdId);
+        this.getRecordingState(this.session.householdId).catch((error) => {
+          this.log.warn(
+            "%s: getRecordingState failed after startup continued: %s",
+            watchdogInstance,
+            error.message || String(error),
+          );
+        });
 
         // Step 7: Recording bookings
         this.log.debug(
@@ -1131,7 +1141,18 @@ class StbPlatform {
           this.session.householdId,
         );
         // Same fire-and-forget approach as getRecordingState above.
-        this.getRecordingBookings(this.session.householdId);
+        this.getRecordingBookings(this.session.householdId).catch((error) => {
+          this.log.warn(
+            "%s: getRecordingBookings failed after startup continued: %s",
+            watchdogInstance,
+            error.message || String(error),
+          );
+        });
+      } else if (pvrFeatureFound) {
+        this.log.warn(
+          "%s: PVR entitlement is present, but no personalization devices are available yet. Skipping recording refresh until device discovery succeeds.",
+          watchdogInstance,
+        );
       } else {
         this.log.debug(
           "%s: ++++++ step 6/7: no PVR entitlement, skipping recording setup",
@@ -1255,6 +1276,62 @@ class StbPlatform {
     throw new Error(errReason, { cause: error });
   }
 
+  isGbAuthError(error) {
+    return (
+      this.config.country?.toLowerCase() === "gb" &&
+      error?.isAxiosError &&
+      error.response?.status === 401
+    );
+  }
+
+  buildRecordingRequestConfig(householdId) {
+    const headers = {
+      "x-cus": householdId,
+      "x-oesp-username": this.session.username,
+      Referer:
+        COUNTRY_WEB_URLS[this.config.country.toLowerCase()] ??
+        "https://www.horizon.tv/",
+    };
+
+    if (this.config.country.toLowerCase() === "gb" && this.session.accessToken) {
+      headers["x-oesp-token"] = this.session.accessToken;
+    }
+
+    return {
+      headers,
+      // allow 402 'Payment Required' as OK
+      validateStatus: (status) =>
+        (status >= 200 && status < 300) || status === 402,
+    };
+  }
+
+  async getWithGbAuthRetry(url, config, action) {
+    try {
+      return await axiosWS.get(url, config);
+    } catch (error) {
+      if (!this.isGbAuthError(error)) {
+        throw error;
+      }
+
+      this.log.warn(
+        "%s returned HTTP 401 for Virgin Media GB. Refreshing access token and retrying once.",
+        action,
+      );
+      await this.refreshAccessToken(true);
+
+      const retryConfig = {
+        ...config,
+        headers: {
+          ...(config.headers || {}),
+          "x-oesp-token": this.session.accessToken,
+          "x-oesp-username": this.session.username,
+        },
+      };
+
+      return axiosWS.get(url, retryConfig);
+    }
+  }
+
   /**
    * Discovers all physical devices from the backend and maps them to HomeKit accessories.
    * Creates new accessories for uncached devices, and restores existing ones from cache.
@@ -1263,6 +1340,40 @@ class StbPlatform {
    */
   async discoverDevices() {
     this.log("Discovering devices...");
+
+    const isGb = this.config.country?.toLowerCase() === "gb";
+    const devicesAreArray = Array.isArray(this.devices);
+    const deviceCount = devicesAreArray ? this.devices.length : 0;
+    const firstDevice = deviceCount > 0 ? this.devices[0] : null;
+    const profilesCount = Array.isArray(this.customer?.profiles)
+      ? this.customer.profiles.length
+      : 0;
+
+    if (isGb) {
+      this.log.warn(
+        "GB device discovery diagnostics: devicesArray=%s, deviceCount=%s, firstDeviceHasSettings=%s, customerId=%s, customerStatus=%s, profiles=%s",
+        devicesAreArray ? "yes" : "no",
+        deviceCount,
+        firstDevice?.settings ? "yes" : "no",
+        this.customer?.customerId || "missing",
+        this.customer?.customerStatus || "missing",
+        profilesCount,
+      );
+      this.log.warn(
+        "GB personalization customer keys: %s",
+        Object.keys(this.customer || {}).join(",") || "none",
+      );
+      if (firstDevice) {
+        this.log.warn(
+          "GB first assigned device keys: %s",
+          Object.keys(firstDevice).join(",") || "none",
+        );
+      } else {
+        this.log.warn(
+          "GB personalization returned no assigned devices for this household.",
+        );
+      }
+    }
 
     // Guard: ensure devices exist and have valid settings
     if (
@@ -1356,9 +1467,9 @@ class StbPlatform {
   } // end of discoverDevices
 
   // get a new access token
-  async refreshAccessToken() {
+  async refreshAccessToken(forceRefresh = false) {
     // robustness: exit immediately if no session expiry exists yet (session not yet established)
-    if (!this.session.accessTokenExpiry) {
+    if (!this.session.accessTokenExpiry && !forceRefresh) {
       if (this.debugLevel > 0) {
         this.log.warn(
           "refreshAccessToken: No access token expiry set yet, session not yet established. Exiting.",
@@ -1368,7 +1479,7 @@ class StbPlatform {
     }
 
     // exit immediately if access token has not expired
-    if (this.session.accessTokenExpiry > Date.now()) {
+    if (!forceRefresh && this.session.accessTokenExpiry > Date.now()) {
       if (this.debugLevel > 0) {
         this.log.warn(
           "refreshAccessToken: Access token has not expired yet. Next refresh will occur after %s",
@@ -1379,10 +1490,14 @@ class StbPlatform {
     }
 
     if (this.debugLevel > 0) {
-      this.log.warn(
-        "refreshAccessToken: Access token has expired at %s. Requesting refresh",
-        this.session.accessTokenExpiry.toLocaleString(),
-      );
+      if (forceRefresh) {
+        this.log.warn("refreshAccessToken: Force refresh requested");
+      } else {
+        this.log.warn(
+          "refreshAccessToken: Access token has expired at %s. Requesting refresh",
+          this.session.accessTokenExpiry.toLocaleString(),
+        );
+      }
     }
 
     if (!this.configsvc.authorizationService.URL) {
@@ -1410,7 +1525,10 @@ class StbPlatform {
       jar: cookieJar,
       data: {
         refreshToken: this.session.refreshToken,
-        username: this.config.username,
+        username:
+          this.config.country.toLowerCase() === "gb"
+            ? this.session.username || this.config.username
+            : this.config.username,
       },
     };
 
@@ -1422,6 +1540,7 @@ class StbPlatform {
     }
 
     // throws on HTTP/network error → caller's catch or .catch() handles it
+    const previousSession = this.session;
     const response = await axiosWS(axiosConfig);
 
     if (this.debugLevel > 1) {
@@ -1435,9 +1554,28 @@ class StbPlatform {
       //this.log(response.headers);
     }
     this.session = response.data;
+    if (!this.session.username && previousSession?.username) {
+      this.session.username = previousSession.username;
+    }
+    if (!this.session.householdId && previousSession?.householdId) {
+      this.session.householdId = previousSession.householdId;
+    }
 
-    // add an expiry date for the access token: 2 min (120000ms) after created date
-    this.session.accessTokenExpiry = new Date(Date.now() + 2 * 60000);
+    const accessTokenExpiry = this.getSessionAccessTokenExpiry(this.session);
+    this.session.accessTokenExpiry = new Date(
+      accessTokenExpiry || Date.now() + 2 * 60000,
+    );
+
+    if (this.config.country.toLowerCase() === "gb") {
+      try {
+        await this.saveStoredGbSession(this.session);
+      } catch (error) {
+        this.log.warn(
+          "refreshAccessToken: unable to persist refreshed GB session:",
+          error.message || error,
+        );
+      }
+    }
 
     // check if householdId exists, if so, we have authenticated ok
     if (this.session.householdId) {
@@ -2868,8 +3006,196 @@ class StbPlatform {
     }
   }
 
-  // get session for GB only (special logon sequence)
-  getSessionGB() {
+  getGbSessionFilePath() {
+    return path.join(
+      this.api.user.storagePath(),
+      `${PLUGIN_NAME}.gb-session.json`,
+    );
+  }
+
+  getAccessTokenExpiry(accessToken) {
+    try {
+      const payload = JSON.parse(
+        Buffer.from(
+          accessToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"),
+          "base64",
+        ).toString("utf8"),
+      );
+      return Number.isFinite(payload.exp) ? payload.exp * 1000 : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  getSessionAccessTokenExpiry(session) {
+    const jwtExpiry = session?.accessToken
+      ? this.getAccessTokenExpiry(session.accessToken)
+      : null;
+    if (jwtExpiry) return jwtExpiry;
+
+    const configuredExpiry = session?.accessTokenExpiry
+      ? new Date(session.accessTokenExpiry).getTime()
+      : null;
+    if (Number.isFinite(configuredExpiry)) return configuredExpiry;
+
+    const issuedAt = Number(session?.issuedAt);
+    return Number.isFinite(issuedAt) ? issuedAt + 2 * 60000 : 0;
+  }
+
+  async loadStoredGbSession() {
+    try {
+      const data = await fsPromises.readFile(this.getGbSessionFilePath(), "utf8");
+      return JSON.parse(data);
+    } catch (error) {
+      if (error.code === "ENOENT") return null;
+      throw error;
+    }
+  }
+
+  async saveStoredGbSession(session) {
+    const filename = this.getGbSessionFilePath();
+    const payload = {
+      country: "gb",
+      username: this.config.username,
+      updatedAt: new Date().toISOString(),
+      session,
+    };
+
+    await fsPromises.writeFile(
+      filename,
+      JSON.stringify(payload, null, 2),
+      { mode: 0o600 },
+    );
+    await fsPromises.chmod(filename, 0o600);
+  }
+
+  async refreshStoredGbSession(storedSession) {
+    const refreshUrl =
+      this.configsvc.authorizationService.URL + "/v1/authorization/refresh";
+    const usernameCandidates = [
+      storedSession.username,
+      this.config.username,
+    ].filter((value, index, array) => value && array.indexOf(value) === index);
+
+    let lastError;
+    for (const username of usernameCandidates) {
+      try {
+        const response = await axiosWS.post(
+          refreshUrl,
+          {
+            refreshToken: storedSession.refreshToken,
+            username,
+          },
+          {
+            jar: cookieJar,
+            headers: {
+              accept: "*/*",
+              "content-type": "application/json; charset=UTF-8",
+              "x-oesp-username": storedSession.username || username,
+            },
+          },
+        );
+
+        if (!response.data.refreshToken || !response.data.accessToken) {
+          throw new Error("token missing from GB refresh response");
+        }
+
+        if (!response.data.username && storedSession.username) {
+          response.data.username = storedSession.username;
+        }
+        if (!response.data.householdId && storedSession.householdId) {
+          response.data.householdId = storedSession.householdId;
+        }
+
+        return response.data;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError;
+  }
+
+  async getSessionGB() {
+    this.log(
+      "Creating %s GB session from stored Virgin Media SSO token...",
+      PLATFORM_NAME,
+    );
+    this.currentSessionState = sessionState.LOADING;
+
+    try {
+      const stored = await this.loadStoredGbSession();
+      if (!stored?.session?.refreshToken) {
+        throw new Error(
+          "Virgin Media GB is not paired. Open the Homebridge UI, go to the EOSSTB plugin settings, and run Virgin Media Login.",
+        );
+      }
+
+      if (stored.username && stored.username !== this.config.username) {
+        this.log.warn(
+          "Stored GB session was created for a different configured username. Continuing with refresh attempt.",
+        );
+      }
+
+      this.currentSessionState = sessionState.AUTHENTICATING;
+
+      const storedExpiry = this.getSessionAccessTokenExpiry(stored.session);
+      const usingStoredSession =
+        stored.session.accessToken && storedExpiry > Date.now() + 10000;
+
+      if (usingStoredSession) {
+        this.log("Using stored Virgin Media GB session");
+        this.session = stored.session;
+      } else {
+        this.log("Refreshing stored Virgin Media GB session");
+        this.session = await this.refreshStoredGbSession(stored.session);
+      }
+
+      const accessTokenExpiry = this.getSessionAccessTokenExpiry(this.session);
+      this.session.accessTokenExpiry = new Date(
+        accessTokenExpiry || Date.now() + 2 * 60000,
+      );
+      if (!this.session.username) {
+        this.session.username = this.config.username;
+      }
+      if (
+        !this.session.refreshToken ||
+        !this.session.accessToken ||
+        !this.session.householdId
+      ) {
+        throw new Error(
+          "Virgin Media GB refresh response did not contain a complete session",
+        );
+      }
+      if (!usingStoredSession) {
+        await this.saveStoredGbSession(this.session);
+      }
+      this.log(
+        "GB session diagnostics: householdId=%s, usernamePresent=%s, accessToken=%s, refreshToken=%s, refreshTokenExpiry=%s",
+        this.session.householdId,
+        this.session.username ? "yes" : "no",
+        this.session.accessToken ? "present" : "missing",
+        this.session.refreshToken ? "present" : "missing",
+        this.session.refreshTokenExpiry || "unknown",
+      );
+
+      this.log("Session created");
+      this.currentSessionState = sessionState.CONNECTED;
+      this.currentStatusFault = Characteristic.StatusFault.NO_FAULT;
+
+      return this.session.householdId;
+    } catch (error) {
+      this.currentSessionState = sessionState.DISCONNECTED;
+      this.currentStatusFault = Characteristic.StatusFault.GENERAL_FAULT;
+      const message = error.response
+        ? `${error.message}: ${error.response.status} ${error.response.statusText}`
+        : error.message || String(error);
+      throw new Error(`Failed to create GB session: ${message}`);
+    }
+  }
+
+  // get session for GB only (legacy pre-2026 logon sequence)
+  getSessionGBLegacy() {
     return new Promise((resolve, reject) => {
       this.log("Creating %s GB session...", PLATFORM_NAME);
       this.currentSessionState = sessionState.LOADING;
@@ -3330,7 +3656,7 @@ class StbPlatform {
           new Date(this.masterChannelListExpiryDate).toLocaleString(), // ✅ format for display only
         );
       }
-      return;
+      return this.masterChannelList;
     }
 
     this.log("Refreshing master channel list");
@@ -3465,18 +3791,25 @@ class StbPlatform {
     this.log("Refreshing recordings");
 
     // can only refresh recordings if entitled to recordings
-    const pvrFeatureFound = this.entitlements.features.some(
+    const entitlementFeatures = Array.isArray(this.entitlements?.features)
+      ? this.entitlements.features
+      : [];
+    const pvrFeatureFound = entitlementFeatures.some(
       (feature) => feature === "PVR" || feature === "LOCALDVR",
     );
     this.log.debug(
-      "refreshRecordings: foundPvrEntitlement %s",
+      "refreshRecordings: foundPvrEntitlement %s, featureCount %s",
       pvrFeatureFound,
+      entitlementFeatures.length,
     );
     if (!pvrFeatureFound) {
       this.log.debug("refreshRecordings: no recordings entitlement found");
       return;
     }
     try {
+      if (this.config.country.toLowerCase() === "gb") {
+        await this.refreshAccessToken();
+      }
       await this.getRecordingState(householdId);
       await this.getRecordingBookings(householdId);
     } catch (error) {
@@ -3563,13 +3896,19 @@ class StbPlatform {
             },
           }
         : { headers: baseHeaders };
-    4;
     if (this.debugLevel > 1) {
       this.log.warn("getPersonalizationData: GET %s", url);
     }
 
     try {
       const response = await axiosWS.get(url, config);
+      const responseData = response.data || {};
+      const assignedDevices = Array.isArray(responseData.assignedDevices)
+        ? responseData.assignedDevices
+        : [];
+      const profiles = Array.isArray(responseData.profiles)
+        ? responseData.profiles
+        : [];
       if (this.debugLevel > 1) {
         this.log.warn(
           "getPersonalizationData: response: %s %s",
@@ -3580,34 +3919,87 @@ class StbPlatform {
       if (this.debugLevel > 1) {
         this.log.warn(
           "getPersonalizationData: assignedDevices found: %s, profiles found: %s",
-          response.data.assignedDevices.length,
-          response.data.profiles.length,
+          assignedDevices.length,
+          profiles.length,
         );
+      }
+      if (this.config.country.toLowerCase() === "gb") {
+        const assignedDevicesType = Array.isArray(responseData.assignedDevices)
+          ? "array"
+          : typeof responseData.assignedDevices;
+        const profilesType = Array.isArray(responseData.profiles)
+          ? "array"
+          : typeof responseData.profiles;
+        this.log.warn(
+          "GB personalization diagnostics: keys=%s, customerId=%s, customerStatus=%s, assignedDevicesType=%s, assignedDevices=%s, profilesType=%s, profiles=%s",
+          Object.keys(responseData).join(",") || "none",
+          responseData.customerId || "missing",
+          responseData.customerStatus || "missing",
+          assignedDevicesType,
+          assignedDevices.length,
+          profilesType,
+          profiles.length,
+        );
+        const deviceLikeKeys = Object.entries(responseData)
+          .filter(([key]) =>
+            ["device", "devices", "cpe", "box", "stb"].some((needle) =>
+              key.toLowerCase().includes(needle),
+            ),
+          )
+          .map(([key, value]) => {
+            if (Array.isArray(value)) return `${key}:array(${value.length})`;
+            if (value && typeof value === "object") return `${key}:object`;
+            return `${key}:${typeof value}`;
+          });
+        this.log.warn(
+          "GB personalization device-like fields: %s",
+          deviceLikeKeys.join(",") || "none",
+        );
+        if (assignedDevices.length > 0) {
+          const firstDevice = assignedDevices[0];
+          this.log.warn(
+            "GB first personalization device: deviceId=%s, keys=%s, hasSettings=%s, hasCapabilities=%s",
+            firstDevice.deviceId || "missing",
+            Object.keys(firstDevice).join(",") || "none",
+            firstDevice.settings ? "yes" : "no",
+            firstDevice.capabilities ? "yes" : "no",
+          );
+        } else {
+          this.log.warn(
+            "GB personalization response has no assignedDevices entries. This is the source of the no-accessories discovery failure unless Virgin now exposes boxes under another field.",
+          );
+        }
       }
       if (this.debugLevel > 2) {
         this.log.warn(
           "getPersonalizationData: response data (saved to this.customer):",
         );
-        this.log.warn(response.data);
+        this.log.warn(responseData);
         this.log.warn("getPersonalizationData: profiles: next log entry");
-        this.log.warn(response.data.profiles);
+        this.log.warn(profiles);
         this.log.warn(
           "getPersonalizationData: assignedDevices: next log entry",
         );
-        this.log.warn(response.data.assignedDevices);
+        this.log.warn(assignedDevices);
         this.log.warn("getPersonalizationData: customerOptIns: next log entry");
-        this.log.warn(response.data.customerOptIns);
+        this.log.warn(responseData.customerOptIns);
       }
 
-      this.customer = response.data; // store the entire personalization data for future use in this.customer
-      this.devices = response.data.assignedDevices; // store the entire device array at platform level
+      this.customer = responseData; // store the entire personalization data for future use in this.customer
+      if (
+        this.config.country.toLowerCase() === "gb" &&
+        (!this.customer.customerId || this.customer.customerId === "anonymous")
+      ) {
+        this.customer.customerId = householdId;
+      }
+      this.devices = assignedDevices; // store the entire device array at platform level
 
       // closed captions are stored in
       // response.data.profiles[profileId].options.showSubtitles    boolean, true or false
 
       // update all the devices in the array. Don't trust the index order in the Personalization Data message
       //this.log('getPersonalizationData: this.stbDevices.length:', this.stbDevices.length)
-      if (this.stbDevices.length > 0) {
+      if (this.stbDevices.length > 0 && this.devices.length > 0) {
         this.devices.forEach((device) => {
           if (this.debugLevel > 2) {
             // DEBUG
@@ -3784,10 +4176,25 @@ class StbPlatform {
         this.log.warn(response.data);
       }
       this.entitlements = response.data; // store the entire entitlements data for future use in this.customer.entitlements
+      const entitlementList = Array.isArray(this.entitlements?.entitlements)
+        ? this.entitlements.entitlements
+        : [];
+      const featureList = Array.isArray(this.entitlements?.features)
+        ? this.entitlements.features
+        : [];
       if (this.debugLevel > 1) {
         this.log.warn(
-          "getEntitlements: entitlements found:",
-          this.entitlements.entitlements.length,
+          "getEntitlements: entitlements found: %s",
+          entitlementList.length,
+        );
+      }
+      if (this.config.country.toLowerCase() === "gb") {
+        this.log.warn(
+          "GB entitlements diagnostics: keys=%s, entitlements=%s, features=%s, featureList=%s",
+          Object.keys(this.entitlements || {}).join(",") || "none",
+          entitlementList.length,
+          featureList.length,
+          featureList.join(",") || "none",
         );
       }
       return this.entitlements;
@@ -3820,25 +4227,17 @@ class StbPlatform {
     const url = new URL(
       `${this.configsvc.recordingService.URL}/customers/${householdId}/recordings/state`,
     );
-    // headers for the connection
-    const config = {
-      headers: {
-        "x-cus": this.session.householdId,
-        "x-oesp-username": this.session.username,
-        Referer:
-          COUNTRY_WEB_URLS[this.config.country.toLowerCase()] ??
-          "https://www.horizon.tv/",
-      },
-      // allow 402 'Payment Required' as OK
-      validateStatus: (status) =>
-        (status >= 200 && status < 300) || status === 402,
-    };
+    const config = this.buildRecordingRequestConfig(householdId);
     if (this.debugLevel > 1) {
       this.log.warn("getRecordingState: GET %s", url);
     }
 
     try {
-      const response = await axiosWS.get(url, config);
+      const response = await this.getWithGbAuthRetry(
+        url,
+        config,
+        "getRecordingState",
+      );
 
       if (this.debugLevel > 1) {
         this.log.warn(
@@ -3851,9 +4250,19 @@ class StbPlatform {
         this.log.warn("getRecordingState: response data:");
         this.log.warn(response.data);
       }
+      const recordings = Array.isArray(response.data?.data)
+        ? response.data.data
+        : [];
+      const recordingDevices = Array.isArray(this.devices) ? this.devices : [];
 
       // only process if we have a 200 OK
       if (response.status === 200) {
+        if (!Array.isArray(response.data?.data)) {
+          this.log.warn(
+            "getRecordingState: response did not contain a data array. Keys: %s",
+            Object.keys(response.data || {}).join(",") || "none",
+          );
+        }
         // a recording carries these properties:
         // for type='single'
         // recordingState: 'ongoing', 'recorded', 'planned' or ??, for all types
@@ -3867,9 +4276,9 @@ class StbPlatform {
         if (this.debugLevel > 1) {
           this.log.warn(
             "getRecordingState: Recordings length %s:",
-            response.data.data.length,
+            recordings.length,
           );
-          response.data.data.forEach((recording) => {
+          recordings.forEach((recording) => {
             this.log.warn(
               "getRecordingState: Recording channelId %s, recordingState %s, eventId: %s",
               recording.channelId,
@@ -3884,6 +4293,13 @@ class StbPlatform {
         let localOngoingRecordings = 0,
           networkOngoingRecordings = 0;
 
+        if (recordingDevices.length === 0) {
+          this.log.warn(
+            "getRecordingState: skipping device recording update because personalization has no assigned devices.",
+          );
+          return this.currentRecordingState;
+        }
+
         // look for planned network single recordings: (type = "single" = one object, type = "season" = array)
         if (this.debugLevel > 1) {
           this.log.warn(
@@ -3892,7 +4308,7 @@ class StbPlatform {
         }
 
         let recordingNetworkOngoing = [].concat(
-          response.data.data.find(
+          recordings.find(
             (recording) => recording.recordingState === "ongoing",
           ) ?? [],
         );
@@ -3901,14 +4317,14 @@ class StbPlatform {
         networkOngoingRecordings = recordingNetworkOngoing.length;
 
         // find if any local device recordings are ongoing, for each device, as each device can have a HDD
-        this.devices.forEach((device) => {
+        recordingDevices.forEach((device) => {
           if (this.debugLevel > 1) {
             this.log.warn(
               "getRecordingState: Checking device %s for ongoing local HDD recordings",
               device.deviceId,
             );
           }
-          if (device.capabilities.hasHDD) {
+          if (device.capabilities?.hasHDD) {
             // device has HDD, look for local recordings
             // look for ongoing local single recordings: (type = "single" = one object, type = "season" = array)
             if (this.debugLevel > 0) {
@@ -3918,7 +4334,7 @@ class StbPlatform {
               );
             }
             let recordingLocalSingleOngoing = [].concat(
-              response.data.data.find(
+              recordings.find(
                 (recording) =>
                   recording.cpeId === device.deviceId &&
                   recording.source === "single" &&
@@ -3926,11 +4342,11 @@ class StbPlatform {
               ) ?? [],
             );
             let recordingLocalSeasonOngoing = [].concat(
-              response.data.data.find(
+              recordings.find(
                 (recording) =>
                   recording.cpeId === device.deviceId &&
                   recording.source === "season" &&
-                  recording.mostRelevantEpisode.recordingState === "ongoing",
+                  recording.mostRelevantEpisode?.recordingState === "ongoing",
               ) ?? [],
             );
             localOngoingRecordings =
@@ -3948,7 +4364,8 @@ class StbPlatform {
           // update the device state. Set StatusFault to nofault as connection is working
           this.log(
             "%s: Recording state: ongoing recordings: local %s, network %s, current Recording State %s [%s]",
-            device.settings.deviceFriendlyName + PLUGIN_ENV,
+            (device.settings?.deviceFriendlyName || device.deviceId) +
+              PLUGIN_ENV,
             localOngoingRecordings,
             networkOngoingRecordings,
             currRecordingState,
@@ -4009,24 +4426,17 @@ class StbPlatform {
     url.searchParams.set("limit", "10"); // limit to 10 recordings for performance
     url.searchParams.set("sort", "time");
     url.searchParams.set("sortOrder", "asc");
-    // headers for the connection
-    const config = {
-      headers: {
-        "x-cus": householdId,
-        "x-oesp-username": this.session.username,
-        Referer:
-          COUNTRY_WEB_URLS[this.config.country.toLowerCase()] ??
-          "https://www.horizon.tv/",
-      },
-      validateStatus: (status) =>
-        (status >= 200 && status < 300) || status === 402, // allow 402 'Payment Required' as OK
-    };
+    const config = this.buildRecordingRequestConfig(householdId);
     if (this.debugLevel > 1) {
       this.log.warn("getRecordingBookings: GET %s", url);
     }
 
     try {
-      const response = await axiosWS.get(url, config);
+      const response = await this.getWithGbAuthRetry(
+        url,
+        config,
+        "getRecordingBookings",
+      );
       // log at level 1, 2
       if (this.debugLevel > 1) {
         this.log.warn(
@@ -4039,9 +4449,19 @@ class StbPlatform {
         this.log.warn("getRecordingBookings: response data:");
         this.log.warn(response.data);
       }
+      const recordings = Array.isArray(response.data?.data)
+        ? response.data.data
+        : [];
+      const recordingDevices = Array.isArray(this.devices) ? this.devices : [];
 
       // only process if we have a 200 OK
       if (response.status === 200) {
+        if (!Array.isArray(response.data?.data)) {
+          this.log.warn(
+            "getRecordingBookings: response did not contain a data array. Keys: %s",
+            Object.keys(response.data || {}).join(",") || "none",
+          );
+        }
         // a recording carries these properties:
         // for type='single'
         // recordingState: 'ongoing', 'recorded', 'planned' or ??, for all types
@@ -4055,9 +4475,9 @@ class StbPlatform {
         if (this.debugLevel > 1) {
           this.log.warn(
             "getRecordingBookings: Recordings length %s:",
-            response.data.data.length,
+            recordings.length,
           );
-          response.data.data.forEach((recording) => {
+          recordings.forEach((recording) => {
             this.log.warn(
               'getRecordingBookings: Recording title "%s", type %s, recordingState %s, recordingType %s, mostRelevantEpisode:',
               recording.title,
@@ -4072,6 +4492,13 @@ class StbPlatform {
         let localPlannedRecordings = 0,
           networkPlannedRecordings = 0;
 
+        if (recordingDevices.length === 0) {
+          this.log.warn(
+            "getRecordingBookings: skipping device booking update because personalization has no assigned devices.",
+          );
+          return this.currentRecordingState;
+        }
+
         // look for planned network recordings: (type = "single" = one object, type = "season" = array)
         if (this.debugLevel > 1) {
           this.log.warn(
@@ -4079,17 +4506,17 @@ class StbPlatform {
           );
         }
         let recordingNetworkSinglePlanned = [].concat(
-          response.data.data.find(
+          recordings.find(
             (recording) =>
               recording.type === "single" &&
               recording.recordingState === "planned",
           ) ?? [],
         );
         let recordingNetworkSeasonPlanned = [].concat(
-          response.data.data.find(
+          recordings.find(
             (recording) =>
               recording.type === "season" &&
-              recording.mostRelevantEpisode.recordingState === "planned",
+              recording.mostRelevantEpisode?.recordingState === "planned",
           ) ?? [],
         );
         networkPlannedRecordings =
@@ -4097,14 +4524,14 @@ class StbPlatform {
           recordingNetworkSeasonPlanned.length;
 
         // find if any local recordings are booked, for each device, as each device can have a HDD
-        this.devices.forEach((device) => {
+        recordingDevices.forEach((device) => {
           if (this.debugLevel > 1) {
             this.log.warn(
               "getRecordingBookings: Checking device %s for planned local HDD recordings",
               device.deviceId,
             );
           }
-          if (device.capabilities.hasHDD) {
+          if (device.capabilities?.hasHDD) {
             // device has HDD, look for local recordings
             // look for planned local single recordings: (type = "single")
             if (this.debugLevel > 0) {
@@ -4114,7 +4541,7 @@ class StbPlatform {
               );
             }
             let recordingLocalSinglePlanned = [].concat(
-              response.data.data.find(
+              recordings.find(
                 (recording) =>
                   recording.cpeId === device.deviceId &&
                   recording.type === "single" &&
@@ -4122,11 +4549,11 @@ class StbPlatform {
               ) ?? [],
             );
             let recordingLocalSeasonPlanned = [].concat(
-              response.data.data.find(
+              recordings.find(
                 (recording) =>
                   recording.cpeId === device.deviceId &&
                   recording.type === "season" &&
-                  recording.mostRelevantEpisode.recordingState === "planned",
+                  recording.mostRelevantEpisode?.recordingState === "planned",
               ) ?? [],
             );
             localPlannedRecordings =
@@ -4142,7 +4569,8 @@ class StbPlatform {
           // update the device state. Set StatusFault to nofault as connection is working
           this.log(
             "%s: Recording bookings: planned recordings found: local %s, network %s, current Program Mode %s [%s]",
-            device.settings.deviceFriendlyName + PLUGIN_ENV,
+            (device.settings?.deviceFriendlyName || device.deviceId) +
+              PLUGIN_ENV,
             localPlannedRecordings,
             networkPlannedRecordings,
             currProgramMode,
@@ -4554,7 +4982,14 @@ class StbPlatform {
               }
               deviceId = mqttMessage.source;
               profileDataChanged = true;
-              this.getPersonalizationData(this.session.householdId); // async function
+              this.getPersonalizationData(this.session.householdId).catch(
+                (error) => {
+                  this.log.warn(
+                    "mqttClient: getPersonalizationData failed after personalizationService event: %s",
+                    error.message || String(error),
+                  );
+                },
+              ); // async function
             }
           }
 
@@ -4565,7 +5000,12 @@ class StbPlatform {
             if (this.debugLevel > 0) {
               this.log.warn("mqttClient: event: %s", mqttMessage.event);
             }
-            this.refreshRecordings(this.session.householdId); // request a refresh of recording data
+            this.refreshRecordings(this.session.householdId).catch((error) => {
+              this.log.warn(
+                "mqttClient: refreshRecordings failed after recordingStatus event: %s",
+                error.message || String(error),
+              );
+            }); // request a refresh of recording data
           }
 
           // handle status messages for the STB
@@ -4849,7 +5289,7 @@ class StbPlatform {
                         ),
                         logicalChannelNumber:
                           10000 + this.masterChannelList.length,
-                        linearProducts: entitlementId,
+                        linearProducts: [entitlementId],
                       };
                       this.masterChannelList.push(newAppChannel);
                       this.masterChannelMap.set(currChannelId, newAppChannel);
@@ -5799,7 +6239,10 @@ class StbDevice {
     // set default name on restart, max 14 char
     // In dev environment, truncate user defined name to ensure DEV is included as a tag for dev environment
     this.name =
-      this.device.settings.deviceFriendlyName.substring(
+      cleanNameForHomeKit(
+        this.device.settings.deviceFriendlyName,
+        "Set Top Box",
+      ).substring(
         0,
         SETTOPBOX_NAME_MAXLEN - PLUGIN_ENV.length,
       ) + PLUGIN_ENV; // append DEV environment
@@ -5808,7 +6251,10 @@ class StbDevice {
     if (this.config.devices) {
       const configDevice = this._configDevice;
       if (configDevice && configDevice.name) {
-        this.name = configDevice.name.substring(0, SETTOPBOX_NAME_MAXLEN);
+        this.name = cleanNameForHomeKit(configDevice.name, this.name).substring(
+          0,
+          SETTOPBOX_NAME_MAXLEN,
+        );
       }
     }
 
@@ -5903,6 +6349,8 @@ class StbDevice {
     // This ensures UUID stability across restarts and uniqueness between environments.
     const uuidSeed = this.device.deviceId + PLUGIN_ENV;
     const accessoryUUID = UUID.generate(uuidSeed);
+    const advertiseAddress =
+      homebridgeExternalAccessoryUsername(accessoryUUID);
 
     // --- Accessory Category ---
     // Default to TV_SET_TOP_BOX; allow per-device override via config.
@@ -5914,6 +6362,57 @@ class StbDevice {
     // The Accessory constructor also creates a default AccessoryInformation service,
     // which we will remove and replace with our own in prepareAccessoryInformationService().
     this.accessory = new Accessory(this.name, accessoryUUID, accessoryCategory);
+    this.log(
+      "%s: HomeKit external accessory UUID %s, username %s, category %s",
+      this.name,
+      accessoryUUID,
+      advertiseAddress,
+      accessoryCategory,
+    );
+    const hapAccessory = this.accessory._associatedHAPAccessory;
+    if (hapAccessory) {
+      let advertised = false;
+      const advertisedTimer = setTimeout(() => {
+        if (!advertised) {
+          this.log.warn(
+            "%s: HomeKit mDNS advertised event not seen within 5s for username %s. The HAP server may be listening but not discoverable.",
+            this.name,
+            advertiseAddress,
+          );
+        }
+      }, 5000);
+      advertisedTimer.unref?.();
+
+      hapAccessory.once("advertised", () => {
+        advertised = true;
+        clearTimeout(advertisedTimer);
+
+        const accessoryInfo = hapAccessory._accessoryInfo;
+        const paired = accessoryInfo?.paired?.() ? "yes" : "no";
+
+        this.log(
+          "%s: HomeKit mDNS advertised as %s, paired=%s, setupID=%s",
+          this.name,
+          accessoryInfo?.username || advertiseAddress,
+          paired,
+          accessoryInfo?.setupID || "unknown",
+        );
+
+        if (paired === "yes") {
+          this.log.warn(
+            "%s: HomeKit already has pairing data for this external accessory. It will not appear in Add Accessory unless it is removed from Apple Home or its HomeKit pairing data is reset.",
+            this.name,
+          );
+        }
+      });
+
+      hapAccessory.on("paired", () => {
+        this.log("%s: HomeKit pairing completed", this.name);
+      });
+      hapAccessory.on("unpaired", () => {
+        this.log("%s: HomeKit pairing removed", this.name);
+      });
+    }
 
     // Persist device and session state on the accessory context for use across sessions
     this.accessory.context.devices = this.devices;
@@ -5930,6 +6429,7 @@ class StbDevice {
     // HomeKit will drop and re-discover services if published incomplete.
     this.api.publishExternalAccessories(PLUGIN_NAME, [this.accessory]);
     this.accessoryConfigured = true;
+    this.log("%s: Published HomeKit external accessory", this.name);
 
     // --- Post-publish Characteristic Updates ---
     //
@@ -6530,7 +7030,10 @@ class StbDevice {
       // --- Populate from channelList if a valid entry exists ---
       const channel = this.channelList[i]; // channelList is 0-based
       if (channel) {
-        chName = channel.name;
+        chName = cleanNameForHomeKit(
+          channel.configuredName || channel.name,
+          chFixedName,
+        );
         chId = channel.id;
         visState = channel.visibilityState;
         configState = Characteristic.IsConfigured.CONFIGURED;
@@ -6548,7 +7051,7 @@ class StbDevice {
       // For custom profiles, a generic name is used because the user can reorder channels
       // and HomeKit does not auto-update the fixed Name characteristic.
       if (this.profileId === 0) {
-        chFixedName = chName;
+        chFixedName = cleanNameForHomeKit(channel?.name || chName, chFixedName);
       }
 
       if (this.debugLevel > 2) {
@@ -6790,7 +7293,10 @@ class StbDevice {
         //this.log('updateDeviceState this.name %s, this.device.settings.deviceFriendlyName %s', this.name, this.device.settings.deviceFriendlyName );
         let oldDeviceName = this.name;
         let currentDeviceName =
-          this.device.settings.deviceFriendlyName.substring(
+          cleanNameForHomeKit(
+            this.device.settings.deviceFriendlyName,
+            oldDeviceName,
+          ).substring(
             0,
             SETTOPBOX_NAME_MAXLEN - PLUGIN_ENV.length,
           ) + PLUGIN_ENV; // append DEV environment, limit to 14 chaR
@@ -7369,7 +7875,10 @@ class StbDevice {
             this.name,
             channel.linearProducts,
           );
-          const isEntitled = channel.linearProducts.some((id) =>
+          const linearProducts = Array.isArray(channel.linearProducts)
+            ? channel.linearProducts
+            : [].concat(channel.linearProducts ?? []);
+          const isEntitled = linearProducts.some((id) =>
             entitlementIdSet.has(id),
           );
           if (isEntitled) {
@@ -7489,7 +7998,7 @@ class StbDevice {
               name: customChannel?.name || "Channel " + subscribedChIds[i],
               logicalChannelNumber:
                 10000 + this.platform.masterChannelList.length,
-              linearProducts: this.platform.entitlements.entitlements[0].id,
+              linearProducts: [this.platform.entitlements.entitlements[0].id],
             };
             newChannel.configuredName = newChannel.name;
             this.log(
@@ -7538,9 +8047,12 @@ class StbDevice {
           );
           channel = {
             id: "$KeyMacro" + (k + 1),
-            name: keyMacros[k].channelName,
+            name: cleanNameForHomeKit(
+              keyMacros[k].channelName,
+              "Key Macro " + (k + 1),
+            ),
             logicalChannelNumber: 20000 + i,
-            linearProducts: 0,
+            linearProducts: [],
             keyMacro: keyMacros[k].channelKeyMacro,
           };
         }
@@ -7569,6 +8081,12 @@ class StbDevice {
           channel.configuredName = channel.name;
         }
 
+        channel.name = cleanNameForHomeKit(channel.name, "Channel " + chNum);
+        channel.configuredName = cleanNameForHomeKit(
+          channel.configuredName || channel.name,
+          channel.name,
+        );
+
         // add channel visibilitystate, doesn't exist on the master channel list
         // TODO these should be read from file...
         channel.visibilityState = Characteristic.CurrentVisibilityState.SHOWN;
@@ -7596,20 +8114,29 @@ class StbDevice {
               i,
             );
           }
-          this.inputSourceServices[i].name = channel.configuredName;
+          const inputFixedName = cleanNameForHomeKit(
+            channel.name,
+            `Input ${chNum}`,
+          );
+          const inputConfiguredName = cleanNameForHomeKit(
+            channel.configuredName || channel.name,
+            inputFixedName,
+          );
+
+          this.inputSourceServices[i].name = inputConfiguredName;
           this.inputSourceServices[i].subtype = "input_" + channel.id; // string, input_SV09038 etc
 
           // Name can only be set for SharedProfile where order can never be changed
           if (this.profileId === 0) {
             this.inputSourceServices[i].updateCharacteristic(
               Characteristic.Name,
-              channel.name,
+              inputFixedName,
             ); // stays unchanged at Input 01 etc
           }
           this.inputSourceServices[i]
             .updateCharacteristic(
               Characteristic.ConfiguredName,
-              channel.configuredName,
+              inputConfiguredName,
             )
             .updateCharacteristic(
               Characteristic.CurrentVisibilityState,
@@ -7659,7 +8186,7 @@ class StbDevice {
           id: "hiddenChId_" + i, // channelid must be unique string, must be different from standard channel ids
           name: hiddenName,
           logicalChannelNumber: null,
-          linearProducts: null,
+          linearProducts: [],
           configuredName: hiddenName,
           visibilityState: Characteristic.CurrentVisibilityState.HIDDEN,
         };
@@ -8164,8 +8691,11 @@ class StbDevice {
     // If getInputName reads from this.channelList[i] and the list isn't fully populated yet when Eve first polls, it returns empty.
     // So ensure a fallback to a non-blank name exists
     const channel = this.channelList[inputId];
-    const inputName =
-      channel?.name || `Input ${String(inputId + 1).padStart(2, "0")}`;
+    const fallback = `Input ${String(inputId + 1).padStart(2, "0")}`;
+    const inputName = cleanNameForHomeKit(
+      channel?.configuredName || channel?.name,
+      fallback,
+    );
 
     if (this.debugLevel > 1) {
       this.log.warn(

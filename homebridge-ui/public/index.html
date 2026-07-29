@@ -1,0 +1,435 @@
+<style>
+  .eosstb-auth-panel {
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .eosstb-auth-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .eosstb-auth-url {
+    min-height: 88px;
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
+  }
+
+  .eosstb-auth-muted {
+    color: var(--bs-secondary-color, #6c757d);
+  }
+
+  .eosstb-hidden-field {
+    display: none !important;
+  }
+</style>
+
+<div id="gb-auth-panel" class="eosstb-auth-panel d-none">
+  <h4 class="mb-2">Virgin Media GB Login</h4>
+  <p class="eosstb-auth-muted mb-3">
+    Use this once to pair Virgin TV Go with Homebridge. The login opens in your
+    browser so passkeys, magic links, and "try another way" can work normally.
+  </p>
+
+  <div id="gb-auth-status" class="alert alert-secondary mb-3">
+    Checking pairing status...
+  </div>
+
+  <div class="eosstb-auth-actions">
+    <button id="gb-auth-start" type="button" class="btn btn-primary">
+      Start Virgin Media Login
+    </button>
+    <button id="gb-auth-clear" type="button" class="btn btn-outline-danger">
+      Clear Saved Login
+    </button>
+  </div>
+
+  <div id="gb-auth-link-wrap" class="mt-3 d-none">
+    <label for="gb-auth-final-url" class="form-label">
+      Final login_success URL
+    </label>
+    <textarea
+      id="gb-auth-final-url"
+      class="form-control eosstb-auth-url"
+      spellcheck="false"
+      placeholder="Paste the full https://virgintvgo.virginmedia.com/sso/login_success.html?... URL here"
+    ></textarea>
+    <div class="eosstb-auth-actions">
+      <button id="gb-auth-exchange" type="button" class="btn btn-success">
+        Save Virgin Media Session
+      </button>
+      <button id="gb-auth-copy" type="button" class="btn btn-outline-secondary">
+        Copy Login Link
+      </button>
+    </div>
+    <p class="eosstb-auth-muted mt-2 mb-0">
+      After login, copy the browser address bar from the Virgin TV Go success
+      page and paste it above.
+    </p>
+  </div>
+</div>
+
+<script>
+  (() => {
+    const GB_LOGIN_SUCCESS_ORIGIN = "https://virgintvgo.virginmedia.com";
+    const GB_LOGIN_SUCCESS_URL =
+      `${GB_LOGIN_SUCCESS_ORIGIN}/sso/login_success.html`;
+    const SAVE_REQUIRED_MESSAGE =
+      "Press Save before restarting Homebridge or the child bridge.";
+
+    let currentAuthorizationUri = null;
+    let exchangeInProgress = false;
+    let currentConfig = {
+      platform: "eosstb",
+      name: "EOSSTB",
+    };
+    let currentPairingStatus = null;
+    let applyingGbPairingConfig = false;
+    let configNeedsSave = false;
+    let userEditedConfigForm = false;
+    let configForm = null;
+
+    const authPanel = document.getElementById("gb-auth-panel");
+    const statusEl = document.getElementById("gb-auth-status");
+    const startButton = document.getElementById("gb-auth-start");
+    const clearButton = document.getElementById("gb-auth-clear");
+    const exchangeButton = document.getElementById("gb-auth-exchange");
+    const copyButton = document.getElementById("gb-auth-copy");
+    const finalUrlEl = document.getElementById("gb-auth-final-url");
+    const linkWrap = document.getElementById("gb-auth-link-wrap");
+
+    function setStatus(status) {
+      const paired = Boolean(status && status.paired);
+      statusEl.className =
+        paired && !configNeedsSave
+          ? "alert alert-success mb-3"
+          : "alert alert-warning mb-3";
+
+      if (paired) {
+        const parts = [
+          "Virgin Media GB is paired.",
+          status.householdId ? `Household: ${status.householdId}.` : "",
+          status.updatedAt ? `Updated: ${new Date(status.updatedAt).toLocaleString()}.` : "",
+          configNeedsSave ? SAVE_REQUIRED_MESSAGE : "",
+        ].filter(Boolean);
+        statusEl.textContent = parts.join(" ");
+      } else {
+        statusEl.textContent =
+          "Virgin Media GB is not paired. Start login and complete it in the new tab. Homebridge should save the session automatically.";
+      }
+    }
+
+    function shouldShowGbAuthPanel(config) {
+      return (
+        String(config?.country || readCountryFromForm() || "").toLowerCase() ===
+        "gb"
+      );
+    }
+
+    function updateGbAuthVisibility() {
+      const isGb = shouldShowGbAuthPanel(currentConfig);
+      authPanel.classList.toggle("d-none", !isGb);
+      updateGbCredentialFields(isGb);
+    }
+
+    function findSchemaInput(name) {
+      const selectors = [
+        `[name="${name}"]`,
+        `[id$="/${name}"]`,
+        `[id$="-${name}"]`,
+        `[data-schemaid="${name}"]`,
+        `[data-schemapath$=".${name}"]`,
+      ];
+      const field = document.querySelector(selectors.join(","));
+      if (!field) return null;
+      if (field.matches("input, select, textarea")) return field;
+      return field.querySelector("select, input, textarea");
+    }
+
+    function findSchemaField(name) {
+      const field = findSchemaInput(name);
+      if (!field) return null;
+
+      return (
+        field.closest(".form-group") ||
+        field.closest(".form-floating") ||
+        field.closest(".mb-3") ||
+        field.closest("[class*='col-']") ||
+        field.parentElement
+      );
+    }
+
+    function readCountryFromForm() {
+      if (configForm?.getValue) {
+        try {
+          return configForm.getValue()?.country || "";
+        } catch (error) {
+          // Fall through to the DOM lookup below. Some homebridge-ui versions
+          // expose setValue/onChange without getValue.
+        }
+      }
+
+      const countryField = findSchemaInput("country");
+      return countryField?.value || "";
+    }
+
+    function updateGbCredentialFields(isGb) {
+      ["username", "password"].forEach((name) => {
+        const wrapper = findSchemaField(name);
+        if (wrapper) wrapper.classList.toggle("eosstb-hidden-field", isGb);
+      });
+    }
+
+    function normalizeConfig(config) {
+      return {
+        platform: "eosstb",
+        name: "EOSSTB",
+        ...(config || {}),
+      };
+    }
+
+    function normalizePluginConfig(pluginConfig) {
+      return normalizeConfig(
+        Array.isArray(pluginConfig) ? pluginConfig[0] : pluginConfig,
+      );
+    }
+
+    function hasMeaningfulConfig(config) {
+      return Boolean(
+        config?.country ||
+          config?.authmethod ||
+          config?.username ||
+          config?.password ||
+          config?.devices?.length ||
+          config?.channels?.length,
+      );
+    }
+
+    async function syncPluginConfig(config, options = {}) {
+      currentConfig = normalizeConfig(config);
+      updateGbAuthVisibility();
+      if (!options.force && !hasMeaningfulConfig(currentConfig)) return;
+
+      await homebridge.updatePluginConfig([currentConfig]);
+      configNeedsSave = true;
+      if (currentPairingStatus) {
+        setStatus(currentPairingStatus);
+      }
+
+      if (
+        currentPairingStatus?.paired &&
+        shouldShowGbAuthPanel(currentConfig) &&
+        !applyingGbPairingConfig &&
+        (!currentConfig.username || currentConfig.authmethod !== "C")
+      ) {
+        await applyGbPairingConfig(currentPairingStatus);
+      }
+    }
+
+    function getGbUsername(status) {
+      if (currentConfig.username) return currentConfig.username;
+      if (status?.username) return status.username;
+      if (status?.householdId) return String(status.householdId).replace(/_gb$/, "");
+      return currentConfig.username || "";
+    }
+
+    async function applyGbPairingConfig(status) {
+      applyingGbPairingConfig = true;
+      const pairedConfig = {
+        ...currentConfig,
+        country: "gb",
+        authmethod: "C",
+        username: getGbUsername(status),
+      };
+
+      try {
+        await syncPluginConfig(pairedConfig, { force: true });
+        if (configForm?.setValue) {
+          configForm.setValue(currentConfig);
+        }
+        configNeedsSave = true;
+        setStatus(status);
+      } finally {
+        applyingGbPairingConfig = false;
+      }
+    }
+
+    async function refreshStatus() {
+      try {
+        currentPairingStatus = await homebridge.request("/gb-auth/status");
+        setStatus(currentPairingStatus);
+        if (
+          currentPairingStatus.paired &&
+          (!currentConfig.country ||
+            shouldShowGbAuthPanel(currentConfig)) &&
+          (!currentConfig.country ||
+            !currentConfig.username ||
+            currentConfig.authmethod !== "C")
+        ) {
+          await applyGbPairingConfig(currentPairingStatus);
+        } else {
+          configNeedsSave = false;
+          setStatus(currentPairingStatus);
+        }
+      } catch (error) {
+        statusEl.className = "alert alert-danger mb-3";
+        statusEl.textContent = error.message || String(error);
+      }
+    }
+
+    async function startLogin() {
+      const popup = window.open("about:blank", "_blank");
+
+      try {
+        homebridge.showSpinner();
+        const response = await homebridge.request("/gb-auth/start");
+        currentAuthorizationUri = response.authorizationUri;
+        linkWrap.classList.remove("d-none");
+        finalUrlEl.value = "";
+
+        if (popup) {
+          popup.location.href = currentAuthorizationUri;
+        }
+
+        homebridge.toast.info(
+          "Complete the Virgin Media login in the new tab. If automatic pairing does not complete, paste the final URL here.",
+          "Virgin Media Login",
+        );
+      } catch (error) {
+        if (popup) popup.close();
+        homebridge.toast.error(error.message || String(error), "Virgin Media Login");
+      } finally {
+        homebridge.hideSpinner();
+      }
+    }
+
+    async function exchangeFinalUrl(finalUrl, automatic) {
+      if (exchangeInProgress) return;
+      exchangeInProgress = true;
+
+      try {
+        homebridge.showSpinner();
+        const status = await homebridge.request("/gb-auth/exchange", {
+          finalUrl,
+        });
+        currentPairingStatus = status;
+        finalUrlEl.value = "";
+        linkWrap.classList.add("d-none");
+        setStatus(status);
+        await applyGbPairingConfig(status);
+        homebridge.toast.warning(
+          `Virgin Media session saved. ${SAVE_REQUIRED_MESSAGE}`,
+          "Virgin Media Login",
+        );
+      } catch (error) {
+        if (automatic) {
+          finalUrlEl.value = finalUrl;
+          linkWrap.classList.remove("d-none");
+        }
+        homebridge.toast.error(error.message || String(error), "Virgin Media Login");
+      } finally {
+        exchangeInProgress = false;
+        homebridge.hideSpinner();
+      }
+    }
+
+    async function exchangeCode() {
+      await exchangeFinalUrl(finalUrlEl.value, false);
+    }
+
+    function handleLoginMessage(event) {
+      if (event.origin !== GB_LOGIN_SUCCESS_ORIGIN) return;
+
+      const data = event.data || {};
+      if (data.type !== "AUTHORIZATION_CODE" || typeof data.search !== "string") {
+        return;
+      }
+
+      exchangeFinalUrl(`${GB_LOGIN_SUCCESS_URL}${data.search}`, true);
+    }
+
+    async function clearLogin() {
+      try {
+        homebridge.showSpinner();
+        currentPairingStatus = await homebridge.request("/gb-auth/clear");
+        setStatus(currentPairingStatus);
+        homebridge.toast.success("Saved Virgin Media login cleared.", "EOSSTB");
+      } catch (error) {
+        homebridge.toast.error(error.message || String(error), "EOSSTB");
+      } finally {
+        homebridge.hideSpinner();
+      }
+    }
+
+    async function copyLoginLink() {
+      if (!currentAuthorizationUri) {
+        homebridge.toast.warning("Start a Virgin Media login first.", "EOSSTB");
+        return;
+      }
+      await navigator.clipboard.writeText(currentAuthorizationUri);
+      homebridge.toast.success("Login link copied.", "EOSSTB");
+    }
+
+    async function showPluginConfigForm() {
+      const schema = await homebridge.getPluginConfigSchema();
+      const pluginConfig = await homebridge.getPluginConfig();
+      currentConfig = normalizePluginConfig(pluginConfig);
+
+      configForm = homebridge.createForm(
+        {
+          schema: schema.schema,
+          layout: schema.layout || null,
+          form: schema.form || null,
+        },
+        currentConfig,
+      );
+
+      setTimeout(updateGbAuthVisibility, 0);
+
+      ["click", "input", "change", "keyup"].forEach((eventName) => {
+        document.addEventListener(
+          eventName,
+          (event) => {
+            if (!authPanel.contains(event.target)) {
+              userEditedConfigForm = true;
+              setTimeout(updateGbAuthVisibility, 0);
+            }
+          },
+          true,
+        );
+      });
+
+      configForm.onChange((config) => {
+        currentConfig = normalizeConfig({
+          ...currentConfig,
+          ...config,
+        });
+        updateGbAuthVisibility();
+
+        if (!userEditedConfigForm && !applyingGbPairingConfig) return;
+        syncPluginConfig(currentConfig).catch((error) => {
+          homebridge.toast.error(
+            error.message || String(error),
+            "EOSSTB Config",
+          );
+        });
+      });
+    }
+
+    homebridge.addEventListener("ready", async () => {
+      await showPluginConfigForm();
+      await refreshStatus();
+
+      startButton.addEventListener("click", startLogin);
+      exchangeButton.addEventListener("click", exchangeCode);
+      clearButton.addEventListener("click", clearLogin);
+      copyButton.addEventListener("click", copyLoginLink);
+      window.addEventListener("message", handleLoginMessage);
+    });
+  })();
+</script>
